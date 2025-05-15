@@ -1,0 +1,12 @@
+D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Core\bin\Debug\net8.0\OrgHub.Core.deps.json
+D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Core\bin\Debug\net8.0\OrgHub.Core.dll
+D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Core\bin\Debug\net8.0\OrgHub.Core.pdb
+D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Core\obj\Debug\net8.0\OrgHub.Core.GeneratedMSBuildEditorConfig.editorconfig
+D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Core\obj\Debug\net8.0\OrgHub.Core.AssemblyInfoInputs.cache
+D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Core\obj\Debug\net8.0\OrgHub.Core.AssemblyInfo.cs
+D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Core\obj\Debug\net8.0\OrgHub.Core.csproj.CoreCompileInputs.cache
+D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Core\obj\Debug\net8.0\OrgHub.Core.sourcelink.json
+D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Core\obj\Debug\net8.0\OrgHub.Core.dll
+D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Core\obj\Debug\net8.0\refint\OrgHub.Core.dll
+D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Core\obj\Debug\net8.0\OrgHub.Core.pdb
+D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Core\obj\Debug\net8.0\ref\OrgHub.Core.dll
