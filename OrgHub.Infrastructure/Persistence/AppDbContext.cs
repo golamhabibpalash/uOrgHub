@@ -20,7 +20,7 @@ namespace OrgHub.Infrastructure.Persistence
             modelBuilder.Entity<Employee>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                entity.Property(e => e.EmployeeCode).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.EmployeeId).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
             });
         }

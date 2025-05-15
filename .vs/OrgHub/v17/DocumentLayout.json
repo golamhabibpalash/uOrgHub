@@ -3,32 +3,16 @@
   "WorkspaceRootPath": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{9AF3E3C5-6F48-49AE-9457-5630B88C88BE}|OrgHub.Api\\OrgHub.Api.csproj|d:\\banglalink\\docs\\personal\\myprojects\\orghub\\orghub.api\\controllers\\employeescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{9AF3E3C5-6F48-49AE-9457-5630B88C88BE}|OrgHub.Api\\OrgHub.Api.csproj|solutionrelative:orghub.api\\controllers\\employeescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{5BC3A743-AA14-45CD-82DA-AC977B896C93}|OrgHub.Application\\OrgHub.Application.csproj|d:\\banglalink\\docs\\personal\\myprojects\\orghub\\orghub.application\\features\\employees\\commands\\getallemployeecommand.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{5BC3A743-AA14-45CD-82DA-AC977B896C93}|OrgHub.Application\\OrgHub.Application.csproj|solutionrelative:orghub.application\\features\\employees\\commands\\getallemployeecommand.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{9AF3E3C5-6F48-49AE-9457-5630B88C88BE}|OrgHub.Api\\OrgHub.Api.csproj|d:\\banglalink\\docs\\personal\\myprojects\\orghub\\orghub.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{9AF3E3C5-6F48-49AE-9457-5630B88C88BE}|OrgHub.Api\\OrgHub.Api.csproj|solutionrelative:orghub.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{9AF3E3C5-6F48-49AE-9457-5630B88C88BE}|OrgHub.Api\\OrgHub.Api.csproj|d:\\banglalink\\docs\\personal\\myprojects\\orghub\\orghub.api\\orghub.api.csproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|",
-      "RelativeMoniker": "D:0:0:{9AF3E3C5-6F48-49AE-9457-5630B88C88BE}|OrgHub.Api\\OrgHub.Api.csproj|solutionrelative:orghub.api\\orghub.api.csproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{5BC3A743-AA14-45CD-82DA-AC977B896C93}|OrgHub.Application\\OrgHub.Application.csproj|d:\\banglalink\\docs\\personal\\myprojects\\orghub\\orghub.application\\features\\employees\\models\\employeedto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{5BC3A743-AA14-45CD-82DA-AC977B896C93}|OrgHub.Application\\OrgHub.Application.csproj|solutionrelative:orghub.application\\features\\employees\\models\\employeedto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{F330A1CE-636F-45D3-98A5-CBEA7712BB7F}|OrgHub.Domain\\OrgHub.Domain.csproj|d:\\banglalink\\docs\\personal\\myprojects\\orghub\\orghub.domain\\entities\\employee.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{F330A1CE-636F-45D3-98A5-CBEA7712BB7F}|OrgHub.Domain\\OrgHub.Domain.csproj|solutionrelative:orghub.domain\\entities\\employee.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{5BC3A743-AA14-45CD-82DA-AC977B896C93}|OrgHub.Application\\OrgHub.Application.csproj|d:\\banglalink\\docs\\personal\\myprojects\\orghub\\orghub.application\\features\\employees\\handlers\\createemployeehandler.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{5BC3A743-AA14-45CD-82DA-AC977B896C93}|OrgHub.Application\\OrgHub.Application.csproj|solutionrelative:orghub.application\\features\\employees\\handlers\\createemployeehandler.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9AF3E3C5-6F48-49AE-9457-5630B88C88BE}|OrgHub.Api\\OrgHub.Api.csproj|d:\\banglalink\\docs\\personal\\myprojects\\orghub\\orghub.api\\controllers\\employeescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9AF3E3C5-6F48-49AE-9457-5630B88C88BE}|OrgHub.Api\\OrgHub.Api.csproj|solutionrelative:orghub.api\\controllers\\employeescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{27E061DF-2BDC-45EB-AF5A-470F6F3A2D22}|OrgHub.Infrastructure\\OrgHub.Infrastructure.csproj|d:\\banglalink\\docs\\personal\\myprojects\\orghub\\orghub.infrastructure\\dependencyinjection.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -46,7 +30,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 3,
+          "SelectedChildIndex": 5,
           "Children": [
             {
               "$type": "Bookmark",
@@ -58,110 +42,33 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "GetAllEmployeeCommand.cs",
-              "DocumentMoniker": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Application\\Features\\Employees\\Commands\\GetAllEmployeeCommand.cs",
-              "RelativeDocumentMoniker": "OrgHub.Application\\Features\\Employees\\Commands\\GetAllEmployeeCommand.cs",
-              "ToolTip": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Application\\Features\\Employees\\Commands\\GetAllEmployeeCommand.cs",
-              "RelativeToolTip": "OrgHub.Application\\Features\\Employees\\Commands\\GetAllEmployeeCommand.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAqwAYAAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-15T13:05:05.757Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 2,
               "Title": "EmployeesController.cs",
               "DocumentMoniker": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Api\\Controllers\\EmployeesController.cs",
               "RelativeDocumentMoniker": "OrgHub.Api\\Controllers\\EmployeesController.cs",
               "ToolTip": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Api\\Controllers\\EmployeesController.cs",
               "RelativeToolTip": "OrgHub.Api\\Controllers\\EmployeesController.cs",
-              "ViewState": "AgIAAAYAAAAAAAAAAAAIwBwAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABwAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-05-15T12:47:47.285Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "Program.cs",
-              "DocumentMoniker": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Api\\Program.cs",
-              "RelativeDocumentMoniker": "OrgHub.Api\\Program.cs",
-              "ToolTip": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Api\\Program.cs",
-              "RelativeToolTip": "OrgHub.Api\\Program.cs",
-              "ViewState": "AgIAAA8AAAAAAAAAAAAAAEwAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-15T12:33:28.257Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "OrgHub.Api",
-              "DocumentMoniker": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Api\\OrgHub.Api.csproj",
-              "RelativeDocumentMoniker": "OrgHub.Api\\OrgHub.Api.csproj",
-              "ToolTip": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Api\\OrgHub.Api.csproj",
-              "RelativeToolTip": "OrgHub.Api\\OrgHub.Api.csproj",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2025-05-15T13:17:10.406Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "EmployeeDto.cs",
-              "DocumentMoniker": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Application\\Features\\Employees\\Models\\EmployeeDto.cs",
-              "RelativeDocumentMoniker": "OrgHub.Application\\Features\\Employees\\Models\\EmployeeDto.cs",
-              "ToolTip": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Application\\Features\\Employees\\Models\\EmployeeDto.cs",
-              "RelativeToolTip": "OrgHub.Application\\Features\\Employees\\Models\\EmployeeDto.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAqwAkAAAAuAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-15T13:03:44.671Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 5,
-              "Title": "Employee.cs",
-              "DocumentMoniker": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Domain\\Entities\\Employee.cs",
-              "RelativeDocumentMoniker": "OrgHub.Domain\\Entities\\Employee.cs",
-              "ToolTip": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Domain\\Entities\\Employee.cs",
-              "RelativeToolTip": "OrgHub.Domain\\Entities\\Employee.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAA4AAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-15T13:04:28.227Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 1,
               "Title": "CreateEmployeeHandler.cs",
               "DocumentMoniker": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Application\\Features\\Employees\\Handlers\\CreateEmployeeHandler.cs",
               "RelativeDocumentMoniker": "OrgHub.Application\\Features\\Employees\\Handlers\\CreateEmployeeHandler.cs",
               "ToolTip": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Application\\Features\\Employees\\Handlers\\CreateEmployeeHandler.cs",
               "RelativeToolTip": "OrgHub.Application\\Features\\Employees\\Handlers\\CreateEmployeeHandler.cs",
-              "ViewState": "AgIAAAgAAAAAAAAAAAAQwAoAAAAmAAAAAAAAAA==",
+              "ViewState": "AgIAAAMAAAAAAAAAAAAqwBAAAAAhAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-05-15T12:58:25.416Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
-              "Title": "DependencyInjection.cs",
-              "DocumentMoniker": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Infrastructure\\DependencyInjection.cs",
-              "RelativeDocumentMoniker": "OrgHub.Infrastructure\\DependencyInjection.cs",
-              "ToolTip": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Infrastructure\\DependencyInjection.cs",
-              "RelativeToolTip": "OrgHub.Infrastructure\\DependencyInjection.cs",
-              "ViewState": "AgIAAAYAAAAAAAAAAAAAAAgAAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-15T12:29:29.019Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 4,
               "Title": "EmployeeRepository.cs",
               "DocumentMoniker": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Infrastructure\\Repositories\\EmployeeRepository.cs",
               "RelativeDocumentMoniker": "OrgHub.Infrastructure\\Repositories\\EmployeeRepository.cs",
@@ -169,8 +76,32 @@
               "RelativeToolTip": "OrgHub.Infrastructure\\Repositories\\EmployeeRepository.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAJAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-15T12:14:41.246Z",
+              "WhenOpened": "2025-05-15T12:14:41.246Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Employee.cs",
+              "DocumentMoniker": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Domain\\Entities\\Employee.cs",
+              "RelativeDocumentMoniker": "OrgHub.Domain\\Entities\\Employee.cs",
+              "ToolTip": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Domain\\Entities\\Employee.cs",
+              "RelativeToolTip": "OrgHub.Domain\\Entities\\Employee.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAApAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-15T14:13:53.83Z",
               "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "DependencyInjection.cs",
+              "DocumentMoniker": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Infrastructure\\DependencyInjection.cs",
+              "RelativeDocumentMoniker": "OrgHub.Infrastructure\\DependencyInjection.cs",
+              "ToolTip": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Infrastructure\\DependencyInjection.cs",
+              "RelativeToolTip": "OrgHub.Infrastructure\\DependencyInjection.cs",
+              "ViewState": "AgIAAAYAAAAAAAAAAAAAAAgAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-15T12:29:29.019Z"
             }
           ]
         },

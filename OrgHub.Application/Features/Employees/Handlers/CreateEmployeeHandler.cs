@@ -10,7 +10,6 @@ public class CreateEmployeeHandler : IRequestHandler<CreateEmployeeCommand, Empl
     {
         var employee = new EmployeeDto
         {
-            Id = Guid.NewGuid(),
             EmployeeCode = Guid.NewGuid().ToString(),
             Name = request.Name,
             Designation = request.Designation,

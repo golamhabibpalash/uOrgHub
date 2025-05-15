@@ -18,3 +18,5 @@ D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Infrastructure\obj\Debug\ne
 D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Infrastructure\obj\Debug\net8.0\refint\OrgHub.Infrastructure.dll
 D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Infrastructure\obj\Debug\net8.0\OrgHub.Infrastructure.pdb
 D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Infrastructure\obj\Debug\net8.0\ref\OrgHub.Infrastructure.dll
+D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Infrastructure\bin\Debug\net8.0\OrgHub.Infrastructure.runtimeconfig.json
+D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Infrastructure\obj\Debug\net8.0\OrgHub.Infrastructure.genruntimeconfig.cache
