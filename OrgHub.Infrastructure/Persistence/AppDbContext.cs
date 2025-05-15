@@ -1,0 +1,28 @@
+using Microsoft.EntityFrameworkCore;
+using OrgHub.Domain.Entities;
+
+namespace OrgHub.Infrastructure.Persistence
+{
+    public class AppDbContext : DbContext
+    {
+        public AppDbContext(DbContextOptions<AppDbContext> options)
+            : base(options)
+        {
+        }
+
+        public DbSet<Employee> Employees { get; set; }
+
+        // Optional: override OnModelCreating if you use Fluent API
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Employee>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.EmployeeCode).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            });
+        }
+    }
+}

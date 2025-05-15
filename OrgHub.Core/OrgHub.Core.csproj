@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\OrgHub.Domain\OrgHub.Domain.csproj" />
+  </ItemGroup>
+
 </Project>

@@ -4,26 +4,100 @@ using OrgHub.Application.Features.Employees.Commands;
 
 namespace OrgHub.Api.Controllers;
 
+
+/// <summary>
+/// This class is used to manage employees.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class EmployeesController : ControllerBase
 {
+    #region Fields
     private readonly IMediator _mediator;
+    #endregion
 
+    #region Ctor
+
+    /// <summary>
+    /// This constructor is used to initialize the EmployeesController class.
+    /// </summary>
     public EmployeesController(IMediator mediator)
     {
         _mediator = mediator;
     }
+    #endregion
 
-    [HttpGet]
-    public IActionResult Get()
+    #region Create
+
+    /// <summary>
+    /// This method is used to create an employee.
+    /// </summary>
+    [HttpGet("create")]
+    public IActionResult Create()
     {
         return Ok("OrgHub API is working ✅");
     }
 
+
+    /// <summary>
+    /// This method is used to create an employee Post.
+    /// </summary>
+    [HttpPost]
     public async Task<ActionResult> Create([FromBody] CreateEmployeeCommand command)
     {
         var result = await _mediator.Send(command);
         return Ok(result);
     }
+    #endregion
+
+    #region Read
+
+    /// <summary>
+    /// This method is used to get an employee.
+    /// </summary>
+    [HttpGet("get")]
+    public IActionResult Get()
+    {
+        return Ok("OrgHub API is working ✅");
+    }
+
+
+    /// <summary>
+    /// This method is used to get all employees Post.
+    /// </summary>
+    [HttpGet("get-all")]
+    public async Task<IActionResult> GetAll()
+    {
+        var result = await _mediator.Send(new GetAllEmployeesQuery());
+        return Ok(result);
+    }
+    #endregion
+
+    #region Update
+
+    /// <summary>
+    /// This method is used to update an employee.
+    /// </summary>
+    [HttpGet("update")]
+    public IActionResult Update()
+    {
+        return Ok("OrgHub API is working ✅");
+    }
+    #endregion
+
+    #region Delete
+    /// <summary>
+    /// This method is used to delete an employee.
+    /// </summary>
+    [HttpGet("delete")]
+    public IActionResult Delete()
+    {
+        return Ok("OrgHub API is working ✅");
+    }
+    #endregion
+
+    #region Locals
+
+    #endregion
+
 }

@@ -711,6 +711,9 @@
         }
       },
       "OrgHub.Core/1.0.0": {
+        "dependencies": {
+          "OrgHub.Domain": "1.0.0"
+        },
         "runtime": {
           "OrgHub.Core.dll": {
             "assemblyVersion": "1.0.0.0",
@@ -729,6 +732,7 @@
       "OrgHub.Infrastructure/1.0.0": {
         "dependencies": {
           "MediatR": "11.0.0",
+          "Microsoft.EntityFrameworkCore.SqlServer": "9.0.5",
           "OrgHub.Application": "1.0.0",
           "OrgHub.Domain": "1.0.0"
         },

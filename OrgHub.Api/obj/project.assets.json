@@ -1155,6 +1155,9 @@
       "OrgHub.Core/1.0.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v8.0",
+        "dependencies": {
+          "OrgHub.Domain": "1.0.0"
+        },
         "compile": {
           "bin/placeholder/OrgHub.Core.dll": {}
         },
@@ -1177,6 +1180,7 @@
         "framework": ".NETCoreApp,Version=v8.0",
         "dependencies": {
           "MediatR": "11.0.0",
+          "Microsoft.EntityFrameworkCore.SqlServer": "9.0.5",
           "OrgHub.Application": "1.0.0",
           "OrgHub.Domain": "1.0.0"
         },

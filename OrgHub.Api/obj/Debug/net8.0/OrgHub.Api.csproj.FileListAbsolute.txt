@@ -96,3 +96,5 @@ D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Api\obj\Debug\net8.0\refint
 D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Api\obj\Debug\net8.0\OrgHub.Api.pdb
 D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Api\obj\Debug\net8.0\OrgHub.Api.genruntimeconfig.cache
 D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Api\obj\Debug\net8.0\ref\OrgHub.Api.dll
+D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Api\bin\Debug\net8.0\OrgHub.Api.xml
+D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Api\obj\Debug\net8.0\OrgHub.Api.xml

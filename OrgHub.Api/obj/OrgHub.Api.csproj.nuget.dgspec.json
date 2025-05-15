@@ -201,7 +201,11 @@
         "frameworks": {
           "net8.0": {
             "targetAlias": "net8.0",
-            "projectReferences": {}
+            "projectReferences": {
+              "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Domain\\OrgHub.Domain.csproj": {
+                "projectPath": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Domain\\OrgHub.Domain.csproj"
+              }
+            }
           }
         },
         "warningProperties": {
@@ -360,6 +364,10 @@
             "MediatR": {
               "target": "Package",
               "version": "[11.0.0, )"
+            },
+            "Microsoft.EntityFrameworkCore.SqlServer": {
+              "target": "Package",
+              "version": "[9.0.5, )"
             }
           },
           "imports": [

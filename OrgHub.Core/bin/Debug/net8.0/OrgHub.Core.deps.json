@@ -7,14 +7,30 @@
   "targets": {
     ".NETCoreApp,Version=v8.0": {
       "OrgHub.Core/1.0.0": {
+        "dependencies": {
+          "OrgHub.Domain": "1.0.0"
+        },
         "runtime": {
           "OrgHub.Core.dll": {}
+        }
+      },
+      "OrgHub.Domain/1.0.0": {
+        "runtime": {
+          "OrgHub.Domain.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
         }
       }
     }
   },
   "libraries": {
     "OrgHub.Core/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "OrgHub.Domain/1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

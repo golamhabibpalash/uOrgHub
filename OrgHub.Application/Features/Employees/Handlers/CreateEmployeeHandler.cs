@@ -10,10 +10,13 @@ public class CreateEmployeeHandler : IRequestHandler<CreateEmployeeCommand, Empl
     {
         var employee = new EmployeeDto
         {
-            Id = new Random().Next(1, 1000),
-            FullName = request.FullName,
-            Department = request.Department
-        };
+            Id = Guid.NewGuid(),
+            EmployeeCode = Guid.NewGuid().ToString(),
+            Name = request.Name,
+            Designation = request.Designation,
+            Phone = request.Phone,
+            Email = request.Email
+};
 
         return await Task.FromResult(employee);
     }

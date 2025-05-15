@@ -57,6 +57,9 @@
         }
       },
       "OrgHub.Core/1.0.0": {
+        "dependencies": {
+          "OrgHub.Domain": "1.0.0"
+        },
         "runtime": {
           "OrgHub.Core.dll": {
             "assemblyVersion": "1.0.0.0",
