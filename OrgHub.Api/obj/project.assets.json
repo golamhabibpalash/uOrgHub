@@ -5285,23 +5285,23 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\g.habib\\.nuget\\packages\\": {},
+    "C:\\Users\\golam\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Api\\OrgHub.Api.csproj",
+      "projectUniqueName": "D:\\Projects\\ERP\\OrgHub\\OrgHub.Api\\OrgHub.Api.csproj",
       "projectName": "OrgHub.Api",
-      "projectPath": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Api\\OrgHub.Api.csproj",
-      "packagesPath": "C:\\Users\\g.habib\\.nuget\\packages\\",
-      "outputPath": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Api\\obj\\",
+      "projectPath": "D:\\Projects\\ERP\\OrgHub\\OrgHub.Api\\OrgHub.Api.csproj",
+      "packagesPath": "C:\\Users\\golam\\.nuget\\packages\\",
+      "outputPath": "D:\\Projects\\ERP\\OrgHub\\OrgHub.Api\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\g.habib\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\golam\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -5316,14 +5316,14 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Application\\OrgHub.Application.csproj": {
-              "projectPath": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Application\\OrgHub.Application.csproj"
+            "D:\\Projects\\ERP\\OrgHub\\OrgHub.Application\\OrgHub.Application.csproj": {
+              "projectPath": "D:\\Projects\\ERP\\OrgHub\\OrgHub.Application\\OrgHub.Application.csproj"
             },
-            "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Infrastructure\\OrgHub.Infrastructure.csproj": {
-              "projectPath": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Infrastructure\\OrgHub.Infrastructure.csproj"
+            "D:\\Projects\\ERP\\OrgHub\\OrgHub.Infrastructure\\OrgHub.Infrastructure.csproj": {
+              "projectPath": "D:\\Projects\\ERP\\OrgHub\\OrgHub.Infrastructure\\OrgHub.Infrastructure.csproj"
             },
-            "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Persistence\\OrgHub.Persistence.csproj": {
-              "projectPath": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Persistence\\OrgHub.Persistence.csproj"
+            "D:\\Projects\\ERP\\OrgHub\\OrgHub.Persistence\\OrgHub.Persistence.csproj": {
+              "projectPath": "D:\\Projects\\ERP\\OrgHub\\OrgHub.Persistence\\OrgHub.Persistence.csproj"
             }
           }
         }
@@ -5338,7 +5338,7 @@
         "auditLevel": "low",
         "auditMode": "direct"
       },
-      "SdkAnalysisLevel": "9.0.300"
+      "SdkAnalysisLevel": "9.0.200"
     },
     "frameworks": {
       "net8.0": {
@@ -5378,7 +5378,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.300/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.203/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

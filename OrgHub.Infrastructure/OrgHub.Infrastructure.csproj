@@ -1,6 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <Compile Remove="Data\**" />
+    <Compile Remove="Indentity\**" />
+    <EmbeddedResource Remove="Data\**" />
+    <EmbeddedResource Remove="Indentity\**" />
+    <None Remove="Data\**" />
+    <None Remove="Indentity\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\OrgHub.Application\OrgHub.Application.csproj" />
     <ProjectReference Include="..\OrgHub.Domain\OrgHub.Domain.csproj" />
   </ItemGroup>
@@ -12,11 +21,6 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Data\" />
-    <Folder Include="Indentity\" />
   </ItemGroup>
 
   <PropertyGroup>

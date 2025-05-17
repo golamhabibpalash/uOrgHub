@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("OrgHub.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0b950b6aa244e506e9d98ea6126de162e02457cb")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+54d94a2b1b38d2c5bc515a016ecf697c7c6139a5")]
 [assembly: System.Reflection.AssemblyProductAttribute("OrgHub.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("OrgHub.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

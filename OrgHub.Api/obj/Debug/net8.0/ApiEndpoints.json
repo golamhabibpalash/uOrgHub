@@ -3,17 +3,7 @@
     "ContainingType": "OrgHub.Api.Controllers.EmployeesController",
     "Method": "Create",
     "RelativePath": "api/Employees",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "OrgHub.Api.Controllers.EmployeesController",
-    "Method": "Create",
-    "RelativePath": "api/Employees",
-    "HttpMethod": "",
+    "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
     "Parameters": [
@@ -27,28 +17,8 @@
   },
   {
     "ContainingType": "OrgHub.Api.Controllers.EmployeesController",
-    "Method": "Get",
-    "RelativePath": "api/Employees",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "OrgHub.Api.Controllers.EmployeesController",
-    "Method": "GetAll",
-    "RelativePath": "api/Employees",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "OrgHub.Api.Controllers.EmployeesController",
-    "Method": "Update",
-    "RelativePath": "api/Employees",
+    "Method": "Create",
+    "RelativePath": "api/Employees/create",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -58,7 +28,37 @@
   {
     "ContainingType": "OrgHub.Api.Controllers.EmployeesController",
     "Method": "Delete",
-    "RelativePath": "api/Employees",
+    "RelativePath": "api/Employees/delete",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "OrgHub.Api.Controllers.EmployeesController",
+    "Method": "Get",
+    "RelativePath": "api/Employees/get",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "OrgHub.Api.Controllers.EmployeesController",
+    "Method": "GetAll",
+    "RelativePath": "api/Employees/get-all",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "OrgHub.Api.Controllers.EmployeesController",
+    "Method": "Update",
+    "RelativePath": "api/Employees/update",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,

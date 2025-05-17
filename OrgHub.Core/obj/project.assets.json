@@ -27,23 +27,23 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\g.habib\\.nuget\\packages\\": {},
+    "C:\\Users\\golam\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Core\\OrgHub.Core.csproj",
+      "projectUniqueName": "D:\\Projects\\ERP\\OrgHub\\OrgHub.Core\\OrgHub.Core.csproj",
       "projectName": "OrgHub.Core",
-      "projectPath": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Core\\OrgHub.Core.csproj",
-      "packagesPath": "C:\\Users\\g.habib\\.nuget\\packages\\",
-      "outputPath": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Core\\obj\\",
+      "projectPath": "D:\\Projects\\ERP\\OrgHub\\OrgHub.Core\\OrgHub.Core.csproj",
+      "packagesPath": "C:\\Users\\golam\\.nuget\\packages\\",
+      "outputPath": "D:\\Projects\\ERP\\OrgHub\\OrgHub.Core\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\g.habib\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\golam\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -58,8 +58,8 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Domain\\OrgHub.Domain.csproj": {
-              "projectPath": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Domain\\OrgHub.Domain.csproj"
+            "D:\\Projects\\ERP\\OrgHub\\OrgHub.Domain\\OrgHub.Domain.csproj": {
+              "projectPath": "D:\\Projects\\ERP\\OrgHub\\OrgHub.Domain\\OrgHub.Domain.csproj"
             }
           }
         }
@@ -74,7 +74,7 @@
         "auditLevel": "low",
         "auditMode": "direct"
       },
-      "SdkAnalysisLevel": "9.0.300"
+      "SdkAnalysisLevel": "9.0.200"
     },
     "frameworks": {
       "net8.0": {
@@ -95,7 +95,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.300/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.203/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

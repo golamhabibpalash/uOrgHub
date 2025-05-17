@@ -1,0 +1,156 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "OrgHub API",
+    "description": "API documentation for OrgHub ERP system",
+    "contact": {
+      "name": "Support Team",
+      "email": "support@orghub.com"
+    },
+    "version": "v1"
+  },
+  "paths": {
+    "/api/Employees/create": {
+      "get": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "This method is used to create an employee.",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Employees": {
+      "post": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "This method is used to create an employee Post.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEmployeeCommand"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEmployeeCommand"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEmployeeCommand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Employees/get": {
+      "get": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "This method is used to get an employee.",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Employees/get-all": {
+      "get": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "This method is used to get all employees Post.",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Employees/update": {
+      "get": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "This method is used to update an employee.",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Employees/delete": {
+      "get": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "This method is used to delete an employee.",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CreateEmployeeCommand": {
+        "required": [
+          "designation",
+          "email",
+          "name",
+          "phone"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "designation": {
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "securitySchemes": {
+      "Bearer": {
+        "type": "http",
+        "description": "Enter 'Bearer' [space] and then your token",
+        "scheme": "Bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [
+    {
+      "Bearer": [ ]
+    }
+  ]
+}
