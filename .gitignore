@@ -23,6 +23,10 @@ x64/
 [Aa]pp[Bb]uild/
 [Oo]ut/
 
+# Ignore all bin and obj folders recursively
+**/[Bb]in/
+**/[Oo]bj/
+
 # Visual Studio Code files
 .vscode/
 
