@@ -17,7 +17,7 @@ namespace OrgHub.Infrastructure.Repositories
         public async Task<List<Employee>> GetAllAsync() =>
             await _context.Employees.ToListAsync();
 
-        public async Task<Employee?> GetByIdAsync(Guid id) =>
+        public async Task<Employee?> GetByIdAsync(int id) =>
             await _context.Employees.FindAsync(id);
 
         public async Task<Employee> AddAsync(Employee employee)
@@ -33,7 +33,7 @@ namespace OrgHub.Infrastructure.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task DeleteAsync(Guid id)
+        public async Task DeleteAsync(int id)
         {
             var emp = await _context.Employees.FindAsync(id);
             if (emp != null)

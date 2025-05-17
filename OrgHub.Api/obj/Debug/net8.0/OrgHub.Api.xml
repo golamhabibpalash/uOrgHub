@@ -24,9 +24,9 @@
             This method is used to create an employee Post.
             </summary>
         </member>
-        <member name="M:OrgHub.Api.Controllers.EmployeesController.Get">
+        <member name="M:OrgHub.Api.Controllers.EmployeesController.GetById(System.Int32)">
             <summary>
-            This method is used to get an employee.
+            This method is used to get an employee By Id.
             </summary>
         </member>
         <member name="M:OrgHub.Api.Controllers.EmployeesController.GetAll">

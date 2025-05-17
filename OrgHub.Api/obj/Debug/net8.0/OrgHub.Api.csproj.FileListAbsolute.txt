@@ -369,3 +369,4 @@ D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Api\obj\Debug\net8.0\OrgHub
 D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Api\obj\Debug\net8.0\OrgHub.Api.genruntimeconfig.cache
 D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Api\obj\Debug\net8.0\ref\OrgHub.Api.dll
 D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Api\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt
+D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Api\bin\Debug\net8.0\AutoMapper.Extensions.Microsoft.DependencyInjection.dll

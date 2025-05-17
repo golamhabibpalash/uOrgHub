@@ -1,5 +1,6 @@
 using MediatR;
 using OrgHub.Application.Features.Employees.Commands;
+using OrgHub.Application.Mapping;
 using OrgHub.Infrastructure.DependencyInjection;
 using System.Reflection;
 
@@ -58,6 +59,10 @@ builder.Services.AddSwaggerGen(options =>
 
 // Register MediatR
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<CreateEmployeeCommand>());
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<GetByIdCommand>());
+
+// Register AutoMapper
+builder.Services.AddAutoMapper(typeof(EmployeeProfile).Assembly);
 
 // Initiate DI
 builder.Services.AddInfrastructure(builder.Configuration);

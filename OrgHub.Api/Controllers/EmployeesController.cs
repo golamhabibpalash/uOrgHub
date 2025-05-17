@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using OrgHub.Application.Features.Employees.Commands;
+using OrgHub.Application.Features.Employees.Models;
 
 namespace OrgHub.Api.Controllers;
 
@@ -53,10 +54,19 @@ public class EmployeesController : ControllerBase
     #region Read
 
     /// <summary>
-    /// This method is used to get an employee.
+    /// This method is used to get an employee By Id.
     /// </summary>
-    [HttpGet("get")]
-    public IActionResult Get()
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<EmployeeDto>> GetById(int id)
+    {
+        var result = await _mediator.Send(new GetByIdCommand(id));
+        if (result == null)
+            return NotFound();
+        return Ok(result);
+    }
+
+    [HttpGet("getByInfo")]
+    public IActionResult GetByInfo()
     {
         return Ok("OrgHub API is working ✅");
     }
