@@ -17,6 +17,13 @@ namespace OrgHub.Infrastructure.Repositories
         public async Task<List<Employee>> GetAllAsync() =>
             await _context.Employees.ToListAsync();
 
+        public async Task<List<Employee>> GetAllByInfoAsync(string info) =>
+            await _context.Employees
+            .Where(s => s.Name.ToLower().Contains(info.ToLower()) 
+            || s.Designation.ToLower().Contains(info.ToLower()) 
+            || s.EmployeeCode.ToLower().Contains(info.ToLower()))
+            .ToListAsync();
+
         public async Task<Employee?> GetByIdAsync(int id) =>
             await _context.Employees.FindAsync(id);
 

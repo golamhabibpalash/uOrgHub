@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using OrgHub.Application.Features.Employees.Commands;
 using OrgHub.Application.Features.Employees.Models;
+using System.Threading.Tasks;
 
 namespace OrgHub.Api.Controllers;
 
@@ -29,17 +30,6 @@ public class EmployeesController : ControllerBase
     #endregion
 
     #region Create
-
-    /// <summary>
-    /// This method is used to create an employee.
-    /// </summary>
-    [HttpGet("create")]
-    public IActionResult Create()
-    {
-        return Ok("OrgHub API is working ✅");
-    }
-
-
     /// <summary>
     /// This method is used to create an employee Post.
     /// </summary>
@@ -69,9 +59,10 @@ public class EmployeesController : ControllerBase
     /// This method is used to get all employees Search by Name/Designation/Phone/Email etc
     /// </summary>
     [HttpGet("getByInfo")]
-    public IActionResult GetByInfo()
+    public async Task<IActionResult> GetByInfo(string info)
     {
-        return Ok("OrgHub API is working ✅");
+        var result =await _mediator.Send(new GetByInfoCommand(info));
+        return Ok(result);
     }
 
 
