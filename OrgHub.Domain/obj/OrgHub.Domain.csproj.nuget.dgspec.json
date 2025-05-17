@@ -1,23 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Projects\\ERP\\OrgHub\\OrgHub.Domain\\OrgHub.Domain.csproj": {}
+    "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Domain\\OrgHub.Domain.csproj": {}
   },
   "projects": {
-    "D:\\Projects\\ERP\\OrgHub\\OrgHub.Domain\\OrgHub.Domain.csproj": {
+    "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Domain\\OrgHub.Domain.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Projects\\ERP\\OrgHub\\OrgHub.Domain\\OrgHub.Domain.csproj",
+        "projectUniqueName": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Domain\\OrgHub.Domain.csproj",
         "projectName": "OrgHub.Domain",
-        "projectPath": "D:\\Projects\\ERP\\OrgHub\\OrgHub.Domain\\OrgHub.Domain.csproj",
-        "packagesPath": "C:\\Users\\golam\\.nuget\\packages\\",
-        "outputPath": "D:\\Projects\\ERP\\OrgHub\\OrgHub.Domain\\obj\\",
+        "projectPath": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Domain\\OrgHub.Domain.csproj",
+        "packagesPath": "C:\\Users\\g.habib\\.nuget\\packages\\",
+        "outputPath": "D:\\Banglalink\\Docs\\personal\\MyProjects\\OrgHub\\OrgHub.Domain\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\golam\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\g.habib\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -44,7 +44,7 @@
           "auditLevel": "low",
           "auditMode": "direct"
         },
-        "SdkAnalysisLevel": "9.0.200"
+        "SdkAnalysisLevel": "9.0.300"
       },
       "frameworks": {
         "net8.0": {
@@ -65,7 +65,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.203/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.300/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

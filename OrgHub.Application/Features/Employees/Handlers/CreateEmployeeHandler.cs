@@ -1,3 +1,4 @@
+using AutoMapper;
 using MediatR;
 using OrgHub.Application.Features.Employees.Commands;
 using OrgHub.Application.Features.Employees.Models;
@@ -18,7 +19,7 @@ public class CreateEmployeeHandler : IRequestHandler<CreateEmployeeCommand, Empl
     {
         var employee = new Employee
         {
-            EmployeeId = Guid.NewGuid().ToString(), // Generate unique EmployeeId
+            EmployeeCode = Guid.NewGuid().ToString(), // Generate unique EmployeeId
             Name = request.Name,
             Designation = request.Designation,
             Phone = request.Phone,
@@ -36,7 +37,7 @@ public class CreateEmployeeHandler : IRequestHandler<CreateEmployeeCommand, Empl
         var employeeDto = new EmployeeDto
         {
             Id = savedEmployee.Id,
-            EmployeeCode = savedEmployee.EmployeeId,
+            EmployeeCode = savedEmployee.EmployeeCode,
             Name = savedEmployee.Name,
             Designation = savedEmployee.Designation,
             Phone = savedEmployee.Phone,

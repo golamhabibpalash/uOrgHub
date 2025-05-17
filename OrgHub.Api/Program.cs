@@ -1,4 +1,5 @@
 using MediatR;
+using OrgHub.Application.Features.Employees.Commands;
 using OrgHub.Infrastructure.DependencyInjection;
 using System.Reflection;
 
@@ -56,7 +57,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 // Register MediatR
-builder.Services.AddMediatR(Assembly.Load("OrgHub.Application"));
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<CreateEmployeeCommand>());
 
 // Initiate DI
 builder.Services.AddInfrastructure(builder.Configuration);

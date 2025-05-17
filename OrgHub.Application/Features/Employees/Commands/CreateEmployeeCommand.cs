@@ -9,4 +9,5 @@ public class CreateEmployeeCommand : IRequest<EmployeeDto>
     public required string Designation { get; set; }
     public required string Phone { get; set; }
     public required string Email { get; set; }
+
 }

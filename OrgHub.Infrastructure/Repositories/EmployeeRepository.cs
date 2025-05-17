@@ -22,7 +22,7 @@ namespace OrgHub.Infrastructure.Repositories
 
         public async Task<Employee> AddAsync(Employee employee)
         {
-            _context.Employees.Add(employee);
+            await _context.Employees.AddAsync(employee);
             await _context.SaveChangesAsync();
             return employee;
         }

@@ -18,7 +18,7 @@ public class GetAllEmployeesHandler : IRequestHandler<GetAllEmployeesQuery, List
         {
             Id = e.Id,
             Name = e.Name,
-            EmployeeCode = e.EmployeeId,
+            EmployeeCode = e.EmployeeCode,
             Designation = e.Designation,
             Email = e.Email,
             Phone = e.Phone
