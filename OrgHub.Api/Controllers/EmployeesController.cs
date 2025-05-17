@@ -82,10 +82,11 @@ public class EmployeesController : ControllerBase
     /// <summary>
     /// This method is used to update an employee.
     /// </summary>
-    [HttpGet("update")]
-    public IActionResult Update()
+    [HttpPost("update")]
+    public IActionResult Update([FromBody] UpdateEmployeeCommand request)
     {
-        return Ok("OrgHub API is working ✅");
+        var result = _mediator.Send(request).Result;
+        return Ok(result);
     }
     #endregion
 
