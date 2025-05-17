@@ -94,10 +94,11 @@ public class EmployeesController : ControllerBase
     /// <summary>
     /// This method is used to delete an employee.
     /// </summary>
-    [HttpGet("delete")]
-    public IActionResult Delete()
+    [HttpPost("delete")]
+    public IActionResult Delete(int id)
     {
-        return Ok("OrgHub API is working ✅");
+        var result = _mediator.Send(new DeleteEmployeeCommand(id)).Result;
+        return Ok(result);
     }
     #endregion
 
