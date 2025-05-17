@@ -1,7 +1,7 @@
 ﻿using MediatR;
-using OrgHub.Application.Features.Equipment.DTOs;
+using OrgHub.Application.Features.Equipments.DTOs;
 
-namespace OrgHub.Application.Features.Equipment.CommandQuery;
+namespace OrgHub.Application.Features.Equipments.CommandQuery;
 
 public class GetEquipmentByIdQuery : IRequest<EquipmentDto>
 {

@@ -72,7 +72,7 @@ namespace OrgHub.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Employees");
+                    b.ToTable("Employees", (string)null);
                 });
 
             modelBuilder.Entity("OrgHub.Domain.Entities.Equipment", b =>
@@ -122,7 +122,7 @@ namespace OrgHub.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Equipments");
+                    b.ToTable("Equipments", (string)null);
                 });
 #pragma warning restore 612, 618
         }

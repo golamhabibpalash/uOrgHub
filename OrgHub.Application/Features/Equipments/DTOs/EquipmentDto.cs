@@ -1,4 +1,4 @@
-namespace OrgHub.Application.Features.Equipment.DTOs;
+namespace OrgHub.Application.Features.Equipments.DTOs;
 
 public class EquipmentDto
 {

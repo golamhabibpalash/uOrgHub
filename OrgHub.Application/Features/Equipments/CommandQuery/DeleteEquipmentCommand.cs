@@ -1,6 +1,6 @@
 ﻿using MediatR;
 
-namespace OrgHub.Application.Features.Equipment.CommandQuery;
+namespace OrgHub.Application.Features.Equipments.CommandQuery;
 public class DeleteEquipmentCommand : IRequest
 {
     public int Id { get; set; }

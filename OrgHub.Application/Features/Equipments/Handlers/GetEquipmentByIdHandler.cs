@@ -1,24 +1,25 @@
-﻿using AutoMapper;
-using MediatR;
-using OrgHub.Application.Features.Equipment.CommandQuery;
-using OrgHub.Application.Features.Equipment.DTOs;
-using OrgHub.Core.Interfaces;
+﻿using MediatR;
+using OrgHub.Application.Features.Equipments.CommandQuery;
+using OrgHub.Application.Features.Equipments.DTOs;
+using OrgHub.Application.Features.Equipments.Interfaces;
 
 namespace OrgHub.Application.Features.Equipments.Handlers;
 public class GetEquipmentByIdHandler : IRequestHandler<GetEquipmentByIdQuery, EquipmentDto>
 {
-    private readonly IEquipmentRepository _repository;
-    private readonly IMapper _mapper;
+    private readonly IEquipmentService _service;
 
-    public GetEquipmentByIdHandler(IEquipmentRepository repository, IMapper mapper)
+    public GetEquipmentByIdHandler(IEquipmentService service)
     {
-        _repository = repository;
-        _mapper = mapper;
+        _service = service;
     }
 
     public async Task<EquipmentDto> Handle(GetEquipmentByIdQuery request, CancellationToken cancellationToken)
     {
-        var equipment = await _repository.GetByIdAsync(request.Id);
-        return equipment == null ? null! : _mapper.Map<EquipmentDto>(equipment);
+        var equipment = await _service.GetByIdAsync(request.Id);
+        if (equipment == null)
+        {
+            throw new KeyNotFoundException($"Equipment with ID {request.Id} was not found.");
+        }
+        return equipment;
     }
 }

@@ -1,11 +1,8 @@
 using MediatR;
-using OrgHub.Application.Features.Equipment.DTOs;
+using OrgHub.Application.Features.Equipments.DTOs;
 
-namespace OrgHub.Application.Features.Equipment.CommandQuery;
+namespace OrgHub.Application.Features.Equipments.CommandQuery;
 public class CreateEquipmentCommand : IRequest<EquipmentDto>
 {
-    public string Name { get; set; } = default!;
-    public string Type { get; set; } = default!;
-    public string Status { get; set; } = default!;
-    public DateTime PurchaseDate { get; set; }
+    public EquipmentDto Equipment { get; set; } = default!;
 }

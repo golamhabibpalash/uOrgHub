@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
 using MediatR;
-using OrgHub.Application.Features.Equipment.DTOs;
 using OrgHub.Application.Features.Equipments.CommandQuery;
+using OrgHub.Application.Features.Equipments.DTOs;
 using OrgHub.Core.Interfaces;
 
 namespace OrgHub.Application.Features.Equipments.Handlers;

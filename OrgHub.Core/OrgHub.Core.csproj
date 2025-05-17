@@ -10,4 +10,8 @@
     <ProjectReference Include="..\OrgHub.Domain\OrgHub.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Services\" />
+  </ItemGroup>
+
 </Project>

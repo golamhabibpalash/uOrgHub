@@ -1,32 +1,26 @@
-using AutoMapper;
 using MediatR;
 using OrgHub.Application.Features.Employees.Commands;
 using OrgHub.Application.Features.Employees.DTOs;
-using OrgHub.Core.Interfaces;
+using OrgHub.Application.Features.Employees.Interfaces;
 
 namespace OrgHub.Application.Features.Employees.Handlers;
 
 public class DeleteEmployeeHandler : IRequestHandler<DeleteEmployeeCommand, EmployeeDto>
 {
-    private readonly IEmployeeRepository _employeeRepository;
-    private readonly IMapper _mapper;
-    public DeleteEmployeeHandler(IEmployeeRepository employeeRepository, IMapper mapper)
+    private readonly IEmployeeService _service;
+    public DeleteEmployeeHandler(IEmployeeService service)
     {
-        _employeeRepository = employeeRepository;
-        _mapper = mapper;
+        _service = service;
     }
+
     public async Task<EmployeeDto> Handle(DeleteEmployeeCommand request, CancellationToken cancellationToken)
     {
-        var employee = await _employeeRepository.GetByIdAsync(request.Id);
+        var employee = await _service.GetByIdAsync(request.Id);
         if (employee == null)
         {
-            return null; // or throw an exception if you prefer
+            return null;
         }
-        // Delete the employee from the repository
-        await _employeeRepository.DeleteAsync(request.Id);
-
-        // Map the deleted Employee entity to EmployeeDto
-        var employeeDto = _mapper.Map<EmployeeDto>(employee);
-        return employeeDto;
+        await _service.DeleteAsync(employee.Id);
+        return employee;
     }
 }

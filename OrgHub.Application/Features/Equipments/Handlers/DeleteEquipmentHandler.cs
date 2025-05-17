@@ -1,5 +1,5 @@
 ﻿using MediatR;
-using OrgHub.Application.Features.Equipment.CommandQuery;
+using OrgHub.Application.Features.Equipments.CommandQuery;
 using OrgHub.Core.Interfaces;
 
 namespace OrgHub.Application.Features.Equipments.Handlers;

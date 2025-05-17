@@ -1,31 +1,23 @@
-﻿using AutoMapper;
-using MediatR;
+﻿using MediatR;
 using OrgHub.Application.Features.Employees.Commands;
 using OrgHub.Application.Features.Employees.DTOs;
-using OrgHub.Core.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using OrgHub.Application.Features.Employees.Interfaces;
 
 namespace OrgHub.Application.Features.Employees.Handlers;
 
-public class GetByIdHandler: IRequestHandler<GetByIdCommand, EmployeeDto>
+public class GetByIdHandler : IRequestHandler<GetByIdCommand, EmployeeDto>
 {
-    private readonly IEmployeeRepository _employeeRepository;
-    private readonly IMapper _mapper;
-    public GetByIdHandler(IEmployeeRepository employeeRepository, IMapper mapper)
+    private readonly IEmployeeService _service;
+    public GetByIdHandler(IEmployeeService service)
     {
-        _employeeRepository = employeeRepository;
-        _mapper = mapper;
+        _service = service;
     }
     public async Task<EmployeeDto> Handle(GetByIdCommand request, CancellationToken cancellationToken)
     {
-        var employee = await _employeeRepository.GetByIdAsync(request.Id);
-        if (employee!=null)
+        var employee = await _service.GetByIdAsync(request.Id);
+        if (employee != null)
         {
-            return _mapper.Map<EmployeeDto>(employee);
+            return employee;
         }
 
         return null;
