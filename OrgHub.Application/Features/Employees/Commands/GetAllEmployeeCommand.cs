@@ -1,5 +1,5 @@
 using MediatR;
-using OrgHub.Application.Features.Employees.Models;
+using OrgHub.Application.Features.Employees.DTOs;
 
 namespace OrgHub.Application.Features.Employees.Commands;
 

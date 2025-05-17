@@ -1,7 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using OrgHub.Application.Features.Employees.Commands;
-using OrgHub.Application.Features.Employees.Models;
+using OrgHub.Application.Features.Employees.DTOs;
 using System.Threading.Tasks;
 
 namespace OrgHub.Api.Controllers;
@@ -82,8 +82,9 @@ public class EmployeesController : ControllerBase
     /// <summary>
     /// This method is used to update an employee.
     /// </summary>
-    [HttpPost("update")]
-    public IActionResult Update([FromBody] UpdateEmployeeCommand request)
+
+    [HttpPut("{id:int}")]
+    public IActionResult Update(int id,[FromBody] UpdateEmployeeCommand request)
     {
         var result = _mediator.Send(request).Result;
         return Ok(result);
@@ -94,7 +95,7 @@ public class EmployeesController : ControllerBase
     /// <summary>
     /// This method is used to delete an employee.
     /// </summary>
-    [HttpPost("delete")]
+    [HttpDelete("delete")]
     public IActionResult Delete(int id)
     {
         var result = _mediator.Send(new DeleteEmployeeCommand(id)).Result;

@@ -17,6 +17,7 @@ namespace OrgHub.Infrastructure.DependencyInjection
 
             // Register Repositories
             services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+            services.AddScoped<IEquipmentRepository, EquipmentRepository>();
 
             return services;
         }

@@ -1,4 +1,4 @@
-namespace OrgHub.Application.Features.Employees.Models;
+namespace OrgHub.Application.Features.Employees.DTOs;
 
 public class EmployeeDto
 {

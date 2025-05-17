@@ -11,6 +11,7 @@ namespace OrgHub.Infrastructure.Persistence
         }
 
         public DbSet<Employee> Employees { get; set; }
+        public DbSet<Equipment> Equipments { get; set; }
 
         // Optional: override OnModelCreating if you use Fluent API
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -29,6 +30,18 @@ namespace OrgHub.Infrastructure.Persistence
 
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
 
+            });
+
+            modelBuilder.Entity<Equipment>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                // identity / auto-increment
+                entity.Property(e => e.Id)
+                      .ValueGeneratedOnAdd();
+
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Type).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(50);
             });
         }
     }

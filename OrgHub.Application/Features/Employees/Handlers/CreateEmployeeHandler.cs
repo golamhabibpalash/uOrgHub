@@ -1,7 +1,7 @@
 using AutoMapper;
 using MediatR;
 using OrgHub.Application.Features.Employees.Commands;
-using OrgHub.Application.Features.Employees.Models;
+using OrgHub.Application.Features.Employees.DTOs;
 using OrgHub.Core.Interfaces;
 using OrgHub.Domain.Entities;
 

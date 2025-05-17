@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OrgHub.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using OrgHub.Infrastructure.Persistence;
 namespace OrgHub.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250517170350__EquipmentEntityAddedWithCRUDImplementation")]
+    partial class _EquipmentEntityAddedWithCRUDImplementation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -95,12 +98,6 @@ namespace OrgHub.Infrastructure.Migrations
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
-
-                    b.Property<DateTime?>("LastUpdateDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("LastUpdatedBy")
-                        .HasColumnType("int");
 
                     b.Property<string>("Name")
                         .IsRequired()
