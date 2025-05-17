@@ -3,6 +3,6 @@ using OrgHub.Application.Features.Employees.Models;
 
 namespace OrgHub.Application.Features.Employees.Commands;
 
-public class GetAllEmployeesQuery : IRequest<List<EmployeeDto>>
+public class GetAllEmployeesCommand : IRequest<List<EmployeeDto>>
 {
 }

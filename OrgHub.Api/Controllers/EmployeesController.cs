@@ -65,6 +65,9 @@ public class EmployeesController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// This method is used to get all employees Search by Name/Designation/Phone/Email etc
+    /// </summary>
     [HttpGet("getByInfo")]
     public IActionResult GetByInfo()
     {
@@ -78,7 +81,7 @@ public class EmployeesController : ControllerBase
     [HttpGet("get-all")]
     public async Task<IActionResult> GetAll()
     {
-        var result = await _mediator.Send(new GetAllEmployeesQuery());
+        var result = await _mediator.Send(new GetAllEmployeesCommand());
         return Ok(result);
     }
     #endregion
