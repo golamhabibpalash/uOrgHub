@@ -1,3 +1,4 @@
+using AutoMapper;
 using OrgHub.Application.Common.Services;
 using OrgHub.Application.Features.Equipments.DTOs;
 using OrgHub.Application.Features.Equipments.Interfaces;
@@ -9,10 +10,9 @@ namespace OrgHub.Application.Features.Equipments.Services;
 public class EquipmentService : Service<Equipment, EquipmentDto>, IEquipmentService
 {
     private readonly IRepository<Equipment> _repository;
-    private readonly Func<EquipmentDto, Equipment> _mapToEntity;
-    private readonly Func<Equipment, EquipmentDto> _mapToDto;
+    private readonly IMapper _mapper;
 
-    public EquipmentService(IRepository<Equipment> repository, Func<EquipmentDto, Equipment> mapToEntity, Func<Equipment, EquipmentDto> mapToDto) : base(repository, mapToEntity, mapToDto)
+    public EquipmentService(IRepository<Equipment> repository, IMapper mapper) : base(repository, mapper)
     {
     }
 

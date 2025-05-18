@@ -21,6 +21,8 @@ namespace OrgHub.Infrastructure.DependencyInjection
             services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
+            services.AddScoped<DbContext>(provider => provider.GetRequiredService<AppDbContext>());
+
             // Register Repositories
             services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
             services.AddScoped<IEmployeeRepository, EmployeeRepository>();

@@ -1,6 +1,6 @@
 namespace OrgHub.Application.Common.Interfaces;
 
-public interface IService<T, TDto>
+public interface IService<T,TDto>
 {
     Task<List<TDto>> GetAllAsync();
     Task<TDto?> GetByIdAsync(int id);
