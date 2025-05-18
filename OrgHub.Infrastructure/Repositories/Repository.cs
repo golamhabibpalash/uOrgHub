@@ -1,50 +1,64 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OrgHub.Core.Interfaces;
 using OrgHub.Infrastructure.Persistence;
+using System.Linq.Expressions;
 
 namespace OrgHub.Infrastructure.Repositories;
 
-public class Repository<T> : IRepository<T> where T : class
+public class Repository<TEntity> : IRepository<TEntity> where TEntity : class
 {
+
+    private readonly DbSet<TEntity> _dbSet;
     private readonly AppDbContext _context;
-    private readonly DbSet<T> _dbSet;
     public Repository(AppDbContext context) : base()
     {
         _context = context;
-        _dbSet = context.Set<T>();
+        _dbSet = context.Set<TEntity>();
     }
 
-    public async Task<IEnumerable<T>> GetAllAsync()
-    {
-        return await _dbSet.ToListAsync();
-    }
-
-    public async Task<T?> GetByIdAsync(int id)
+    public virtual async Task<TEntity> GetByIdAsync(int id)
     {
         return await _dbSet.FindAsync(id);
     }
 
-    public async Task UpdateAsync(T entity)
+    public virtual async Task<IEnumerable<TEntity>> GetAllAsync()
     {
-        _dbSet.Update(entity);
-        await _context.SaveChangesAsync();
+        return await _dbSet.ToListAsync();
     }
 
-    public async Task DeleteAsync(int id)
+    public virtual IQueryable<TEntity> Find(Expression<Func<TEntity, bool>> predicate)
     {
-        var entity = await _dbSet.FindAsync(id);
-        if (entity != null)
-        {
-            _dbSet.Remove(entity);
-            await _context.SaveChangesAsync();
-        }
+        return _dbSet.Where(predicate);
     }
-    public async Task<T> AddAsync(T entity)
+
+    public virtual async Task<TEntity> AddAsync(TEntity entity)
     {
         await _dbSet.AddAsync(entity);
         await _context.SaveChangesAsync();
         return entity;
     }
 
-    public IQueryable<T> Table => _dbSet;
+    public virtual async Task UpdateAsync(TEntity entity)
+    {
+        _dbSet.Update(entity);
+        await _context.SaveChangesAsync();
+    }
+
+    public virtual async Task DeleteAsync(TEntity entity)
+    {
+        _dbSet.Remove(entity);
+        await _context.SaveChangesAsync();
+    }
+
+    public virtual async Task<bool> ExistsAsync(int id)
+    {
+        return await _dbSet.FindAsync(id) != null;
+    }
+
+    public virtual async Task SaveChangesAsync()
+    {
+        await _context.SaveChangesAsync();
+    }
+
+    public IQueryable<TEntity> Table => _dbSet;
 }

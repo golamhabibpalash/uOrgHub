@@ -1,11 +1,16 @@
-﻿namespace OrgHub.Core.Interfaces;
+﻿using System.Linq.Expressions;
 
-public interface IRepository<T> where T : class
+namespace OrgHub.Core.Interfaces;
+
+public interface IRepository<TEntity> where TEntity : class
 {
-    Task<T> GetByIdAsync(int id);
-    Task<IEnumerable<T>> GetAllAsync();
-    Task<T> AddAsync(T entity);
-    Task UpdateAsync(T entity);
-    Task DeleteAsync(int id);
-    IQueryable<T> Table { get; }
+    Task<TEntity> GetByIdAsync(int id);
+    Task<IEnumerable<TEntity>> GetAllAsync();
+    IQueryable<TEntity> Find(Expression<Func<TEntity, bool>> predicate);
+
+    Task<TEntity> AddAsync(TEntity entity);
+    Task UpdateAsync(TEntity entity);
+    Task DeleteAsync(TEntity entity);
+    Task<bool> ExistsAsync(int id);
+    Task SaveChangesAsync();
 }

@@ -1,6 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <Compile Remove="Features\Employees\Queries\**" />
+    <EmbeddedResource Remove="Features\Employees\Queries\**" />
+    <None Remove="Features\Employees\Queries\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\OrgHub.Core\OrgHub.Core.csproj" />
     <ProjectReference Include="..\OrgHub.Domain\OrgHub.Domain.csproj" />
   </ItemGroup>
@@ -8,10 +14,6 @@
   <ItemGroup>
     <PackageReference Include="AutoMapper" Version="12.0.1" />
     <PackageReference Include="MediatR" Version="12.5.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Features\Employees\Queries\" />
   </ItemGroup>
 
   <PropertyGroup>
