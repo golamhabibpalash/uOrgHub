@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OrgHub.Application.Features.HRM.Employees.Commands;
 using OrgHub.Application.Features.HRM.Employees.DTOs;
@@ -11,6 +12,7 @@ namespace OrgHub.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class EmployeesController : ControllerBase
 {
     #region Fields
