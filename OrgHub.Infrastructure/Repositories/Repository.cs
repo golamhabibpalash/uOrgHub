@@ -7,9 +7,9 @@ namespace OrgHub.Infrastructure.Repositories;
 
 public class Repository<TEntity> : IRepository<TEntity> where TEntity : class
 {
-
     private readonly DbSet<TEntity> _dbSet;
     private readonly AppDbContext _context;
+
     public Repository(AppDbContext context) : base()
     {
         _context = context;
@@ -18,7 +18,12 @@ public class Repository<TEntity> : IRepository<TEntity> where TEntity : class
 
     public virtual async Task<TEntity> GetByIdAsync(int id)
     {
-        return await _dbSet.FindAsync(id);
+        var entity = await _dbSet.FindAsync(id);
+        if (entity == null)
+        {
+            throw new InvalidOperationException($"Entity of type {typeof(TEntity).Name} with ID {id} was not found.");
+        }
+        return entity;
     }
 
     public virtual async Task<IEnumerable<TEntity>> GetAllAsync()

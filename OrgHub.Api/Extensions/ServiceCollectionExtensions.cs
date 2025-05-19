@@ -1,0 +1,88 @@
+using Microsoft.OpenApi.Models;
+using Serilog;
+using System.Reflection;
+
+namespace OrgHub.Api.Extensions;
+
+/// <summary>
+/// Provides extension methods for configuring services in the OrgHub API.
+/// </summary>
+public static class ServiceCollectionExtensions
+{
+    /// <summary>
+    /// Configures Serilog logging for the application.
+    /// </summary>
+    /// <param name="hostBuilder">The host builder to which Serilog logging will be added.</param>
+    /// <returns>The updated host builder.</returns>
+    public static IHostBuilder AddSerilogLogging(this IHostBuilder hostBuilder)
+    {
+        var logDirectory = Path.Combine(AppContext.BaseDirectory, "Logs");
+        if (!Directory.Exists(logDirectory))
+        {
+            Directory.CreateDirectory(logDirectory);
+        }
+
+        Log.Logger = new LoggerConfiguration()
+            .WriteTo.Console()
+            .WriteTo.File(Path.Combine(logDirectory, "log-.txt"), rollingInterval: RollingInterval.Day)
+            .CreateLogger();
+
+        hostBuilder.UseSerilog();
+        return hostBuilder;
+    }
+
+    /// <summary>
+    /// Adds Swagger documentation services to the service collection.
+    /// </summary>
+    /// <param name="services">The service collection to which Swagger services will be added.</param>
+    /// <returns>The updated service collection.</returns>
+    public static IServiceCollection AddSwaggerDocumentation(this IServiceCollection services)
+    {
+        services.AddEndpointsApiExplorer();
+        services.AddSwaggerGen(options =>
+        {
+            options.SwaggerDoc("v1", new OpenApiInfo
+            {
+                Title = "OrgHub API",
+                Version = "v1",
+                Description = "API documentation for OrgHub ERP system",
+                Contact = new OpenApiContact
+                {
+                    Name = "Support Team",
+                    Email = "support@orghub.com"
+                }
+            });
+
+            var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+            var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+            options.IncludeXmlComments(xmlPath);
+
+            options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            {
+                Name = "Authorization",
+                Type = SecuritySchemeType.Http,
+                Scheme = "Bearer",
+                BearerFormat = "JWT",
+                In = ParameterLocation.Header,
+                Description = "Enter 'Bearer' [space] and then your token"
+            });
+
+            options.AddSecurityRequirement(new OpenApiSecurityRequirement
+            {
+                {
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference
+                        {
+                            Type = ReferenceType.SecurityScheme,
+                            Id = "Bearer"
+                        }
+                    },
+                    new string[] {}
+                }
+            });
+        });
+
+        return services;
+    }
+}

@@ -1,0 +1,31 @@
+2025-05-19 12:07:51.397 +06:00 [INF] Now listening on: https://localhost:5001
+2025-05-19 12:07:51.448 +06:00 [INF] Now listening on: http://localhost:5000
+2025-05-19 12:07:51.851 +06:00 [INF] Application started. Press Ctrl+C to shut down.
+2025-05-19 12:07:52.092 +06:00 [INF] Hosting environment: Development
+2025-05-19 12:07:52.097 +06:00 [INF] Content root path: D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Api
+2025-05-19 12:07:52.280 +06:00 [INF] Request starting HTTP/2 GET https://localhost:5001/swagger/v1/swagger.json - null null
+2025-05-19 12:07:52.339 +06:00 [INF] Request finished HTTP/2 GET https://localhost:5001/swagger/v1/swagger.json - 200 null application/json;charset=utf-8 67.4293ms
+2025-05-19 12:07:58.834 +06:00 [INF] Request starting HTTP/2 GET https://localhost:5001/api/Employees/throw-test-exception - null null
+2025-05-19 12:08:02.085 +06:00 [INF] Executing endpoint 'OrgHub.Api.Controllers.EmployeesController.ThrowTestException (OrgHub.Api)'
+2025-05-19 12:08:02.133 +06:00 [INF] Route matched with {action = "ThrowTestException", controller = "Employees"}. Executing controller action with signature Microsoft.AspNetCore.Mvc.IActionResult ThrowTestException() on controller OrgHub.Api.Controllers.EmployeesController (OrgHub.Api).
+2025-05-19 12:08:02.268 +06:00 [INF] Executed action OrgHub.Api.Controllers.EmployeesController.ThrowTestException (OrgHub.Api) in 119.6811ms
+2025-05-19 12:08:02.315 +06:00 [INF] Executed endpoint 'OrgHub.Api.Controllers.EmployeesController.ThrowTestException (OrgHub.Api)'
+2025-05-19 12:08:02.348 +06:00 [ERR] Unhandled exception occured
+System.Exception: Test exception from controller
+   at OrgHub.Api.Controllers.EmployeesController.ThrowTestException() in D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Api\Controllers\EmployeesController.cs:line 112
+   at lambda_method2(Closure, Object, Object[])
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ActionMethodExecutor.SyncActionResultExecutor.Execute(ActionContext actionContext, IActionResultTypeMapper mapper, ObjectMethodExecutor executor, Object controller, Object[] arguments)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.InvokeActionMethodAsync()
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.InvokeNextActionFilterAsync()
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Rethrow(ActionExecutedContextSealed context)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.InvokeInnerFilterAsync()
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Logged|17_1(ResourceInvoker invoker)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Logged|17_1(ResourceInvoker invoker)
+   at Microsoft.AspNetCore.Routing.EndpointMiddleware.<Invoke>g__AwaitRequestTask|7_0(Endpoint endpoint, Task requestTask, ILogger logger)
+   at OrgHub.Api.MiddleWares.ExceptionHandlingMiddleware.InvokeAsync(HttpContext context) in D:\Banglalink\Docs\personal\MyProjects\OrgHub\OrgHub.Api\MiddleWares\ExceptionHandlingMiddleware.cs:line 27
+2025-05-19 12:08:02.523 +06:00 [INF] Request finished HTTP/2 GET https://localhost:5001/api/Employees/throw-test-exception - 500 null application/json 3689.0797ms

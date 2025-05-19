@@ -2,11 +2,6 @@
 using OrgHub.Core.Interfaces;
 using OrgHub.Domain.Entities;
 using OrgHub.Infrastructure.Persistence;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace OrgHub.Infrastructure.Repositories
 {

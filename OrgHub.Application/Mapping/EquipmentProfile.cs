@@ -7,6 +7,6 @@ public class EquipmentProfile : Profile
 {
     public EquipmentProfile()
     {
-        CreateMap<Equipment, EquipmentDto>();
+        CreateMap<Equipment, EquipmentDto>().ReverseMap();
     }
 }
