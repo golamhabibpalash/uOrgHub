@@ -1,7 +1,7 @@
 using MediatR;
-using OrgHub.Application.Features.Employees.DTOs;
+using OrgHub.Application.Features.HRM.Employees.DTOs;
 
-namespace OrgHub.Application.Features.Employees.Commands;
+namespace OrgHub.Application.Features.HRM.Employees.Commands;
 
 /// <summary>
 /// Command to update an employee.

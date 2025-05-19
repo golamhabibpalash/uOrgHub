@@ -1,11 +1,11 @@
 using AutoMapper;
 using OrgHub.Application.Common.Services;
-using OrgHub.Application.Features.Equipments.DTOs;
-using OrgHub.Application.Features.Equipments.Interfaces;
+using OrgHub.Application.Features.FixedAssets.Equipments.DTOs;
+using OrgHub.Application.Features.FixedAssets.Equipments.Interfaces;
 using OrgHub.Core.Interfaces;
 using OrgHub.Domain.Entities;
 
-namespace OrgHub.Application.Features.Equipments.Services;
+namespace OrgHub.Application.Features.FixedAssets.Equipments.Services;
 
 public class EquipmentService : Service<Equipment, EquipmentDto>, IEquipmentService
 {

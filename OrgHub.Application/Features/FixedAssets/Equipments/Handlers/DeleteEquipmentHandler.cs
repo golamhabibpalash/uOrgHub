@@ -1,8 +1,8 @@
 ﻿using MediatR;
-using OrgHub.Application.Features.Equipments.CommandQuery;
+using OrgHub.Application.Features.FixedAssets.Equipments.CommandQuery;
 using OrgHub.Core.Interfaces;
 
-namespace OrgHub.Application.Features.Equipments.Handlers;
+namespace OrgHub.Application.Features.FixedAssets.Equipments.Handlers;
 public class DeleteEquipmentHandler : IRequestHandler<DeleteEquipmentCommand>
 {
     private readonly IEquipmentRepository _repository;

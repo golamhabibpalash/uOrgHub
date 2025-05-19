@@ -44,7 +44,8 @@ namespace OrgHub.Application.Common.Services
 
         public async Task DeleteAsync(int id)
         {
-            await _repository.DeleteAsync(id);
+            var entity = await _repository.GetByIdAsync(id);
+            await _repository.DeleteAsync(entity);
         }
     }
 }

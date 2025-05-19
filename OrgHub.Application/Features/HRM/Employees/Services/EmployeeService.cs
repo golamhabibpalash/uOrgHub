@@ -1,11 +1,11 @@
 ﻿using AutoMapper;
 using OrgHub.Application.Common.Services;
-using OrgHub.Application.Features.Employees.DTOs;
-using OrgHub.Application.Features.Employees.Interfaces;
+using OrgHub.Application.Features.HRM.Employees.DTOs;
+using OrgHub.Application.Features.HRM.Employees.Interfaces;
 using OrgHub.Core.Interfaces;
 using OrgHub.Domain.Entities;
 
-namespace OrgHub.Application.Features.Employees.Services
+namespace OrgHub.Application.Features.HRM.Employees.Services
 {
     public class EmployeeService : Service<Employee, EmployeeDto>, IEmployeeService
     {
@@ -20,7 +20,7 @@ namespace OrgHub.Application.Features.Employees.Services
         public async Task<List<EmployeeDto>> GetByInfoAsync(string info)
         {
             // Fix: Ensure ToListAsync is used correctly with IQueryable by adding the necessary using directive
-            var filteredEmployees = _repository.Table
+            var filteredEmployees = _repository.Table()
                 .Where(t => t.Name.ToLower().Contains(info.ToLower())
                 || t.EmployeeCode.ToLower().Contains(info.ToLower())
                 || t.Designation.ToLower().Contains(info.ToLower()))

@@ -3,10 +3,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OrgHub.Application.Common.Interfaces;
 using OrgHub.Application.Common.Services;
-using OrgHub.Application.Features.Employees.Interfaces;
-using OrgHub.Application.Features.Employees.Services;
-using OrgHub.Application.Features.Equipments.Interfaces;
-using OrgHub.Application.Features.Equipments.Services;
+using OrgHub.Application.Features.FixedAssets.Equipments.Interfaces;
+using OrgHub.Application.Features.FixedAssets.Equipments.Services;
+using OrgHub.Application.Features.HRM.Employees.Interfaces;
+using OrgHub.Application.Features.HRM.Employees.Services;
 using OrgHub.Core.Interfaces; // For IEmployeeRepository
 using OrgHub.Infrastructure.Persistence;
 using OrgHub.Infrastructure.Repositories;

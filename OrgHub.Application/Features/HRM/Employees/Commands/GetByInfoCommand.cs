@@ -1,12 +1,7 @@
 ﻿using MediatR;
-using OrgHub.Application.Features.Employees.DTOs;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using OrgHub.Application.Features.HRM.Employees.DTOs;
 
-namespace OrgHub.Application.Features.Employees.Commands;
+namespace OrgHub.Application.Features.HRM.Employees.Commands;
 
 public class GetByInfoCommand : IRequest<List<EmployeeDto>>
 {

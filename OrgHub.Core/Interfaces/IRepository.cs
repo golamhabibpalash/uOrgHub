@@ -13,4 +13,6 @@ public interface IRepository<TEntity> where TEntity : class
     Task DeleteAsync(TEntity entity);
     Task<bool> ExistsAsync(int id);
     Task SaveChangesAsync();
+    IQueryable<TEntity> Table();
+
 }

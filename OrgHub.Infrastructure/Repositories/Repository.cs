@@ -60,5 +60,8 @@ public class Repository<TEntity> : IRepository<TEntity> where TEntity : class
         await _context.SaveChangesAsync();
     }
 
-    public IQueryable<TEntity> Table => _dbSet;
+    public IQueryable<TEntity> Table()
+    {
+        return _dbSet;
+    }
 }

@@ -1,10 +1,10 @@
 ﻿using AutoMapper;
 using MediatR;
-using OrgHub.Application.Features.Equipments.CommandQuery;
-using OrgHub.Application.Features.Equipments.DTOs;
+using OrgHub.Application.Features.FixedAssets.Equipments.CommandQuery;
+using OrgHub.Application.Features.FixedAssets.Equipments.DTOs;
 using OrgHub.Core.Interfaces;
 
-namespace OrgHub.Application.Features.Equipments.Handlers;
+namespace OrgHub.Application.Features.FixedAssets.Equipments.Handlers;
 public class UpdateEquipmentHandler : IRequestHandler<UpdateEquipmentCommand, EquipmentDto>
 {
     private readonly IEquipmentRepository _repository;

@@ -1,11 +1,6 @@
 ﻿using AutoMapper;
-using OrgHub.Application.Features.Employees.DTOs;
+using OrgHub.Application.Features.HRM.Employees.DTOs;
 using OrgHub.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace OrgHub.Application.Mapping;
 

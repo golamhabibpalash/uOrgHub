@@ -1,9 +1,9 @@
 ﻿using MediatR;
-using OrgHub.Application.Features.Employees.Commands;
-using OrgHub.Application.Features.Employees.DTOs;
-using OrgHub.Application.Features.Employees.Interfaces;
+using OrgHub.Application.Features.HRM.Employees.Commands;
+using OrgHub.Application.Features.HRM.Employees.DTOs;
+using OrgHub.Application.Features.HRM.Employees.Interfaces;
 
-namespace OrgHub.Application.Features.Employees.Handlers;
+namespace OrgHub.Application.Features.HRM.Employees.Handlers;
 
 public class GetByIdHandler : IRequestHandler<GetByIdCommand, EmployeeDto>
 {

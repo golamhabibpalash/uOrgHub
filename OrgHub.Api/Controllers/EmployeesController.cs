@@ -1,8 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using OrgHub.Application.Features.Employees.Commands;
-using OrgHub.Application.Features.Employees.DTOs;
-using System.Threading.Tasks;
+using OrgHub.Application.Features.HRM.Employees.Commands;
+using OrgHub.Application.Features.HRM.Employees.DTOs;
 
 namespace OrgHub.Api.Controllers;
 
@@ -61,7 +60,7 @@ public class EmployeesController : ControllerBase
     [HttpGet("getByInfo")]
     public async Task<IActionResult> GetByInfo(string info)
     {
-        var result =await _mediator.Send(new GetByInfoCommand(info));
+        var result = await _mediator.Send(new GetByInfoCommand(info));
         return Ok(result);
     }
 
@@ -84,7 +83,7 @@ public class EmployeesController : ControllerBase
     /// </summary>
 
     [HttpPut("{id:int}")]
-    public IActionResult Update(int id,[FromBody] UpdateEmployeeCommand request)
+    public IActionResult Update(int id, [FromBody] UpdateEmployeeCommand request)
     {
         var result = _mediator.Send(request).Result;
         return Ok(result);

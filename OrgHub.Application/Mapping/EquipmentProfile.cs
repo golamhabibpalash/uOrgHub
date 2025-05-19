@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using OrgHub.Application.Features.Equipments.DTOs;
+using OrgHub.Application.Features.FixedAssets.Equipments.DTOs;
 using OrgHub.Domain.Entities;
 
 namespace OrgHub.Application.Mapping;

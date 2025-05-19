@@ -1,7 +1,7 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using OrgHub.Application.Features.Equipments.CommandQuery;
-using OrgHub.Application.Features.Equipments.DTOs;
+using OrgHub.Application.Features.FixedAssets.Equipments.CommandQuery;
+using OrgHub.Application.Features.FixedAssets.Equipments.DTOs;
 
 namespace OrgHub.Api.Controllers;
 

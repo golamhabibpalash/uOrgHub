@@ -1,9 +1,9 @@
 using MediatR;
-using OrgHub.Application.Features.Equipments.CommandQuery;
-using OrgHub.Application.Features.Equipments.DTOs;
-using OrgHub.Application.Features.Equipments.Interfaces;
+using OrgHub.Application.Features.FixedAssets.Equipments.CommandQuery;
+using OrgHub.Application.Features.FixedAssets.Equipments.DTOs;
+using OrgHub.Application.Features.FixedAssets.Equipments.Interfaces;
 
-namespace OrgHub.Application.Features.Equipments.Handlers;
+namespace OrgHub.Application.Features.FixedAssets.Equipments.Handlers;
 public class CreateEquipmentHandler : IRequestHandler<CreateEquipmentCommand, EquipmentDto>
 {
     private readonly IEquipmentService _service;
