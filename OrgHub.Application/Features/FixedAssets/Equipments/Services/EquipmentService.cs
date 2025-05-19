@@ -9,9 +9,6 @@ namespace OrgHub.Application.Features.FixedAssets.Equipments.Services;
 
 public class EquipmentService : Service<Equipment, EquipmentDto>, IEquipmentService
 {
-    private readonly IRepository<Equipment> _repository;
-    private readonly IMapper _mapper;
-
     public EquipmentService(IRepository<Equipment> repository, IMapper mapper) : base(repository, mapper)
     {
     }

@@ -2,6 +2,7 @@ using OrgHub.Api.Extensions;
 using OrgHub.Api.MiddleWares;
 using OrgHub.Application.Features.HRM.Employees.Commands;
 using OrgHub.Application.Mapping;
+using OrgHub.Domain.Entities;
 using OrgHub.Infrastructure.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);

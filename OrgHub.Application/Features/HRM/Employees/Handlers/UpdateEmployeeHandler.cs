@@ -9,8 +9,6 @@ namespace OrgHub.Application.Features.HRM.Employees.Handlers;
 public class UpdateEmployeeHandler : IRequestHandler<UpdateEmployeeCommand, EmployeeDto>
 {
     private readonly IEmployeeService _service;
-    private readonly Func<EmployeeDto, Employee> _mapToEntity;
-    private readonly Func<Employee, EmployeeDto> _mapToDto;
     public UpdateEmployeeHandler(IEmployeeService service)
     {
         _service = service;
@@ -21,7 +19,7 @@ public class UpdateEmployeeHandler : IRequestHandler<UpdateEmployeeCommand, Empl
 
         if (employee == null)
         {
-            return null; // or throw an exception if you prefer
+            throw new KeyNotFoundException($"Employee with ID {request.Employee.Id} not found.");
         }
 
         // Update the employee properties
@@ -34,7 +32,7 @@ public class UpdateEmployeeHandler : IRequestHandler<UpdateEmployeeCommand, Empl
 
         if (updatedEmployee == null)
         {
-            return null;
+            throw new InvalidOperationException($"Failed to retrieve updated employee with ID {request.Employee.Id}.");
         }
 
         return updatedEmployee;

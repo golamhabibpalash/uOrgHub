@@ -5,7 +5,7 @@ using OrgHub.Application.Features.HRM.Employees.Interfaces;
 
 namespace OrgHub.Application.Features.HRM.Employees.Handlers;
 
-public class DeleteEmployeeHandler : IRequestHandler<DeleteEmployeeCommand, EmployeeDto>
+public class DeleteEmployeeHandler : IRequestHandler<DeleteEmployeeCommand, EmployeeDto?>
 {
     private readonly IEmployeeService _service;
     public DeleteEmployeeHandler(IEmployeeService service)
@@ -13,7 +13,7 @@ public class DeleteEmployeeHandler : IRequestHandler<DeleteEmployeeCommand, Empl
         _service = service;
     }
 
-    public async Task<EmployeeDto> Handle(DeleteEmployeeCommand request, CancellationToken cancellationToken)
+    public async Task<EmployeeDto?> Handle(DeleteEmployeeCommand request, CancellationToken cancellationToken)
     {
         var employee = await _service.GetByIdAsync(request.Id);
         if (employee == null)

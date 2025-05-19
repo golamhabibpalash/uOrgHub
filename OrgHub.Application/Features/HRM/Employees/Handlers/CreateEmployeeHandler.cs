@@ -5,10 +5,10 @@ using OrgHub.Application.Features.HRM.Employees.Interfaces;
 
 namespace OrgHub.Application.Features.HRM.Employees.Handlers;
 
-public class CreateEmployeeHandler : IRequestHandler<CreateEmployeeCommand, EmployeeDto>
+public class AuthCommandHandlers : IRequestHandler<CreateEmployeeCommand, EmployeeDto>
 {
     private readonly IEmployeeService _service;
-    public CreateEmployeeHandler(IEmployeeService service)
+    public AuthCommandHandlers(IEmployeeService service)
     {
         _service = service;
     }
