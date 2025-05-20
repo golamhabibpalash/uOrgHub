@@ -1,4 +1,4 @@
-﻿using OrgHub.Domain.Entities;
+﻿using OrgHub.Domain.Entities.Identity;
 
 namespace OrgHub.Application.Features.Identity.Interfaces
 {

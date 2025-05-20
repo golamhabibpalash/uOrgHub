@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OrgHub.Core.Interfaces;
-using OrgHub.Domain.Entities;
+using OrgHub.Domain.Entities.FixedAssets;
 using OrgHub.Infrastructure.Persistence;
 
 namespace OrgHub.Infrastructure.Repositories

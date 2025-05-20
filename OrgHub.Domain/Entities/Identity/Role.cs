@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 
-namespace OrgHub.Domain.Entities
+namespace OrgHub.Domain.Entities.Identity
 {
     public class Role : IdentityRole<Guid>
     {

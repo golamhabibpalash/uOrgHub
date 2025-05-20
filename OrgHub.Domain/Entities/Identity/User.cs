@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OrgHub.Domain.Entities
+namespace OrgHub.Domain.Entities.Identity
 {
     public class User : IdentityUser<Guid>
     {

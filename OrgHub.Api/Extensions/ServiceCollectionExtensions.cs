@@ -3,6 +3,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using OrgHub.Application.Features.FixedAssets.Equipments.CommandQuery;
 using OrgHub.Application.Features.HRM.Employees.Commands;
+using OrgHub.Application.Features.Identity.Commands;
 using OrgHub.Application.Mapping;
 using Serilog;
 using System.Reflection;
@@ -56,13 +57,13 @@ public static class ServiceCollectionExtensions
             options.SaveToken = true;
             options.TokenValidationParameters = new TokenValidationParameters
             {
-                
+
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"]!)),
                 ValidateIssuer = false,
                 ValidateAudience = false,
                 ValidateLifetime = true,
-                ClockSkew =TimeSpan.Zero,
+                ClockSkew = TimeSpan.Zero,
 
                 //ValidIssuer = configuration["Jwt:Issuer"],
                 //ValidAudience = configuration["Jwt:Audience"],
@@ -84,8 +85,8 @@ public static class ServiceCollectionExtensions
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(options =>
         {
-            options.SwaggerDoc("Identity", new OpenApiInfo { Title = "Identity APIs", Version = "v1",Description="API Documentation for Authentication/Authorization/Claim/Role and so on" });
-            options.SwaggerDoc("HRM", new OpenApiInfo { Title = "HRM APIs", Version = "v1",Description="API Documentation for Human Resource Management" });
+            options.SwaggerDoc("Identity", new OpenApiInfo { Title = "Identity APIs", Version = "v1", Description = "API Documentation for Authentication/Authorization/Claim/Role and so on" });
+            options.SwaggerDoc("HRM", new OpenApiInfo { Title = "HRM APIs", Version = "v1", Description = "API Documentation for Human Resource Management" });
             options.SwaggerDoc("FixedAssets", new OpenApiInfo { Title = "FixedAssets APIs", Version = "v1", Description = "Assets Management Systems API" });
             options.SwaggerDoc("Inventory", new OpenApiInfo { Title = "Inventory APIs", Version = "v1", Description = "Inventory Management Systems API" });
             options.SwaggerDoc("ProjectManagement", new OpenApiInfo { Title = "Project Management APIs", Version = "v1", Description = "Project Management Systems API" });
@@ -140,6 +141,7 @@ public static class ServiceCollectionExtensions
         // Register all MediatR handlers from relevant assemblies
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<CreateEmployeeCommand>());
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<CreateEquipmentCommand>());
+        services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<AssignPermissionToRoleCommand>());
         return services;
     }
 

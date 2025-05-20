@@ -1,10 +1,9 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using OrgHub.Core.Interfaces;
-using OrgHub.Domain.Entities;
-using OrgHub.Infrastructure.Persistence;
+using OrgHub.Domain.Entities.Identity;
 
-namespace OrgHub.Infrastructure.Repositories
+namespace OrgHub.Infrastructure.Repositories.Identity
 {
     public class AuthRepository : IAuthRepository
     {

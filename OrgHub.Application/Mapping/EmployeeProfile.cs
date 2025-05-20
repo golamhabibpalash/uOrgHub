@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using OrgHub.Application.Features.HRM.Employees.DTOs;
-using OrgHub.Domain.Entities;
+using OrgHub.Domain.Entities.HRM;
 
 namespace OrgHub.Application.Mapping;
 

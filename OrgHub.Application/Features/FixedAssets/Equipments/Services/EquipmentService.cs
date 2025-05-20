@@ -3,7 +3,7 @@ using OrgHub.Application.Common.Services;
 using OrgHub.Application.Features.FixedAssets.Equipments.DTOs;
 using OrgHub.Application.Features.FixedAssets.Equipments.Interfaces;
 using OrgHub.Core.Interfaces;
-using OrgHub.Domain.Entities;
+using OrgHub.Domain.Entities.FixedAssets;
 
 namespace OrgHub.Application.Features.FixedAssets.Equipments.Services;
 

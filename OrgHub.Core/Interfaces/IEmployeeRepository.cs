@@ -1,4 +1,4 @@
-using OrgHub.Domain.Entities;
+using OrgHub.Domain.Entities.HRM;
 
 namespace OrgHub.Core.Interfaces;
 

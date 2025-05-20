@@ -2,8 +2,8 @@
 using OrgHub.Application.Features.Identity.DTOs;
 using OrgHub.Application.Features.Identity.Interfaces;
 using OrgHub.Core.Interfaces;
-using OrgHub.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using OrgHub.Domain.Entities.Identity;
 
 namespace OrgHub.Application.Auth.Services;
 public class AuthService : IAuthService

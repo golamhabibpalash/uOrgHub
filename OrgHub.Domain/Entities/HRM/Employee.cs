@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace OrgHub.Domain.Entities;
+namespace OrgHub.Domain.Entities.HRM;
 
 public class Employee : CommonProps
 {

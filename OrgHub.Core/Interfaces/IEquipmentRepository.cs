@@ -1,4 +1,4 @@
-﻿using OrgHub.Domain.Entities;
+﻿using OrgHub.Domain.Entities.FixedAssets;
 
 
 namespace OrgHub.Core.Interfaces;

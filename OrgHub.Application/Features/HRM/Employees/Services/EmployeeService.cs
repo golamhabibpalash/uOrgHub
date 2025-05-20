@@ -4,7 +4,7 @@ using OrgHub.Application.Common.Services;
 using OrgHub.Application.Features.HRM.Employees.DTOs;
 using OrgHub.Application.Features.HRM.Employees.Interfaces;
 using OrgHub.Core.Interfaces;
-using OrgHub.Domain.Entities;
+using OrgHub.Domain.Entities.HRM;
 
 namespace OrgHub.Application.Features.HRM.Employees.Services
 {

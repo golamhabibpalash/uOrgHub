@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using OrgHub.Domain.Entities;
+using OrgHub.Domain.Entities.FixedAssets;
+using OrgHub.Domain.Entities.HRM;
+using OrgHub.Domain.Entities.Identity;
 
 namespace OrgHub.Infrastructure.Persistence
 {
