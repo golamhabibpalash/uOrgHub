@@ -34,7 +34,13 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "OrgHub API v1");
+        c.SwaggerEndpoint("/swagger/Identity/swagger.json", "Identity APIs");
+        c.SwaggerEndpoint("/swagger/HRM/swagger.json", "HRM APIs");
+        c.SwaggerEndpoint("/swagger/FixedAssets/swagger.json", "FixedAssets APIs");
+        c.SwaggerEndpoint("/swagger/Inventory/swagger.json", "Inventory APIs");
+        c.SwaggerEndpoint("/swagger/ProjectManagement/swagger.json", "Project Management APIs");
+
+        //c.SwaggerEndpoint("/swagger/v1/swagger.json", "OrgHub API v1");
     });
 }
 

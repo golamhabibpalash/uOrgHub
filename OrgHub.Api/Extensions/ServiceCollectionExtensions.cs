@@ -93,17 +93,29 @@ public static class ServiceCollectionExtensions
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(options =>
         {
-            options.SwaggerDoc("v1", new OpenApiInfo
+            options.SwaggerDoc("Identity", new OpenApiInfo { Title = "Identity APIs", Version = "v1",Description="API Documentation for Authentication/Authorization/Claim/Role and so on" });
+            options.SwaggerDoc("HRM", new OpenApiInfo { Title = "HRM APIs", Version = "v1",Description="API Documentation for Human Resource Management" });
+            options.SwaggerDoc("FixedAssets", new OpenApiInfo { Title = "FixedAssets APIs", Version = "v1", Description = "Assets Management Systems API" });
+            options.SwaggerDoc("Inventory", new OpenApiInfo { Title = "Inventory APIs", Version = "v1", Description = "Inventory Management Systems API" });
+            options.SwaggerDoc("ProjectManagement", new OpenApiInfo { Title = "Project Management APIs", Version = "v1", Description = "Project Management Systems API" });
+
+            options.DocInclusionPredicate((docName, apiDesc) =>
             {
-                Title = "OrgHub API",
-                Version = "v1",
-                Description = "API documentation for OrgHub ERP system",
-                Contact = new OpenApiContact
-                {
-                    Name = "Support Team",
-                    Email = "support@orghub.com"
-                }
+                var area = apiDesc.ActionDescriptor?.RouteValues["area"];
+                return string.Equals(docName, area, StringComparison.OrdinalIgnoreCase);
             });
+
+            //options.SwaggerDoc("v1", new OpenApiInfo
+            //{
+            //    Title = "OrgHub API",
+            //    Version = "v1",
+            //    Description = "API documentation for OrgHub ERP system",
+            //    Contact = new OpenApiContact
+            //    {
+            //        Name = "Support Team",
+            //        Email = "support@orghub.com"
+            //    }
+            //});
 
             var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
             var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);

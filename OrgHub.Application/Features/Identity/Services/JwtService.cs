@@ -1,12 +1,12 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
-using OrgHub.Application.Features.Auth.Interfaces;
+using OrgHub.Application.Features.Identity.Interfaces;
 using OrgHub.Domain.Entities;
 using System.Security.Claims;
 using System.Text;
 
-namespace OrgHub.Application.Features.Auth.Services;
+namespace OrgHub.Application.Features.Identity.Services;
 
 public class JwtService : IJWTServices
 {

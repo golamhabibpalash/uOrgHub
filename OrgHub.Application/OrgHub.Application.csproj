@@ -1,8 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <Compile Remove="Features\Auth\**" />
     <Compile Remove="Features\Employees\Queries\**" />
+    <EmbeddedResource Remove="Features\Auth\**" />
     <EmbeddedResource Remove="Features\Employees\Queries\**" />
+    <None Remove="Features\Auth\**" />
     <None Remove="Features\Employees\Queries\**" />
   </ItemGroup>
 
@@ -18,10 +21,6 @@
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.5" />
     <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.10.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.10.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Features\Auth\Handlers\" />
   </ItemGroup>
 
   <PropertyGroup>

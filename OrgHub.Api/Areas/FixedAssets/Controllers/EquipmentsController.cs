@@ -3,13 +3,14 @@ using Microsoft.AspNetCore.Mvc;
 using OrgHub.Application.Features.FixedAssets.Equipments.CommandQuery;
 using OrgHub.Application.Features.FixedAssets.Equipments.DTOs;
 
-namespace OrgHub.Api.Controllers;
+namespace OrgHub.Api.Areas.FixedAssets.Controllers;
 
 /// <summary>
 ///  This Controller is used to manage equipments.
 ///  </summary>
-[Route("api/[controller]")]
+[Route("api/[area]/[controller]")]
 [ApiController]
+[Area("FixedAssets")]
 public class EquipmentsController : ControllerBase
 {
     private readonly IMediator _mediator;

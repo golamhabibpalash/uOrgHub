@@ -4,14 +4,15 @@ using Microsoft.AspNetCore.Mvc;
 using OrgHub.Application.Features.HRM.Employees.Commands;
 using OrgHub.Application.Features.HRM.Employees.DTOs;
 
-namespace OrgHub.Api.Controllers;
+namespace OrgHub.Api.Areas.HRM.Controllers;
 
 
 /// <summary>
 /// This class is used to manage employees.
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/[area]/[controller]")]
+[Area("HRM")]
 //[Authorize]
 public class EmployeesController : ControllerBase
 {

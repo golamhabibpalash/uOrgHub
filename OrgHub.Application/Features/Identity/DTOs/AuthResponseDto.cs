@@ -1,4 +1,4 @@
-namespace OrgHub.Application.Features.Auth.DTOs;
+namespace OrgHub.Application.Features.Identity.DTOs;
 
 public class AuthResponseDto
 {

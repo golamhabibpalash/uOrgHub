@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
-using OrgHub.Application.Features.Auth.DTOs;
-using OrgHub.Application.Features.Auth.Interfaces;
+using OrgHub.Application.Features.Identity.DTOs;
+using OrgHub.Application.Features.Identity.Interfaces;
 using OrgHub.Core.Interfaces;
 using OrgHub.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -10,13 +10,11 @@ public class AuthService : IAuthService
 {
     private readonly UserManager<User> _userManager;
     private readonly IJWTServices _jwtService;
-    private readonly IAuthRepository _authRepository;
 
-    public AuthService(UserManager<User> userManager, IJWTServices jwtService, IAuthRepository authRepository)
+    public AuthService(UserManager<User> userManager, IJWTServices jwtService)
     {
         _userManager = userManager;
         _jwtService = jwtService;
-        _authRepository = authRepository;
     }
 
     public async Task<AuthResponseDto> LoginAsync(string email, string password)

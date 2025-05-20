@@ -1,15 +1,16 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using OrgHub.Application.Features.Auth.DTOs;
-using OrgHub.Application.Features.Auth.Interfaces;
+using OrgHub.Application.Features.Identity.DTOs;
+using OrgHub.Application.Features.Identity.Interfaces;
 
-namespace OrgHub.Api.Controllers;
+namespace OrgHub.Api.Areas.Identity.Controllers;
 
 /// <summary>
 /// This Controller is used for authentication related operations.
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/[area]/[controller]")]
+[Area("Identity")]
 public class AuthController:ControllerBase
 {
 	private readonly IAuthService _authService;

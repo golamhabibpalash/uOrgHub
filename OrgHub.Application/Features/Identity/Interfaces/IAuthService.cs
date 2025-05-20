@@ -1,6 +1,6 @@
-﻿using OrgHub.Application.Features.Auth.DTOs;
+﻿using OrgHub.Application.Features.Identity.DTOs;
 
-namespace OrgHub.Application.Features.Auth.Interfaces;
+namespace OrgHub.Application.Features.Identity.Interfaces;
 
 public interface IAuthService 
 {

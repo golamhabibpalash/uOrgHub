@@ -1,7 +1,6 @@
-﻿using OrgHub.Application.Features.Auth.DTOs;
-using OrgHub.Domain.Entities;
+﻿using OrgHub.Domain.Entities;
 
-namespace OrgHub.Application.Features.Auth.Interfaces
+namespace OrgHub.Application.Features.Identity.Interfaces
 {
     public interface IJWTServices
     {
