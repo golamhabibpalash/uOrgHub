@@ -23,7 +23,6 @@
   <ItemGroup>
     <ProjectReference Include="..\OrgHub.Application\OrgHub.Application.csproj" />
     <ProjectReference Include="..\OrgHub.Infrastructure\OrgHub.Infrastructure.csproj" />
-    <ProjectReference Include="..\OrgHub.Persistence\OrgHub.Persistence.csproj" />
   </ItemGroup>
 
 </Project>

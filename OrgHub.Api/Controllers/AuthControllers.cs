@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OrgHub.Application.Features.Auth.DTOs;
 using OrgHub.Application.Features.Auth.Interfaces;
@@ -28,6 +29,7 @@ public class AuthController:ControllerBase
     /// <param name="password"></param>
     /// <returns></returns>
     [HttpPost("login")]
+    [AllowAnonymous]
     public async Task<IActionResult> Login(string email, string password)
     {
         var result = await _authService.LoginAsync(email, password);

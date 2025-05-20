@@ -1,6 +1,12 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using OrgHub.Application.Features.FixedAssets.Equipments.CommandQuery;
+using OrgHub.Application.Features.HRM.Employees.Commands;
+using OrgHub.Application.Mapping;
 using Serilog;
 using System.Reflection;
+using System.Text;
 
 namespace OrgHub.Api.Extensions;
 
@@ -29,6 +35,52 @@ public static class ServiceCollectionExtensions
 
         hostBuilder.UseSerilog();
         return hostBuilder;
+    }
+
+    /// <summary>
+    /// Adds JWT authentication services to the service collection.
+    /// </summary>
+    /// <param name="services">The service collection to which authentication services will be added.</param>
+    /// <param name="configuration">The application configuration containing JWT settings.</param>
+    /// <returns>The updated service collection.</returns>
+    public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer("Bearer", options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+
+                ValidIssuer = configuration["Jwt:Issuer"],
+                ValidAudience = configuration["Jwt:Audience"],
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"]!))
+            };
+            options.Events = new JwtBearerEvents
+            {
+                OnAuthenticationFailed = context =>
+                {
+                    Console.WriteLine("Token failed: " + context.Exception.Message);
+                    return Task.CompletedTask;
+                },
+                OnChallenge = context =>
+                {
+                    Console.WriteLine("Challenge: " + context.ErrorDescription);
+                    return Task.CompletedTask;
+                }
+            };
+        });
+
+        services.AddAuthorization();
+
+        return services;
     }
 
     /// <summary>
@@ -83,6 +135,31 @@ public static class ServiceCollectionExtensions
             });
         });
 
+        return services;
+    }
+
+    /// <summary>
+    /// Adds MediatR services to the service collection.
+    /// </summary>
+    /// <param name="services">The service collection to which MediatR services will be added.</param>
+    /// <returns>The updated service collection.</returns>
+    public static IServiceCollection AddMediatRServices(this IServiceCollection services)
+    {
+        // Register all MediatR handlers from relevant assemblies
+        services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<CreateEmployeeCommand>());
+        services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<CreateEquipmentCommand>());
+        return services;
+    }
+
+    /// <summary>
+    /// Adds AutoMapper profiles to the service collection.
+    /// </summary>
+    /// <param name="services">The service collection to which AutoMapper profiles will be added.</param>
+    /// <returns>The updated service collection.</returns>
+    public static IServiceCollection AddAutoMapperProfiles(this IServiceCollection services)
+    {
+        services.AddAutoMapper(typeof(EmployeeProfile).Assembly);
+        services.AddAutoMapper(typeof(EquipmentProfile).Assembly);
         return services;
     }
 }

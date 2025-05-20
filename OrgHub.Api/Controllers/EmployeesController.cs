@@ -12,7 +12,7 @@ namespace OrgHub.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
+//[Authorize]
 public class EmployeesController : ControllerBase
 {
     #region Fields
@@ -105,7 +105,17 @@ public class EmployeesController : ControllerBase
     #endregion
 
     #region Locals
-
+    /// <summary>
+    /// Handles a test request to verify authorization functionality.
+    /// </summary>
+    /// <remarks>This endpoint requires authorization and is intended for testing purposes.</remarks>
+    /// <returns>An <see cref="IActionResult"/> containing a success message if authorization is successful.</returns>
+    [Authorize]
+    [HttpGet("test")]
+    public IActionResult Test()
+    {
+        return Ok("Authorization worked!");
+    }
     #endregion
 
 }
