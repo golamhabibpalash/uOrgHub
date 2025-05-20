@@ -50,31 +50,22 @@ public static class ServiceCollectionExtensions
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
             options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
         })
-        .AddJwtBearer("Bearer", options =>
+        .AddJwtBearer(options =>
         {
+            options.RequireHttpsMetadata = true;
+            options.SaveToken = true;
             options.TokenValidationParameters = new TokenValidationParameters
             {
-                ValidateIssuer = true,
-                ValidateAudience = true,
-                ValidateLifetime = true,
+                
                 ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"]!)),
+                ValidateIssuer = false,
+                ValidateAudience = false,
+                ValidateLifetime = true,
+                ClockSkew =TimeSpan.Zero,
 
-                ValidIssuer = configuration["Jwt:Issuer"],
-                ValidAudience = configuration["Jwt:Audience"],
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"]!))
-            };
-            options.Events = new JwtBearerEvents
-            {
-                OnAuthenticationFailed = context =>
-                {
-                    Console.WriteLine("Token failed: " + context.Exception.Message);
-                    return Task.CompletedTask;
-                },
-                OnChallenge = context =>
-                {
-                    Console.WriteLine("Challenge: " + context.ErrorDescription);
-                    return Task.CompletedTask;
-                }
+                //ValidIssuer = configuration["Jwt:Issuer"],
+                //ValidAudience = configuration["Jwt:Audience"],
             };
         });
 
@@ -105,17 +96,6 @@ public static class ServiceCollectionExtensions
                 return string.Equals(docName, area, StringComparison.OrdinalIgnoreCase);
             });
 
-            //options.SwaggerDoc("v1", new OpenApiInfo
-            //{
-            //    Title = "OrgHub API",
-            //    Version = "v1",
-            //    Description = "API documentation for OrgHub ERP system",
-            //    Contact = new OpenApiContact
-            //    {
-            //        Name = "Support Team",
-            //        Email = "support@orghub.com"
-            //    }
-            //});
 
             var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
             var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);

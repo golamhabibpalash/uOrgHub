@@ -24,18 +24,21 @@ public class JwtService : IJWTServices
                 new Claim(ClaimTypes.Email, user.Email!),
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
             };
+
         var keyString = _configuration["Jwt:Key"];
+
         if (string.IsNullOrEmpty(keyString))
             throw new InvalidOperationException("JWT Key is not configured in appsettings.json");
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyString));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var expires = DateTime.UtcNow.AddMinutes(Convert.ToDouble(_configuration["Jwt:AccessTokenExpiryMinutes"]));
 
         var token = new JwtSecurityToken(
             issuer: _configuration["Jwt:Issuer"],
             audience: _configuration["Jwt:Audience"],
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(30),
+            expires: expires,
             signingCredentials: creds);
 
         return new JwtSecurityTokenHandler().WriteToken(token);

@@ -1,6 +1,5 @@
 using OrgHub.Api.Extensions;
 using OrgHub.Api.MiddleWares;
-using OrgHub.Application.Mapping;
 using OrgHub.Infrastructure.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,8 +10,6 @@ builder.Host.AddSerilogLogging();
 // Register Controllers
 builder.Services.AddControllers();
 
-//Register Authentication/Authorization/JWT
-builder.Services.AddJwtAuthentication(builder.Configuration);
 
 // Register Swagger
 builder.Services.AddSwaggerDocumentation();
@@ -25,6 +22,9 @@ builder.Services.AddAutoMapperProfiles();
 
 // Initiate DI
 builder.Services.AddInfrastructure(builder.Configuration);
+
+//Register Authentication/Authorization/JWT
+builder.Services.AddJwtAuthentication(builder.Configuration);
 
 var app = builder.Build();
 

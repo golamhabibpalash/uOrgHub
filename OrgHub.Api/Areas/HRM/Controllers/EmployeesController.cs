@@ -13,7 +13,7 @@ namespace OrgHub.Api.Areas.HRM.Controllers;
 [ApiController]
 [Route("api/[area]/[controller]")]
 [Area("HRM")]
-//[Authorize]
+[Authorize]
 public class EmployeesController : ControllerBase
 {
     #region Fields
