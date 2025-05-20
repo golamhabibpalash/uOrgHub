@@ -9,12 +9,14 @@ namespace OrgHub.Application.Auth.Services;
 public class AuthService : IAuthService
 {
     private readonly UserManager<User> _userManager;
-    private readonly IJWTServices _jwtService;
+    private readonly IJWTServices _jwtService; 
+    private readonly RoleManager<Role> _roleManager;
 
-    public AuthService(UserManager<User> userManager, IJWTServices jwtService)
+    public AuthService(UserManager<User> userManager, IJWTServices jwtService, RoleManager<Role> roleManager)
     {
         _userManager = userManager;
         _jwtService = jwtService;
+        _roleManager = roleManager;
     }
 
     public async Task<AuthResponseDto> LoginAsync(string email, string password)
@@ -24,7 +26,7 @@ public class AuthService : IAuthService
         if (user == null || !await _userManager.CheckPasswordAsync(user, password))
             throw new UnauthorizedAccessException("Invalid credentials");
 
-        var accessToken = _jwtService.GenerateAccessToken(user);
+        var accessToken = await _jwtService.GenerateAccessToken(user);
         var refreshToken = _jwtService.GenerateRefreshToken();
 
         user.RefreshTokens.Add(refreshToken);
@@ -48,7 +50,7 @@ public class AuthService : IAuthService
         if (user == null)
             throw new UnauthorizedAccessException("Invalid refresh token");
 
-        var accessToken = _jwtService.GenerateAccessToken(user);
+        var accessToken = await _jwtService.GenerateAccessToken(user);
         var newRefresh = _jwtService.GenerateRefreshToken();
         user.RefreshTokens.Add(newRefresh);
         await _userManager.UpdateAsync(user);
@@ -101,6 +103,26 @@ public class AuthService : IAuthService
         }
 
         return true;
+    }
+
+    public async Task<bool> CreateRoleAsync(string roleName)
+    {
+        if (await _roleManager.RoleExistsAsync(roleName))
+            return true; // Already exists
+
+        var result = await _roleManager.CreateAsync(new Role { Name = roleName });
+        return result.Succeeded;
+    }
+    public async Task<bool> AddUserToRoleAsync(string userId, string roleName)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null) return false;
+
+        if (!await _roleManager.RoleExistsAsync(roleName))
+            await _roleManager.CreateAsync(new Role { Name = roleName });
+
+        var result = await _userManager.AddToRoleAsync(user, roleName);
+        return result.Succeeded;
     }
 
 }

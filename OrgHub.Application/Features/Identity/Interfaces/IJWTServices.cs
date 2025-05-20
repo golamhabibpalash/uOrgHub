@@ -4,7 +4,7 @@ namespace OrgHub.Application.Features.Identity.Interfaces
 {
     public interface IJWTServices
     {
-        string GenerateAccessToken(User user);
+        Task<string> GenerateAccessToken(User user);
         RefreshToken GenerateRefreshToken();
     }
 }

@@ -8,4 +8,6 @@ public interface IAuthService
     Task<AuthResponseDto> RefreshTokenAsync(string token);
     Task<bool> RegisterUserAsync(RegisterUserDto dto);
     Task<bool> UpdateUserAsync(UpdateUserDto dto);
+    Task<bool> CreateRoleAsync(string roleName);
+    Task<bool> AddUserToRoleAsync(string userId, string roleName);
 }
