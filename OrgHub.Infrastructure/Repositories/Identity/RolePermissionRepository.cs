@@ -7,8 +7,8 @@ namespace OrgHub.Infrastructure.Repositories.Identity;
 
 public class RolePermissionRepository : IRolePermissionRepository
 {
-    private readonly RoleManager<Role> _roleManager;
-    public RolePermissionRepository(RoleManager<Role> roleManager)
+    private readonly RoleManager<ApplicationRole> _roleManager;
+    public RolePermissionRepository(RoleManager<ApplicationRole> roleManager)
     {
         _roleManager = roleManager;
     }

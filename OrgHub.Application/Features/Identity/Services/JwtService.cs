@@ -12,13 +12,13 @@ namespace OrgHub.Application.Features.Identity.Services;
 public class JwtService : IJWTServices
 {
     private readonly IConfiguration _configuration;
-    private readonly UserManager<User> _userManager;
-    public JwtService(IConfiguration configuration, UserManager<User> userManager)
+    private readonly UserManager<ApplicationUser> _userManager;
+    public JwtService(IConfiguration configuration, UserManager<ApplicationUser> userManager)
     {
         _configuration = configuration;
         _userManager = userManager;
     }
-    public async Task<string> GenerateAccessToken(User user)
+    public async Task<string> GenerateAccessToken(ApplicationUser user)
     {
         var roles = await _userManager.GetRolesAsync(user);
 

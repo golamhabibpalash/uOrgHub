@@ -8,11 +8,11 @@ using OrgHub.Domain.Entities.Identity;
 namespace OrgHub.Application.Auth.Services;
 public class AuthService : IAuthService
 {
-    private readonly UserManager<User> _userManager;
+    private readonly UserManager<ApplicationUser> _userManager;
     private readonly IJWTServices _jwtService; 
-    private readonly RoleManager<Role> _roleManager;
+    private readonly RoleManager<ApplicationRole> _roleManager;
 
-    public AuthService(UserManager<User> userManager, IJWTServices jwtService, RoleManager<Role> roleManager)
+    public AuthService(UserManager<ApplicationUser> userManager, IJWTServices jwtService, RoleManager<ApplicationRole> roleManager)
     {
         _userManager = userManager;
         _jwtService = jwtService;
@@ -66,7 +66,7 @@ public class AuthService : IAuthService
     
     public async Task<bool> RegisterUserAsync(RegisterUserDto dto)
     {
-        var user = new User
+        var user = new ApplicationUser
         {
             FullName = dto.FullName,
             Email = dto.Email,
@@ -110,7 +110,7 @@ public class AuthService : IAuthService
         if (await _roleManager.RoleExistsAsync(roleName))
             return true; // Already exists
 
-        var result = await _roleManager.CreateAsync(new Role { Name = roleName });
+        var result = await _roleManager.CreateAsync(new ApplicationRole { Name = roleName });
         return result.Succeeded;
     }
     public async Task<bool> AddUserToRoleAsync(string userId, string roleName)
@@ -119,7 +119,7 @@ public class AuthService : IAuthService
         if (user == null) return false;
 
         if (!await _roleManager.RoleExistsAsync(roleName))
-            await _roleManager.CreateAsync(new Role { Name = roleName });
+            await _roleManager.CreateAsync(new ApplicationRole { Name = roleName });
 
         var result = await _userManager.AddToRoleAsync(user, roleName);
         return result.Succeeded;

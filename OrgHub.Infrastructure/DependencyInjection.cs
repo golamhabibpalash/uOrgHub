@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,10 +12,13 @@ using OrgHub.Application.Features.HRM.Employees.Interfaces;
 using OrgHub.Application.Features.HRM.Employees.Services;
 using OrgHub.Application.Features.Identity.Interfaces;
 using OrgHub.Application.Features.Identity.Services;
+using OrgHub.Application.Features.Others.Interfaces;
+using OrgHub.Application.Features.Others.Services;
 using OrgHub.Core.Interfaces;
 using OrgHub.Core.Interfaces.Identity;
 using OrgHub.Domain.Entities.Identity;
 using OrgHub.Infrastructure.Persistence;
+using OrgHub.Infrastructure.Persistence.Others;
 using OrgHub.Infrastructure.Repositories;
 using OrgHub.Infrastructure.Repositories.Identity;
 
@@ -29,7 +33,7 @@ namespace OrgHub.Infrastructure.DependencyInjection
                 options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
             // Register Identity
-            services.AddIdentity<User, Role>(options =>
+            services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
             {
                 options.Password.RequireDigit = true;
                 options.Password.RequiredLength = 6;
@@ -41,6 +45,8 @@ namespace OrgHub.Infrastructure.DependencyInjection
             .AddDefaultTokenProviders();
 
             services.AddScoped<DbContext>(provider => provider.GetRequiredService<AppDbContext>());
+            services.AddSingleton<IHttpContextAccessor,HttpContextAccessor>();
+            services.AddScoped<AuditLoggingInterceptor>();
 
             // Register Repositories
             services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
@@ -58,6 +64,7 @@ namespace OrgHub.Infrastructure.DependencyInjection
             services.AddScoped<IJWTServices, JwtService>();
             services.AddScoped<IUserPermissionService, UserPermissionService>();
             services.AddScoped<IRolePermissionService, RolePermissionService>();
+            services.AddScoped<ILoggingService, LoggingService>();
 
             return services;
         }

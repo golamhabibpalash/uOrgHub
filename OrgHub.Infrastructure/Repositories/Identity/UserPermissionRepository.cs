@@ -7,8 +7,8 @@ namespace OrgHub.Infrastructure.Repositories.Identity;
 
 public class UserPermissionRepository : IUserPermissionRepository
 {
-    private readonly UserManager<User> _userManager;
-    public UserPermissionRepository(UserManager<User> userManager)
+    private readonly UserManager<ApplicationUser> _userManager;
+    public UserPermissionRepository(UserManager<ApplicationUser> userManager)
     {
         _userManager = userManager;
     }

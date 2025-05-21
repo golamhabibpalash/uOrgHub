@@ -14,6 +14,6 @@ namespace OrgHub.Domain.Entities.Identity
         public DateTime Created { get; set; } = DateTime.UtcNow;
         public DateTime? Revoked { get; set; }
         public Guid UserId { get; set; }
-        public User User { get; set; }
+        public ApplicationUser User { get; set; }
     }
 }

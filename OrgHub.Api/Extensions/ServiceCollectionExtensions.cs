@@ -6,6 +6,7 @@ using OrgHub.Application.Features.HRM.Employees.Commands;
 using OrgHub.Application.Features.Identity.Commands;
 using OrgHub.Application.Mapping;
 using Serilog;
+using Serilog.Sinks.MSSqlServer;
 using System.Reflection;
 using System.Text;
 
@@ -20,8 +21,9 @@ public static class ServiceCollectionExtensions
     /// Configures Serilog logging for the application.
     /// </summary>
     /// <param name="hostBuilder">The host builder to which Serilog logging will be added.</param>
+    /// <param name="configuration">The application configuration containing logging settings.</param>
     /// <returns>The updated host builder.</returns>
-    public static IHostBuilder AddSerilogLogging(this IHostBuilder hostBuilder)
+    public static IHostBuilder AddSerilogLogging(this IHostBuilder hostBuilder, IConfiguration configuration)
     {
         var logDirectory = Path.Combine(AppContext.BaseDirectory, "Logs");
         if (!Directory.Exists(logDirectory))
@@ -32,6 +34,10 @@ public static class ServiceCollectionExtensions
         Log.Logger = new LoggerConfiguration()
             .WriteTo.Console()
             .WriteTo.File(Path.Combine(logDirectory, "log-.txt"), rollingInterval: RollingInterval.Day)
+            .WriteTo.MSSqlServer(
+                connectionString: configuration.GetConnectionString("DefaultConnection"),
+                sinkOptions: new MSSqlServerSinkOptions { TableName = "Logs", AutoCreateSqlTable = true },
+                restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Information)
             .CreateLogger();
 
         hostBuilder.UseSerilog();

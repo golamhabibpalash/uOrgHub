@@ -11,6 +11,7 @@ namespace OrgHub.Api.Areas.Identity.Controllers;
 [ApiController]
 [Route("api/[area]/[controller]")]
 [Area("Identity")]
+[Authorize]
 public class AuthController:ControllerBase
 {
 	private readonly IAuthService _authService;
