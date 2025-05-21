@@ -1,13 +1,14 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using OrgHub.Core.Interfaces.Identity;
+using OrgHub.Domain.Entities.Identity;
 using System.Security.Claims;
 
 namespace OrgHub.Infrastructure.Repositories.Identity;
 
 public class RolePermissionRepository : IRolePermissionRepository
 {
-    private readonly RoleManager<IdentityUser> _roleManager;
-    public RolePermissionRepository(RoleManager<IdentityUser> roleManager)
+    private readonly RoleManager<Role> _roleManager;
+    public RolePermissionRepository(RoleManager<Role> roleManager)
     {
         _roleManager = roleManager;
     }
