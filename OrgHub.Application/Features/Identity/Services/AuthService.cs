@@ -1,15 +1,14 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using OrgHub.Application.Features.Identity.DTOs;
 using OrgHub.Application.Features.Identity.Interfaces;
-using OrgHub.Core.Interfaces;
-using Microsoft.EntityFrameworkCore;
 using OrgHub.Domain.Entities.Identity;
 
 namespace OrgHub.Application.Auth.Services;
 public class AuthService : IAuthService
 {
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly IJWTServices _jwtService; 
+    private readonly IJWTServices _jwtService;
     private readonly RoleManager<ApplicationRole> _roleManager;
 
     public AuthService(UserManager<ApplicationUser> userManager, IJWTServices jwtService, RoleManager<ApplicationRole> roleManager)
@@ -45,7 +44,7 @@ public class AuthService : IAuthService
     {
         var user = await _userManager.Users
              .Include(x => x.RefreshTokens)
-             .FirstOrDefaultAsync(u => u.RefreshTokens.Any(t => t.Token == token && t.Expires > DateTime.UtcNow)); 
+             .FirstOrDefaultAsync(u => u.RefreshTokens.Any(t => t.Token == token && t.Expires > DateTime.UtcNow));
 
         if (user == null)
             throw new UnauthorizedAccessException("Invalid refresh token");
@@ -63,7 +62,7 @@ public class AuthService : IAuthService
             UserName = user.UserName!
         };
     }
-    
+
     public async Task<bool> RegisterUserAsync(RegisterUserDto dto)
     {
         var user = new ApplicationUser
@@ -71,6 +70,7 @@ public class AuthService : IAuthService
             FullName = dto.FullName,
             Email = dto.Email,
             UserName = dto.UserName,
+            CreatedDate = DateTime.Now,
             RefreshTokens = new List<RefreshToken>()
         };
 

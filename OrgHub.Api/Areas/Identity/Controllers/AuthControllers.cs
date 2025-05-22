@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OrgHub.Application.Features.Identity.DTOs;
 using OrgHub.Application.Features.Identity.Interfaces;
+using OrgHub.Application.Features.Others.Interfaces;
+using OrgHub.Domain.Enums;
 
 namespace OrgHub.Api.Areas.Identity.Controllers;
 
@@ -11,18 +13,14 @@ namespace OrgHub.Api.Areas.Identity.Controllers;
 [ApiController]
 [Route("api/[area]/[controller]")]
 [Area("Identity")]
-[Authorize]
-public class AuthController:ControllerBase
+public class AuthController(IAuthService authService, ILoggingService loggingService) : ControllerBase
 {
-	private readonly IAuthService _authService;
+    private readonly IAuthService _authService = authService;
+    private readonly ILoggingService _loggingService = loggingService;
 
     /// <summary>
     /// Authorization controller constructor.
     /// </summary>
-    public AuthController(IAuthService authService)
-	{
-		_authService = authService;
-    }
 
     /// <summary>
     /// Token based authentication for login.
@@ -58,6 +56,8 @@ public class AuthController:ControllerBase
         var result = await _authService.RegisterUserAsync(dto);
         if (!result)
             return BadRequest("Registration failed");
+        _loggingService.LogActivity(LogActivityAction.Add.ToString(), $"New user ({dto.FullName}) added", null);
+        _loggingService.LogAudit("AspNetUser", new Guid(), LogActivityAction.Add.ToString(), $"New User ({dto.UserName}) added", null);
         return Ok("User registered successfully");
     }
 
