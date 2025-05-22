@@ -4,6 +4,7 @@ using OrgHub.Application.Features.Identity.Interfaces;
 using OrgHub.Core.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using OrgHub.Domain.Entities.Identity;
+using OrgHub.Application.Features.Others.Interfaces;
 
 namespace OrgHub.Application.Auth.Services;
 public class AuthService : IAuthService
@@ -11,12 +12,14 @@ public class AuthService : IAuthService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IJWTServices _jwtService; 
     private readonly RoleManager<ApplicationRole> _roleManager;
+    private readonly ILoggingService _loggingService;
 
-    public AuthService(UserManager<ApplicationUser> userManager, IJWTServices jwtService, RoleManager<ApplicationRole> roleManager)
+    public AuthService(UserManager<ApplicationUser> userManager, IJWTServices jwtService, RoleManager<ApplicationRole> roleManager, ILoggingService loggingService = null)
     {
         _userManager = userManager;
         _jwtService = jwtService;
         _roleManager = roleManager;
+        _loggingService = loggingService;
     }
 
     public async Task<AuthResponseDto> LoginAsync(string email, string password)
@@ -31,7 +34,7 @@ public class AuthService : IAuthService
 
         user.RefreshTokens.Add(refreshToken);
         await _userManager.UpdateAsync(user);
-
+        _loggingService.LogActivity("UserLogin", $"User {user.UserName} logged in successfully.", user.Id);
         return new AuthResponseDto
         {
             AccessToken = accessToken,

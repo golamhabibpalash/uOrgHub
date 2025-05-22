@@ -20,7 +20,7 @@ public class AuditLoggingInterceptor : SaveChangesInterceptor
                         ? string.Join(", ", entry.Properties.Where(p => p.IsModified).Select(p => $"{p.Metadata.Name}: {p.OriginalValue} -> {p.CurrentValue}"))
                         : null;
 
-                    Log.Information("Audit: {Entity}, EntityId: {EntityId}, Action: {Action}, Changes: {Changes}",
+                    Log.Information($"Audit: {entityName}, EntityId: {entityId}, Action: {eventData.EventIdCode}, Changes: {changes}",
                         entityName, entityId, entry.State.ToString(), changes);
                 }
             }

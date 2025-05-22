@@ -6,6 +6,7 @@ using OrgHub.Application.Features.HRM.Employees.Commands;
 using OrgHub.Application.Features.Identity.Commands;
 using OrgHub.Application.Mapping;
 using Serilog;
+using Serilog.Events;
 using Serilog.Sinks.MSSqlServer;
 using System.Reflection;
 using System.Text;
@@ -31,13 +32,21 @@ public static class ServiceCollectionExtensions
             Directory.CreateDirectory(logDirectory);
         }
 
+        
+
         Log.Logger = new LoggerConfiguration()
             .WriteTo.Console()
             .WriteTo.File(Path.Combine(logDirectory, "log-.txt"), rollingInterval: RollingInterval.Day)
             .WriteTo.MSSqlServer(
                 connectionString: configuration.GetConnectionString("DefaultConnection"),
-                sinkOptions: new MSSqlServerSinkOptions { TableName = "Logs", AutoCreateSqlTable = true },
-                restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Information)
+                sinkOptions: new MSSqlServerSinkOptions
+                {
+                    TableName = "Logs",
+                    AutoCreateSqlTable = true
+                },
+                restrictedToMinimumLevel: LogEventLevel.Information
+                // columnOptions: columnOptions // optionally include if you're customizing columns
+            )
             .CreateLogger();
 
         hostBuilder.UseSerilog();
