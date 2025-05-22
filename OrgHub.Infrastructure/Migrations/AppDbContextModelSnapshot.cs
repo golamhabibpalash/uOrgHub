@@ -22,7 +22,7 @@ namespace OrgHub.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("OrgHub.Domain.Entities.FixedAssets.Equipment", b =>
+            modelBuilder.Entity("OrgHub.Domain.Entities.FixedAssets.FixedAssets_Equipment", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -69,10 +69,99 @@ namespace OrgHub.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Equipments");
+                    b.ToTable("FixedAssets_Equipments");
                 });
 
-            modelBuilder.Entity("OrgHub.Domain.Entities.HRM.Employee", b =>
+            modelBuilder.Entity("OrgHub.Domain.Entities.HRM.HRM_Attendance", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("AttendanceDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("AttendanceType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<TimeSpan?>("CheckInTime")
+                        .HasColumnType("time");
+
+                    b.Property<TimeSpan?>("CheckOutTime")
+                        .HasColumnType("time");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("EmployeeId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("LastUpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("LastUpdatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Remarks")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.ToTable("HRM_Attendance");
+                });
+
+            modelBuilder.Entity("OrgHub.Domain.Entities.HRM.HRM_Department", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("HeadEmployeeId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastUpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("LastUpdatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("ParentDepartmentId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("HRM_Department");
+                });
+
+            modelBuilder.Entity("OrgHub.Domain.Entities.HRM.HRM_Designation", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -86,18 +175,72 @@ namespace OrgHub.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Designation")
+                    b.Property<int>("DesignationLevel")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastUpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("LastUpdatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ParentDesignationId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("HRM_Designation");
+                });
+
+            modelBuilder.Entity("OrgHub.Domain.Entities.HRM.HRM_Employee", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("BloodGroup")
+                        .HasMaxLength(4)
+                        .HasColumnType("nvarchar(4)");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DepartmentId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DesignationId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("DoB")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("EmployeeCategoryId")
+                        .HasColumnType("int");
+
                     b.Property<string>("EmployeeCode")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("EmployeeTypeId")
+                        .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -116,13 +259,152 @@ namespace OrgHub.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("Nationality")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ProfilePhotoPath")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("ResignDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SecondaryPhone")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Employees");
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("DesignationId");
+
+                    b.HasIndex("EmployeeCategoryId");
+
+                    b.HasIndex("EmployeeTypeId");
+
+                    b.ToTable("HRM_Employees");
+                });
+
+            modelBuilder.Entity("OrgHub.Domain.Entities.HRM.HRM_EmployeeAddress", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AddressTypeId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("AreaAddress")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("EmployeeId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("LastUpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("LastUpdatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UpazilaId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AddressTypeId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("UpazilaId");
+
+                    b.ToTable("HRM_EmployeeAddress");
+                });
+
+            modelBuilder.Entity("OrgHub.Domain.Entities.HRM.HRM_EmployeeCategory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastUpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("LastUpdatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("HRM_EmployeeCategory");
+                });
+
+            modelBuilder.Entity("OrgHub.Domain.Entities.HRM.HRM_EmployeeType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastUpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("LastUpdatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("HRM_EmployeeType");
                 });
 
             modelBuilder.Entity("OrgHub.Domain.Entities.Identity.ApplicationRole", b =>
@@ -454,6 +736,98 @@ namespace OrgHub.Infrastructure.Migrations
                     b.ToTable("RefreshToken");
                 });
 
+            modelBuilder.Entity("OrgHub.Domain.Entities.Others.AddressType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("LastUpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("LastUpdatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("AddressType");
+                });
+
+            modelBuilder.Entity("OrgHub.Domain.Entities.Others.District", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DivisionId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("LastUpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("LastUpdatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DivisionId");
+
+                    b.ToTable("District");
+                });
+
+            modelBuilder.Entity("OrgHub.Domain.Entities.Others.Division", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("LastUpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("LastUpdatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Division");
+                });
+
             modelBuilder.Entity("OrgHub.Domain.Entities.Others.Logs", b =>
                 {
                     b.Property<long>("Id")
@@ -507,6 +881,114 @@ namespace OrgHub.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Logs");
+                });
+
+            modelBuilder.Entity("OrgHub.Domain.Entities.Others.Upazila", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DistrictId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("LastUpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("LastUpdatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DistrictId");
+
+                    b.ToTable("Upazila");
+                });
+
+            modelBuilder.Entity("OrgHub.Domain.Entities.HRM.HRM_Attendance", b =>
+                {
+                    b.HasOne("OrgHub.Domain.Entities.HRM.HRM_Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("OrgHub.Domain.Entities.HRM.HRM_Employee", b =>
+                {
+                    b.HasOne("OrgHub.Domain.Entities.HRM.HRM_Department", "Department")
+                        .WithMany("Employees")
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("OrgHub.Domain.Entities.HRM.HRM_Designation", "Designation")
+                        .WithMany("Employees")
+                        .HasForeignKey("DesignationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("OrgHub.Domain.Entities.HRM.HRM_EmployeeCategory", "EmployeeCategory")
+                        .WithMany()
+                        .HasForeignKey("EmployeeCategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("OrgHub.Domain.Entities.HRM.HRM_EmployeeType", "EmployeeType")
+                        .WithMany()
+                        .HasForeignKey("EmployeeTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Department");
+
+                    b.Navigation("Designation");
+
+                    b.Navigation("EmployeeCategory");
+
+                    b.Navigation("EmployeeType");
+                });
+
+            modelBuilder.Entity("OrgHub.Domain.Entities.HRM.HRM_EmployeeAddress", b =>
+                {
+                    b.HasOne("OrgHub.Domain.Entities.Others.AddressType", "AddressType")
+                        .WithMany("EmployeeAddresses")
+                        .HasForeignKey("AddressTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("OrgHub.Domain.Entities.HRM.HRM_Employee", "Employee")
+                        .WithMany("EmployeeAddress")
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("OrgHub.Domain.Entities.Others.Upazila", "Upazila")
+                        .WithMany()
+                        .HasForeignKey("UpazilaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AddressType");
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("Upazila");
                 });
 
             modelBuilder.Entity("OrgHub.Domain.Entities.Identity.ApplicationRoleClaim", b =>
@@ -589,6 +1071,43 @@ namespace OrgHub.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("OrgHub.Domain.Entities.Others.District", b =>
+                {
+                    b.HasOne("OrgHub.Domain.Entities.Others.Division", "Division")
+                        .WithMany("Districts")
+                        .HasForeignKey("DivisionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Division");
+                });
+
+            modelBuilder.Entity("OrgHub.Domain.Entities.Others.Upazila", b =>
+                {
+                    b.HasOne("OrgHub.Domain.Entities.Others.District", "District")
+                        .WithMany("Upazilas")
+                        .HasForeignKey("DistrictId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("District");
+                });
+
+            modelBuilder.Entity("OrgHub.Domain.Entities.HRM.HRM_Department", b =>
+                {
+                    b.Navigation("Employees");
+                });
+
+            modelBuilder.Entity("OrgHub.Domain.Entities.HRM.HRM_Designation", b =>
+                {
+                    b.Navigation("Employees");
+                });
+
+            modelBuilder.Entity("OrgHub.Domain.Entities.HRM.HRM_Employee", b =>
+                {
+                    b.Navigation("EmployeeAddress");
+                });
+
             modelBuilder.Entity("OrgHub.Domain.Entities.Identity.ApplicationRole", b =>
                 {
                     b.Navigation("RoleClaims");
@@ -597,6 +1116,21 @@ namespace OrgHub.Infrastructure.Migrations
             modelBuilder.Entity("OrgHub.Domain.Entities.Identity.ApplicationUser", b =>
                 {
                     b.Navigation("RefreshTokens");
+                });
+
+            modelBuilder.Entity("OrgHub.Domain.Entities.Others.AddressType", b =>
+                {
+                    b.Navigation("EmployeeAddresses");
+                });
+
+            modelBuilder.Entity("OrgHub.Domain.Entities.Others.District", b =>
+                {
+                    b.Navigation("Upazilas");
+                });
+
+            modelBuilder.Entity("OrgHub.Domain.Entities.Others.Division", b =>
+                {
+                    b.Navigation("Districts");
                 });
 #pragma warning restore 612, 618
         }

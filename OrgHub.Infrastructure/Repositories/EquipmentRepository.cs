@@ -12,7 +12,7 @@ namespace OrgHub.Infrastructure.Repositories
         {
             _context = context;
         }
-        public async Task<Equipment> AddAsync(Equipment equipment)
+        public async Task<FixedAssets_Equipment> AddAsync(FixedAssets_Equipment equipment)
         {
             await _context.AddAsync(equipment);
             await _context.SaveChangesAsync();
@@ -21,29 +21,29 @@ namespace OrgHub.Infrastructure.Repositories
 
         public async Task DeleteAsync(int id)
         {
-            var existingEquipment = await _context.Equipments.FindAsync(id);
+            var existingEquipment = await _context.FixedAssets_Equipments.FindAsync(id);
             if (existingEquipment!=null)
             {
-                _context.Equipments.Remove(existingEquipment);
+                _context.FixedAssets_Equipments.Remove(existingEquipment);
                 await _context.SaveChangesAsync();
             }
         }
 
-        public async Task<List<Equipment>> GetAllAsync()
+        public async Task<List<FixedAssets_Equipment>> GetAllAsync()
         {
-            var allEquipments = await _context.Equipments.ToListAsync();
+            var allEquipments = await _context.FixedAssets_Equipments.ToListAsync();
             return allEquipments;
         }
 
-        public async Task<Equipment?> GetByIdAsync(int id)
+        public async Task<FixedAssets_Equipment?> GetByIdAsync(int id)
         {
-            var existingEquipment = await _context.Equipments.FindAsync(id);
+            var existingEquipment = await _context.FixedAssets_Equipments.FindAsync(id);
             return existingEquipment;
         }
 
-        public async Task UpdateAsync(Equipment equipment)
+        public async Task UpdateAsync(FixedAssets_Equipment equipment)
         {
-            _context.Equipments.Update(equipment);
+            _context.FixedAssets_Equipments.Update(equipment);
             await _context.SaveChangesAsync();
         }
     }

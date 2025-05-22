@@ -8,11 +8,11 @@ using OrgHub.Domain.Entities.HRM;
 
 namespace OrgHub.Application.Features.HRM.Employees.Services
 {
-    public class EmployeeService : Service<Employee, EmployeeDto>, IEmployeeService
+    public class EmployeeService : Service<HRM_Employee, EmployeeDto>, IEmployeeService
     {
-        private readonly IRepository<Employee> _repository;
+        private readonly IRepository<HRM_Employee> _repository;
         private readonly IMapper _mapper;
-        public EmployeeService(IRepository<Employee> repository, IMapper mapper) : base(repository, mapper)
+        public EmployeeService(IRepository<HRM_Employee> repository, IMapper mapper) : base(repository, mapper)
         {
             _repository = repository;
             _mapper = mapper;

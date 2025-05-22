@@ -7,9 +7,9 @@ using OrgHub.Domain.Entities.FixedAssets;
 
 namespace OrgHub.Application.Features.FixedAssets.Equipments.Services;
 
-public class EquipmentService : Service<Equipment, EquipmentDto>, IEquipmentService
+public class EquipmentService : Service<FixedAssets_Equipment, EquipmentDto>, IEquipmentService
 {
-    public EquipmentService(IRepository<Equipment> repository, IMapper mapper) : base(repository, mapper)
+    public EquipmentService(IRepository<FixedAssets_Equipment> repository, IMapper mapper) : base(repository, mapper)
     {
     }
 

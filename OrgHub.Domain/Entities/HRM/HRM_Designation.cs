@@ -2,7 +2,7 @@
 
 namespace OrgHub.Domain.Entities.HRM;
 
-public class Designation : CommonProps
+public class HRM_Designation : CommonProps
 {
     [Key]
     public int Id { get; set; }
@@ -11,5 +11,5 @@ public class Designation : CommonProps
     public int ParentDesignationId { get; set; }
     public int DesignationLevel { get; set; }
     public bool IsActive { get; set; }
-    public ICollection<Employee>? Employees { get; set; }
+    public ICollection<HRM_Employee>? Employees { get; set; }
 }

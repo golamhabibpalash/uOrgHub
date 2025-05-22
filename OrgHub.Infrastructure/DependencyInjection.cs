@@ -8,6 +8,8 @@ using OrgHub.Application.Common.Interfaces;
 using OrgHub.Application.Common.Services;
 using OrgHub.Application.Features.FixedAssets.Equipments.Interfaces;
 using OrgHub.Application.Features.FixedAssets.Equipments.Services;
+using OrgHub.Application.Features.HRM.EmployeeAttendance.Interfaces;
+using OrgHub.Application.Features.HRM.EmployeeAttendance.Services;
 using OrgHub.Application.Features.HRM.Employees.Interfaces;
 using OrgHub.Application.Features.HRM.Employees.Services;
 using OrgHub.Application.Features.Identity.Interfaces;
@@ -45,7 +47,7 @@ namespace OrgHub.Infrastructure.DependencyInjection
             .AddDefaultTokenProviders();
 
             services.AddScoped<DbContext>(provider => provider.GetRequiredService<AppDbContext>());
-            services.AddSingleton<IHttpContextAccessor,HttpContextAccessor>();
+            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             services.AddScoped<AuditLoggingInterceptor>();
 
             // Register Repositories
@@ -65,6 +67,8 @@ namespace OrgHub.Infrastructure.DependencyInjection
             services.AddScoped<IUserPermissionService, UserPermissionService>();
             services.AddScoped<IRolePermissionService, RolePermissionService>();
             services.AddScoped<ILoggingService, LoggingService>();
+            services.AddScoped<IAttendanceService, AttendanceService>();
+
 
             return services;
         }

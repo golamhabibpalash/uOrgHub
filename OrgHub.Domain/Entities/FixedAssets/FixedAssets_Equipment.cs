@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace OrgHub.Domain.Entities.FixedAssets;
 
-public class Equipment : CommonProps
+public class FixedAssets_Equipment : CommonProps
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]

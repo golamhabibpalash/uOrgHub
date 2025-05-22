@@ -6,6 +6,6 @@ namespace OrgHub.Domain.Entities.Others
     {
         public int Id { get; set; }
         public required string Name { get; set; } = default!;
-        public virtual ICollection<EmployeeAddress> EmployeeAddresses { get; set; } = new HashSet<EmployeeAddress>();
+        public virtual ICollection<HRM_EmployeeAddress> EmployeeAddresses { get; set; } = new HashSet<HRM_EmployeeAddress>();
     }
 }

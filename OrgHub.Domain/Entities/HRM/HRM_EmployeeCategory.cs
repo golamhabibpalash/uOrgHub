@@ -1,6 +1,6 @@
 ﻿namespace OrgHub.Domain.Entities.HRM;
 
-public class EmployeeType : CommonProps
+public class HRM_EmployeeCategory : CommonProps
 {
     public int Id { get; set; }
     public string Name { get; set; } = default!;

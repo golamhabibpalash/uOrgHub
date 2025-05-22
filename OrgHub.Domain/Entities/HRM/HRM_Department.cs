@@ -2,7 +2,7 @@
 
 namespace OrgHub.Domain.Entities.HRM;
 
-public class Department : CommonProps
+public class HRM_Department : CommonProps
 {
     public int Id { get; set; }
     public required string Name { get; set; }
@@ -11,5 +11,5 @@ public class Department : CommonProps
     public int? ParentDepartmentId { get; set; }
     public int? HeadEmployeeId { get; set; }
     public bool IsActive { get; set; }
-    public ICollection<Employee>? Employees { get; set; }
+    public ICollection<HRM_Employee>? Employees { get; set; }
 }

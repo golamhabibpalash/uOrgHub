@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace OrgHub.Domain.Entities.HRM;
 
-public class Employee : CommonProps
+public class HRM_Employee : CommonProps
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
@@ -28,10 +28,10 @@ public class Employee : CommonProps
     [StringLength(100)]
     public required string Nationality { get; set; }
 
-    public virtual required Designation Designation { get; set; }
-    public virtual required Department Department { get; set; }
-    public virtual required EmployeeCategory EmployeeCategory { get; set; }
-    public virtual required EmployeeType EmployeeType { get; set; }
-    public virtual required ICollection<EmployeeAddress> EmployeeAddress { get; set; }
+    public virtual required HRM_Designation Designation { get; set; }
+    public virtual required HRM_Department Department { get; set; }
+    public virtual required HRM_EmployeeCategory EmployeeCategory { get; set; }
+    public virtual required HRM_EmployeeType EmployeeType { get; set; }
+    public virtual required ICollection<HRM_EmployeeAddress> EmployeeAddress { get; set; }
 
 }

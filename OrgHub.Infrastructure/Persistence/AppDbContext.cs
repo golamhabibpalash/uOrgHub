@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using OrgHub.Domain.Entities.FixedAssets;
@@ -18,10 +17,14 @@ namespace OrgHub.Infrastructure.Persistence
         {
             _auditLoggingInterceptor = auditLoggingInterceptor;
         }
+        #region HRM
+        public DbSet<HRM_Employee> HRM_Employees { get; set; }
+        public DbSet<HRM_Attendance> HRM_Attendance { get; set; }
+        #endregion HRM
 
-        public DbSet<Employee> Employees { get; set; }
-        public DbSet<Equipment> Equipments { get; set; }
-        public DbSet<Logs> Logs { get; set; }
+        #region FixedAssets
+        public DbSet<FixedAssets_Equipment> FixedAssets_Equipments { get; set; }
+        #endregion FixedAssets
 
         // Optional: override OnModelCreating if you use Fluent API
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -52,7 +55,7 @@ namespace OrgHub.Infrastructure.Persistence
             #endregion Identity
 
             #region HRM
-            modelBuilder.Entity<Employee>(entity =>
+            modelBuilder.Entity<HRM_Employee>(entity =>
             {
                 entity.HasKey(e => e.Id);
 
@@ -68,7 +71,7 @@ namespace OrgHub.Infrastructure.Persistence
             #endregion HRM
 
             #region FixedAssets
-            modelBuilder.Entity<Equipment>(entity =>
+            modelBuilder.Entity<FixedAssets_Equipment>(entity =>
             {
                 entity.HasKey(e => e.Id);
                 // identity / auto-increment

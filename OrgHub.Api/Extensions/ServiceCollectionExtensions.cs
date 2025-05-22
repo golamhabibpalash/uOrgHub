@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using OrgHub.Application.Features.FixedAssets.Equipments.CommandQuery;
+using OrgHub.Application.Features.HRM.EmployeeAttendance.Commands;
 using OrgHub.Application.Features.HRM.Employees.Commands;
 using OrgHub.Application.Features.Identity.Commands;
 using OrgHub.Application.Mapping;
@@ -145,9 +146,14 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddMediatRServices(this IServiceCollection services)
     {
         // Register all MediatR handlers from relevant assemblies
+        //HRM
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<CreateEmployeeCommand>());
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<CreateEquipmentCommand>());
+        services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<CreateAttendanceCommand>());
+        //Identity
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<AssignPermissionToRoleCommand>());
+
+
         return services;
     }
 
