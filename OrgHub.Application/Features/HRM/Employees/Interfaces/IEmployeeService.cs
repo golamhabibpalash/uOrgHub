@@ -4,7 +4,7 @@ using OrgHub.Domain.Entities.HRM;
 
 namespace OrgHub.Application.Features.HRM.Employees.Interfaces
 {
-    public interface IEmployeeService : IService<Employee, EmployeeDto>
+    public interface IEmployeeService : IService<HRM_Employee, EmployeeDto>
     {
         Task<List<EmployeeDto>> GetByInfoAsync(string info);
     }

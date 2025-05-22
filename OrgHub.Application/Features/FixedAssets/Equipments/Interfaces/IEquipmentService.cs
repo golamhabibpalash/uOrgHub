@@ -4,6 +4,6 @@ using OrgHub.Domain.Entities.FixedAssets;
 
 namespace OrgHub.Application.Features.FixedAssets.Equipments.Interfaces;
 
-public interface IEquipmentService : IService<Equipment, EquipmentDto>
+public interface IEquipmentService : IService<FixedAssets_Equipment, EquipmentDto>
 {
 }

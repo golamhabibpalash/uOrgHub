@@ -14,38 +14,38 @@ namespace OrgHub.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<List<Employee>> GetAllAsync() =>
-            await _context.Employees.ToListAsync();
+        public async Task<List<HRM_Employee>> GetAllAsync() =>
+            await _context.HRM_Employees.ToListAsync();
 
-        public async Task<List<Employee>> GetAllByInfoAsync(string info) =>
-            await _context.Employees
-            .Where(s => s.Name.ToLower().Contains(info.ToLower()) 
-            || s.Designation.ToLower().Contains(info.ToLower()) 
+        public async Task<List<HRM_Employee>> GetAllByInfoAsync(string info) =>
+            await _context.HRM_Employees
+            .Where(s => s.Name.ToLower().Contains(info.ToLower())
+            || s.Designation.Title.ToLower().Contains(info.ToLower())
             || s.EmployeeCode.ToLower().Contains(info.ToLower()))
             .ToListAsync();
 
-        public async Task<Employee?> GetByIdAsync(int id) =>
-            await _context.Employees.FindAsync(id);
+        public async Task<HRM_Employee?> GetByIdAsync(int id) =>
+            await _context.HRM_Employees.FindAsync(id);
 
-        public async Task<Employee> AddAsync(Employee employee)
+        public async Task<HRM_Employee> AddAsync(HRM_Employee employee)
         {
-            await _context.Employees.AddAsync(employee);
+            await _context.HRM_Employees.AddAsync(employee);
             await _context.SaveChangesAsync();
             return employee;
         }
 
-        public async Task UpdateAsync(Employee employee)
+        public async Task UpdateAsync(HRM_Employee employee)
         {
-            _context.Employees.Update(employee);
+            _context.HRM_Employees.Update(employee);
             await _context.SaveChangesAsync();
         }
 
         public async Task DeleteAsync(int id)
         {
-            var emp = await _context.Employees.FindAsync(id);
+            var emp = await _context.HRM_Employees.FindAsync(id);
             if (emp != null)
             {
-                _context.Employees.Remove(emp);
+                _context.HRM_Employees.Remove(emp);
                 await _context.SaveChangesAsync();
             }
         }

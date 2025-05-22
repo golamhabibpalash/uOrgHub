@@ -4,9 +4,9 @@
 namespace OrgHub.Core.Interfaces;
 public interface IEquipmentRepository
 {
-    Task<List<Equipment>> GetAllAsync();
-    Task<Equipment?> GetByIdAsync(int id);
-    Task<Equipment> AddAsync(Equipment equipment);
-    Task UpdateAsync(Equipment equipment);
+    Task<List<FixedAssets_Equipment>> GetAllAsync();
+    Task<FixedAssets_Equipment?> GetByIdAsync(int id);
+    Task<FixedAssets_Equipment> AddAsync(FixedAssets_Equipment equipment);
+    Task UpdateAsync(FixedAssets_Equipment equipment);
     Task DeleteAsync(int id);
 }

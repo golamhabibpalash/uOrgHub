@@ -58,7 +58,7 @@ public class EmployeesController : ControllerBase
     }
 
     /// <summary>
-    /// This method is used to get all employees Search by Name/Designation/Phone/Email etc
+    /// This method is used to get all employees Search by Name/HRM_Designation/Phone/Email etc
     /// </summary>
     [HttpGet("getByInfo")]
     public async Task<IActionResult> GetByInfo(string info)
