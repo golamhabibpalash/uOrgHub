@@ -1,25 +1,22 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using OrgHub.Application.Common.Interfaces;
 using OrgHub.Application.Features.Identity.DTOs;
 using OrgHub.Application.Features.Identity.Interfaces;
-using OrgHub.Domain.Entities.Identity;
 using OrgHub.Application.Features.Others.Interfaces;
+using OrgHub.Domain.Entities.Identity;
+using OrgHub.Domain.Enums;
 
 namespace OrgHub.Application.Auth.Services;
-public class AuthService : IAuthService
+public class AuthService(UserManager<ApplicationUser> userManager, IJWTServices jwtService, RoleManager<ApplicationRole> roleManager, ILoggingService loggingService, ICurrentUserService currentUserService) : IAuthService
 {
-    private readonly UserManager<ApplicationUser> _userManager;
-    private readonly IJWTServices _jwtService;
-    private readonly RoleManager<ApplicationRole> _roleManager;
-    private readonly ILoggingService _loggingService;
-
-    public AuthService(UserManager<ApplicationUser> userManager, IJWTServices jwtService, RoleManager<ApplicationRole> roleManager, ILoggingService loggingService = null)
-    {
-        _userManager = userManager;
-        _jwtService = jwtService;
-        _roleManager = roleManager;
-        _loggingService = loggingService;
-    }
+    #region Fields
+    private readonly UserManager<ApplicationUser> _userManager = userManager;
+    private readonly IJWTServices _jwtService = jwtService;
+    private readonly RoleManager<ApplicationRole> _roleManager = roleManager;
+    private readonly ILoggingService _loggingService = loggingService;
+    private readonly ICurrentUserService _currentUserService = currentUserService;
+    #endregion Fields
 
     public async Task<AuthResponseDto> LoginAsync(string email, string password)
     {
@@ -71,14 +68,19 @@ public class AuthService : IAuthService
         var user = new ApplicationUser
         {
             FullName = dto.FullName,
+            CreatedDate = DateTime.Now,
+            //CreatedBy = _currentUserService.UserId ?? throw new InvalidOperationException("Current user ID is null."),
+            CreatedBy = _currentUserService.UserId ?? Guid.NewGuid(),
             Email = dto.Email,
             UserName = dto.UserName,
-            CreatedDate = DateTime.Now,
             RefreshTokens = new List<RefreshToken>()
         };
 
         var result = await _userManager.CreateAsync(user, dto.Password);
-
+        if (result.Succeeded)
+        {
+            _loggingService.LogActivity(LogActivityAction.Insert.ToString(), $" New user {user.UserName} registered successfully.", user.Id);
+        }
         return result.Succeeded;
     }
 

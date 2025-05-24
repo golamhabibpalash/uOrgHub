@@ -52,22 +52,48 @@ namespace OrgHub.Infrastructure.DependencyInjection
 
             // Register Repositories
             services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-            services.AddScoped<IEmployeeRepository, EmployeeRepository>();
-            services.AddScoped<IEquipmentRepository, EquipmentRepository>();
+            #region OTHERS Repositories
+            #endregion OTHERS Repositories
+
+            #region IDENTITY Repositories
             services.AddScoped<IAuthRepository, AuthRepository>();
             services.AddScoped<IUserPermissionRepository, UserPermissionRepository>();
             services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
+            #endregion IDENTITY Repositories
+
+            #region HRM Repositories
+            services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+            services.AddScoped<IEquipmentRepository, EquipmentRepository>();
+            #endregion HRM Repositories
+
+            #region FIXED ASSETS Repositories
+
+            #endregion FIXED ASSETS Repositories
+
 
             // Register Services
             services.AddScoped(typeof(IService<,>), typeof(Service<,>));
-            services.AddScoped<IEmployeeService, EmployeeService>();
-            services.AddScoped<IEquipmentService, EquipmentService>();
+            #region OTHERS Services
+            #endregion OTHERS Services
+
+            #region IDENTITY Services
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IJWTServices, JwtService>();
             services.AddScoped<IUserPermissionService, UserPermissionService>();
             services.AddScoped<IRolePermissionService, RolePermissionService>();
             services.AddScoped<ILoggingService, LoggingService>();
+            services.AddScoped<ICurrentUserService, CurrentUserService>();
+            #endregion IDENTITY Services
+
+            #region HRM Services
+            services.AddScoped<IEmployeeService, EmployeeService>();
+            services.AddScoped<IEquipmentService, EquipmentService>();
             services.AddScoped<IAttendanceService, AttendanceService>();
+            #endregion HRM Services
+
+            #region FIXED ASSETS Services
+
+            #endregion FIXED ASSETS Services
 
 
             return services;

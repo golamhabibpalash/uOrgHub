@@ -18,13 +18,12 @@ public class LoggingService : ILoggingService
     public void LogActivity(string action, string message, Guid? userId = null)
     {
         userId ??= GetCurrentUserId();
-        Log.Information($"Activity: {action}, Message: {message}, UserId: {userId}", action, message, userId);
+        Log.Information("Activity: {Action}, Message: {Message}, UserId: {UserId}", action, message, userId);
     }
     public void LogAudit(string entity, Guid entityId, string action, string changes, Guid? userId = null)
     {
         userId ??= GetCurrentUserId();
-        Log.Information($"Audit: {entity}, EntityId: {entityId}, Action: {action}, Changes: {changes}, UserId: {userId}",
-            entity, entityId, action, changes, userId);
+        Log.Information($"Audit: {entity}, EntityId: {entityId}, Action: {action}, Changes: {changes}, UserId: {userId}");
     }
 
     private Guid? GetCurrentUserId()

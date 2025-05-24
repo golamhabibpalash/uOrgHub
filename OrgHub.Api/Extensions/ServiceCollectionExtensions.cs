@@ -5,10 +5,12 @@ using OrgHub.Application.Features.FixedAssets.Equipments.CommandQuery;
 using OrgHub.Application.Features.HRM.EmployeeAttendance.Commands;
 using OrgHub.Application.Features.HRM.Employees.Commands;
 using OrgHub.Application.Features.Identity.Commands;
-using OrgHub.Application.Mapping;
+using OrgHub.Application.Mapping.Fixed_Assets;
+using OrgHub.Application.Mapping.HRM;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.MSSqlServer;
+using System.Diagnostics;
 using System.Reflection;
 using System.Text;
 
@@ -29,11 +31,29 @@ public static class ServiceCollectionExtensions
     {
         var logDirectory = Path.Combine(AppContext.BaseDirectory, "Logs");
         if (!Directory.Exists(logDirectory))
+            Serilog.Debugging.SelfLog.Enable(msg => Debug.WriteLine(msg));
+        Serilog.Debugging.SelfLog.Enable(msg => Console.Error.WriteLine(msg));
         {
             Directory.CreateDirectory(logDirectory);
         }
 
-        
+        //var columnOptions = new ColumnOptions
+        //{
+        //    AdditionalColumns = new List<SqlColumn>
+        //    {
+        //        new SqlColumn { ColumnName = "Action", DataType = SqlDbType.NVarChar },
+        //        new SqlColumn { ColumnName = "CreatedDate", DataType = SqlDbType.DateTime },
+        //        new SqlColumn { ColumnName = "CreatedBy", DataType = SqlDbType.UniqueIdentifier },
+        //        new SqlColumn { ColumnName = "LastUpdatedDate", DataType = SqlDbType.DateTime },
+        //        new SqlColumn { ColumnName = "LastUpdatedBy", DataType = SqlDbType.UniqueIdentifier }
+        //    }
+        //};
+
+        //// Clear default Store to avoid duplicating columns
+        //columnOptions.Store.Clear();
+
+        //columnOptions.TimeStamp.NonClusteredIndex = true;
+
 
         Log.Logger = new LoggerConfiguration()
             .WriteTo.Console()
@@ -45,8 +65,8 @@ public static class ServiceCollectionExtensions
                     TableName = "Logs",
                     AutoCreateSqlTable = true
                 },
+                //columnOptions: columnOptions, // optionally include if you're customizing columns
                 restrictedToMinimumLevel: LogEventLevel.Information
-                // columnOptions: columnOptions // optionally include if you're customizing columns
             )
             .CreateLogger();
 
@@ -157,11 +177,13 @@ public static class ServiceCollectionExtensions
         // Register all MediatR handlers from relevant assemblies
         //HRM
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<CreateEmployeeCommand>());
-        services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<CreateEquipmentCommand>());
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<CreateAttendanceCommand>());
+
         //Identity
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<AssignPermissionToRoleCommand>());
 
+        //Fixed_Assets
+        services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<CreateEquipmentCommand>());
 
         return services;
     }

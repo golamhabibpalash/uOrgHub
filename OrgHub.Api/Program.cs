@@ -5,7 +5,7 @@ using OrgHub.Infrastructure.DependencyInjection;
 var builder = WebApplication.CreateBuilder(args);
 
 // Centralize Serilog configuration
-builder.Host.AddSerilogLogging(builder.Configuration);
+//builder.Host.AddSerilogLogging(builder.Configuration);
 
 // Register Controllers
 builder.Services.AddControllers();

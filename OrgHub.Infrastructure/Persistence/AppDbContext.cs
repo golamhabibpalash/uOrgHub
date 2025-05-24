@@ -17,6 +17,10 @@ namespace OrgHub.Infrastructure.Persistence
         {
             _auditLoggingInterceptor = auditLoggingInterceptor;
         }
+        #region Others
+        //public DbSet<Logs> Logs { get; set; }
+        #endregion Others
+
         #region HRM
         public DbSet<HRM_Employee> HRM_Employees { get; set; }
         public DbSet<HRM_Attendance> HRM_Attendance { get; set; }
@@ -88,12 +92,6 @@ namespace OrgHub.Infrastructure.Persistence
             modelBuilder.Entity<Logs>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                // identity / auto-increment
-                entity.Property(e => e.Id)
-                      .ValueGeneratedOnAdd();
-                entity.Property(e => e.Level).IsRequired().HasMaxLength(50);
-                entity.Property(e => e.Message).IsRequired();
-                entity.Property(e => e.Entity).IsRequired().HasMaxLength(100);
             });
             #endregion Others
         }

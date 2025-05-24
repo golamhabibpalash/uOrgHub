@@ -62,7 +62,7 @@ public class AttendancesController(IMediator mediatR, ILoggingService loggingSer
         var result = await _mediatR.Send(newAttendanceCommand);
         if (result != null)
         {
-            _loggingService.LogActivity(LogActivityAction.Add.ToString(), $"New Attendance for EmployeeId={result.EmployeeId} added", null);
+            _loggingService.LogActivity(LogActivityAction.Insert.ToString(), $"New Attendance for EmployeeId={result.EmployeeId} added", null);
         }
     }
 

@@ -3,7 +3,7 @@
 public interface ICommonProps
 {
     DateTime CreatedDate { get; set; }
-    int CreatedBy { get; set; }
+    Guid CreatedBy { get; set; }
     DateTime? LastUpdateDate { get; set; }
-    int LastUpdatedBy { get; set; }
+    Guid? LastUpdatedBy { get; set; }
 }

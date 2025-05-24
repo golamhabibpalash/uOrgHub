@@ -2,7 +2,7 @@
 
 public enum LogActivityAction
 {
-    Add,
+    Insert,
     Update,
     Delete,
     Approve,

@@ -28,11 +28,19 @@ public class ActivityLoggingMiddleware
     public async Task InvokeAsync(HttpContext context)
     {
         var stopwatch = Stopwatch.StartNew();
-        await _next(context);
-        stopwatch.Stop();
+        var userId = context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Anonymous";
+        var now = DateTime.UtcNow;
 
-        var userId = context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        Log.Information("HTTP {Method} {Path} responded {StatusCode} in {ElapsedMilliseconds}ms. UserId: {UserId}",
-            context.Request.Method, context.Request.Path, context.Response.StatusCode, stopwatch.ElapsedMilliseconds, userId);
+        {
+            await _next(context);
+            stopwatch.Stop();
+
+            Log.Information("HTTP {Method} {Path} responded {StatusCode} in {ElapsedMilliseconds}ms. UserId: {UserId}",
+                context.Request.Method,
+                context.Request.Path,
+                context.Response.StatusCode,
+                stopwatch.ElapsedMilliseconds,
+                userId);
+        }
     }
 }

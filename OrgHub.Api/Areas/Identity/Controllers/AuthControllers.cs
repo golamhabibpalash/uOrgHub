@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using OrgHub.Application.Features.Identity.DTOs;
 using OrgHub.Application.Features.Identity.Interfaces;
 using OrgHub.Application.Features.Others.Interfaces;
-using OrgHub.Domain.Enums;
 
 namespace OrgHub.Api.Areas.Identity.Controllers;
 
@@ -56,8 +55,7 @@ public class AuthController(IAuthService authService, ILoggingService loggingSer
         var result = await _authService.RegisterUserAsync(dto);
         if (!result)
             return BadRequest("Registration failed");
-        _loggingService.LogActivity(LogActivityAction.Add.ToString(), $"New user ({dto.FullName}) added", null);
-        _loggingService.LogAudit("AspNetUser", new Guid(), LogActivityAction.Add.ToString(), $"New User ({dto.UserName}) added", null);
+
         return Ok("User registered successfully");
     }
 
@@ -72,5 +70,4 @@ public class AuthController(IAuthService authService, ILoggingService loggingSer
             return BadRequest("User update failed");
         return Ok("User updated successfully");
     }
-
 }
