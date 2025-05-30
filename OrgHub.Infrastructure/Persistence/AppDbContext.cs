@@ -18,7 +18,8 @@ namespace OrgHub.Infrastructure.Persistence
             _auditLoggingInterceptor = auditLoggingInterceptor;
         }
         #region Others
-        //public DbSet<Logs> Logs { get; set; }
+        
+        public DbSet<AppSettings> AppSettings { get; set; }
         #endregion Others
 
         #region HRM
@@ -89,10 +90,7 @@ namespace OrgHub.Infrastructure.Persistence
             #endregion FixedAssets
 
             #region Others
-            modelBuilder.Entity<Logs>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-            });
+            
             #endregion Others
         }
 

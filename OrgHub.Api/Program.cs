@@ -4,8 +4,9 @@ using OrgHub.Infrastructure.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Centralize Serilog configuration
+// Centralize logging configuration
 //builder.Host.AddSerilogLogging(builder.Configuration);
+//builder.Services.AddCustomLogging();
 
 // Register Controllers
 builder.Services.AddControllers();
@@ -49,8 +50,6 @@ app.UseHttpsRedirection();
 //Register Exception Handling Middleware
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-//Activity Log middleware
-app.UseMiddleware<ActivityLoggingMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();

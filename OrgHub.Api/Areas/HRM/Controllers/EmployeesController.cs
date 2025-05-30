@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OrgHub.Application.Features.HRM.Employees.Commands;
 using OrgHub.Application.Features.HRM.Employees.DTOs;
+using System.Threading.Tasks;
 
 namespace OrgHub.Api.Areas.HRM.Controllers;
 
@@ -86,9 +87,9 @@ public class EmployeesController : ControllerBase
     /// </summary>
 
     [HttpPut("{id:int}")]
-    public IActionResult Update(int id, [FromBody] UpdateEmployeeCommand request)
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateEmployeeCommand request)
     {
-        var result = _mediator.Send(request).Result;
+        var result =await _mediator.Send(request);
         return Ok(result);
     }
     #endregion
@@ -98,9 +99,9 @@ public class EmployeesController : ControllerBase
     /// This method is used to delete an employee.
     /// </summary>
     [HttpDelete("delete")]
-    public IActionResult Delete(int id)
+    public async Task<IActionResult> Delete(int id)
     {
-        var result = _mediator.Send(new DeleteEmployeeCommand(id)).Result;
+        var result =await _mediator.Send(new DeleteEmployeeCommand(id));
         return Ok(result);
     }
     #endregion

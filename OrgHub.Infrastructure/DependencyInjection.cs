@@ -22,6 +22,8 @@ using OrgHub.Domain.Entities.Identity;
 using OrgHub.Infrastructure.Persistence;
 using OrgHub.Infrastructure.Persistence.Others;
 using OrgHub.Infrastructure.Repositories;
+using OrgHub.Infrastructure.Repositories.FixedAssets;
+using OrgHub.Infrastructure.Repositories.HRM;
 using OrgHub.Infrastructure.Repositories.Identity;
 
 namespace OrgHub.Infrastructure.DependencyInjection
@@ -52,6 +54,7 @@ namespace OrgHub.Infrastructure.DependencyInjection
 
             // Register Repositories
             services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+            
             #region OTHERS Repositories
             #endregion OTHERS Repositories
 
@@ -73,7 +76,9 @@ namespace OrgHub.Infrastructure.DependencyInjection
 
             // Register Services
             services.AddScoped(typeof(IService<,>), typeof(Service<,>));
+
             #region OTHERS Services
+
             #endregion OTHERS Services
 
             #region IDENTITY Services

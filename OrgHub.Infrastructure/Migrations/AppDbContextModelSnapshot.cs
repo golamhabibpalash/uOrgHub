@@ -765,6 +765,30 @@ namespace OrgHub.Infrastructure.Migrations
                     b.ToTable("AddressType");
                 });
 
+            modelBuilder.Entity("OrgHub.Domain.Entities.Others.AppSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Remarks")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("AppSettings");
+                });
+
             modelBuilder.Entity("OrgHub.Domain.Entities.Others.District", b =>
                 {
                     b.Property<int>("Id")
@@ -828,36 +852,35 @@ namespace OrgHub.Infrastructure.Migrations
                     b.ToTable("Division");
                 });
 
-            modelBuilder.Entity("OrgHub.Domain.Entities.Others.Logs", b =>
+            modelBuilder.Entity("OrgHub.Domain.Entities.Others.LogEntry", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
+                        .HasColumnType("uniqueidentifier");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
 
-                    b.Property<string>("Action")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Exception")
+                    b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Level")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Message")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Properties")
+                    b.Property<string>("Source")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StackTrace")
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Logs");
+                    b.ToTable("LogEntries");
                 });
 
             modelBuilder.Entity("OrgHub.Domain.Entities.Others.Upazila", b =>

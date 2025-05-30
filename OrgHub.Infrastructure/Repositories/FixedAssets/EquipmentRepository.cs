@@ -3,7 +3,7 @@ using OrgHub.Core.Interfaces;
 using OrgHub.Domain.Entities.FixedAssets;
 using OrgHub.Infrastructure.Persistence;
 
-namespace OrgHub.Infrastructure.Repositories
+namespace OrgHub.Infrastructure.Repositories.FixedAssets
 {
     public class EquipmentRepository : IEquipmentRepository
     {

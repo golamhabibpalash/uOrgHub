@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OrgHub.Application.Common.Interfaces;
 using OrgHub.Application.Features.Identity.DTOs;
 using OrgHub.Application.Features.Identity.Interfaces;
 using OrgHub.Application.Features.Others.Interfaces;
@@ -32,6 +33,7 @@ public class AuthController(IAuthService authService, ILoggingService loggingSer
     public async Task<IActionResult> Login(string email, string password)
     {
         var result = await _authService.LoginAsync(email, password);
+        
         return Ok(result);
     }
 

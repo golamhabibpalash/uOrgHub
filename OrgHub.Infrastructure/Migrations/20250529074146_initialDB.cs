@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace OrgHub.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class _InitialDatabase : Migration
+    public partial class initialDB : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -26,6 +26,21 @@ namespace OrgHub.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AddressType", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AppSettings",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Key = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Value = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Remarks = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AppSettings", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -195,20 +210,20 @@ namespace OrgHub.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Logs",
+                name: "LogEntries",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Level = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Message = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Exception = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Properties = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Action = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true)
+                    Level = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    StackTrace = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Source = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Logs", x => x.Id);
+                    table.PrimaryKey("PK_LogEntries", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -661,6 +676,9 @@ namespace OrgHub.Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "AppSettings");
+
+            migrationBuilder.DropTable(
                 name: "AspNetRoleClaims");
 
             migrationBuilder.DropTable(
@@ -685,7 +703,7 @@ namespace OrgHub.Infrastructure.Migrations
                 name: "HRM_EmployeeAddress");
 
             migrationBuilder.DropTable(
-                name: "Logs");
+                name: "LogEntries");
 
             migrationBuilder.DropTable(
                 name: "RefreshToken");

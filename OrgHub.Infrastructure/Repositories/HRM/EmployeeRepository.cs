@@ -3,7 +3,7 @@ using OrgHub.Core.Interfaces;
 using OrgHub.Domain.Entities.HRM;
 using OrgHub.Infrastructure.Persistence;
 
-namespace OrgHub.Infrastructure.Repositories
+namespace OrgHub.Infrastructure.Repositories.HRM
 {
     public class EmployeeRepository : IEmployeeRepository
     {

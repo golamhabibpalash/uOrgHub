@@ -16,4 +16,8 @@
     <ProjectReference Include="..\OrgHub.Domain\OrgHub.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Interfaces\Others\" />
+  </ItemGroup>
+
 </Project>

@@ -30,7 +30,6 @@ public class AuthService(UserManager<ApplicationUser> userManager, IJWTServices 
 
         user.RefreshTokens.Add(refreshToken);
         await _userManager.UpdateAsync(user);
-        _loggingService.LogActivity("UserLogin", $"User {user.UserName} logged in successfully.", user.Id);
         return new AuthResponseDto
         {
             AccessToken = accessToken,
