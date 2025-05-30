@@ -2,9 +2,9 @@
 {
     public abstract class CommonProps
     {
-        public required DateTime CreatedDate { get; set; } = DateTime.Now;
+        public required DateTime CreatedAt { get; set; } = DateTime.Now;
         public Guid CreatedBy { get; set; }
-        public DateTime? LastUpdatedDate { get; set; }
+        public DateTime? LastUpdatedAt { get; set; }
         public Guid? LastUpdatedBy { get; set; }
     }
 }

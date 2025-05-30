@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using MediatR;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OrgHub.Application.Auth.Services;
+using OrgHub.Application.Behaviors;
 using OrgHub.Application.Common.Interfaces;
 using OrgHub.Application.Common.Services;
 using OrgHub.Application.Features.FixedAssets.Equipments.Interfaces;
@@ -50,7 +52,7 @@ namespace OrgHub.Infrastructure.DependencyInjection
 
             services.AddScoped<DbContext>(provider => provider.GetRequiredService<AppDbContext>());
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-            services.AddScoped<AuditLoggingInterceptor>();
+            services.AddSingleton<AuditLoggingInterceptor>();
 
             // Register Repositories
             services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
@@ -78,7 +80,7 @@ namespace OrgHub.Infrastructure.DependencyInjection
             services.AddScoped(typeof(IService<,>), typeof(Service<,>));
 
             #region OTHERS Services
-
+            services.AddScoped(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
             #endregion OTHERS Services
 
             #region IDENTITY Services

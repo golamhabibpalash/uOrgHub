@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
 
@@ -18,9 +19,13 @@ public class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
 
         builder.UseSqlServer(connectionString);
 
-        // Create an instance of AuditLoggingInterceptor (or retrieve it from a service provider if needed)
-        var auditLoggingInterceptor = new AuditLoggingInterceptor();
+        // Create an instance of IHttpContextAccessor (or retrieve it from a service provider if needed)
+        var httpContextAccessor = new HttpContextAccessor();
 
-        return new AppDbContext(builder.Options, auditLoggingInterceptor);
+        // Create an instance of AuditLoggingInterceptor (or retrieve it from a service provider if needed)
+        var auditLoggingInterceptor = new AuditLoggingInterceptor(httpContextAccessor);
+
+
+        return new AppDbContext(builder.Options, auditLoggingInterceptor, httpContextAccessor);
     }
 }

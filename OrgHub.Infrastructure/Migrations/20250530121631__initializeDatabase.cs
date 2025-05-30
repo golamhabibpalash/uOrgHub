@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace OrgHub.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class initialDB : Migration
+    public partial class _initializeDatabase : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -18,9 +18,9 @@ namespace OrgHub.Infrastructure.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    LastUpdatedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    LastUpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     LastUpdatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
                 },
                 constraints: table =>
@@ -92,15 +92,34 @@ namespace OrgHub.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "AuditLogs",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    TableName = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
+                    KeyValues = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    OldValues = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    NewValues = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Action = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    UserId = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true),
+                    Timestamp = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AuditLogs", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Division",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    LastUpdatedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    LastUpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     LastUpdatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
                 },
                 constraints: table =>
@@ -120,9 +139,9 @@ namespace OrgHub.Infrastructure.Migrations
                     Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     PurchaseDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    LastUpdatedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    LastUpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     LastUpdatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
                 },
                 constraints: table =>
@@ -141,9 +160,9 @@ namespace OrgHub.Infrastructure.Migrations
                     ParentDepartmentId = table.Column<int>(type: "int", nullable: true),
                     HeadEmployeeId = table.Column<int>(type: "int", nullable: true),
                     IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    LastUpdatedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    LastUpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     LastUpdatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
                 },
                 constraints: table =>
@@ -161,9 +180,9 @@ namespace OrgHub.Infrastructure.Migrations
                     ParentDesignationId = table.Column<int>(type: "int", nullable: false),
                     DesignationLevel = table.Column<int>(type: "int", nullable: false),
                     IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    LastUpdatedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    LastUpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     LastUpdatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
                 },
                 constraints: table =>
@@ -180,9 +199,9 @@ namespace OrgHub.Infrastructure.Migrations
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    LastUpdatedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    LastUpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     LastUpdatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
                 },
                 constraints: table =>
@@ -199,31 +218,14 @@ namespace OrgHub.Infrastructure.Migrations
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    LastUpdatedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    LastUpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     LastUpdatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_HRM_EmployeeType", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "LogEntries",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Message = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Level = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    StackTrace = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Source = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_LogEntries", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -400,9 +402,9 @@ namespace OrgHub.Infrastructure.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     DivisionId = table.Column<int>(type: "int", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    LastUpdatedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    LastUpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     LastUpdatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
                 },
                 constraints: table =>
@@ -438,9 +440,9 @@ namespace OrgHub.Infrastructure.Migrations
                     ProfilePhotoPath = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     BloodGroup = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: true),
                     Nationality = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    LastUpdatedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    LastUpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     LastUpdatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
                 },
                 constraints: table =>
@@ -480,9 +482,9 @@ namespace OrgHub.Infrastructure.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     DistrictId = table.Column<int>(type: "int", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    LastUpdatedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    LastUpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     LastUpdatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
                 },
                 constraints: table =>
@@ -508,9 +510,9 @@ namespace OrgHub.Infrastructure.Migrations
                     CheckOutTime = table.Column<TimeSpan>(type: "time", nullable: true),
                     AttendanceType = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Remarks = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    LastUpdatedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    LastUpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     LastUpdatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
                 },
                 constraints: table =>
@@ -534,9 +536,9 @@ namespace OrgHub.Infrastructure.Migrations
                     AreaAddress = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     AddressTypeId = table.Column<int>(type: "int", nullable: false),
                     UpazilaId = table.Column<int>(type: "int", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    LastUpdatedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    LastUpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     LastUpdatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
                 },
                 constraints: table =>
@@ -694,6 +696,9 @@ namespace OrgHub.Infrastructure.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
+                name: "AuditLogs");
+
+            migrationBuilder.DropTable(
                 name: "FixedAssets_Equipments");
 
             migrationBuilder.DropTable(
@@ -701,9 +706,6 @@ namespace OrgHub.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "HRM_EmployeeAddress");
-
-            migrationBuilder.DropTable(
-                name: "LogEntries");
 
             migrationBuilder.DropTable(
                 name: "RefreshToken");

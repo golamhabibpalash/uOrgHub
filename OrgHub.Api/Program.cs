@@ -1,12 +1,16 @@
 using OrgHub.Api.Extensions;
 using OrgHub.Api.MiddleWares;
 using OrgHub.Infrastructure.DependencyInjection;
+using OrgHub.Infrastructure.Persistence.Others;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Centralize logging configuration
 //builder.Host.AddSerilogLogging(builder.Configuration);
 //builder.Services.AddCustomLogging();
+builder.Services.AddHttpContextAccessor(); 
+//builder.Services.AddSingleton<AuditLoggingInterceptor>();
+
 
 // Register Controllers
 builder.Services.AddControllers();
