@@ -1,0 +1,39 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v8.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v8.0": {
+      "uOrgHub.HR/1.0.0": {
+        "dependencies": {
+          "uOrgHub.Shared": "1.0.0"
+        },
+        "runtime": {
+          "uOrgHub.HR.dll": {}
+        }
+      },
+      "uOrgHub.Shared/1.0.0": {
+        "runtime": {
+          "uOrgHub.Shared.dll": {
+            "assemblyVersion": "1.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "uOrgHub.HR/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "uOrgHub.Shared/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

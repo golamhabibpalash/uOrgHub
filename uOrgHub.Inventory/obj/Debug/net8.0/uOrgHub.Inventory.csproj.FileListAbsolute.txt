@@ -1,0 +1,15 @@
+D:\Projects\ERP\uOrgHub\uOrgHub.Inventory\bin\Debug\net8.0\uOrgHub.Inventory.deps.json
+D:\Projects\ERP\uOrgHub\uOrgHub.Inventory\bin\Debug\net8.0\uOrgHub.Inventory.dll
+D:\Projects\ERP\uOrgHub\uOrgHub.Inventory\bin\Debug\net8.0\uOrgHub.Inventory.pdb
+D:\Projects\ERP\uOrgHub\uOrgHub.Inventory\bin\Debug\net8.0\uOrgHub.Shared.dll
+D:\Projects\ERP\uOrgHub\uOrgHub.Inventory\bin\Debug\net8.0\uOrgHub.Shared.pdb
+D:\Projects\ERP\uOrgHub\uOrgHub.Inventory\obj\Debug\net8.0\uOrgHub.Inventory.csproj.AssemblyReference.cache
+D:\Projects\ERP\uOrgHub\uOrgHub.Inventory\obj\Debug\net8.0\uOrgHub.Inventory.GeneratedMSBuildEditorConfig.editorconfig
+D:\Projects\ERP\uOrgHub\uOrgHub.Inventory\obj\Debug\net8.0\uOrgHub.Inventory.AssemblyInfoInputs.cache
+D:\Projects\ERP\uOrgHub\uOrgHub.Inventory\obj\Debug\net8.0\uOrgHub.Inventory.AssemblyInfo.cs
+D:\Projects\ERP\uOrgHub\uOrgHub.Inventory\obj\Debug\net8.0\uOrgHub.Inventory.csproj.CoreCompileInputs.cache
+D:\Projects\ERP\uOrgHub\uOrgHub.Inventory\obj\Debug\net8.0\uOrgHub..3CE53292.Up2Date
+D:\Projects\ERP\uOrgHub\uOrgHub.Inventory\obj\Debug\net8.0\uOrgHub.Inventory.dll
+D:\Projects\ERP\uOrgHub\uOrgHub.Inventory\obj\Debug\net8.0\refint\uOrgHub.Inventory.dll
+D:\Projects\ERP\uOrgHub\uOrgHub.Inventory\obj\Debug\net8.0\uOrgHub.Inventory.pdb
+D:\Projects\ERP\uOrgHub\uOrgHub.Inventory\obj\Debug\net8.0\ref\uOrgHub.Inventory.dll
