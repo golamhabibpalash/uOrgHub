@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "uOrgHub.Projects", "uOrgHub
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "uOrgHub.Tests", "uOrgHub.Tests\uOrgHub.Tests.csproj", "{70B42E0C-BF3A-41B5-A8FD-BDF6EE06EF42}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "uOrgHub.API", "uOrgHub.API\uOrgHub.API.csproj", "{C46B59F8-3A97-4980-BA8A-F152CD045385}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -54,5 +56,9 @@ Global
 		{70B42E0C-BF3A-41B5-A8FD-BDF6EE06EF42}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{70B42E0C-BF3A-41B5-A8FD-BDF6EE06EF42}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{70B42E0C-BF3A-41B5-A8FD-BDF6EE06EF42}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C46B59F8-3A97-4980-BA8A-F152CD045385}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C46B59F8-3A97-4980-BA8A-F152CD045385}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C46B59F8-3A97-4980-BA8A-F152CD045385}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C46B59F8-3A97-4980-BA8A-F152CD045385}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
