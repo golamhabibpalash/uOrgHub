@@ -13,3 +13,4 @@ D:\Projects\ERP\uOrgHub\uOrgHub.HR\obj\Debug\net8.0\uOrgHub.HR.dll
 D:\Projects\ERP\uOrgHub\uOrgHub.HR\obj\Debug\net8.0\refint\uOrgHub.HR.dll
 D:\Projects\ERP\uOrgHub\uOrgHub.HR\obj\Debug\net8.0\uOrgHub.HR.pdb
 D:\Projects\ERP\uOrgHub\uOrgHub.HR\obj\Debug\net8.0\ref\uOrgHub.HR.dll
+D:\Projects\ERP\uOrgHub\uOrgHub.HR\obj\Debug\net8.0\uOrgHub.HR.sourcelink.json

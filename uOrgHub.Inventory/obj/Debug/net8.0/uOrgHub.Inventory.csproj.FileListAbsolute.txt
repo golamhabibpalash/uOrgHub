@@ -13,3 +13,4 @@ D:\Projects\ERP\uOrgHub\uOrgHub.Inventory\obj\Debug\net8.0\uOrgHub.Inventory.dll
 D:\Projects\ERP\uOrgHub\uOrgHub.Inventory\obj\Debug\net8.0\refint\uOrgHub.Inventory.dll
 D:\Projects\ERP\uOrgHub\uOrgHub.Inventory\obj\Debug\net8.0\uOrgHub.Inventory.pdb
 D:\Projects\ERP\uOrgHub\uOrgHub.Inventory\obj\Debug\net8.0\ref\uOrgHub.Inventory.dll
+D:\Projects\ERP\uOrgHub\uOrgHub.Inventory\obj\Debug\net8.0\uOrgHub.Inventory.sourcelink.json

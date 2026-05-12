@@ -9,3 +9,7 @@ D:\Projects\ERP\uOrgHub\uOrgHub.Shared\obj\Debug\net8.0\uOrgHub.Shared.dll
 D:\Projects\ERP\uOrgHub\uOrgHub.Shared\obj\Debug\net8.0\refint\uOrgHub.Shared.dll
 D:\Projects\ERP\uOrgHub\uOrgHub.Shared\obj\Debug\net8.0\uOrgHub.Shared.pdb
 D:\Projects\ERP\uOrgHub\uOrgHub.Shared\obj\Debug\net8.0\ref\uOrgHub.Shared.dll
+D:\Projects\ERP\uOrgHub\uOrgHub.Shared\obj\Debug\net8.0\uOrgHub.Shared.csproj.AssemblyReference.cache
+D:\Projects\ERP\uOrgHub\uOrgHub.Shared\obj\Debug\net8.0\uOrgHub.Shared.sourcelink.json
+D:\Projects\ERP\uOrgHub\uOrgHub.Shared\bin\Debug\net8.0\uOrgHub.Shared.runtimeconfig.json
+D:\Projects\ERP\uOrgHub\uOrgHub.Shared\obj\Debug\net8.0\uOrgHub.Shared.genruntimeconfig.cache

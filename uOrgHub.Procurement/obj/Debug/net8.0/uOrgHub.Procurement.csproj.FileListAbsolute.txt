@@ -15,3 +15,4 @@ D:\Projects\ERP\uOrgHub\uOrgHub.Procurement\obj\Debug\net8.0\uOrgHub.Procurement
 D:\Projects\ERP\uOrgHub\uOrgHub.Procurement\obj\Debug\net8.0\refint\uOrgHub.Procurement.dll
 D:\Projects\ERP\uOrgHub\uOrgHub.Procurement\obj\Debug\net8.0\uOrgHub.Procurement.pdb
 D:\Projects\ERP\uOrgHub\uOrgHub.Procurement\obj\Debug\net8.0\ref\uOrgHub.Procurement.dll
+D:\Projects\ERP\uOrgHub\uOrgHub.Procurement\obj\Debug\net8.0\uOrgHub.Procurement.sourcelink.json
