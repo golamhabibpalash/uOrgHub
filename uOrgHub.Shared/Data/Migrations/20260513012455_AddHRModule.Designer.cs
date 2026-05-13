@@ -12,7 +12,7 @@ using uOrgHub.Shared.Data;
 namespace uOrgHub.Shared.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260513010740_AddHRModule")]
+    [Migration("20260513012455_AddHRModule")]
     partial class AddHRModule
     {
         /// <inheritdoc />
@@ -75,7 +75,7 @@ namespace uOrgHub.Shared.Data.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
-                    b.ToTable("Department");
+                    b.ToTable("hr_departments");
                 });
 
             modelBuilder.Entity("uOrgHub.HR.Models.Entities.Designation", b =>
@@ -129,7 +129,7 @@ namespace uOrgHub.Shared.Data.Migrations
 
                     b.HasIndex("DepartmentId");
 
-                    b.ToTable("Designation");
+                    b.ToTable("hr_designations");
                 });
 
             modelBuilder.Entity("uOrgHub.HR.Models.Entities.Employee", b =>
@@ -233,7 +233,7 @@ namespace uOrgHub.Shared.Data.Migrations
                     b.HasIndex("EmployeeCode")
                         .IsUnique();
 
-                    b.ToTable("Employee");
+                    b.ToTable("hr_employees");
                 });
 
             modelBuilder.Entity("uOrgHub.HR.Models.Entities.Designation", b =>

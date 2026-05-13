@@ -1,8 +1,10 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using uOrgHub.Shared.Entities;
 
 namespace uOrgHub.HR.Models.Entities;
 
+[Table("hr_departments")]
 public class Department : BaseEntity
 {
     [Required]

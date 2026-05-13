@@ -284,3 +284,18 @@ Never hard delete — always soft delete.
 Always return ApiResponse<T> from controllers.
 Always inherit BaseEntity for all entities.
 ```
+## 17. Table Naming Convention
+Every entity MUST have a table prefix matching its module.
+Use [Table("prefix_tablename")] attribute on every entity class.
+
+| Module | Prefix |
+|---|---|
+| HR | hr_ |
+| Accounts | acc_ |
+| Inventory | inv_ |
+| Procurement | proc_ |
+| Projects | proj_ |
+
+Example:
+[Table("hr_employees")]
+public class Employee : BaseEntity { ... }

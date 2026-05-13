@@ -1,9 +1,11 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using uOrgHub.HR.Models.Enums;
 using uOrgHub.Shared.Entities;
 
 namespace uOrgHub.HR.Models.Entities;
 
+[Table("hr_employees")]
 public class Employee : BaseEntity
 {
     [Required]

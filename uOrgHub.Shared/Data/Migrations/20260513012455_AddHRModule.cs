@@ -12,7 +12,7 @@ namespace uOrgHub.Shared.Data.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "Department",
+                name: "hr_departments",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -30,11 +30,11 @@ namespace uOrgHub.Shared.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Department", x => x.Id);
+                    table.PrimaryKey("PK_hr_departments", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "Designation",
+                name: "hr_designations",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -52,17 +52,17 @@ namespace uOrgHub.Shared.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Designation", x => x.Id);
+                    table.PrimaryKey("PK_hr_designations", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Designation_Department_DepartmentId",
+                        name: "FK_hr_designations_hr_departments_DepartmentId",
                         column: x => x.DepartmentId,
-                        principalTable: "Department",
+                        principalTable: "hr_departments",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "Employee",
+                name: "hr_employees",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -92,57 +92,57 @@ namespace uOrgHub.Shared.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Employee", x => x.Id);
+                    table.PrimaryKey("PK_hr_employees", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Employee_Department_DepartmentId",
+                        name: "FK_hr_employees_hr_departments_DepartmentId",
                         column: x => x.DepartmentId,
-                        principalTable: "Department",
+                        principalTable: "hr_departments",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_Employee_Designation_DesignationId",
+                        name: "FK_hr_employees_hr_designations_DesignationId",
                         column: x => x.DesignationId,
-                        principalTable: "Designation",
+                        principalTable: "hr_designations",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Department_Code",
-                table: "Department",
+                name: "IX_hr_departments_Code",
+                table: "hr_departments",
                 column: "Code",
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Designation_Code",
-                table: "Designation",
+                name: "IX_hr_designations_Code",
+                table: "hr_designations",
                 column: "Code",
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Designation_DepartmentId",
-                table: "Designation",
+                name: "IX_hr_designations_DepartmentId",
+                table: "hr_designations",
                 column: "DepartmentId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Employee_DepartmentId",
-                table: "Employee",
+                name: "IX_hr_employees_DepartmentId",
+                table: "hr_employees",
                 column: "DepartmentId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Employee_DesignationId",
-                table: "Employee",
+                name: "IX_hr_employees_DesignationId",
+                table: "hr_employees",
                 column: "DesignationId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Employee_Email",
-                table: "Employee",
+                name: "IX_hr_employees_Email",
+                table: "hr_employees",
                 column: "Email",
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Employee_EmployeeCode",
-                table: "Employee",
+                name: "IX_hr_employees_EmployeeCode",
+                table: "hr_employees",
                 column: "EmployeeCode",
                 unique: true);
         }
@@ -151,13 +151,13 @@ namespace uOrgHub.Shared.Data.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Employee");
+                name: "hr_employees");
 
             migrationBuilder.DropTable(
-                name: "Designation");
+                name: "hr_designations");
 
             migrationBuilder.DropTable(
-                name: "Department");
+                name: "hr_departments");
         }
     }
 }
