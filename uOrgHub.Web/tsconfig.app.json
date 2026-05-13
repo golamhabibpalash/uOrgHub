@@ -6,6 +6,7 @@
     "module": "esnext",
     "types": ["vite/client"],
     "skipLibCheck": true,
+    "typeRoots": ["./node_modules/@types", "./src"],
 
     /* Bundler mode */
     "moduleResolution": "bundler",
