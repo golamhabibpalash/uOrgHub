@@ -6,21 +6,32 @@ namespace uOrgHub.HR.Models.Configurations;
 
 public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
 {
-    public void Configure(EntityTypeBuilder<Employee> builder)
+    public void Configure(EntityTypeBuilder<Employee> b)
     {
-        builder.HasKey(x => x.Id);
-        builder.Property(x => x.EmployeeCode).IsRequired().HasMaxLength(20);
-        builder.Property(x => x.FirstName).IsRequired().HasMaxLength(100);
-        builder.Property(x => x.LastName).IsRequired().HasMaxLength(100);
-        builder.Property(x => x.Email).IsRequired().HasMaxLength(200);
-        builder.Property(x => x.Phone).HasMaxLength(20);
-        builder.Property(x => x.NationalId).HasMaxLength(30);
-        builder.Property(x => x.Address).HasMaxLength(500);
-        builder.Property(x => x.EmergencyContact).HasMaxLength(100);
-        builder.Property(x => x.EmergencyPhone).HasMaxLength(20);
-        builder.Property(x => x.BasicSalary).HasColumnType("decimal(18,2)");
+        b.HasKey(x => x.Id);
+        b.HasIndex(x => x.EmployeeCode).IsUnique();
+        b.HasIndex(x => x.Email).IsUnique();
 
-        builder.HasIndex(x => x.EmployeeCode).IsUnique();
-        builder.HasIndex(x => x.Email).IsUnique();
+        b.Property(x => x.BasicSalary).HasColumnType("decimal(18,2)");
+
+        b.HasOne(x => x.Designation)
+         .WithMany(x => x.Employees)
+         .HasForeignKey(x => x.DesignationId)
+         .OnDelete(DeleteBehavior.Restrict);
+
+        b.HasOne(x => x.Department)
+         .WithMany(x => x.Employees)
+         .HasForeignKey(x => x.DepartmentId)
+         .OnDelete(DeleteBehavior.Restrict);
+
+        b.HasOne(x => x.Manager)
+         .WithMany(x => x.DirectReports)
+         .HasForeignKey(x => x.ManagerId)
+         .OnDelete(DeleteBehavior.Restrict);
+
+        b.HasOne(x => x.SalaryGrade)
+         .WithMany(x => x.Employees)
+         .HasForeignKey(x => x.SalaryGradeId)
+         .OnDelete(DeleteBehavior.Restrict);
     }
 }

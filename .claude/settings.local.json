@@ -5,7 +5,10 @@
       "Bash(dotnet restore *)",
       "Bash(dotnet ef migrations *)",
       "Bash(dotnet ef database *)",
-      "Bash(docker exec *)"
+      "Bash(docker exec *)",
+      "Bash(xargs -I{} sh -c 'echo \"=== {} ===\" && grep -E \"PackageReference\" {}')",
+      "Bash(xargs cat *)",
+      "Bash(grep -v \"^$\")"
     ]
   }
 }

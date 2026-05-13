@@ -9,5 +9,6 @@ public class UpdateDesignationDtoValidator : AbstractValidator<UpdateDesignation
         RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
         RuleFor(x => x.Code).NotEmpty().MaximumLength(20);
         RuleFor(x => x.DepartmentId).NotEmpty();
+        RuleFor(x => x.Level).GreaterThan(0);
     }
 }

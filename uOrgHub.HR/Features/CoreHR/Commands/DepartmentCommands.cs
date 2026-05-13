@@ -1,0 +1,68 @@
+using MediatR;
+using uOrgHub.HR.DTOs;
+using uOrgHub.HR.Features._Common;
+using uOrgHub.HR.Mappings;
+using uOrgHub.HR.Repositories;
+using uOrgHub.Shared.Exceptions;
+
+namespace uOrgHub.HR.Features.CoreHR.Commands;
+
+public record CreateDepartmentCommand(CreateDepartmentDto Dto) : ICommand<DepartmentResponseDto>;
+public record UpdateDepartmentCommand(Guid Id, UpdateDepartmentDto Dto) : ICommand<DepartmentResponseDto>;
+public record DeleteDepartmentCommand(Guid Id) : ICommand<Unit>;
+
+public class CreateDepartmentCommandHandler : IRequestHandler<CreateDepartmentCommand, DepartmentResponseDto>
+{
+    private readonly IDepartmentRepository _repo;
+    private readonly DepartmentMapper _mapper = new();
+
+    public CreateDepartmentCommandHandler(IDepartmentRepository repo) => _repo = repo;
+
+    public async Task<DepartmentResponseDto> Handle(CreateDepartmentCommand request, CancellationToken ct)
+    {
+        if (await _repo.CodeExistsAsync(request.Dto.Code))
+            throw new AppException($"Department code '{request.Dto.Code}' already exists.");
+
+        var entity = _mapper.ToEntity(request.Dto);
+        entity.CreatedAt = DateTime.UtcNow;
+        var created = await _repo.CreateAsync(entity);
+        return _mapper.ToDto(created);
+    }
+}
+
+public class UpdateDepartmentCommandHandler : IRequestHandler<UpdateDepartmentCommand, DepartmentResponseDto>
+{
+    private readonly IDepartmentRepository _repo;
+    private readonly DepartmentMapper _mapper = new();
+
+    public UpdateDepartmentCommandHandler(IDepartmentRepository repo) => _repo = repo;
+
+    public async Task<DepartmentResponseDto> Handle(UpdateDepartmentCommand request, CancellationToken ct)
+    {
+        var entity = await _repo.GetByIdAsync(request.Id)
+            ?? throw new NotFoundException(nameof(Models.Entities.Department), request.Id);
+
+        if (await _repo.CodeExistsAsync(request.Dto.Code, request.Id))
+            throw new AppException($"Department code '{request.Dto.Code}' already exists.");
+
+        _mapper.UpdateEntity(request.Dto, entity);
+        entity.UpdatedAt = DateTime.UtcNow;
+        var updated = await _repo.UpdateAsync(entity);
+        return _mapper.ToDto(updated);
+    }
+}
+
+public class DeleteDepartmentCommandHandler : IRequestHandler<DeleteDepartmentCommand, Unit>
+{
+    private readonly IDepartmentRepository _repo;
+
+    public DeleteDepartmentCommandHandler(IDepartmentRepository repo) => _repo = repo;
+
+    public async Task<Unit> Handle(DeleteDepartmentCommand request, CancellationToken ct)
+    {
+        if (!await _repo.ExistsAsync(request.Id))
+            throw new NotFoundException(nameof(Models.Entities.Department), request.Id);
+        await _repo.DeleteAsync(request.Id);
+        return Unit.Value;
+    }
+}

@@ -6,16 +6,24 @@ namespace uOrgHub.HR.Models.Configurations;
 
 public class DesignationConfiguration : IEntityTypeConfiguration<Designation>
 {
-    public void Configure(EntityTypeBuilder<Designation> builder)
+    public void Configure(EntityTypeBuilder<Designation> b)
     {
-        builder.HasKey(x => x.Id);
-        builder.Property(x => x.Name).IsRequired().HasMaxLength(100);
-        builder.Property(x => x.Code).IsRequired().HasMaxLength(20);
-        builder.HasIndex(x => x.Code).IsUnique();
+        b.HasKey(x => x.Id);
+        b.HasIndex(x => x.Code).IsUnique();
 
-        builder.HasMany(x => x.Employees)
-               .WithOne(x => x.Designation)
-               .HasForeignKey(x => x.DesignationId)
-               .OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(x => x.Department)
+         .WithMany(x => x.Designations)
+         .HasForeignKey(x => x.DepartmentId)
+         .OnDelete(DeleteBehavior.Restrict);
+
+        b.HasOne(x => x.ParentDesignation)
+         .WithMany(x => x.ChildDesignations)
+         .HasForeignKey(x => x.ParentDesignationId)
+         .OnDelete(DeleteBehavior.Restrict);
+
+        b.HasOne(x => x.SalaryGrade)
+         .WithMany(x => x.Designations)
+         .HasForeignKey(x => x.SalaryGradeId)
+         .OnDelete(DeleteBehavior.Restrict);
     }
 }

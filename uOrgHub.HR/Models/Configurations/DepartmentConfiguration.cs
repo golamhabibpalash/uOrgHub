@@ -6,22 +6,21 @@ namespace uOrgHub.HR.Models.Configurations;
 
 public class DepartmentConfiguration : IEntityTypeConfiguration<Department>
 {
-    public void Configure(EntityTypeBuilder<Department> builder)
+    public void Configure(EntityTypeBuilder<Department> b)
     {
-        builder.HasKey(x => x.Id);
-        builder.Property(x => x.Name).IsRequired().HasMaxLength(100);
-        builder.Property(x => x.Code).IsRequired().HasMaxLength(20);
-        builder.Property(x => x.Description).HasMaxLength(500);
-        builder.HasIndex(x => x.Code).IsUnique();
+        b.HasKey(x => x.Id);
+        b.HasIndex(x => x.Code).IsUnique();
+        b.Property(x => x.Name).IsRequired().HasMaxLength(100);
+        b.Property(x => x.Code).IsRequired().HasMaxLength(20);
 
-        builder.HasMany(x => x.Designations)
-               .WithOne(x => x.Department)
-               .HasForeignKey(x => x.DepartmentId)
-               .OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(x => x.ParentDepartment)
+         .WithMany(x => x.ChildDepartments)
+         .HasForeignKey(x => x.ParentDepartmentId)
+         .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasMany(x => x.Employees)
-               .WithOne(x => x.Department)
-               .HasForeignKey(x => x.DepartmentId)
-               .OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(x => x.HeadOfDepartment)
+         .WithMany()
+         .HasForeignKey(x => x.HeadOfDepartmentId)
+         .OnDelete(DeleteBehavior.Restrict);
     }
 }
