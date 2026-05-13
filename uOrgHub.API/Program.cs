@@ -23,11 +23,17 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Auto-migrate on startup
-using (var scope = app.Services.CreateScope())
+// Auto-migrate on startup (optional - won't crash if DB unavailable)
+try
 {
+    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"Database migration skipped: {ex.Message}");
+    Console.WriteLine("The application will continue without applying migrations.");
 }
 
 if (app.Environment.IsDevelopment())
