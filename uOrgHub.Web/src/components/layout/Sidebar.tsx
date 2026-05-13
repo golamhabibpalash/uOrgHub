@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import {
   Users,
@@ -15,6 +16,9 @@ import {
   Wallet,
   UserCheck,
   Target,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
 } from "lucide-react";
 
 const hrSubItems = [
@@ -37,105 +41,237 @@ const navItems = [
   { label: "Projects", path: "/projects", icon: HardHat },
 ];
 
+const STORAGE_KEY = "uorghub-sidebar-state";
+
+interface SidebarState {
+  isCollapsed: boolean;
+  expandedModules: Record<string, boolean>;
+}
+
+function getStoredState(): SidebarState {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (e) {
+    console.error("Failed to parse sidebar state:", e);
+  }
+  return { isCollapsed: false, expandedModules: { "HR & Payroll": true } };
+}
+
+function storeState(state: SidebarState) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
 export default function Sidebar() {
   const user = { name: "Admin", initials: "AD" };
+  const [state, setState] = useState<SidebarState>(getStoredState);
+
+  useEffect(() => {
+    storeState(state);
+  }, [state]);
+
+  const toggleCollapse = () => {
+    setState((prev) => ({ ...prev, isCollapsed: !prev.isCollapsed }));
+  };
+
+  const toggleModule = (label: string) => {
+    setState((prev) => ({
+      ...prev,
+      expandedModules: {
+        ...prev.expandedModules,
+        [label]: !prev.expandedModules[label],
+      },
+    }));
+  };
+
+  const { isCollapsed, expandedModules } = state;
 
   return (
-    <aside className="w-[240px] min-w-[240px] bg-sidebar flex flex-col h-screen">
-      <div className="px-4 py-5 border-b border-white/10">
-        <div className="flex items-center gap-3">
+    <aside
+      className={`${
+        isCollapsed ? "w-16 min-w-16" : "w-60 min-w-60"
+      } bg-sidebar flex flex-col h-screen transition-all duration-300 relative group`}
+    >
+      <div className={`px-4 py-5 border-b border-white/10 ${isCollapsed ? "flex justify-center" : ""}`}>
+        {!isCollapsed && (
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center">
+              <Building2 size={18} className="text-white" />
+            </div>
+            <div>
+              <p className="text-slate-100 text-sm font-medium">uOrgHub</p>
+              <p className="text-slate-500 text-xs">Civil ERP</p>
+            </div>
+          </div>
+        )}
+        {isCollapsed && (
           <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center">
             <Building2 size={18} className="text-white" />
           </div>
-          <div>
-            <p className="text-slate-100 text-sm font-medium">uOrgHub</p>
-            <p className="text-slate-500 text-xs">Civil ERP</p>
-          </div>
-        </div>
+        )}
       </div>
 
-      <nav className="flex-1 px-2 py-3 overflow-y-auto">
-        <p className="text-slate-600 text-[10px] font-medium px-2 pb-1 tracking-widest">
-          MODULES
-        </p>
+      <button
+        onClick={toggleCollapse}
+        className="absolute -right-3 top-20 w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center text-white shadow-md hover:bg-primary-600 transition-colors z-10"
+        title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+      </button>
+
+      <nav className="flex-1 px-2 py-3 overflow-y-auto overflow-x-hidden">
+        {!isCollapsed && (
+          <p className="text-slate-600 text-[10px] font-medium px-2 pb-1 tracking-widest">
+            MODULES
+          </p>
+        )}
+        {isCollapsed && <div className="h-4" />}
         {navItems.map(({ label, path, icon: Icon, subItems }) => (
-          <div key={path}>
+          <div key={path} className="mb-1">
             {subItems ? (
               <div>
-                <div className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-400">
-                  <Icon size={16} />
-                  {label}
+                <div
+                  onClick={() => toggleModule(label)}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-400 cursor-pointer hover:text-slate-200 hover:bg-white/5 ${
+                    isCollapsed ? "justify-center" : ""
+                  }`}
+                >
+                  {isCollapsed ? (
+                    <div className="relative">
+                      <Icon size={16} />
+                      <div className="absolute left-full ml-2 top-0 bg-slate-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity">
+                        {label}
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <Icon size={16} />
+                      <span className="flex-1">{label}</span>
+                      <ChevronDown
+                        size={14}
+                        className={`transition-transform ${
+                          expandedModules[label] ? "rotate-180" : ""
+                        }`}
+                      />
+                    </>
+                  )}
                 </div>
-                {subItems.map(({ label: subLabel, path: subPath, icon: SubIcon }) => (
-                  <NavLink
-                    key={subPath}
-                    to={subPath}
-                    className={({ isActive }) =>
-                      `flex items-center gap-3 pl-10 pr-3 py-1.5 rounded-md mb-0.5 text-xs transition-colors
-                       ${
-                         isActive
-                           ? "bg-primary-500 text-white font-medium"
-                           : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
-                       }`
-                    }
-                  >
-                    <SubIcon size={14} />
-                    {subLabel}
-                  </NavLink>
-                ))}
+                {expandedModules[label] && !isCollapsed && (
+                  <div className="overflow-hidden transition-all">
+                    {subItems.map(({ label: subLabel, path: subPath, icon: SubIcon }) => (
+                      <NavLink
+                        key={subPath}
+                        to={subPath}
+                        className={({ isActive }) =>
+                          `flex items-center gap-3 pl-10 pr-3 py-1.5 rounded-md mb-0.5 text-xs transition-colors ${
+                            isActive
+                              ? "bg-primary-500 text-white font-medium"
+                              : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+                          }`
+                        }
+                      >
+                        <SubIcon size={14} />
+                        {subLabel}
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
               </div>
             ) : (
               <NavLink
                 to={path}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2 rounded-md mb-0.5 text-sm transition-colors
-                   ${
-                     isActive
-                       ? "bg-primary-500 text-white font-medium"
-                       : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
-                   }`
+                  `flex items-center gap-3 px-3 py-2 rounded-md mb-0.5 text-sm transition-colors ${
+                    isCollapsed ? "justify-center" : ""
+                  } ${
+                    isActive
+                      ? "bg-primary-500 text-white font-medium"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+                  }`
                 }
               >
-                <Icon size={16} />
-                {label}
+                {isCollapsed ? (
+                  <div className="relative">
+                    <Icon size={16} />
+                    <div className="absolute left-full ml-2 top-0 bg-slate-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity">
+                      {label}
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <Icon size={16} />
+                    {label}
+                  </>
+                )}
               </NavLink>
             )}
           </div>
         ))}
 
-        <p className="text-slate-600 text-[10px] font-medium px-2 pb-1 pt-4 tracking-widest">
-          SYSTEM
-        </p>
+        {!isCollapsed && (
+          <p className="text-slate-600 text-[10px] font-medium px-2 pb-1 pt-4 tracking-widest">
+            SYSTEM
+          </p>
+        )}
+        {isCollapsed && <div className="h-4" />}
         <NavLink
           to="/settings"
           className={({ isActive }) =>
-            `flex items-center gap-3 px-3 py-2 rounded-md mb-0.5 text-sm transition-colors
-             ${
-               isActive
-                 ? "bg-primary-500 text-white font-medium"
-                 : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
-             }`
+            `flex items-center gap-3 px-3 py-2 rounded-md mb-0.5 text-sm transition-colors ${
+              isCollapsed ? "justify-center" : ""
+            } ${
+              isActive
+                ? "bg-primary-500 text-white font-medium"
+                : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+            }`
           }
         >
-          <Settings size={16} />
-          Settings
+          {isCollapsed ? (
+            <div className="relative">
+              <Settings size={16} />
+              <div className="absolute left-full ml-2 top-0 bg-slate-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity">
+                Settings
+              </div>
+            </div>
+          ) : (
+            <>
+              <Settings size={16} />
+              Settings
+            </>
+          )}
         </NavLink>
       </nav>
 
-      <div className="px-3 py-3 border-t border-white/10 flex items-center gap-3">
+      <div className={`px-3 py-3 border-t border-white/10 flex items-center gap-3 ${isCollapsed ? "justify-center" : ""}`}>
         <div className="w-8 h-8 rounded-full bg-primary-700 flex items-center justify-center text-white text-xs font-medium">
           {user.initials}
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-slate-100 text-xs font-medium truncate">
-            {user.name}
-          </p>
-          <p className="text-slate-500 text-xs">Administrator</p>
-        </div>
-        <LogOut
-          size={16}
-          className="text-slate-600 cursor-pointer hover:text-slate-400"
-        />
+        {!isCollapsed && (
+          <>
+            <div className="flex-1 min-w-0">
+              <p className="text-slate-100 text-xs font-medium truncate">
+                {user.name}
+              </p>
+              <p className="text-slate-500 text-xs">Administrator</p>
+            </div>
+            <LogOut
+              size={16}
+              className="text-slate-600 cursor-pointer hover:text-slate-400"
+            />
+          </>
+        )}
+        {isCollapsed && (
+          <div className="relative">
+            <div className="w-8 h-8 rounded-full bg-primary-700 flex items-center justify-center text-white text-xs font-medium cursor-pointer">
+              {user.initials}
+            </div>
+            <div className="absolute left-full ml-2 top-0 bg-slate-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity">
+              {user.name} (Administrator)
+            </div>
+          </div>
+        )}
       </div>
     </aside>
   );
