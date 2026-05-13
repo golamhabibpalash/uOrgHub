@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: Admin1234!
       POSTGRES_DB: orgHub
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - civilERP-data:/var/lib/postgresql/data
       - ./backups:/docker-entrypoint-initdb.d

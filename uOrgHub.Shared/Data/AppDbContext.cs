@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 
 namespace uOrgHub.Shared.Data;
 
@@ -12,7 +12,11 @@ public class AppDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // Apply all configurations from all modules
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+        // Discover and apply entity configurations from all uOrgHub module assemblies loaded at runtime
+        var moduleAssemblies = AppDomain.CurrentDomain.GetAssemblies()
+            .Where(a => a.GetName().Name?.StartsWith("uOrgHub.") == true);
+
+        foreach (var assembly in moduleAssemblies)
+            modelBuilder.ApplyConfigurationsFromAssembly(assembly);
     }
 }

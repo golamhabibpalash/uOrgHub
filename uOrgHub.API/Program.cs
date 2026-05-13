@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using uOrgHub.HR;
 using uOrgHub.Shared.Data;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -6,6 +7,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Database
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// HR Module
+builder.Services.AddHRModule();
 
 // Controllers
 builder.Services.AddControllers();
@@ -19,8 +23,17 @@ app.UseMiddleware<uOrgHub.API.Middleware.ExceptionMiddleware>();
 // Auto-migrate on startup
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.Database.Migrate();
+    }
+    catch (Exception ex)
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogWarning(ex, "Database migration skipped: {Message}", ex.Message);
+        Console.WriteLine($"Database migration skipped: {ex.Message}\nThe application will continue without applying migrations.");
+    }
 }
 
 app.UseSwagger();
