@@ -14,6 +14,8 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+app.UseMiddleware<uOrgHub.API.Middleware.ExceptionMiddleware>();
+
 // Auto-migrate on startup
 using (var scope = app.Services.CreateScope())
 {
