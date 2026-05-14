@@ -12,7 +12,7 @@ import {
   getFiscalYears,
   getChartOfAccounts,
   getCostCenters,
-  Budget,
+  type Budget,
   BudgetStatus,
 } from "../../api/accounts";
 
@@ -60,7 +60,7 @@ export default function Budgets() {
         return updateBudget(editing.id, { name: form.name, description: form.description || undefined, costCenterId: form.costCenterId || undefined });
       }
       const payload = { ...form, costCenterId: form.costCenterId || undefined, lines: form.lines.map((l) => ({ ...l, costCenterId: l.costCenterId || undefined })) };
-      return createBudget(payload);
+      return createBudget(payload as Parameters<typeof createBudget>[0]);
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["budgets"] }); closeModal(); },
   });

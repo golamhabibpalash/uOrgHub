@@ -12,7 +12,6 @@ import {
   getBankAccounts,
   getInvoices,
   getBills,
-  Payment,
   PaymentType,
   PaymentMethod,
 } from "../../api/accounts";
@@ -97,7 +96,7 @@ export default function Payments() {
           .filter((a) => a.allocatedAmount > 0)
           .map((a) => ({ invoiceId: a.invoiceId || undefined, billId: a.billId || undefined, allocatedAmount: a.allocatedAmount })),
       };
-      return createPayment(payload);
+      return createPayment(payload as Parameters<typeof createPayment>[0]);
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["payments"] }); closeModal(); },
   });

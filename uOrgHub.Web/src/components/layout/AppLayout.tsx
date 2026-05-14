@@ -3,6 +3,7 @@ import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 
 const pageTitles: Record<string, { title: string; breadcrumb: string }> = {
+  "/dashboard": { title: "Dashboard", breadcrumb: "Home / Dashboard" },
   "/hr": { title: "HR & Payroll", breadcrumb: "Dashboard / HR & Payroll" },
   "/accounts": { title: "Accounts", breadcrumb: "Dashboard / Accounts" },
   "/inventory": { title: "Inventory", breadcrumb: "Dashboard / Inventory" },

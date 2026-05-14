@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Send, XCircle, ChevronDown, ChevronUp } from "lucide-react";
-import DataTable from "../../components/shared/DataTable";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
 import {
@@ -203,7 +202,7 @@ export default function JournalEntries() {
                     <tr key={entry.id} className="border-t border-gray-100 hover:bg-gray-50">
                       {columns.map((col) => (
                         <td key={col.key} className="px-4 py-2.5 text-gray-700">
-                          {col.render ? col.render(entry) : String((entry as Record<string, unknown>)[col.key] ?? "")}
+                          {col.render ? col.render(entry) : String((entry as unknown as Record<string, unknown>)[col.key] ?? "")}
                         </td>
                       ))}
                     </tr>

@@ -9,7 +9,17 @@
       "Bash(xargs -I{} sh -c 'echo \"=== {} ===\" && grep -E \"PackageReference\" {}')",
       "Bash(xargs cat *)",
       "Bash(grep -v \"^$\")",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(sed -n '1,5p' /Users/golamhabibpalash/Documents/Dev/Projects/ERP/uOrgHub/uOrgHub.Web/src/pages/procurement/ProcurementDashboard.tsx)",
+      "Bash(sed -n '10,25p' /Users/golamhabibpalash/Documents/Dev/Projects/ERP/uOrgHub/uOrgHub.Web/src/pages/procurement/ProcurementDashboard.tsx)",
+      "Bash(sed -n '1,20p' /Users/golamhabibpalash/Documents/Dev/Projects/ERP/uOrgHub/uOrgHub.Web/src/pages/accounts/Bills.tsx)",
+      "Bash(sed -n '70,80p' /Users/golamhabibpalash/Documents/Dev/Projects/ERP/uOrgHub/uOrgHub.Web/src/pages/accounts/Bills.tsx)",
+      "Bash(sed *)",
+      "Bash(curl -s http://localhost:5173)",
+      "Bash(dotnet new *)",
+      "Bash(dotnet sln *)",
+      "Bash(dotnet add *)"
     ]
   }
 }

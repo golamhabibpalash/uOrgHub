@@ -7,6 +7,7 @@
     <ProjectReference Include="..\uOrgHub.Inventory\uOrgHub.Inventory.csproj" />
     <ProjectReference Include="..\uOrgHub.Procurement\uOrgHub.Procurement.csproj" />
     <ProjectReference Include="..\uOrgHub.Projects\uOrgHub.Projects.csproj" />
+    <ProjectReference Include="..\uOrgHub.Auth\uOrgHub.Auth.csproj" />
   </ItemGroup>
 
   <ItemGroup>

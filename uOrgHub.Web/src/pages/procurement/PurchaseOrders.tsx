@@ -147,7 +147,7 @@ export default function PurchaseOrders() {
         <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
       </div>
 
-      <Modal title={editing ? "Edit PO" : "Create Purchase Order"} open={modal} onClose={closeModal} size="lg">
+      <Modal title={editing ? "Edit PO" : "Create Purchase Order"} open={modal} onClose={closeModal}>
         <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
           <div className="grid grid-cols-2 gap-3">
             <div><label className="text-xs text-gray-500 mb-1 block">PO Date *</label>

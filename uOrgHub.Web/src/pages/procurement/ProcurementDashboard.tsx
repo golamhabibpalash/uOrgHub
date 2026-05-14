@@ -12,10 +12,10 @@ export default function ProcurementDashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Active Vendors" value="24" icon={Users} color="blue" subtitle="+3 this month" />
-        <StatCard title="Pending PRs" value="12" icon={FileText} color="orange" subtitle="Awaiting approval" />
-        <StatCard title="Open RFQs" value="8" icon={ShoppingCart} color="purple" subtitle="Active quotations" />
-        <StatCard title="POs to Receive" value="15" icon={Package} color="green" subtitle="In transit" />
+        <StatCard label="Active Vendors" value="24" sub="+3 this month" />
+        <StatCard label="Pending PRs" value="12" sub="Awaiting approval" />
+        <StatCard label="Open RFQs" value="8" sub="Active quotations" />
+        <StatCard label="POs to Receive" value="15" sub="In transit" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

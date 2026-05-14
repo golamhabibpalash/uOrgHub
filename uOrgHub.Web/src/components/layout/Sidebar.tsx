@@ -36,7 +36,9 @@ import {
   Warehouse,
   ArrowDownToLine,
   ArrowUpFromLine,
+  LayoutDashboard,
 } from "lucide-react";
+import { useAuthStore } from "../../store/authStore";
 
 const hrSubItems = [
   { label: "Dashboard", path: "/hr", icon: Users },
@@ -90,12 +92,18 @@ const procurementSubItems = [
   { label: "Goods Received Notes", path: "/procurement/grns", icon: ArrowDownToLine },
 ];
 
+const projectsSubItems = [
+  { label: "All Projects", path: "/projects", icon: HardHat },
+  { label: "Clients", path: "/projects/clients", icon: Users },
+];
+
 const navItems = [
+  { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
   { label: "HR & Payroll", path: "/hr", icon: Users, subItems: hrSubItems },
   { label: "Accounts", path: "/accounts", icon: Receipt, subItems: accountsSubItems },
   { label: "Inventory", path: "/inventory", icon: Box, subItems: inventorySubItems },
   { label: "Procurement", path: "/procurement", icon: ShoppingCart, subItems: procurementSubItems },
-  { label: "Projects", path: "/projects", icon: HardHat },
+  { label: "Projects", path: "/projects", icon: HardHat, subItems: projectsSubItems },
 ];
 
 const STORAGE_KEY = "uorghub-sidebar-state";
@@ -122,7 +130,11 @@ function storeState(state: SidebarState) {
 }
 
 export default function Sidebar() {
-  const user = { name: "Admin", initials: "AD" };
+  const authUser = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
+  const displayName = authUser ? `${authUser.firstName} ${authUser.lastName}`.trim() : "Admin";
+  const initials = displayName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+  const roleLabel = authUser?.role ?? "Administrator";
   const [state, setState] = useState<SidebarState>(getStoredState);
 
   useEffect(() => {
@@ -302,30 +314,31 @@ export default function Sidebar() {
       </nav>
 
       <div className={`px-3 py-3 border-t border-white/10 flex items-center gap-3 ${isCollapsed ? "justify-center" : ""}`}>
-        <div className="w-8 h-8 rounded-full bg-primary-700 flex items-center justify-center text-white text-xs font-medium">
-          {user.initials}
+        <div className="w-8 h-8 rounded-full bg-primary-700 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+          {initials}
         </div>
         {!isCollapsed && (
           <>
             <div className="flex-1 min-w-0">
               <p className="text-slate-100 text-xs font-medium truncate">
-                {user.name}
+                {displayName}
               </p>
-              <p className="text-slate-500 text-xs">Administrator</p>
+              <p className="text-slate-500 text-xs truncate">{roleLabel}</p>
             </div>
             <LogOut
               size={16}
-              className="text-slate-600 cursor-pointer hover:text-slate-400"
+              className="text-slate-600 cursor-pointer hover:text-slate-400 flex-shrink-0"
+              onClick={logout}
             />
           </>
         )}
         {isCollapsed && (
           <div className="relative">
-            <div className="w-8 h-8 rounded-full bg-primary-700 flex items-center justify-center text-white text-xs font-medium cursor-pointer">
-              {user.initials}
+            <div className="w-8 h-8 rounded-full bg-primary-700 flex items-center justify-center text-white text-xs font-medium cursor-pointer" onClick={logout}>
+              {initials}
             </div>
             <div className="absolute left-full ml-2 top-0 bg-slate-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity">
-              {user.name} (Administrator)
+              {displayName} ({roleLabel})
             </div>
           </div>
         )}

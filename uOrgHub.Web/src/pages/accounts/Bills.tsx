@@ -13,7 +13,6 @@ import {
   getTaxRates,
   getChartOfAccounts,
   getCostCenters,
-  Bill,
   BillStatus,
 } from "../../api/accounts";
 
@@ -73,7 +72,7 @@ export default function Bills() {
         costCenterId: form.costCenterId || undefined,
         lines: form.lines.map((l, i) => ({ ...l, lineOrder: i + 1, taxRateId: l.taxRateId || undefined, costCenterId: l.costCenterId || undefined })),
       };
-      return createBill(payload);
+      return createBill(payload as Parameters<typeof createBill>[0]);
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["bills"] }); closeModal(); },
   });

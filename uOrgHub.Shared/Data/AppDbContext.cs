@@ -12,7 +12,6 @@ public class AppDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // Discover and apply entity configurations from all uOrgHub module assemblies loaded at runtime
         var moduleAssemblies = AppDomain.CurrentDomain.GetAssemblies()
             .Where(a => a.GetName().Name?.StartsWith("uOrgHub.") == true);
 

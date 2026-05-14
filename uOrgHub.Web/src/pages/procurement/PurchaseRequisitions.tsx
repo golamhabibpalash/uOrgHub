@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, Send, CheckCircle, XCircle, FileText } from "lucide-react";
+import { Plus, Search, Send, CheckCircle, XCircle } from "lucide-react";
 import DataTable from "../../components/shared/DataTable";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
@@ -182,7 +182,7 @@ export default function PurchaseRequisitions() {
         <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
       </div>
 
-      <Modal title={editing ? "Edit PR" : "Add Purchase Requisition"} open={modal} onClose={closeModal} size="lg">
+      <Modal title={editing ? "Edit PR" : "Add Purchase Requisition"} open={modal} onClose={closeModal}>
         <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -235,7 +235,7 @@ export default function PurchaseRequisitions() {
         </div>
       </Modal>
 
-      <Modal title="Reject PR" open={rejectModal} onClose={() => setRejectModal(false)} size="sm">
+      <Modal title="Reject PR" open={rejectModal} onClose={() => setRejectModal(false)}>
         <div className="space-y-3">
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Reason for rejection</label>

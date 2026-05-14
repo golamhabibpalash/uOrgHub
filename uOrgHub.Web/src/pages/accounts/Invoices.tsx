@@ -13,7 +13,6 @@ import {
   getTaxRates,
   getChartOfAccounts,
   getCostCenters,
-  Invoice,
   InvoiceStatus,
 } from "../../api/accounts";
 
@@ -76,7 +75,7 @@ export default function Invoices() {
           costCenterId: l.costCenterId || undefined,
         })),
       };
-      return createInvoice(payload);
+      return createInvoice(payload as Parameters<typeof createInvoice>[0]);
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["invoices"] }); closeModal(); },
   });

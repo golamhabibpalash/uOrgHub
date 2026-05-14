@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, CheckCircle } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import DataTable from "../../components/shared/DataTable";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
@@ -132,7 +132,7 @@ export default function VendorQuotations() {
         <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
       </div>
 
-      <Modal title={editing ? "Edit Quotation" : "Add Quotation"} open={modal} onClose={closeModal} size="lg">
+      <Modal title={editing ? "Edit Quotation" : "Add Quotation"} open={modal} onClose={closeModal}>
         <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
           <div className="grid grid-cols-2 gap-3">
             <div><label className="text-xs text-gray-500 mb-1 block">RFQ ID *</label>
