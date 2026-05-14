@@ -1,23 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Projects\\ERP\\uOrgHub\\uOrgHub.HR\\uOrgHub.HR.csproj": {}
+    "E:\\_rana\\github\\uOrgHub\\uOrgHub.HR\\uOrgHub.HR.csproj": {}
   },
   "projects": {
-    "D:\\Projects\\ERP\\uOrgHub\\uOrgHub.HR\\uOrgHub.HR.csproj": {
+    "E:\\_rana\\github\\uOrgHub\\uOrgHub.HR\\uOrgHub.HR.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Projects\\ERP\\uOrgHub\\uOrgHub.HR\\uOrgHub.HR.csproj",
+        "projectUniqueName": "E:\\_rana\\github\\uOrgHub\\uOrgHub.HR\\uOrgHub.HR.csproj",
         "projectName": "uOrgHub.HR",
-        "projectPath": "D:\\Projects\\ERP\\uOrgHub\\uOrgHub.HR\\uOrgHub.HR.csproj",
-        "packagesPath": "C:\\Users\\golam\\.nuget\\packages\\",
-        "outputPath": "D:\\Projects\\ERP\\uOrgHub\\uOrgHub.HR\\obj\\",
+        "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.HR\\uOrgHub.HR.csproj",
+        "packagesPath": "C:\\Users\\rana.ba\\.nuget\\packages\\",
+        "outputPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.HR\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\golam\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\rana.ba\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -33,8 +33,8 @@
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "D:\\Projects\\ERP\\uOrgHub\\uOrgHub.Shared\\uOrgHub.Shared.csproj": {
-                "projectPath": "D:\\Projects\\ERP\\uOrgHub\\uOrgHub.Shared\\uOrgHub.Shared.csproj"
+              "E:\\_rana\\github\\uOrgHub\\uOrgHub.Shared\\uOrgHub.Shared.csproj": {
+                "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Shared\\uOrgHub.Shared.csproj"
               }
             }
           }
@@ -69,24 +69,24 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.420/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.415/PortableRuntimeIdentifierGraph.json"
         }
       }
     },
-    "D:\\Projects\\ERP\\uOrgHub\\uOrgHub.Shared\\uOrgHub.Shared.csproj": {
+    "E:\\_rana\\github\\uOrgHub\\uOrgHub.Shared\\uOrgHub.Shared.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Projects\\ERP\\uOrgHub\\uOrgHub.Shared\\uOrgHub.Shared.csproj",
+        "projectUniqueName": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Shared\\uOrgHub.Shared.csproj",
         "projectName": "uOrgHub.Shared",
-        "projectPath": "D:\\Projects\\ERP\\uOrgHub\\uOrgHub.Shared\\uOrgHub.Shared.csproj",
-        "packagesPath": "C:\\Users\\golam\\.nuget\\packages\\",
-        "outputPath": "D:\\Projects\\ERP\\uOrgHub\\uOrgHub.Shared\\obj\\",
+        "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Shared\\uOrgHub.Shared.csproj",
+        "packagesPath": "C:\\Users\\rana.ba\\.nuget\\packages\\",
+        "outputPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Shared\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\golam\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\rana.ba\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -134,7 +134,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.420/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.415/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

@@ -1,30 +1,147 @@
 {
   "version": 3,
   "targets": {
-    "net8.0": {}
+    "net8.0": {
+      "uOrgHub.Accounts/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "dependencies": {
+          "uOrgHub.Shared": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/uOrgHub.Accounts.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/uOrgHub.Accounts.dll": {}
+        }
+      },
+      "uOrgHub.HR/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "dependencies": {
+          "uOrgHub.Shared": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/uOrgHub.HR.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/uOrgHub.HR.dll": {}
+        }
+      },
+      "uOrgHub.Inventory/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "dependencies": {
+          "uOrgHub.Shared": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/uOrgHub.Inventory.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/uOrgHub.Inventory.dll": {}
+        }
+      },
+      "uOrgHub.Procurement/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "dependencies": {
+          "uOrgHub.Inventory": "1.0.0",
+          "uOrgHub.Shared": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/uOrgHub.Procurement.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/uOrgHub.Procurement.dll": {}
+        }
+      },
+      "uOrgHub.Projects/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "dependencies": {
+          "uOrgHub.HR": "1.0.0",
+          "uOrgHub.Inventory": "1.0.0",
+          "uOrgHub.Shared": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/uOrgHub.Projects.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/uOrgHub.Projects.dll": {}
+        }
+      },
+      "uOrgHub.Shared/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "compile": {
+          "bin/placeholder/uOrgHub.Shared.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/uOrgHub.Shared.dll": {}
+        }
+      }
+    }
   },
-  "libraries": {},
+  "libraries": {
+    "uOrgHub.Accounts/1.0.0": {
+      "type": "project",
+      "path": "../uOrgHub.Accounts/uOrgHub.Accounts.csproj",
+      "msbuildProject": "../uOrgHub.Accounts/uOrgHub.Accounts.csproj"
+    },
+    "uOrgHub.HR/1.0.0": {
+      "type": "project",
+      "path": "../uOrgHub.HR/uOrgHub.HR.csproj",
+      "msbuildProject": "../uOrgHub.HR/uOrgHub.HR.csproj"
+    },
+    "uOrgHub.Inventory/1.0.0": {
+      "type": "project",
+      "path": "../uOrgHub.Inventory/uOrgHub.Inventory.csproj",
+      "msbuildProject": "../uOrgHub.Inventory/uOrgHub.Inventory.csproj"
+    },
+    "uOrgHub.Procurement/1.0.0": {
+      "type": "project",
+      "path": "../uOrgHub.Procurement/uOrgHub.Procurement.csproj",
+      "msbuildProject": "../uOrgHub.Procurement/uOrgHub.Procurement.csproj"
+    },
+    "uOrgHub.Projects/1.0.0": {
+      "type": "project",
+      "path": "../uOrgHub.Projects/uOrgHub.Projects.csproj",
+      "msbuildProject": "../uOrgHub.Projects/uOrgHub.Projects.csproj"
+    },
+    "uOrgHub.Shared/1.0.0": {
+      "type": "project",
+      "path": "../uOrgHub.Shared/uOrgHub.Shared.csproj",
+      "msbuildProject": "../uOrgHub.Shared/uOrgHub.Shared.csproj"
+    }
+  },
   "projectFileDependencyGroups": {
-    "net8.0": []
+    "net8.0": [
+      "uOrgHub.Accounts >= 1.0.0",
+      "uOrgHub.HR >= 1.0.0",
+      "uOrgHub.Inventory >= 1.0.0",
+      "uOrgHub.Procurement >= 1.0.0",
+      "uOrgHub.Projects >= 1.0.0",
+      "uOrgHub.Shared >= 1.0.0"
+    ]
   },
   "packageFolders": {
-    "C:\\Users\\golam\\.nuget\\packages\\": {},
+    "C:\\Users\\rana.ba\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\Projects\\ERP\\uOrgHub\\uOrgHub.API\\uOrgHub.API.csproj",
+      "projectUniqueName": "E:\\_rana\\github\\uOrgHub\\uOrgHub.API\\uOrgHub.API.csproj",
       "projectName": "uOrgHub.API",
-      "projectPath": "D:\\Projects\\ERP\\uOrgHub\\uOrgHub.API\\uOrgHub.API.csproj",
-      "packagesPath": "C:\\Users\\golam\\.nuget\\packages\\",
-      "outputPath": "D:\\Projects\\ERP\\uOrgHub\\uOrgHub.API\\obj\\",
+      "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.API\\uOrgHub.API.csproj",
+      "packagesPath": "C:\\Users\\rana.ba\\.nuget\\packages\\",
+      "outputPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.API\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\golam\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\rana.ba\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -39,7 +156,26 @@
       "frameworks": {
         "net8.0": {
           "targetAlias": "net8.0",
-          "projectReferences": {}
+          "projectReferences": {
+            "E:\\_rana\\github\\uOrgHub\\uOrgHub.Accounts\\uOrgHub.Accounts.csproj": {
+              "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Accounts\\uOrgHub.Accounts.csproj"
+            },
+            "E:\\_rana\\github\\uOrgHub\\uOrgHub.HR\\uOrgHub.HR.csproj": {
+              "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.HR\\uOrgHub.HR.csproj"
+            },
+            "E:\\_rana\\github\\uOrgHub\\uOrgHub.Inventory\\uOrgHub.Inventory.csproj": {
+              "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Inventory\\uOrgHub.Inventory.csproj"
+            },
+            "E:\\_rana\\github\\uOrgHub\\uOrgHub.Procurement\\uOrgHub.Procurement.csproj": {
+              "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Procurement\\uOrgHub.Procurement.csproj"
+            },
+            "E:\\_rana\\github\\uOrgHub\\uOrgHub.Projects\\uOrgHub.Projects.csproj": {
+              "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Projects\\uOrgHub.Projects.csproj"
+            },
+            "E:\\_rana\\github\\uOrgHub\\uOrgHub.Shared\\uOrgHub.Shared.csproj": {
+              "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Shared\\uOrgHub.Shared.csproj"
+            }
+          }
         }
       },
       "warningProperties": {
@@ -75,7 +211,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.420/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.415/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

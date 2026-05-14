@@ -1,23 +1,464 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Projects\\ERP\\uOrgHub\\uOrgHub.API\\uOrgHub.API.csproj": {}
+    "E:\\_rana\\github\\uOrgHub\\uOrgHub.API\\uOrgHub.API.csproj": {}
   },
   "projects": {
-    "D:\\Projects\\ERP\\uOrgHub\\uOrgHub.API\\uOrgHub.API.csproj": {
+    "E:\\_rana\\github\\uOrgHub\\uOrgHub.Accounts\\uOrgHub.Accounts.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Projects\\ERP\\uOrgHub\\uOrgHub.API\\uOrgHub.API.csproj",
-        "projectName": "uOrgHub.API",
-        "projectPath": "D:\\Projects\\ERP\\uOrgHub\\uOrgHub.API\\uOrgHub.API.csproj",
-        "packagesPath": "C:\\Users\\golam\\.nuget\\packages\\",
-        "outputPath": "D:\\Projects\\ERP\\uOrgHub\\uOrgHub.API\\obj\\",
+        "projectUniqueName": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Accounts\\uOrgHub.Accounts.csproj",
+        "projectName": "uOrgHub.Accounts",
+        "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Accounts\\uOrgHub.Accounts.csproj",
+        "packagesPath": "C:\\Users\\rana.ba\\.nuget\\packages\\",
+        "outputPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Accounts\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\golam\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\rana.ba\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "C:\\Program Files\\dotnet\\library-packs": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {
+              "E:\\_rana\\github\\uOrgHub\\uOrgHub.Shared\\uOrgHub.Shared.csproj": {
+                "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Shared\\uOrgHub.Shared.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        }
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.415/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "E:\\_rana\\github\\uOrgHub\\uOrgHub.API\\uOrgHub.API.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "E:\\_rana\\github\\uOrgHub\\uOrgHub.API\\uOrgHub.API.csproj",
+        "projectName": "uOrgHub.API",
+        "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.API\\uOrgHub.API.csproj",
+        "packagesPath": "C:\\Users\\rana.ba\\.nuget\\packages\\",
+        "outputPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.API\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\rana.ba\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "C:\\Program Files\\dotnet\\library-packs": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {
+              "E:\\_rana\\github\\uOrgHub\\uOrgHub.Accounts\\uOrgHub.Accounts.csproj": {
+                "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Accounts\\uOrgHub.Accounts.csproj"
+              },
+              "E:\\_rana\\github\\uOrgHub\\uOrgHub.HR\\uOrgHub.HR.csproj": {
+                "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.HR\\uOrgHub.HR.csproj"
+              },
+              "E:\\_rana\\github\\uOrgHub\\uOrgHub.Inventory\\uOrgHub.Inventory.csproj": {
+                "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Inventory\\uOrgHub.Inventory.csproj"
+              },
+              "E:\\_rana\\github\\uOrgHub\\uOrgHub.Procurement\\uOrgHub.Procurement.csproj": {
+                "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Procurement\\uOrgHub.Procurement.csproj"
+              },
+              "E:\\_rana\\github\\uOrgHub\\uOrgHub.Projects\\uOrgHub.Projects.csproj": {
+                "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Projects\\uOrgHub.Projects.csproj"
+              },
+              "E:\\_rana\\github\\uOrgHub\\uOrgHub.Shared\\uOrgHub.Shared.csproj": {
+                "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Shared\\uOrgHub.Shared.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        }
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.AspNetCore.App": {
+              "privateAssets": "none"
+            },
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.415/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "E:\\_rana\\github\\uOrgHub\\uOrgHub.HR\\uOrgHub.HR.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "E:\\_rana\\github\\uOrgHub\\uOrgHub.HR\\uOrgHub.HR.csproj",
+        "projectName": "uOrgHub.HR",
+        "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.HR\\uOrgHub.HR.csproj",
+        "packagesPath": "C:\\Users\\rana.ba\\.nuget\\packages\\",
+        "outputPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.HR\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\rana.ba\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "C:\\Program Files\\dotnet\\library-packs": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {
+              "E:\\_rana\\github\\uOrgHub\\uOrgHub.Shared\\uOrgHub.Shared.csproj": {
+                "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Shared\\uOrgHub.Shared.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        }
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.415/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "E:\\_rana\\github\\uOrgHub\\uOrgHub.Inventory\\uOrgHub.Inventory.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Inventory\\uOrgHub.Inventory.csproj",
+        "projectName": "uOrgHub.Inventory",
+        "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Inventory\\uOrgHub.Inventory.csproj",
+        "packagesPath": "C:\\Users\\rana.ba\\.nuget\\packages\\",
+        "outputPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Inventory\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\rana.ba\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "C:\\Program Files\\dotnet\\library-packs": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {
+              "E:\\_rana\\github\\uOrgHub\\uOrgHub.Shared\\uOrgHub.Shared.csproj": {
+                "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Shared\\uOrgHub.Shared.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        }
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.415/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "E:\\_rana\\github\\uOrgHub\\uOrgHub.Procurement\\uOrgHub.Procurement.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Procurement\\uOrgHub.Procurement.csproj",
+        "projectName": "uOrgHub.Procurement",
+        "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Procurement\\uOrgHub.Procurement.csproj",
+        "packagesPath": "C:\\Users\\rana.ba\\.nuget\\packages\\",
+        "outputPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Procurement\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\rana.ba\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "C:\\Program Files\\dotnet\\library-packs": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {
+              "E:\\_rana\\github\\uOrgHub\\uOrgHub.Inventory\\uOrgHub.Inventory.csproj": {
+                "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Inventory\\uOrgHub.Inventory.csproj"
+              },
+              "E:\\_rana\\github\\uOrgHub\\uOrgHub.Shared\\uOrgHub.Shared.csproj": {
+                "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Shared\\uOrgHub.Shared.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        }
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.415/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "E:\\_rana\\github\\uOrgHub\\uOrgHub.Projects\\uOrgHub.Projects.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Projects\\uOrgHub.Projects.csproj",
+        "projectName": "uOrgHub.Projects",
+        "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Projects\\uOrgHub.Projects.csproj",
+        "packagesPath": "C:\\Users\\rana.ba\\.nuget\\packages\\",
+        "outputPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Projects\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\rana.ba\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "C:\\Program Files\\dotnet\\library-packs": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {
+              "E:\\_rana\\github\\uOrgHub\\uOrgHub.HR\\uOrgHub.HR.csproj": {
+                "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.HR\\uOrgHub.HR.csproj"
+              },
+              "E:\\_rana\\github\\uOrgHub\\uOrgHub.Inventory\\uOrgHub.Inventory.csproj": {
+                "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Inventory\\uOrgHub.Inventory.csproj"
+              },
+              "E:\\_rana\\github\\uOrgHub\\uOrgHub.Shared\\uOrgHub.Shared.csproj": {
+                "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Shared\\uOrgHub.Shared.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        }
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.415/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "E:\\_rana\\github\\uOrgHub\\uOrgHub.Shared\\uOrgHub.Shared.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Shared\\uOrgHub.Shared.csproj",
+        "projectName": "uOrgHub.Shared",
+        "projectPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Shared\\uOrgHub.Shared.csproj",
+        "packagesPath": "C:\\Users\\rana.ba\\.nuget\\packages\\",
+        "outputPath": "E:\\_rana\\github\\uOrgHub\\uOrgHub.Shared\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\rana.ba\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -61,14 +502,11 @@
           "assetTargetFallback": true,
           "warn": true,
           "frameworkReferences": {
-            "Microsoft.AspNetCore.App": {
-              "privateAssets": "none"
-            },
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.420/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.415/PortableRuntimeIdentifierGraph.json"
         }
       }
     }
