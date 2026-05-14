@@ -1,0 +1,154 @@
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using uOrgHub.Accounts.DTOs.CostCenter;
+using uOrgHub.Accounts.Features._Common;
+using uOrgHub.Shared.Data;
+using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Models;
+
+namespace uOrgHub.Accounts.Features.CostCenter;
+
+public record GetCostCentersQuery(PaginationRequest Request) : IQuery<PagedResult<CostCenterResponseDto>>;
+public record GetCostCenterByIdQuery(Guid Id) : IQuery<CostCenterResponseDto>;
+public record CreateCostCenterCommand(CreateCostCenterDto Dto) : ICommand<CostCenterResponseDto>;
+public record UpdateCostCenterCommand(Guid Id, UpdateCostCenterDto Dto) : ICommand<CostCenterResponseDto>;
+public record DeleteCostCenterCommand(Guid Id) : ICommand<Unit>;
+
+public class GetCostCentersQueryHandler : IRequestHandler<GetCostCentersQuery, PagedResult<CostCenterResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetCostCentersQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<PagedResult<CostCenterResponseDto>> Handle(GetCostCentersQuery request, CancellationToken ct)
+    {
+        var query = _context.Set<Models.Entities.CostCenter>()
+            .Include(x => x.ParentCostCenter)
+            .Where(x => !x.IsDeleted);
+
+        if (!string.IsNullOrWhiteSpace(request.Request.Search))
+            query = query.Where(x => x.Name.Contains(request.Request.Search) || x.Code.Contains(request.Request.Search));
+
+        query = request.Request.SortDescending
+            ? query.OrderByDescending(x => x.Name)
+            : query.OrderBy(x => x.Name);
+
+        var totalCount = await query.CountAsync(ct);
+        var items = await query
+            .Skip((request.Request.Page - 1) * request.Request.PageSize)
+            .Take(request.Request.PageSize)
+            .ToListAsync(ct);
+
+        return new PagedResult<CostCenterResponseDto>
+        {
+            Items = items.Select(CostCenterMappingHelper.ToDto).ToList(),
+            TotalCount = totalCount,
+            Page = request.Request.Page,
+            PageSize = request.Request.PageSize
+        };
+    }
+}
+
+public class GetCostCenterByIdQueryHandler : IRequestHandler<GetCostCenterByIdQuery, CostCenterResponseDto>
+{
+    private readonly AppDbContext _context;
+    public GetCostCenterByIdQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<CostCenterResponseDto> Handle(GetCostCenterByIdQuery request, CancellationToken ct)
+    {
+        var e = await _context.Set<Models.Entities.CostCenter>()
+            .Include(x => x.ParentCostCenter)
+            .Where(x => !x.IsDeleted && x.Id == request.Id)
+            .FirstOrDefaultAsync(ct)
+            ?? throw new NotFoundException(nameof(Models.Entities.CostCenter), request.Id);
+
+        return CostCenterMappingHelper.ToDto(e);
+    }
+}
+
+public class CreateCostCenterCommandHandler : IRequestHandler<CreateCostCenterCommand, CostCenterResponseDto>
+{
+    private readonly AppDbContext _context;
+    public CreateCostCenterCommandHandler(AppDbContext context) => _context = context;
+
+    public async Task<CostCenterResponseDto> Handle(CreateCostCenterCommand request, CancellationToken ct)
+    {
+        if (await _context.Set<Models.Entities.CostCenter>().AnyAsync(x => x.Code == request.Dto.Code && !x.IsDeleted, ct))
+            throw new AppException($"Cost center code '{request.Dto.Code}' already exists.");
+
+        var entity = new Models.Entities.CostCenter
+        {
+            Code = request.Dto.Code,
+            Name = request.Dto.Name,
+            Description = request.Dto.Description,
+            ParentCostCenterId = request.Dto.ParentCostCenterId,
+            DepartmentId = request.Dto.DepartmentId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _context.Set<Models.Entities.CostCenter>().Add(entity);
+        await _context.SaveChangesAsync(ct);
+
+        await _context.Entry(entity).Reference(x => x.ParentCostCenter).LoadAsync(ct);
+        return CostCenterMappingHelper.ToDto(entity);
+    }
+}
+
+public class UpdateCostCenterCommandHandler : IRequestHandler<UpdateCostCenterCommand, CostCenterResponseDto>
+{
+    private readonly AppDbContext _context;
+    public UpdateCostCenterCommandHandler(AppDbContext context) => _context = context;
+
+    public async Task<CostCenterResponseDto> Handle(UpdateCostCenterCommand request, CancellationToken ct)
+    {
+        var entity = await _context.Set<Models.Entities.CostCenter>()
+            .Include(x => x.ParentCostCenter)
+            .Where(x => !x.IsDeleted && x.Id == request.Id)
+            .FirstOrDefaultAsync(ct)
+            ?? throw new NotFoundException(nameof(Models.Entities.CostCenter), request.Id);
+
+        entity.Name = request.Dto.Name;
+        entity.Description = request.Dto.Description;
+        entity.ParentCostCenterId = request.Dto.ParentCostCenterId;
+        entity.DepartmentId = request.Dto.DepartmentId;
+        entity.IsActive = request.Dto.IsActive;
+        entity.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync(ct);
+        return CostCenterMappingHelper.ToDto(entity);
+    }
+}
+
+public class DeleteCostCenterCommandHandler : IRequestHandler<DeleteCostCenterCommand, Unit>
+{
+    private readonly AppDbContext _context;
+    public DeleteCostCenterCommandHandler(AppDbContext context) => _context = context;
+
+    public async Task<Unit> Handle(DeleteCostCenterCommand request, CancellationToken ct)
+    {
+        var entity = await _context.Set<Models.Entities.CostCenter>()
+            .Where(x => !x.IsDeleted && x.Id == request.Id)
+            .FirstOrDefaultAsync(ct)
+            ?? throw new NotFoundException(nameof(Models.Entities.CostCenter), request.Id);
+
+        entity.IsDeleted = true;
+        entity.DeletedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync(ct);
+        return Unit.Value;
+    }
+}
+
+file static class CostCenterMappingHelper
+{
+    public static CostCenterResponseDto ToDto(Models.Entities.CostCenter e) => new()
+    {
+        Id = e.Id,
+        Code = e.Code,
+        Name = e.Name,
+        Description = e.Description,
+        IsActive = e.IsActive,
+        ParentCostCenterId = e.ParentCostCenterId,
+        ParentCostCenterName = e.ParentCostCenter?.Name,
+        DepartmentId = e.DepartmentId
+    };
+}

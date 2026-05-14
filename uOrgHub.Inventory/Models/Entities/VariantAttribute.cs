@@ -1,0 +1,17 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using uOrgHub.Shared.Entities;
+
+namespace uOrgHub.Inventory.Models.Entities;
+
+[Table("inv_variant_attributes")]
+public class VariantAttribute : BaseEntity
+{
+    [Required] public Guid ItemVariantId { get; set; }
+    public ItemVariant ItemVariant { get; set; } = null!;
+
+    [Required] public Guid AttributeDefinitionId { get; set; }
+    public AttributeDefinition AttributeDefinition { get; set; } = null!;
+
+    [Required] [MaxLength(200)] public string Value { get; set; } = string.Empty;
+}

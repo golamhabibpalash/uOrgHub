@@ -1,0 +1,26 @@
+using FluentValidation;
+using uOrgHub.Accounts.DTOs;
+
+namespace uOrgHub.Accounts.DTOs.Validators;
+
+public class UpdateChartOfAccountValidator : AbstractValidator<UpdateChartOfAccountDto>
+{
+    public UpdateChartOfAccountValidator()
+    {
+        RuleFor(x => x.Id).NotEmpty();
+
+        RuleFor(x => x.AccountCode)
+            .NotEmpty().WithMessage("Account Code is required")
+            .MaximumLength(20);
+
+        RuleFor(x => x.AccountName)
+            .NotEmpty().WithMessage("Account Name is required")
+            .MaximumLength(200);
+
+        RuleFor(x => x.AccountGroupId)
+            .NotEmpty().WithMessage("Account Group is required");
+
+        RuleFor(x => x.Description)
+            .MaximumLength(500);
+    }
+}
