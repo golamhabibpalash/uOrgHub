@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("uOrgHub.Procurement")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2df24ff774ccd818a13da067577dab14fb6e591b")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b08ac854326035701e2905adb88baff1a59ee63a")]
 [assembly: System.Reflection.AssemblyProductAttribute("uOrgHub.Procurement")]
 [assembly: System.Reflection.AssemblyTitleAttribute("uOrgHub.Procurement")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
