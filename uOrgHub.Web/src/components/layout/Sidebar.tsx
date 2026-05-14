@@ -19,6 +19,23 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
+  BookOpen,
+  Calendar,
+  Layers,
+  MapPin,
+  Percent,
+  Landmark,
+  FileText,
+  CreditCard,
+  PiggyBank,
+  FileSpreadsheet,
+  ShoppingBag,
+  Tag,
+  Ruler,
+  Package,
+  Warehouse,
+  ArrowDownToLine,
+  ArrowUpFromLine,
 } from "lucide-react";
 
 const hrSubItems = [
@@ -33,11 +50,51 @@ const hrSubItems = [
   { label: "Performance", path: "/hr/performance", icon: Target },
 ];
 
+const accountsSubItems = [
+  { label: "Dashboard", path: "/accounts", icon: Receipt },
+  { label: "Account Groups", path: "/accounts/account-groups", icon: Layers },
+  { label: "Fiscal Years", path: "/accounts/fiscal-years", icon: Calendar },
+  { label: "Chart of Accounts", path: "/accounts/chart-of-accounts", icon: BookOpen },
+  { label: "Journal Entries", path: "/accounts/journal-entries", icon: FileSpreadsheet },
+  { label: "Cost Centers", path: "/accounts/cost-centers", icon: MapPin },
+  { label: "Tax Rates", path: "/accounts/tax-rates", icon: Percent },
+  { label: "Bank Accounts", path: "/accounts/bank-accounts", icon: Landmark },
+  { label: "Customers", path: "/accounts/customers", icon: Users },
+  { label: "Invoices", path: "/accounts/invoices", icon: FileText },
+  { label: "Vendors", path: "/accounts/vendors", icon: ShoppingBag },
+  { label: "Bills", path: "/accounts/bills", icon: FileText },
+  { label: "Payments", path: "/accounts/payments", icon: CreditCard },
+  { label: "Budgets", path: "/accounts/budgets", icon: PiggyBank },
+];
+
+const inventorySubItems = [
+  { label: "Dashboard", path: "/inventory", icon: Box },
+  { label: "Inventory Types", path: "/inventory/types", icon: Tag },
+  { label: "Categories", path: "/inventory/categories", icon: Package },
+  { label: "Units of Measure", path: "/inventory/units-of-measure", icon: Ruler },
+  { label: "Attributes", path: "/inventory/attributes", icon: Tag },
+  { label: "Items", path: "/inventory/items", icon: Package },
+  { label: "Item Variants", path: "/inventory/item-variants", icon: Package },
+  { label: "Warehouses", path: "/inventory/warehouses", icon: Warehouse },
+  { label: "Stock Balances", path: "/inventory/stock-balances", icon: ArrowDownToLine },
+  { label: "Stock Transactions", path: "/inventory/stock-transactions", icon: ArrowUpFromLine },
+];
+
+const procurementSubItems = [
+  { label: "Dashboard", path: "/procurement", icon: ShoppingCart },
+  { label: "Vendors", path: "/procurement/vendors", icon: Users },
+  { label: "Purchase Requisitions", path: "/procurement/purchase-requisitions", icon: FileText },
+  { label: "Request for Quotation", path: "/procurement/rfqs", icon: FileSpreadsheet },
+  { label: "Vendor Quotations", path: "/procurement/quotations", icon: Tag },
+  { label: "Purchase Orders", path: "/procurement/purchase-orders", icon: Package },
+  { label: "Goods Received Notes", path: "/procurement/grns", icon: ArrowDownToLine },
+];
+
 const navItems = [
   { label: "HR & Payroll", path: "/hr", icon: Users, subItems: hrSubItems },
-  { label: "Accounts", path: "/accounts", icon: Receipt },
-  { label: "Inventory", path: "/inventory", icon: Box },
-  { label: "Procurement", path: "/procurement", icon: ShoppingCart },
+  { label: "Accounts", path: "/accounts", icon: Receipt, subItems: accountsSubItems },
+  { label: "Inventory", path: "/inventory", icon: Box, subItems: inventorySubItems },
+  { label: "Procurement", path: "/procurement", icon: ShoppingCart, subItems: procurementSubItems },
   { label: "Projects", path: "/projects", icon: HardHat },
 ];
 

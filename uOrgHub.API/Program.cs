@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using uOrgHub.Accounts;
 using uOrgHub.HR;
+using uOrgHub.Inventory;
+using uOrgHub.Procurement;
 using uOrgHub.Shared.Data;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,6 +13,15 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // HR Module
 builder.Services.AddHRModule();
+
+// Accounts Module
+builder.Services.AddAccountsModule();
+
+// Inventory Module
+builder.Services.AddInventoryModule();
+
+// Procurement Module
+builder.Services.AddProcurementModule();
 
 // Controllers
 builder.Services.AddControllers();
