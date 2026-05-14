@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("uOrgHub.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b5044e721ec0fb7000b0bcc0d9dcc9ee2cbf85b3")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+124dbf8020d71893db325bcd54f79f2a3076fd6e")]
 [assembly: System.Reflection.AssemblyProductAttribute("uOrgHub.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("uOrgHub.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
