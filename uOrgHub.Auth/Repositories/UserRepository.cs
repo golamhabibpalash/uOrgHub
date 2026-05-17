@@ -15,7 +15,7 @@ public class UserRepository : IUserRepository
         _db.Set<ApplicationUser>().Where(u => !u.IsDeleted);
 
     public async Task<ApplicationUser?> GetByUsernameAsync(string username) =>
-        await BaseQuery().FirstOrDefaultAsync(u => u.Username == username);
+        await BaseQuery().FirstOrDefaultAsync(u => u.Username == username || u.Email == username);
 
     public async Task<ApplicationUser?> GetByEmailAsync(string email) =>
         await BaseQuery().FirstOrDefaultAsync(u => u.Email == email);

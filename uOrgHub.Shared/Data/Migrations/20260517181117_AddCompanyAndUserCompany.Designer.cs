@@ -2,18 +2,21 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using uOrgHub.Shared.Data;
 
 #nullable disable
 
-namespace uOrgHub.Shared.Migrations
+namespace uOrgHub.Shared.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260517181117_AddCompanyAndUserCompany")]
+    partial class AddCompanyAndUserCompany
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -7104,10 +7107,6 @@ namespace uOrgHub.Shared.Migrations
                     b.Property<string>("Phone")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
-
-                    b.Property<string>("TagLine")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("TaxId")
                         .HasMaxLength(50)

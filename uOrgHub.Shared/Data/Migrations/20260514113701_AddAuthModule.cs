@@ -478,19 +478,8 @@ namespace uOrgHub.Shared.Data.Migrations
                 (C(36), "Reports.Export",            "Reports",     "Export"),
             };
 
-            var claimRows = new object[claimDefs.Length, 8];
-            for (int i = 0; i < claimDefs.Length; i++)
-            {
-                claimRows[i, 0] = claimDefs[i].Id;
-                claimRows[i, 1] = claimDefs[i].Name;
-                claimRows[i, 2] = DBNull.Value;
-                claimRows[i, 3] = claimDefs[i].Module;
-                claimRows[i, 4] = claimDefs[i].Category;
-                claimRows[i, 5] = true;
-                claimRows[i, 6] = now;
-                claimRows[i, 7] = false;
-            }
-            migrationBuilder.InsertData("auth_claims", new[] { "Id","Name","Description","Module","Category","IsActive","CreatedAt","IsDeleted" }, claimRows);
+            foreach (var cd in claimDefs)
+                migrationBuilder.Sql($"INSERT INTO auth_claims (\"Id\",\"Name\",\"Description\",\"Module\",\"Category\",\"IsActive\",\"CreatedAt\",\"CreatedBy\",\"IsDeleted\") VALUES ('{cd.Id}','{cd.Name}',NULL,'{cd.Module}','{cd.Category}',true,'2026-01-01 00:00:00Z','system',false)");
 
             // Role-claim: Admin → all
             var rcRows = new List<object[]>();
@@ -526,18 +515,19 @@ namespace uOrgHub.Shared.Data.Migrations
                 rcRows.Add(new object[] { Guid.NewGuid(), poRoleId, claimDefs.First(c => c.Name == name).Id, now, sysBy, false });
 
             foreach (var row in rcRows)
-                migrationBuilder.InsertData("auth_role_claims", new[] { "Id","RoleId","ClaimId","AssignedAt","AssignedBy","IsDeleted" }, row);
+                migrationBuilder.InsertData("auth_role_claims", new[] { "Id","RoleId","ClaimId","AssignedAt","AssignedBy","CreatedAt","CreatedBy","IsDeleted" },
+                    new object[] { row[0], row[1], row[2], row[3], row[4], now, sysBy, row[5] });
 
             // Admin user
             var adminUserId = Guid.Parse("33333333-0000-0000-0000-000000000001");
             migrationBuilder.InsertData("auth_users", new[] { "Id","Username","Email","PasswordHash","FirstName","LastName","IsActive","IsTwoFactorEnabled","TwoFactorMethod","FailedLoginAttempts","IsLockedOut","MustChangePassword","CreatedAt","CreatedBy","IsDeleted" },
                 new object[] { adminUserId, "admin", "admin@uorghub.com",
-                    BCrypt.Net.BCrypt.HashPassword("Admin@1234!", workFactor: 12),
+                    "$2b$12$v6KEHnwo2FBRIT2.akCwr.kkCEphxV/zJsxqwkVQeWErWuP4ELdMC",
                     "System", "Admin", true, false, "None", 0, false, false, now, sysBy, false });
 
             // Assign Admin role to admin user
-            migrationBuilder.InsertData("auth_user_roles", new[] { "Id","UserId","RoleId","AssignedAt","AssignedBy","IsDeleted" },
-                new object[] { Guid.NewGuid(), adminUserId, adminRoleId, now, sysBy, false });
+            migrationBuilder.InsertData("auth_user_roles", new[] { "Id","UserId","RoleId","AssignedAt","AssignedBy","CreatedAt","CreatedBy","IsDeleted" },
+                new object[] { Guid.NewGuid(), adminUserId, adminRoleId, now, sysBy, now, sysBy, false });
         }
 
         /// <inheritdoc />

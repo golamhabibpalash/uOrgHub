@@ -37,6 +37,8 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
   LayoutDashboard,
+  ShieldCheck,
+  ScrollText,
 } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 
@@ -132,9 +134,12 @@ function storeState(state: SidebarState) {
 export default function Sidebar() {
   const authUser = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const hasClaim = useAuthStore((s) => s.hasClaim);
+  const hasRole = useAuthStore((s) => s.hasRole);
   const displayName = authUser ? `${authUser.firstName} ${authUser.lastName}`.trim() : "Admin";
   const initials = displayName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
-  const roleLabel = authUser?.role ?? "Administrator";
+  const roleLabel = authUser?.roles?.[0] ?? "User";
+  const canManageUsers = hasClaim("Users.View") || hasRole("Admin");
   const [state, setState] = useState<SidebarState>(getStoredState);
 
   useEffect(() => {
@@ -278,6 +283,33 @@ export default function Sidebar() {
             )}
           </div>
         ))}
+
+        {canManageUsers && (
+          <>
+            {!isCollapsed && (
+              <p className="text-slate-600 text-[10px] font-medium px-2 pb-1 pt-4 tracking-widest">
+                ADMIN
+              </p>
+            )}
+            {isCollapsed && <div className="h-2" />}
+            {[
+              { label: "Users", path: "/admin/users", icon: Users },
+              { label: "Roles", path: "/admin/roles", icon: ShieldCheck },
+              { label: "Access Logs", path: "/admin/access-logs", icon: ScrollText },
+              { label: "Company", path: "/admin/company", icon: Building2 },
+            ].map(({ label, path, icon: Icon }) => (
+              <NavLink key={path} to={path}
+                className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-md mb-0.5 text-sm transition-colors ${isCollapsed ? "justify-center" : ""} ${isActive ? "bg-primary-500 text-white font-medium" : "text-slate-400 hover:text-slate-200 hover:bg-white/5"}`}>
+                {isCollapsed ? <Icon size={16} /> : <><Icon size={16} />{label}</>}
+              </NavLink>
+            ))}
+          </>
+        )}
+
+        <NavLink to="/profile"
+          className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-md mb-0.5 text-sm transition-colors ${isCollapsed ? "justify-center" : ""} ${isActive ? "bg-primary-500 text-white font-medium" : "text-slate-400 hover:text-slate-200 hover:bg-white/5"}`}>
+          {isCollapsed ? <UserCircle size={16} /> : <><UserCircle size={16} />My Profile</>}
+        </NavLink>
 
         {!isCollapsed && (
           <p className="text-slate-600 text-[10px] font-medium px-2 pb-1 pt-4 tracking-widest">

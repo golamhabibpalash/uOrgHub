@@ -61,13 +61,30 @@ builder.Services.AddAuthModule();
 // Controllers
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.CustomSchemaIds(t => t.FullName?.Replace("+", "_") ?? t.Name);
+    c.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
+    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Name = "Authorization", Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Scheme = "bearer", BearerFormat = "JWT", In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+    });
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme { Reference = new Microsoft.OpenApi.Models.OpenApiReference { Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme, Id = "Bearer" } },
+            Array.Empty<string>()
+        }
+    });
+});
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
-        policy.WithOrigins("http://localhost:5173")
-              .AllowAnyHeader()
+        policy
+        .SetIsOriginAllowed(origin => new Uri(origin).Host == "localhost")
+        .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials());
 });
@@ -99,6 +116,7 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+app.UseStaticFiles();
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseHttpsRedirection();

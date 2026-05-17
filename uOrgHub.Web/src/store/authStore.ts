@@ -1,47 +1,75 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
-export interface AuthUser {
+export interface UserProfileDto {
   id: string;
+  username: string;
+  email: string;
+  phoneNumber?: string;
   firstName: string;
   lastName: string;
-  email: string;
-  role: string;
+  fullName: string;
+  employeeId?: string;
+  isActive: boolean;
+  isTwoFactorEnabled: boolean;
+  twoFactorMethod: string;
+  roles: string[];
+  claims: string[];
+  lastLoginAt?: string;
+  profilePicture?: string;
 }
 
 interface AuthState {
-  user: AuthUser | null;
+  user: UserProfileDto | null;
   token: string | null;
-  setUser: (user: AuthUser) => void;
-  setToken: (token: string) => void;
+  refreshToken: string | null;
+  isAuthenticated: boolean;
+  setAuth: (token: string, refreshToken: string, user: UserProfileDto) => void;
+  setUser: (user: UserProfileDto) => void;
+  setTokens: (token: string, refreshToken: string) => void;
   logout: () => void;
+  hasRole: (role: string) => boolean;
+  hasClaim: (claim: string) => boolean;
+  hasAnyRole: (...roles: string[]) => boolean;
+  hasAnyClaim: (...claims: string[]) => boolean;
 }
 
-function loadStoredUser(): AuthUser {
-  try {
-    const stored = localStorage.getItem('user');
-    if (stored) return JSON.parse(stored);
-  } catch {
-    // ignore
-  }
-  const role = localStorage.getItem('userRole') ?? 'Admin';
-  return { id: '1', firstName: 'Admin', lastName: 'User', email: 'admin@uorghub.com', role };
-}
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set, get) => ({
+      user: null,
+      token: null,
+      refreshToken: null,
+      isAuthenticated: false,
 
-export const useAuthStore = create<AuthState>((set) => ({
-  user: loadStoredUser(),
-  token: localStorage.getItem('token'),
-  setUser: (user) => {
-    localStorage.setItem('user', JSON.stringify(user));
-    set({ user });
-  },
-  setToken: (token) => {
-    localStorage.setItem('token', token);
-    set({ token });
-  },
-  logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    set({ user: null, token: null });
-    window.location.href = '/login';
-  },
-}));
+      setAuth: (token, refreshToken, user) =>
+        set({ token, refreshToken, user, isAuthenticated: true }),
+
+      setUser: (user) => set({ user }),
+
+      setTokens: (token, refreshToken) => set({ token, refreshToken }),
+
+      logout: () => {
+        set({ user: null, token: null, refreshToken: null, isAuthenticated: false });
+        window.location.href = '/login';
+      },
+
+      hasRole: (role) => get().user?.roles.includes(role) ?? false,
+
+      hasClaim: (claim) => get().user?.claims.includes(claim) ?? false,
+
+      hasAnyRole: (...roles) => roles.some(r => get().user?.roles.includes(r) ?? false),
+
+      hasAnyClaim: (...claims) => claims.some(c => get().user?.claims.includes(c) ?? false),
+    }),
+    {
+      name: 'auth-storage',
+      partialize: (state) => ({
+        user: state.user,
+        token: state.token,
+        refreshToken: state.refreshToken,
+        isAuthenticated: state.isAuthenticated,
+      }),
+    }
+  )
+);

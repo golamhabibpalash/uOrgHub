@@ -1,4 +1,17 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import LoginPage from "./pages/auth/LoginPage";
+import TwoFactorPage from "./pages/auth/TwoFactorPage";
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
+import CompanySetup from "./pages/company/CompanySetup";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
+import AccessDeniedPage from "./components/auth/AccessDeniedPage";
+import UsersPage from "./pages/admin/UsersPage";
+import UserDetailPage from "./pages/admin/UserDetailPage";
+import RolesPage from "./pages/admin/RolesPage";
+import AccessLogsPage from "./pages/admin/AccessLogsPage";
+import CompanySettingsPage from "./pages/admin/CompanySettingsPage";
+import MyProfilePage from "./pages/profile/MyProfilePage";
 import AppLayout from "./components/layout/AppLayout";
 import HomePage from "./pages/dashboard/HomePage";
 import HRDashboard from "./pages/hr/HRDashboard";
@@ -50,16 +63,62 @@ import MaterialRequestPage from "./pages/projects/MaterialRequestPage";
 import ExpensePage from "./pages/projects/ExpensePage";
 import ClientsPage from "./pages/projects/ClientsPage";
 import MilestonePage from "./pages/projects/MilestonePage";
+import { getCompanyStatus } from "./api/company";
 
 function Placeholder({ name }: { name: string }) {
   return <div className="text-gray-500 text-sm p-4">{name} — coming soon</div>;
 }
 
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-10 h-10 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-slate-400 text-sm">Loading...</p>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
+  const [bootState, setBootState] = useState<'loading' | 'setup' | 'ready'>('loading');
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const status = await getCompanyStatus();
+        if (cancelled) return;
+        setBootState(status.hasCompany ? 'ready' : 'setup');
+      } catch {
+        if (cancelled) return;
+        setBootState('ready');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  if (bootState === 'loading') return <LoadingScreen />;
+
+  if (bootState === 'setup') {
+    return (
+      <BrowserRouter>
+        <Routes>
+          <Route path="*" element={<CompanySetup />} />
+        </Routes>
+      </BrowserRouter>
+    );
+  }
+
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<AppLayout />}>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/auth/2fa" element={<TwoFactorPage />} />
+        <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/access-denied" element={<AccessDeniedPage />} />
+
+        <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<HomePage />} />
           <Route path="hr" element={<HRDashboard />} />
@@ -102,7 +161,7 @@ export default function App() {
           <Route path="procurement/quotations" element={<VendorQuotations />} />
           <Route path="procurement/purchase-orders" element={<PurchaseOrders />} />
           <Route path="procurement/grns" element={<GoodsReceivedNotes />} />
-<Route path="projects" element={<ProjectsDashboard />} />
+          <Route path="projects" element={<ProjectsDashboard />} />
           <Route path="projects/clients" element={<ClientsPage />} />
           <Route path="projects/:id" element={<ProjectDetail />} />
           <Route path="projects/:id/wbs" element={<WBSPage />} />
@@ -112,6 +171,12 @@ export default function App() {
           <Route path="projects/:id/expenses" element={<ExpensePage />} />
           <Route path="projects/:id/milestones" element={<MilestonePage />} />
           <Route path="settings/*" element={<Placeholder name="Settings" />} />
+          <Route path="profile" element={<MyProfilePage />} />
+          <Route path="admin/users" element={<ProtectedRoute requiredClaim="Users.View"><UsersPage /></ProtectedRoute>} />
+          <Route path="admin/users/:id" element={<ProtectedRoute requiredClaim="Users.View"><UserDetailPage /></ProtectedRoute>} />
+          <Route path="admin/company" element={<ProtectedRoute><CompanySettingsPage /></ProtectedRoute>} />
+          <Route path="admin/roles" element={<ProtectedRoute requiredClaim="Users.View"><RolesPage /></ProtectedRoute>} />
+          <Route path="admin/access-logs" element={<ProtectedRoute requiredClaim="Users.View"><AccessLogsPage /></ProtectedRoute>} />
         </Route>
       </Routes>
     </BrowserRouter>

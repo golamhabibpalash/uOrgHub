@@ -815,7 +815,7 @@ function DeadlinesSection({ stats, isLoading }: { stats: { upcomingDeadlines: { 
 // ── Main HomePage ────────────────────────────────────────────────────────────
 
 export default function HomePage() {
-  const { stats, role, visibility, isLoading, isError, refetch, lastUpdated } = useDashboard();
+  const { stats, role, visibility, isLoading, refetch, lastUpdated } = useDashboard();
   const user = { firstName: 'Admin' };
 
   // Try to get firstName from localStorage
@@ -833,19 +833,6 @@ export default function HomePage() {
     ? Math.floor((Date.now() - lastUpdated) / 60_000)
     : null;
 
-  if (isError) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 gap-4">
-        <p className="text-gray-500 text-sm">Failed to load dashboard data.</p>
-        <button
-          onClick={() => refetch()}
-          className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600"
-        >
-          <RefreshCw size={14} /> Retry
-        </button>
-      </div>
-    );
-  }
 
   return (
     <div>

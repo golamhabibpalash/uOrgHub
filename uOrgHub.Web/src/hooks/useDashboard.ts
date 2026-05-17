@@ -170,17 +170,21 @@ function getVisibility(role: string): DashboardVisibility {
 
 export function useDashboard() {
   const user = useAuthStore((s) => s.user);
-  const role = (user?.role ?? localStorage.getItem('userRole') ?? 'Admin') as UserRole;
+  const role = (user?.roles?.[0] ?? localStorage.getItem('userRole') ?? 'Admin') as UserRole;
 
   const query = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: async () => {
-      const res = await getDashboardStats();
-      return res.data.data ?? MOCK_STATS;
+      try {
+        const res = await getDashboardStats();
+        return res.data.data ?? MOCK_STATS;
+      } catch {
+        return MOCK_STATS;
+      }
     },
     placeholderData: MOCK_STATS,
     refetchInterval: 300_000,
-    retry: 1,
+    retry: false,
   });
 
   const stats = query.data ?? MOCK_STATS;

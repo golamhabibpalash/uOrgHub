@@ -58,4 +58,5 @@ public class ApplicationUser : BaseEntity
     public ICollection<TwoFactorOTP> TwoFactorOTPs { get; set; } = new List<TwoFactorOTP>();
     public ICollection<UserSession> Sessions { get; set; } = new List<UserSession>();
     public ICollection<UserAccessLog> AccessLogs { get; set; } = new List<UserAccessLog>();
+    public ICollection<UserCompany> UserCompanies { get; set; } = new List<UserCompany>();
 }
