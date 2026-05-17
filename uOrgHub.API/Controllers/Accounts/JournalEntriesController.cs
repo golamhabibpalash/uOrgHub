@@ -7,6 +7,7 @@ using uOrgHub.Shared.Models;
 namespace uOrgHub.API.Controllers.Accounts;
 
 [Authorize]
+[Route("api/v1/accounts/journal-entries")]
 public class JournalEntriesController : BaseController
 {
     private readonly IJournalEntryService _service;

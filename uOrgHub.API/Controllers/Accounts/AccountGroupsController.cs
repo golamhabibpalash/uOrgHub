@@ -7,6 +7,7 @@ using uOrgHub.Shared.Models;
 namespace uOrgHub.API.Controllers.Accounts;
 
 [Authorize]
+[Route("api/v1/accounts/account-groups")]
 public class AccountGroupsController : BaseController
 {
     private readonly IAccountGroupService _service;

@@ -7,6 +7,7 @@ using uOrgHub.Shared.Models;
 namespace uOrgHub.API.Controllers.Accounts;
 
 [Authorize]
+[Route("api/v1/accounts/fiscal-years")]
 public class FiscalYearsController : BaseController
 {
     private readonly IFiscalYearService _service;

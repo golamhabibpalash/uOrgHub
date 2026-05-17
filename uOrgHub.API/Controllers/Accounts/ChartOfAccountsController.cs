@@ -7,6 +7,7 @@ using uOrgHub.Shared.Models;
 namespace uOrgHub.API.Controllers.Accounts;
 
 [Authorize]
+[Route("api/v1/accounts/chart-of-accounts")]
 public class ChartOfAccountsController : BaseController
 {
     private readonly IChartOfAccountService _service;

@@ -8,6 +8,7 @@ using uOrgHub.Shared.Models;
 namespace uOrgHub.API.Controllers.Accounts;
 
 [Authorize]
+[Route("api/v1/accounts/vendors")]
 public class VendorsController : BaseController
 {
     private readonly IMediator _mediator;
