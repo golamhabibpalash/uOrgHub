@@ -32,6 +32,7 @@ export default function FiscalYears() {
     status: "Pending" as FiscalYearStatus,
     isCurrent: false,
   });
+  const [saveError, setSaveError] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["fiscal-years", page, search],
@@ -44,6 +45,13 @@ export default function FiscalYears() {
   const saveMutation = useMutation({
     mutationFn: () => editing ? updateFiscalYear(editing.id, form) : createFiscalYear(form),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["fiscal-years"] }); closeModal(); },
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { message?: string; errors?: string[] } } };
+      const msg = axiosErr?.response?.data?.message
+        ?? axiosErr?.response?.data?.errors?.[0]
+        ?? "Failed to save fiscal year.";
+      setSaveError(msg);
+    },
   });
 
   const deleteMutation = useMutation({
@@ -54,6 +62,7 @@ export default function FiscalYears() {
   function openAdd() {
     setEditing(null);
     setForm({ name: "", startDate: "", endDate: "", status: "Pending", isCurrent: false });
+    setSaveError("");
     setModal(true);
   }
 
@@ -66,10 +75,11 @@ export default function FiscalYears() {
       status: fy.status,
       isCurrent: fy.isCurrent,
     });
+    setSaveError("");
     setModal(true);
   }
 
-  function closeModal() { setModal(false); setEditing(null); }
+  function closeModal() { setModal(false); setEditing(null); setSaveError(""); }
 
   const columns = [
     { key: "name", label: "Fiscal Year" },
@@ -119,6 +129,11 @@ export default function FiscalYears() {
 
       <Modal title={editing ? "Edit Fiscal Year" : "Add Fiscal Year"} open={modal} onClose={closeModal}>
         <div className="space-y-3">
+          {saveError && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {saveError}
+            </div>
+          )}
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Name *</label>
             <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="e.g. FY 2025-2026" />
