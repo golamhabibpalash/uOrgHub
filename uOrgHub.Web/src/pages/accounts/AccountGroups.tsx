@@ -30,6 +30,7 @@ export default function AccountGroups() {
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<AccountGroup | null>(null);
   const [form, setForm] = useState({ name: "", code: "", type: "Asset" as AccountGroupType, description: "", isActive: true });
+  const [saveError, setSaveError] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["account-groups", page, search],
@@ -42,6 +43,13 @@ export default function AccountGroups() {
   const saveMutation = useMutation({
     mutationFn: () => editing ? updateAccountGroup(editing.id, form) : createAccountGroup(form),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["account-groups"] }); closeModal(); },
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { message?: string; errors?: string[] } } };
+      const msg = axiosErr?.response?.data?.message
+        ?? axiosErr?.response?.data?.errors?.[0]
+        ?? "Failed to save account group.";
+      setSaveError(msg);
+    },
   });
 
   const deleteMutation = useMutation({
@@ -52,16 +60,18 @@ export default function AccountGroups() {
   function openAdd() {
     setEditing(null);
     setForm({ name: "", code: "", type: "Asset", description: "", isActive: true });
+    setSaveError("");
     setModal(true);
   }
 
   function openEdit(g: AccountGroup) {
     setEditing(g);
     setForm({ name: g.name, code: g.code, type: g.type, description: g.description ?? "", isActive: g.isActive });
+    setSaveError("");
     setModal(true);
   }
 
-  function closeModal() { setModal(false); setEditing(null); }
+  function closeModal() { setModal(false); setEditing(null); setSaveError(""); }
 
   const columns = [
     { key: "code", label: "Code" },
@@ -113,6 +123,11 @@ export default function AccountGroups() {
 
       <Modal title={editing ? "Edit Account Group" : "Add Account Group"} open={modal} onClose={closeModal}>
         <div className="space-y-3">
+          {saveError && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {saveError}
+            </div>
+          )}
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Group Name *</label>
             <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
