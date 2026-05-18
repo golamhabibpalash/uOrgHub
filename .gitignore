@@ -77,3 +77,6 @@ appsettings.*.json
 .env
 .env.*
 appsettings.Development.json
+
+# Claude
+.claude/
