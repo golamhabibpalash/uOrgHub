@@ -53,7 +53,10 @@ export default function Employees() {
   const employees = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
   const departments = deptData?.data?.data?.items ?? [];
-  const designations = desigData?.data?.data?.items ?? [];
+  const allDesignations = desigData?.data?.data?.items ?? [];
+  const designations = form.departmentId
+    ? allDesignations.filter((d) => d.departmentId === form.departmentId)
+    : allDesignations;
 
   const saveMutation = useMutation({
     mutationFn: () =>
@@ -65,13 +68,23 @@ export default function Employees() {
       qc.invalidateQueries({ queryKey: ["employees"] });
     },
     onError: (err: Error) => {
-      const axiosErr = err as AxiosError<{ message?: string; errors?: string[] }>;
-      setError(
-        axiosErr.response?.data?.message ||
-          axiosErr.response?.data?.errors?.[0] ||
-          err.message ||
-          "An error occurred"
-      );
+      const axiosErr = err as AxiosError<{
+        message?: string;
+        errors?: string[] | Record<string, string[]>;
+      }>;
+      const data = axiosErr.response?.data;
+      let msg = "";
+      if (typeof data?.message === "string") {
+        msg = data.message;
+      } else if (data?.errors) {
+        if (Array.isArray(data.errors)) {
+          msg = data.errors[0];
+        } else {
+          const vals = Object.values(data.errors);
+          msg = vals.flat()[0] || "";
+        }
+      }
+      setError(msg || err.message || "An error occurred");
     },
   });
 
