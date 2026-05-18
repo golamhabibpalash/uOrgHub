@@ -35,8 +35,8 @@ public class ExceptionMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unhandled exception occurred");
-            await WriteResponse(context, 500, "An unexpected error occurred.");
+            _logger.LogError(ex, "Unhandled exception occurred: {Message}", ex.Message);
+            await WriteResponse(context, 500, ex.Message);
         }
     }
 
