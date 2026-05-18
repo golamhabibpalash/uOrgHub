@@ -63,6 +63,7 @@ export default function Bills() {
   const taxRates = taxRatesData?.data?.data?.items ?? [];
   const coaAccounts = accountsData?.data?.data?.items ?? [];
   const costCenters = costCentersData?.data?.data?.items ?? [];
+  const [saveError, setSaveError] = useState("");
 
   const createMutation = useMutation({
     mutationFn: () => {
@@ -75,6 +76,13 @@ export default function Bills() {
       return createBill(payload as Parameters<typeof createBill>[0]);
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["bills"] }); closeModal(); },
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { message?: string; errors?: string[] } } };
+      const msg = axiosErr?.response?.data?.message
+        ?? axiosErr?.response?.data?.errors?.[0]
+        ?? "Failed to save bill.";
+      setSaveError(msg);
+    },
   });
 
   const approveMutation = useMutation({
@@ -90,10 +98,11 @@ export default function Bills() {
   function openAdd() {
     const currentFY = fiscalYears.find((fy) => fy.isCurrent);
     setForm({ billNumber: "", vendorBillNumber: "", vendorId: vendors[0]?.id ?? "", fiscalYearId: currentFY?.id ?? fiscalYears[0]?.id ?? "", billDate: new Date().toISOString().split("T")[0], dueDate: "", notes: "", costCenterId: "", lines: [{ description: "", quantity: 1, unitPrice: 0, discountPercent: 0, lineOrder: 1, taxRateId: "", expenseAccountId: coaAccounts[0]?.id ?? "", costCenterId: "" }] });
+    setSaveError("");
     setModal(true);
   }
 
-  function closeModal() { setModal(false); }
+  function closeModal() { setModal(false); setSaveError(""); }
 
   function addLine() {
     setForm((f) => ({ ...f, lines: [...f.lines, { description: "", quantity: 1, unitPrice: 0, discountPercent: 0, lineOrder: f.lines.length + 1, taxRateId: "", expenseAccountId: coaAccounts[0]?.id ?? "", costCenterId: "" }] }));
@@ -227,6 +236,11 @@ export default function Bills() {
 
       <Modal title="New Bill" open={modal} onClose={closeModal}>
         <div className="space-y-3">
+          {saveError && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {saveError}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Bill Number *</label>

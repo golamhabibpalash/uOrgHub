@@ -79,6 +79,7 @@ export default function Payments() {
   const bankAccounts = bankAccountsData?.data?.data?.items ?? [];
   const openInvoices = (invoicesData?.data?.data?.items ?? []).filter((inv) => ["Sent", "PartiallyPaid", "Overdue"].includes(inv.status));
   const openBills = (billsData?.data?.data?.items ?? []).filter((b) => ["Received", "PartiallyPaid", "Overdue"].includes(b.status));
+  const [saveError, setSaveError] = useState("");
 
   const isCustomerPayment = ["CustomerPayment", "AdvanceFromCustomer"].includes(form.paymentType);
   const isVendorPayment = ["VendorPayment", "AdvanceToVendor"].includes(form.paymentType);
@@ -99,15 +100,23 @@ export default function Payments() {
       return createPayment(payload as Parameters<typeof createPayment>[0]);
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["payments"] }); closeModal(); },
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { message?: string; errors?: string[] } } };
+      const msg = axiosErr?.response?.data?.message
+        ?? axiosErr?.response?.data?.errors?.[0]
+        ?? "Failed to save payment.";
+      setSaveError(msg);
+    },
   });
 
   function openAdd() {
     const currentFY = fiscalYears.find((fy) => fy.isCurrent);
     setForm({ paymentNumber: "", paymentType: "CustomerPayment", paymentMethod: "BankTransfer", paymentDate: new Date().toISOString().split("T")[0], amount: 0, referenceNumber: "", chequeNumber: "", notes: "", customerId: customers[0]?.id ?? "", vendorId: "", bankAccountId: bankAccounts[0]?.id ?? "", fiscalYearId: currentFY?.id ?? fiscalYears[0]?.id ?? "", allocations: [] });
+    setSaveError("");
     setModal(true);
   }
 
-  function closeModal() { setModal(false); }
+  function closeModal() { setModal(false); setSaveError(""); }
 
   function addAllocation(type: "invoice" | "bill", id: string) {
     setForm((f) => ({
@@ -213,6 +222,11 @@ export default function Payments() {
 
       <Modal title="Record Payment" open={modal} onClose={closeModal}>
         <div className="space-y-3">
+          {saveError && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {saveError}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Payment Number *</label>

@@ -52,10 +52,18 @@ export default function ChartOfAccounts() {
   const accounts = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
   const groups = groupsData?.data?.data?.items ?? [];
+  const [saveError, setSaveError] = useState("");
 
   const saveMutation = useMutation({
     mutationFn: () => editing ? updateChartOfAccount(editing.id, form) : createChartOfAccount(form),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["chart-of-accounts"] }); closeModal(); },
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { message?: string; errors?: string[] } } };
+      const msg = axiosErr?.response?.data?.message
+        ?? axiosErr?.response?.data?.errors?.[0]
+        ?? "Failed to save account.";
+      setSaveError(msg);
+    },
   });
 
   const deleteMutation = useMutation({
@@ -66,6 +74,7 @@ export default function ChartOfAccounts() {
   function openAdd() {
     setEditing(null);
     setForm({ accountCode: "", accountName: "", accountGroupId: groups[0]?.id ?? "", accountType: "Asset", openingBalance: 0, description: "", allowDirectEntry: true, isActive: true });
+    setSaveError("");
     setModal(true);
   }
 
@@ -81,10 +90,11 @@ export default function ChartOfAccounts() {
       allowDirectEntry: acc.allowDirectEntry,
       isActive: acc.isActive,
     });
+    setSaveError("");
     setModal(true);
   }
 
-  function closeModal() { setModal(false); setEditing(null); }
+  function closeModal() { setModal(false); setEditing(null); setSaveError(""); }
 
   const columns = [
     { key: "accountCode", label: "Code" },
@@ -143,6 +153,11 @@ export default function ChartOfAccounts() {
 
       <Modal title={editing ? "Edit Account" : "Add Account"} open={modal} onClose={closeModal}>
         <div className="space-y-3">
+          {saveError && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {saveError}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Account Code *</label>

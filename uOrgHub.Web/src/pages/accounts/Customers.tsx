@@ -47,10 +47,18 @@ export default function Customers() {
   const customers = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
   const coaAccounts = accountsData?.data?.data?.items ?? [];
+  const [saveError, setSaveError] = useState("");
 
   const saveMutation = useMutation({
     mutationFn: () => editing ? updateCustomer(editing.id, form) : createCustomer(form),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["customers"] }); closeModal(); },
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { message?: string; errors?: string[] } } };
+      const msg = axiosErr?.response?.data?.message
+        ?? axiosErr?.response?.data?.errors?.[0]
+        ?? "Failed to save customer.";
+      setSaveError(msg);
+    },
   });
 
   const deleteMutation = useMutation({
@@ -61,16 +69,18 @@ export default function Customers() {
   function openAdd() {
     setEditing(null);
     setForm({ customerCode: "", name: "", contactPerson: "", email: "", phone: "", address: "", tin: "", bin: "", creditLimit: 0, paymentTermsDays: 30, receivableAccountId: coaAccounts[0]?.id ?? "", isActive: true });
+    setSaveError("");
     setModal(true);
   }
 
   function openEdit(c: Customer) {
     setEditing(c);
     setForm({ customerCode: c.customerCode, name: c.name, contactPerson: c.contactPerson ?? "", email: c.email ?? "", phone: c.phone ?? "", address: c.address ?? "", tin: c.tin ?? "", bin: c.bin ?? "", creditLimit: c.creditLimit, paymentTermsDays: c.paymentTermsDays, receivableAccountId: c.receivableAccountId, isActive: c.isActive });
+    setSaveError("");
     setModal(true);
   }
 
-  function closeModal() { setModal(false); setEditing(null); }
+  function closeModal() { setModal(false); setEditing(null); setSaveError(""); }
 
   const columns = [
     { key: "customerCode", label: "Code" },
@@ -127,6 +137,11 @@ export default function Customers() {
 
       <Modal title={editing ? "Edit Customer" : "Add Customer"} open={modal} onClose={closeModal}>
         <div className="space-y-3">
+          {saveError && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {saveError}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Customer Code *</label>

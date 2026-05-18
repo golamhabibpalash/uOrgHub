@@ -45,10 +45,18 @@ export default function TaxRates() {
 
   const taxRates = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
+  const [saveError, setSaveError] = useState("");
 
   const saveMutation = useMutation({
     mutationFn: () => editing ? updateTaxRate(editing.id, form) : createTaxRate(form),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["tax-rates"] }); closeModal(); },
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { message?: string; errors?: string[] } } };
+      const msg = axiosErr?.response?.data?.message
+        ?? axiosErr?.response?.data?.errors?.[0]
+        ?? "Failed to save tax rate.";
+      setSaveError(msg);
+    },
   });
 
   const deleteMutation = useMutation({
@@ -59,16 +67,18 @@ export default function TaxRates() {
   function openAdd() {
     setEditing(null);
     setForm({ code: "", name: "", taxType: "VAT", rate: 0, description: "", isActive: true });
+    setSaveError("");
     setModal(true);
   }
 
   function openEdit(tr: TaxRate) {
     setEditing(tr);
     setForm({ code: tr.code, name: tr.name, taxType: tr.taxType, rate: tr.rate, description: tr.description ?? "", isActive: tr.isActive });
+    setSaveError("");
     setModal(true);
   }
 
-  function closeModal() { setModal(false); setEditing(null); }
+  function closeModal() { setModal(false); setEditing(null); setSaveError(""); }
 
   const columns = [
     { key: "code", label: "Code" },
@@ -124,6 +134,11 @@ export default function TaxRates() {
 
       <Modal title={editing ? "Edit Tax Rate" : "Add Tax Rate"} open={modal} onClose={closeModal}>
         <div className="space-y-3">
+          {saveError && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {saveError}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Code *</label>

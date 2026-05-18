@@ -33,6 +33,7 @@ export default function CostCenters() {
 
   const costCenters = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
+  const [saveError, setSaveError] = useState("");
 
   const saveMutation = useMutation({
     mutationFn: () => {
@@ -43,6 +44,13 @@ export default function CostCenters() {
       return editing ? updateCostCenter(editing.id, payload) : createCostCenter(payload);
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["cost-centers"] }); closeModal(); },
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { message?: string; errors?: string[] } } };
+      const msg = axiosErr?.response?.data?.message
+        ?? axiosErr?.response?.data?.errors?.[0]
+        ?? "Failed to save cost center.";
+      setSaveError(msg);
+    },
   });
 
   const deleteMutation = useMutation({
@@ -53,16 +61,18 @@ export default function CostCenters() {
   function openAdd() {
     setEditing(null);
     setForm({ code: "", name: "", description: "", parentCostCenterId: "", isActive: true });
+    setSaveError("");
     setModal(true);
   }
 
   function openEdit(cc: CostCenter) {
     setEditing(cc);
     setForm({ code: cc.code, name: cc.name, description: cc.description ?? "", parentCostCenterId: cc.parentCostCenterId ?? "", isActive: cc.isActive });
+    setSaveError("");
     setModal(true);
   }
 
-  function closeModal() { setModal(false); setEditing(null); }
+  function closeModal() { setModal(false); setEditing(null); setSaveError(""); }
 
   const columns = [
     { key: "code", label: "Code" },
@@ -108,6 +118,11 @@ export default function CostCenters() {
 
       <Modal title={editing ? "Edit Cost Center" : "Add Cost Center"} open={modal} onClose={closeModal}>
         <div className="space-y-3">
+          {saveError && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {saveError}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Code *</label>

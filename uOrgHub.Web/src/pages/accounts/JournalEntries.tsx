@@ -49,10 +49,18 @@ export default function JournalEntries() {
   const entries = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
   const accounts = accountsData?.data?.data?.items ?? [];
+  const [saveError, setSaveError] = useState("");
 
   const createMutation = useMutation({
     mutationFn: () => createJournalEntry(form),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["journal-entries"] }); closeModal(); },
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { message?: string; errors?: string[] } } };
+      const msg = axiosErr?.response?.data?.message
+        ?? axiosErr?.response?.data?.errors?.[0]
+        ?? "Failed to save journal entry.";
+      setSaveError(msg);
+    },
   });
 
   const postMutation = useMutation({
@@ -75,10 +83,11 @@ export default function JournalEntries() {
         { accountId: "", description: "", debitAmount: 0, creditAmount: 0, lineOrder: 2 },
       ],
     });
+    setSaveError("");
     setModal(true);
   }
 
-  function closeModal() { setModal(false); }
+  function closeModal() { setModal(false); setSaveError(""); }
 
   function addLine() {
     setForm((f) => ({
@@ -243,6 +252,11 @@ export default function JournalEntries() {
 
       <Modal title="New Journal Entry" open={modal} onClose={closeModal}>
         <div className="space-y-3">
+          {saveError && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {saveError}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Entry Date *</label>

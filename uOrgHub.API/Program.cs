@@ -12,6 +12,8 @@ using uOrgHub.Procurement;
 using uOrgHub.Projects;
 using uOrgHub.Shared.Data;
 
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Database

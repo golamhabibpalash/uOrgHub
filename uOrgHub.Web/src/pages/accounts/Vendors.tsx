@@ -46,10 +46,18 @@ export default function Vendors() {
   const vendors = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
   const coaAccounts = accountsData?.data?.data?.items ?? [];
+  const [saveError, setSaveError] = useState("");
 
   const saveMutation = useMutation({
     mutationFn: () => editing ? updateVendor(editing.id, form) : createVendor(form),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["vendors"] }); closeModal(); },
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { message?: string; errors?: string[] } } };
+      const msg = axiosErr?.response?.data?.message
+        ?? axiosErr?.response?.data?.errors?.[0]
+        ?? "Failed to save vendor.";
+      setSaveError(msg);
+    },
   });
 
   const deleteMutation = useMutation({
@@ -60,16 +68,18 @@ export default function Vendors() {
   function openAdd() {
     setEditing(null);
     setForm({ vendorCode: "", name: "", contactPerson: "", email: "", phone: "", address: "", tin: "", bin: "", paymentTermsDays: 30, payableAccountId: coaAccounts[0]?.id ?? "", isActive: true });
+    setSaveError("");
     setModal(true);
   }
 
   function openEdit(v: Vendor) {
     setEditing(v);
     setForm({ vendorCode: v.vendorCode, name: v.name, contactPerson: v.contactPerson ?? "", email: v.email ?? "", phone: v.phone ?? "", address: v.address ?? "", tin: v.tin ?? "", bin: v.bin ?? "", paymentTermsDays: v.paymentTermsDays, payableAccountId: v.payableAccountId, isActive: v.isActive });
+    setSaveError("");
     setModal(true);
   }
 
-  function closeModal() { setModal(false); setEditing(null); }
+  function closeModal() { setModal(false); setEditing(null); setSaveError(""); }
 
   const columns = [
     { key: "vendorCode", label: "Code" },
@@ -121,6 +131,11 @@ export default function Vendors() {
 
       <Modal title={editing ? "Edit Vendor" : "Add Vendor"} open={modal} onClose={closeModal}>
         <div className="space-y-3">
+          {saveError && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {saveError}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Vendor Code *</label>

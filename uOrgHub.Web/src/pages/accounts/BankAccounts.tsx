@@ -81,10 +81,18 @@ export default function BankAccounts() {
   const coaAccounts = accountsData?.data?.data?.items ?? [];
   const transactions = txnData?.data?.data?.items ?? [];
   const txnTotalPages = txnData?.data?.data?.totalPages ?? 1;
+  const [saveError, setSaveError] = useState("");
 
   const saveMutation = useMutation({
     mutationFn: () => editing ? updateBankAccount(editing.id, form) : createBankAccount(form),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["bank-accounts"] }); closeModal(); },
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { message?: string; errors?: string[] } } };
+      const msg = axiosErr?.response?.data?.message
+        ?? axiosErr?.response?.data?.errors?.[0]
+        ?? "Failed to save bank account.";
+      setSaveError(msg);
+    },
   });
 
   const txnMutation = useMutation({
@@ -94,24 +102,34 @@ export default function BankAccounts() {
       qc.invalidateQueries({ queryKey: ["bank-accounts"] });
       setTxnModal(false);
     },
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { message?: string; errors?: string[] } } };
+      const msg = axiosErr?.response?.data?.message
+        ?? axiosErr?.response?.data?.errors?.[0]
+        ?? "Failed to save transaction.";
+      setSaveError(msg);
+    },
   });
 
   function openAdd() {
     setEditing(null);
     setForm({ accountNumber: "", accountName: "", bankName: "", branchName: "", routingNumber: "", currency: "BDT", openingBalance: 0, chartOfAccountId: coaAccounts[0]?.id ?? "", isActive: true });
+    setSaveError("");
     setModal(true);
   }
 
   function openEdit(ba: BankAccount) {
     setEditing(ba);
     setForm({ accountNumber: ba.accountNumber, accountName: ba.accountName, bankName: ba.bankName, branchName: ba.branchName ?? "", routingNumber: ba.routingNumber ?? "", currency: ba.currency, openingBalance: ba.openingBalance, chartOfAccountId: ba.chartOfAccountId, isActive: ba.isActive });
+    setSaveError("");
     setModal(true);
   }
 
-  function closeModal() { setModal(false); setEditing(null); }
+  function closeModal() { setModal(false); setEditing(null); setSaveError(""); }
 
   function openTxnModal() {
     setTxnForm({ transactionType: "Deposit", transactionDate: new Date().toISOString().split("T")[0], amount: 0, description: "", referenceNumber: "", chequeNumber: "", payee: "" });
+    setSaveError("");
     setTxnModal(true);
   }
 
@@ -233,6 +251,11 @@ export default function BankAccounts() {
 
       <Modal title={editing ? "Edit Bank Account" : "Add Bank Account"} open={modal} onClose={closeModal}>
         <div className="space-y-3">
+          {saveError && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {saveError}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Account Number *</label>
@@ -296,8 +319,13 @@ export default function BankAccounts() {
         </div>
       </Modal>
 
-      <Modal title={`New Transaction — ${selectedAccount?.accountName}`} open={txnModal} onClose={() => setTxnModal(false)}>
+      <Modal title={`New Transaction — ${selectedAccount?.accountName}`} open={txnModal} onClose={() => { setSaveError(""); setTxnModal(false); }}>
         <div className="space-y-3">
+          {saveError && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {saveError}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Transaction Type *</label>
@@ -335,7 +363,7 @@ export default function BankAccounts() {
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <button onClick={() => setTxnModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
+            <button onClick={() => { setSaveError(""); setTxnModal(false); }} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
             <button onClick={() => txnMutation.mutate()} disabled={txnMutation.isPending} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">
               {txnMutation.isPending ? "Saving..." : "Save"}
             </button>

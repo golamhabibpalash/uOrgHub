@@ -53,6 +53,7 @@ export default function Budgets() {
   const fiscalYears = fiscalYearsData?.data?.data?.items ?? [];
   const coaAccounts = accountsData?.data?.data?.items ?? [];
   const costCenters = costCentersData?.data?.data?.items ?? [];
+  const [saveError, setSaveError] = useState("");
 
   const saveMutation = useMutation({
     mutationFn: () => {
@@ -63,6 +64,13 @@ export default function Budgets() {
       return createBudget(payload as Parameters<typeof createBudget>[0]);
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["budgets"] }); closeModal(); },
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { message?: string; errors?: string[] } } };
+      const msg = axiosErr?.response?.data?.message
+        ?? axiosErr?.response?.data?.errors?.[0]
+        ?? "Failed to save budget.";
+      setSaveError(msg);
+    },
   });
 
   const approveMutation = useMutation({
@@ -79,16 +87,18 @@ export default function Budgets() {
     setEditing(null);
     const currentFY = fiscalYears.find((fy) => fy.isCurrent);
     setForm({ name: "", description: "", fiscalYearId: currentFY?.id ?? fiscalYears[0]?.id ?? "", costCenterId: "", lines: [{ accountId: coaAccounts[0]?.id ?? "", costCenterId: "", period: 0, plannedAmount: 0 }] });
+    setSaveError("");
     setModal(true);
   }
 
   function openEdit(b: Budget) {
     setEditing(b);
     setForm({ name: b.name, description: b.description ?? "", fiscalYearId: b.fiscalYearId, costCenterId: b.costCenterId ?? "", lines: [] });
+    setSaveError("");
     setModal(true);
   }
 
-  function closeModal() { setModal(false); setEditing(null); }
+  function closeModal() { setModal(false); setEditing(null); setSaveError(""); }
 
   function addLine() {
     setForm((f) => ({ ...f, lines: [...f.lines, { accountId: coaAccounts[0]?.id ?? "", costCenterId: "", period: 0, plannedAmount: 0 }] }));
@@ -207,6 +217,11 @@ export default function Budgets() {
 
       <Modal title={editing ? "Edit Budget" : "New Budget"} open={modal} onClose={closeModal}>
         <div className="space-y-3">
+          {saveError && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {saveError}
+            </div>
+          )}
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Budget Name *</label>
             <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />

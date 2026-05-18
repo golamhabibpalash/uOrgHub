@@ -62,6 +62,7 @@ export default function Invoices() {
   const taxRates = taxRatesData?.data?.data?.items ?? [];
   const coaAccounts = accountsData?.data?.data?.items ?? [];
   const costCenters = costCentersData?.data?.data?.items ?? [];
+  const [saveError, setSaveError] = useState("");
 
   const createMutation = useMutation({
     mutationFn: () => {
@@ -78,6 +79,13 @@ export default function Invoices() {
       return createInvoice(payload as Parameters<typeof createInvoice>[0]);
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["invoices"] }); closeModal(); },
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { message?: string; errors?: string[] } } };
+      const msg = axiosErr?.response?.data?.message
+        ?? axiosErr?.response?.data?.errors?.[0]
+        ?? "Failed to save invoice.";
+      setSaveError(msg);
+    },
   });
 
   const postMutation = useMutation({
@@ -102,10 +110,11 @@ export default function Invoices() {
       costCenterId: "",
       lines: [{ description: "", quantity: 1, unitPrice: 0, discountPercent: 0, lineOrder: 1, taxRateId: "", revenueAccountId: coaAccounts[0]?.id ?? "", costCenterId: "" }],
     });
+    setSaveError("");
     setModal(true);
   }
 
-  function closeModal() { setModal(false); }
+  function closeModal() { setModal(false); setSaveError(""); }
 
   function addLine() {
     setForm((f) => ({
@@ -241,6 +250,11 @@ export default function Invoices() {
 
       <Modal title="New Invoice" open={modal} onClose={closeModal}>
         <div className="space-y-3">
+          {saveError && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {saveError}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Invoice Number *</label>
