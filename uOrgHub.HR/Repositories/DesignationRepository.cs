@@ -43,6 +43,7 @@ public class DesignationRepository : IDesignationRepository
     {
         _context.Set<Designation>().Add(entity);
         await _context.SaveChangesAsync();
+        await _context.Entry(entity).Reference(x => x.Department).LoadAsync();
         return entity;
     }
 
