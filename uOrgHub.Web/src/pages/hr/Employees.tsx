@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { AxiosError } from "axios";
 import { Plus } from "lucide-react";
 import DataTable from "../../components/shared/DataTable";
 import Pagination from "../../components/shared/Pagination";
@@ -20,6 +21,7 @@ export default function Employees() {
   const [search, setSearch] = useState("");
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Employee | null>(null);
+  const [error, setError] = useState("");
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -59,8 +61,17 @@ export default function Employees() {
         ? updateEmployee(editing.id, form)
         : createEmployee(form),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["employees"] });
       closeModal();
+      qc.invalidateQueries({ queryKey: ["employees"] });
+    },
+    onError: (err: Error) => {
+      const axiosErr = err as AxiosError<{ message?: string; errors?: string[] }>;
+      setError(
+        axiosErr.response?.data?.message ||
+          axiosErr.response?.data?.errors?.[0] ||
+          err.message ||
+          "An error occurred"
+      );
     },
   });
 
@@ -293,6 +304,11 @@ export default function Employees() {
               />
             </div>
           </div>
+          {error && (
+            <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {error}
+            </div>
+          )}
           <div className="flex justify-end gap-2 pt-2">
             <button
               onClick={closeModal}

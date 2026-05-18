@@ -48,6 +48,8 @@ public class EmployeeRepository : IEmployeeRepository
     {
         _context.Set<Employee>().Add(entity);
         await _context.SaveChangesAsync();
+        await _context.Entry(entity).Reference(x => x.Department).LoadAsync();
+        await _context.Entry(entity).Reference(x => x.Designation).LoadAsync();
         return entity;
     }
 
