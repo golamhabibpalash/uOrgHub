@@ -1,0 +1,1055 @@
+================================================================================
+          uOrgHub ERP — ACCOUNTS MODULE USER MANUAL
+          Civil Construction ERP | Finance & Accounting
+================================================================================
+
+Version  : 1.0
+Module   : Accounts
+Audience : Accountants, Finance Managers, Administrators
+Updated  : May 2026
+
+--------------------------------------------------------------------------------
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+
+  1.  Overview
+  2.  Accessing the Accounts Module
+  3.  Initial Setup (Recommended Order)
+  4.  Account Groups
+  5.  Fiscal Years
+  6.  Chart of Accounts
+  7.  Cost Centers
+  8.  Tax Rates
+  9.  Bank Accounts & Transactions
+  10. Customers
+  11. Invoices (Accounts Receivable)
+  12. Vendors
+  13. Bills (Accounts Payable)
+  14. Payments
+  15. Journal Entries
+  16. Budgets
+  17. Accounts Dashboard
+  18. Workflow Summary
+  19. Status Reference
+  20. Frequently Asked Questions
+
+================================================================================
+1. OVERVIEW
+================================================================================
+
+The Accounts module is the financial backbone of uOrgHub ERP. It handles all
+money-related operations for your civil construction business, including:
+
+  - Double-entry bookkeeping (Journal Entries)
+  - Accounts Receivable (Customers, Invoices, Receipts)
+  - Accounts Payable (Vendors, Bills, Payments)
+  - Bank account management and reconciliation
+  - Budget planning and variance tracking
+  - Tax configuration (VAT, WHT, etc.)
+  - Chart of Accounts and cost center structure
+
+All transactions in other modules (Procurement, Payroll, Projects) that involve
+money eventually flow into the Accounts module as journal entries.
+
+Required Permission : Accounts.View  (to view all pages)
+                      Accounts.Create (to create records)
+                      Accounts.Edit   (to edit records)
+                      Accounts.Delete (to delete records)
+                      Accounts.PostJournal (to post journal entries)
+
+Your system administrator assigns these permissions per role.
+
+================================================================================
+2. ACCESSING THE ACCOUNTS MODULE
+================================================================================
+
+1. Log in to uOrgHub with your username and password.
+2. In the left sidebar, click "Accounts".
+3. The Accounts Dashboard opens, showing a summary of your financial position.
+4. Use the sidebar sub-menu or the dashboard quick-links to navigate to any
+   sub-section (Chart of Accounts, Invoices, etc.).
+
+If the Accounts menu does not appear, contact your administrator — you may not
+have the Accounts.View permission assigned.
+
+================================================================================
+3. INITIAL SETUP (RECOMMENDED ORDER)
+================================================================================
+
+Before recording any financial transactions, complete setup in this order:
+
+  Step 1 — Account Groups        (classify account types)
+  Step 2 — Fiscal Years          (define your financial year)
+  Step 3 — Chart of Accounts     (create your GL account list)
+  Step 4 — Cost Centers          (define departments/project codes)
+  Step 5 — Tax Rates             (set up VAT, WHT, etc.)
+  Step 6 — Bank Accounts         (link physical bank accounts)
+  Step 7 — Customers             (add your clients)
+  Step 8 — Vendors               (add your suppliers)
+
+Once setup is complete, you can begin recording Invoices, Bills, Payments,
+Journal Entries, and Budgets.
+
+================================================================================
+4. ACCOUNT GROUPS
+================================================================================
+
+Path: Accounts > Account Groups
+
+PURPOSE
+-------
+Account Groups classify all GL accounts into five standard accounting types.
+Every account in your Chart of Accounts must belong to one group.
+
+The five standard types are:
+  - Asset      (what the company owns: cash, receivables, equipment)
+  - Liability  (what the company owes: payables, loans)
+  - Equity     (owner's funds and retained earnings)
+  - Income     (revenue earned from projects, services)
+  - Expense    (costs incurred: materials, salaries, utilities)
+
+CREATING AN ACCOUNT GROUP
+--------------------------
+1. Click "Add Group" in the top-right corner.
+2. Fill in the form:
+     Group Name  : A clear, descriptive name (e.g., "Current Assets")
+     Code        : A short unique code (e.g., "CA")
+     Type        : Select from Asset / Liability / Equity / Income / Expense
+     Description : Optional explanation
+3. Click "Save".
+
+EDITING AN ACCOUNT GROUP
+-------------------------
+1. Click the pencil (edit) icon next to the group.
+2. Modify the fields as needed.
+3. You can also toggle the "Active" checkbox to deactivate a group.
+4. Click "Save".
+
+DELETING AN ACCOUNT GROUP
+--------------------------
+1. Click the trash icon next to the group.
+2. Confirm deletion.
+   NOTE: You cannot delete a group that has accounts assigned to it.
+   Deactivate it instead.
+
+SEARCHING
+----------
+Use the search bar above the table to filter groups by name, code, or type.
+
+RECOMMENDED GROUPS FOR CIVIL CONSTRUCTION
+------------------------------------------
+  Code   | Name                       | Type
+  -------|----------------------------|----------
+  CA     | Current Assets             | Asset
+  FA     | Fixed Assets               | Asset
+  CL     | Current Liabilities        | Liability
+  LTL    | Long-term Liabilities      | Liability
+  EQ     | Equity                     | Equity
+  REV    | Project Revenue            | Income
+  COGS   | Cost of Goods Sold         | Expense
+  OPEX   | Operating Expenses         | Expense
+
+================================================================================
+5. FISCAL YEARS
+================================================================================
+
+Path: Accounts > Fiscal Years
+
+PURPOSE
+-------
+A Fiscal Year defines the financial reporting period. All invoices, bills,
+journal entries, and budgets must be linked to a fiscal year. You can have
+multiple fiscal years (past, current, future).
+
+CREATING A FISCAL YEAR
+-----------------------
+1. Click "Add Fiscal Year".
+2. Fill in the form:
+     Name       : e.g., "FY 2025-2026"
+     Start Date : First day of the financial year (e.g., 01 July 2025)
+     End Date   : Last day of the financial year (e.g., 30 June 2026)
+     Status     : Set to "Pending" when creating future years
+3. Check "Set as current fiscal year" if this is your active year.
+4. Click "Save".
+
+MANAGING STATUS
+----------------
+  Pending  → Active  : When the year begins (set as current)
+  Active   → Closed  : When the year ends (year-end closing)
+
+  Only one fiscal year can be "Active" and "Current" at a time.
+  Transactions cannot be recorded in a Closed fiscal year.
+
+EDITING A FISCAL YEAR
+----------------------
+1. Click the edit icon.
+2. You can change the name, dates, status, or current year flag.
+3. You cannot delete a fiscal year that has transactions linked to it.
+
+================================================================================
+6. CHART OF ACCOUNTS
+================================================================================
+
+Path: Accounts > Chart of Accounts
+
+PURPOSE
+-------
+The Chart of Accounts (COA) is the complete list of all general ledger (GL)
+accounts your company uses to record financial transactions. Every debit and
+credit in the system posts to a GL account.
+
+CREATING AN ACCOUNT
+--------------------
+1. Click "Add Account".
+2. Fill in the form:
+     Account Code     : Unique code (e.g., "1001" for Cash)
+     Account Name     : Descriptive name (e.g., "Cash in Hand")
+     Account Group    : Select from your defined groups
+     Account Type     : Asset / Liability / Equity / Income / Expense
+     Opening Balance  : Starting balance (for existing companies migrating data)
+     Description      : Optional notes
+     Allow Direct Entry: Check this to allow manual journal entries to this
+                         account. Uncheck for system-controlled accounts
+                         (e.g., AR control account).
+3. Click "Save".
+
+EDITING AN ACCOUNT
+-------------------
+1. Click the pencil icon next to the account.
+2. Edit name, group, description, or toggle Active status.
+   NOTE: Account Code cannot be changed after creation.
+3. Click "Save".
+
+DELETING AN ACCOUNT
+--------------------
+You cannot delete an account that has posted transactions.
+Deactivate it using the Active toggle instead.
+
+ACCOUNT NUMBERING CONVENTION (RECOMMENDED)
+--------------------------------------------
+  1xxx  — Assets
+  2xxx  — Liabilities
+  3xxx  — Equity
+  4xxx  — Revenue / Income
+  5xxx  — Cost of Goods Sold
+  6xxx  — Operating Expenses
+  7xxx  — Other Income/Expense
+
+EXAMPLE ACCOUNTS
+-----------------
+  Code  | Name                        | Group             | Type
+  ------|-----------------------------|--------------------|----------
+  1001  | Cash in Hand                | Current Assets     | Asset
+  1002  | Cash at Bank                | Current Assets     | Asset
+  1100  | Accounts Receivable         | Current Assets     | Asset
+  1200  | Advance to Suppliers        | Current Assets     | Asset
+  2100  | Accounts Payable            | Current Liabilities| Liability
+  2200  | VAT Payable                 | Current Liabilities| Liability
+  4001  | Project Revenue             | Project Revenue    | Income
+  5001  | Material Cost               | COGS               | Expense
+  6001  | Salaries & Wages            | OPEX               | Expense
+  6002  | Office Rent                 | OPEX               | Expense
+
+================================================================================
+7. COST CENTERS
+================================================================================
+
+Path: Accounts > Cost Centers
+
+PURPOSE
+-------
+Cost Centers let you track income and expenses by department, project, or
+location. In construction, this is typically used to track costs per project
+site or per department.
+
+CREATING A COST CENTER
+-----------------------
+1. Click "Add Cost Center".
+2. Fill in the form:
+     Code        : Short unique code (e.g., "SITE-A", "HQ", "PRJ-001")
+     Name        : Full descriptive name
+     Parent      : Optional — select a parent for a hierarchical structure
+                   (e.g., "Site A - Block 1" under "Site A")
+     Description : Optional notes
+3. Click "Save".
+
+EDITING A COST CENTER
+----------------------
+1. Click the pencil icon.
+2. You can update name, parent, description, or toggle Active.
+   NOTE: Code cannot be changed after creation.
+
+HIERARCHY EXAMPLE
+------------------
+  HEAD OFFICE (HQ)
+    ├── Finance Department
+    ├── HR Department
+  SITE OPERATIONS
+    ├── Bashundhara Residential (PRJ-001)
+    ├── Gulshan Commercial (PRJ-002)
+    └── Mirpur Road Bridge (PRJ-003)
+
+When recording invoices, bills, or journal entries, you can tag a cost center
+to track which project or department the cost/income belongs to.
+
+================================================================================
+8. TAX RATES
+================================================================================
+
+Path: Accounts > Tax Rates
+
+PURPOSE
+-------
+Tax Rates define the tax percentages applied to invoice lines and bill lines.
+Common taxes in Bangladesh include VAT (15%) and Withholding Tax (WHT).
+
+CREATING A TAX RATE
+--------------------
+1. Click "Add Tax Rate".
+2. Fill in the form:
+     Code        : Short code (e.g., "VAT15", "WHT5")
+     Name        : Full name (e.g., "VAT @ 15%", "WHT on Services @ 5%")
+     Tax Type    : Select from:
+                     VAT            — Value Added Tax
+                     WithholdingTax — Deducted at source by buyer
+                     CustomsDuty    — Import duties
+                     ExciseDuty     — Excise / manufacturing tax
+                     SalesTax       — General sales tax
+     Rate (%)    : Numeric percentage (e.g., 15.00 for 15%)
+     Description : Optional notes
+3. Click "Save".
+
+EDITING A TAX RATE
+-------------------
+1. Click the pencil icon.
+2. Update the name, rate, description, or Active status.
+   NOTE: Tax Code cannot be changed after creation.
+
+IMPORTANT NOTES
+---------------
+- Tax amounts are calculated automatically when you select a tax rate on an
+  invoice line or bill line.
+- A corresponding Tax Payable / Tax Receivable GL account should exist in your
+  Chart of Accounts.
+- Deactivated tax rates will not appear in invoice/bill dropdowns.
+
+COMMON TAX RATES FOR BANGLADESH
+---------------------------------
+  Code   | Name                            | Type           | Rate
+  -------|---------------------------------|----------------|------
+  VAT15  | VAT @ 15%                       | VAT            | 15.00
+  WHT5   | WHT on Services @ 5%            | WithholdingTax |  5.00
+  WHT3   | WHT on Contractors @ 3%         | WithholdingTax |  3.00
+  AIT    | Advance Income Tax @ 1%         | WithholdingTax |  1.00
+
+================================================================================
+9. BANK ACCOUNTS & TRANSACTIONS
+================================================================================
+
+Path: Accounts > Bank Accounts
+
+PURPOSE
+-------
+Bank Accounts registers all company bank accounts and allows you to record
+individual transactions (deposits, withdrawals, transfers, cheque clearing).
+
+---------------------------------------
+9A. MANAGING BANK ACCOUNTS
+---------------------------------------
+
+ADDING A BANK ACCOUNT
+----------------------
+1. Click "Add Bank Account".
+2. Fill in the form:
+     Account Number   : Your bank account number
+     Account Name     : Description (e.g., "HSBC Current Account")
+     Bank Name        : e.g., "Dutch-Bangla Bank", "BRAC Bank"
+     Branch Name      : Branch where account is held (optional)
+     Routing Number   : Bank routing/SWIFT code (optional)
+     Currency         : BDT / USD / EUR / GBP
+     Opening Balance  : Starting balance when migrating to this system
+     Linked GL Account: Select the corresponding GL account from your
+                        Chart of Accounts (e.g., account "1002 - Cash at Bank")
+3. Click "Save".
+
+EDITING A BANK ACCOUNT
+-----------------------
+1. Click the pencil icon next to the account.
+2. Update name, bank, branch, or active status.
+   NOTE: Account Number cannot be changed after creation.
+
+---------------------------------------
+9B. RECORDING BANK TRANSACTIONS
+---------------------------------------
+
+1. In the bank accounts list, click "Transactions" (or the view icon) next to
+   any bank account to open its transaction history.
+2. Click "Add Transaction".
+3. Fill in the form:
+     Transaction Type : Select from:
+                          Deposit       — Money received into account
+                          Withdrawal    — Money paid out of account
+                          Transfer      — Move funds between accounts
+                          Fee           — Bank charges/fees
+                          Interest      — Interest earned
+                          ChequeDeposit — A cheque received and deposited
+                          ChequeIssue   — A cheque issued/written
+     Date             : Transaction date
+     Amount           : Transaction amount
+     Reference Number : Bank reference / transaction ID (optional)
+     Description      : What this transaction is for (required)
+     Cheque Number    : For cheque transactions (optional)
+     Payee            : Recipient or payer name (optional)
+4. Click "Save".
+
+TRANSACTION TABLE
+-----------------
+Each transaction row shows:
+  Date | Type | Description | Reference | Payee | Amount | Reconciled
+
+Deposits appear as positive (green) amounts.
+Withdrawals appear as negative (red) amounts.
+Reconciled transactions are marked "Yes".
+
+NOTE: Bank transactions should ideally be matched to Payments (Section 14) for
+proper double-entry accounting. Direct bank entries are for adjustments,
+charges, and opening balance entries.
+
+================================================================================
+10. CUSTOMERS
+================================================================================
+
+Path: Accounts > Customers
+
+PURPOSE
+-------
+Customers are the clients you invoice for construction work or services.
+Each customer links to an Accounts Receivable GL account and can have a
+credit limit and payment terms.
+
+ADDING A CUSTOMER
+------------------
+1. Click "Add Customer".
+2. Fill in the form:
+     Customer Code     : Unique short code (e.g., "CUST-001")
+     Name              : Full company or individual name
+     Contact Person    : Primary contact name (optional)
+     Phone             : Contact phone number (optional)
+     Email             : Contact email (optional)
+     Address           : Physical address (optional)
+     TIN               : Tax Identification Number (optional)
+     BIN               : Business Identification Number (optional)
+     Credit Limit      : Maximum outstanding balance allowed (e.g., 500,000)
+     Payment Terms     : Number of days for payment (default: 30)
+     Receivable Account: Select the AR GL account from Chart of Accounts
+                         (e.g., "1100 - Accounts Receivable")
+3. Click "Save".
+
+EDITING A CUSTOMER
+-------------------
+1. Click the pencil icon.
+2. Update any field. Toggle "Active" to deactivate without deleting.
+3. Inactive customers will not appear in invoice dropdowns.
+
+DELETING A CUSTOMER
+--------------------
+You cannot delete a customer with existing invoices or payments.
+Deactivate them using the Active toggle instead.
+
+================================================================================
+11. INVOICES (ACCOUNTS RECEIVABLE)
+================================================================================
+
+Path: Accounts > Invoices
+
+PURPOSE
+-------
+Invoices record amounts your clients owe you for completed work, services, or
+project milestones. When posted, they create journal entries that debit
+Accounts Receivable and credit Revenue accounts.
+
+INVOICE LIFECYCLE
+------------------
+  Draft → Sent → PartiallyPaid → Paid
+              ↘ Overdue
+              ↘ Void / Cancelled
+
+CREATING AN INVOICE
+--------------------
+1. Click "New Invoice".
+2. Fill in the invoice header:
+     Invoice Number  : Auto-generated or enter manually (e.g., "INV-2025-001")
+     Customer        : Select from your customer list
+     Fiscal Year     : Select the current fiscal year
+     Invoice Date    : Date the invoice is issued
+     Due Date        : Payment due date (Invoice Date + Payment Terms)
+     Cost Center     : Optional — link to a project or department
+     Notes           : Any special instructions or terms
+
+3. Add line items in the table:
+   For each line click "Add Line" and fill in:
+     Description     : What was delivered or completed
+     Quantity        : Number of units
+     Unit Price      : Price per unit
+     Discount %      : Any line discount (0 if none)
+     Tax Rate        : Select applicable tax (e.g., VAT 15%) or leave blank
+     Revenue Account : Select the revenue GL account (e.g., "4001 Project Revenue")
+
+   The system automatically calculates:
+     Line Total = (Quantity × Unit Price) − Discount + Tax
+
+4. Review the subtotal at the bottom.
+5. Click "Save" to save as Draft.
+
+POSTING AN INVOICE
+-------------------
+A Draft invoice is not yet in your books. To record it in the general ledger:
+1. Find the invoice in the list (status: Draft).
+2. Click the "Send" button (checkmark/send icon).
+3. The invoice status changes to "Sent".
+4. A journal entry is automatically created:
+     DR  Accounts Receivable   [invoice total]
+     CR  Revenue Account(s)    [line amounts]
+     CR  VAT Payable           [tax amounts]
+
+VOIDING AN INVOICE
+-------------------
+1. Find the invoice (status: Draft or Sent).
+2. Click the void icon (X button).
+3. Confirm the action.
+4. Status changes to "Void". If already posted, a reversing journal entry
+   is created automatically.
+   NOTE: Paid or PartiallyPaid invoices cannot be voided.
+
+VIEWING INVOICE LINES
+----------------------
+Click the expand arrow on any invoice row to see all line item details:
+Description | Qty | Unit Price | Disc% | Tax Amount | Line Total
+
+SEARCHING & FILTERING
+----------------------
+- Use the search bar to find invoices by invoice number or customer name.
+- Use the Status filter dropdown to show only: Draft / Sent / PartiallyPaid /
+  Paid / Overdue / Cancelled / Void invoices.
+
+================================================================================
+12. VENDORS
+================================================================================
+
+Path: Accounts > Vendors
+
+PURPOSE
+-------
+Vendors are suppliers from whom you purchase materials, equipment, or services.
+Each vendor links to an Accounts Payable GL account.
+
+ADDING A VENDOR
+----------------
+1. Click "Add Vendor".
+2. Fill in the form:
+     Vendor Code      : Unique short code (e.g., "VEND-001")
+     Name             : Full company or individual name
+     Contact Person   : Primary contact name (optional)
+     Phone            : Contact phone number (optional)
+     Email            : Contact email (optional)
+     Address          : Physical address (optional)
+     TIN              : Tax Identification Number (optional)
+     BIN              : Business Identification Number (optional)
+     Payment Terms    : Number of days for payment (default: 30)
+     Payable Account  : Select the AP GL account from Chart of Accounts
+                        (e.g., "2100 - Accounts Payable")
+3. Click "Save".
+
+EDITING A VENDOR
+-----------------
+1. Click the pencil icon.
+2. Update any field or toggle Active status.
+3. Inactive vendors will not appear in bill dropdowns.
+
+NOTE: Vendors created in the Procurement module are separate from Accounts
+vendors. If you use both modules, keep them in sync manually or ask your
+administrator to enable cross-module vendor sharing.
+
+================================================================================
+13. BILLS (ACCOUNTS PAYABLE)
+================================================================================
+
+Path: Accounts > Bills
+
+PURPOSE
+-------
+Bills record amounts your company owes to vendors for materials, services,
+or subcontract work. When approved, they create journal entries that debit
+Expense accounts and credit Accounts Payable.
+
+BILL LIFECYCLE
+--------------
+  Draft → Received → PartiallyPaid → Paid
+                  ↘ Overdue
+                  ↘ Void / Cancelled
+
+CREATING A BILL
+----------------
+1. Click "New Bill".
+2. Fill in the bill header:
+     Bill Number       : Your internal bill number (e.g., "BILL-2025-001")
+     Vendor Bill Number: The supplier's own invoice number (optional)
+     Vendor            : Select from your vendor list
+     Fiscal Year       : Select the current fiscal year
+     Bill Date         : Date you received the vendor's invoice
+     Due Date          : Payment due date
+     Cost Center       : Optional — link to a project or department
+     Notes             : Any notes or special instructions
+
+3. Add line items in the table:
+   For each line click "Add Line" and fill in:
+     Description     : What was purchased or delivered
+     Quantity        : Number of units
+     Unit Price      : Price per unit
+     Discount %      : Any line discount (0 if none)
+     Tax Rate        : Select applicable tax (e.g., VAT 15%) or leave blank
+     Expense Account : Select the expense GL account
+                       (e.g., "5001 - Material Cost", "6001 - Salaries")
+
+   The system automatically calculates:
+     Line Total = (Quantity × Unit Price) − Discount + Tax
+
+4. Click "Save" to save as Draft.
+
+APPROVING A BILL
+-----------------
+A Draft bill is not yet in your books. To record it:
+1. Find the bill in the list (status: Draft).
+2. Click the approve button (checkmark icon).
+3. The bill status changes to "Received".
+4. A journal entry is automatically created:
+     DR  Expense Account(s)    [line amounts]
+     DR  VAT Receivable/Input  [tax amounts]
+     CR  Accounts Payable      [bill total]
+
+VOIDING A BILL
+---------------
+1. Find the bill (status: Draft or Received).
+2. Click the void icon (X button).
+3. Confirm the action.
+4. Status changes to "Void". If already posted, a reversing journal entry
+   is created automatically.
+   NOTE: Paid or PartiallyPaid bills cannot be voided.
+
+VIEWING BILL LINES
+-------------------
+Click the expand arrow on any bill row to see all line item details.
+
+SEARCHING & FILTERING
+----------------------
+- Use the search bar to find bills by bill number or vendor name.
+- Use the Status filter to show specific bill statuses.
+
+================================================================================
+14. PAYMENTS
+================================================================================
+
+Path: Accounts > Payments
+
+PURPOSE
+-------
+Payments record actual money movements — receiving payment from a customer or
+paying a vendor. Payments can be allocated to specific invoices or bills to
+clear the outstanding balance.
+
+PAYMENT TYPES
+--------------
+  CustomerPayment      — Cash/bank received from a customer
+  VendorPayment        — Cash/bank paid to a vendor
+  AdvanceToVendor      — Advance payment before receiving a bill
+  AdvanceFromCustomer  — Advance received before issuing an invoice
+  Refund               — Money returned to a customer or from a vendor
+
+RECORDING A PAYMENT
+--------------------
+1. Click "Record Payment".
+2. Fill in the payment details:
+     Payment Number  : Auto-generated or enter manually (e.g., "PAY-2025-001")
+     Payment Date    : Date the payment was made or received
+     Payment Type    : Select the type (see above)
+     Payment Method  : Select how payment was made:
+                         Cash | BankTransfer | Cheque | CreditCard |
+                         DebitCard | MobileBanking | OnlineTransfer
+     Customer        : Required for CustomerPayment / AdvanceFromCustomer
+     Vendor          : Required for VendorPayment / AdvanceToVendor
+     Amount          : Total payment amount
+     Bank Account    : Select which bank account was used (optional)
+     Reference No.   : Bank reference, transfer ID, etc. (optional)
+     Cheque Number   : For cheque payments (optional)
+     Fiscal Year     : Select the active fiscal year
+     Notes           : Any additional notes
+
+3. ALLOCATING TO INVOICES / BILLS (optional but recommended):
+   After selecting a Customer or Vendor, a list of open invoices/bills
+   appears at the bottom.
+
+   For each invoice/bill you want to settle:
+   a. Click "Allocate" next to the invoice/bill.
+   b. Enter the amount to allocate (up to the invoice/bill balance).
+   c. The "Unallocated Amount" at the top reduces as you allocate.
+
+   A payment can be split across multiple invoices/bills.
+   Any unallocated amount remains as advance/credit on the account.
+
+4. Click "Save".
+
+WHAT HAPPENS WHEN YOU SAVE
+----------------------------
+A journal entry is automatically created. For a customer payment:
+     DR  Bank / Cash Account   [payment amount]
+     CR  Accounts Receivable   [allocated amount]
+     CR  Advance from Customer [unallocated amount, if any]
+
+For a vendor payment:
+     DR  Accounts Payable      [allocated amount]
+     DR  Advance to Vendor     [unallocated amount, if any]
+     CR  Bank / Cash Account   [payment amount]
+
+VIEWING ALLOCATIONS
+--------------------
+Click the expand arrow on any payment row to see the invoice/bill allocations:
+Invoice/Bill Number | Allocated Amount
+
+IMPACT ON INVOICE/BILL STATUS
+-------------------------------
+When a payment is fully allocated:
+  - Invoice moves from Sent → PartiallyPaid (if partial) or Paid (if full)
+  - Bill moves from Received → PartiallyPaid (if partial) or Paid (if full)
+
+================================================================================
+15. JOURNAL ENTRIES
+================================================================================
+
+Path: Accounts > Journal Entries
+
+PURPOSE
+-------
+Journal Entries are the foundation of double-entry accounting. Every financial
+transaction — whether from an invoice, bill, payment, or manual entry — is
+recorded as a journal entry. Each entry must balance: Total Debits = Total Credits.
+
+Most journal entries are created automatically when you post invoices, approve
+bills, or record payments. Manual journal entries are used for:
+  - Depreciation entries
+  - Accruals and provisions
+  - Opening balance entries
+  - Corrections and adjustments
+  - Month-end and year-end adjustments
+
+JOURNAL ENTRY LIFECYCLE
+------------------------
+  Draft → Posted
+        ↘ Cancelled
+
+CREATING A MANUAL JOURNAL ENTRY
+---------------------------------
+1. Click "New Entry".
+2. Fill in the header:
+     Entry Date       : Date the transaction occurred
+     Reference Number : Optional (e.g., "DEPR-MAY-2026")
+     Description      : Clear description of the transaction (required)
+
+3. Add journal lines (minimum 2 lines required):
+   Click "Add Line" for each line and fill in:
+     Account     : Select the GL account from Chart of Accounts
+     Description : Line-level note (optional)
+     Debit       : Enter a debit amount (leave 0 for credit lines)
+     Credit      : Enter a credit amount (leave 0 for debit lines)
+
+   IMPORTANT: Enter amounts in either Debit OR Credit — never both on the
+   same line. Each line is either fully debit or fully credit.
+
+4. The system shows running totals:
+     Total Debits  | Total Credits | Balance
+
+   The "Submit" button is disabled until Debits = Credits.
+
+5. Click "Save" to save as Draft.
+
+POSTING A JOURNAL ENTRY
+------------------------
+Posting finalises the entry and updates all GL account balances.
+1. Find the entry (status: Draft).
+2. Click the "Post" button (send icon).
+3. The entry status changes to "Posted".
+   NOTE: Posted entries cannot be edited. To correct a posted entry,
+   you must cancel it (which creates a reversal) and post a new corrected entry.
+
+CANCELLING A JOURNAL ENTRY
+----------------------------
+1. Find the Draft entry.
+2. Click the Cancel button (X icon).
+3. Status changes to "Cancelled".
+   NOTE: Posted entries require administrator intervention to cancel.
+
+VIEWING ENTRY LINES
+--------------------
+Click the expand arrow on any journal entry row to see all lines:
+Account Code & Name | Description | Debit | Credit
+
+EXAMPLE: MONTHLY DEPRECIATION ENTRY
+--------------------------------------
+  Entry Date   : 31 May 2026
+  Description  : Monthly depreciation — excavator & equipment
+  Reference    : DEPR-MAY-2026
+
+  Lines:
+    Account                        | Debit    | Credit
+    -------------------------------|----------|--------
+    Depreciation Expense (6010)    | 50,000   |
+    Accumulated Depreciation (1510)|          | 50,000
+
+================================================================================
+16. BUDGETS
+================================================================================
+
+Path: Accounts > Budgets
+
+PURPOSE
+-------
+Budgets define planned spending and income for a fiscal year. Once activated,
+actual figures from journal entries are compared to the budget, giving you
+variance analysis (over/under budget).
+
+BUDGET LIFECYCLE
+-----------------
+  Draft → Approved → Active → Closed
+        ↘ Cancelled
+
+CREATING A BUDGET
+------------------
+1. Click "New Budget".
+2. Fill in the budget header:
+     Budget Name  : e.g., "FY 2025-26 Operating Budget"
+     Fiscal Year  : Select the fiscal year this budget covers
+     Cost Center  : Optional — create a budget for a specific department
+                    or project
+     Description  : Optional notes
+
+3. Add budget lines:
+   Click "Add Line" for each account you want to budget, then fill in:
+     Account       : Select the GL account from Chart of Accounts
+     Period        : Choose:
+                       Annual   — One budget amount for the whole year
+                       Month 1  — January (or your year's first month)
+                       Month 2  — February
+                       ...
+                       Month 12 — December (or your year's last month)
+     Planned Amount: The budgeted amount for this account and period
+
+   You can add multiple lines for the same account across different periods
+   (monthly budgeting).
+
+4. The "Total Planned" at the bottom shows the sum of all budget lines.
+5. Click "Save" to save as Draft.
+
+APPROVING A BUDGET
+-------------------
+1. Find the budget (status: Draft).
+2. Click the Approve button (checkmark icon).
+3. Status changes to "Approved" → then "Active" when the fiscal year starts.
+
+EDITING A BUDGET
+-----------------
+Only Draft budgets can be edited. Click the pencil icon to open.
+
+DELETING A BUDGET
+------------------
+Only Draft budgets can be deleted. Active or Approved budgets cannot be deleted
+— cancel them instead.
+
+VIEWING VARIANCE ANALYSIS
+--------------------------
+Click the expand arrow on any budget row to see all budget lines with:
+  Account | Period | Planned Amount | Actual Amount | Variance
+
+Variance = Actual − Planned
+  Green (positive)  — Actual is less than planned (under budget for expenses,
+                       or more than planned for revenue) = favorable
+  Red (negative)    — Actual exceeds planned (over budget for expenses) = adverse
+
+================================================================================
+17. ACCOUNTS DASHBOARD
+================================================================================
+
+Path: Accounts > Dashboard (default landing page)
+
+PURPOSE
+-------
+The Accounts Dashboard provides a real-time financial overview without needing
+to navigate individual modules.
+
+DASHBOARD METRICS
+------------------
+  Active Bank Accounts  — Number of live bank accounts in the system
+  Open Invoices         — Count of unpaid/partially paid invoices
+  Unpaid Bills          — Count of bills not yet fully paid
+  Total Customers       — Number of registered customers
+  Total Vendors         — Number of registered vendors
+  Draft Budgets         — Budgets awaiting approval
+
+FINANCIAL SUMMARY PANEL
+------------------------
+  Receivables           — Total outstanding invoice balances (customers owe you)
+  Payables              — Total outstanding bill balances (you owe vendors)
+  Bank Balance          — Combined balance across all bank accounts
+  Overdue               — Count/amount of overdue invoices or bills
+
+RECENT ACTIVITY FEED
+---------------------
+Shows a chronological log of recent financial transactions (invoices posted,
+bills approved, payments recorded, etc.) with timestamps.
+
+QUICK LINKS
+-----------
+13 module shortcut tiles for fast navigation to any Accounts sub-section.
+
+================================================================================
+18. WORKFLOW SUMMARY
+================================================================================
+
+ACCOUNTS RECEIVABLE WORKFLOW (Getting paid by clients)
+--------------------------------------------------------
+  1. Add Customer  →  2. Create Invoice  →  3. Post Invoice
+  →  4. Record Payment (CustomerPayment, allocate to invoice)
+  →  Invoice status: Paid ✓
+
+ACCOUNTS PAYABLE WORKFLOW (Paying suppliers)
+---------------------------------------------
+  1. Add Vendor  →  2. Create Bill  →  3. Approve Bill
+  →  4. Record Payment (VendorPayment, allocate to bill)
+  →  Bill status: Paid ✓
+
+BANK RECONCILIATION WORKFLOW
+------------------------------
+  1. Record bank transactions (deposits, withdrawals, fees)
+  2. Match transactions to payments already recorded
+  3. Mark reconciled transactions
+  4. Bank balance should match GL bank account balance
+
+MONTH-END CLOSING WORKFLOW
+----------------------------
+  1. Ensure all invoices for the month are posted
+  2. Ensure all bills for the month are approved
+  3. Ensure all payments are recorded and allocated
+  4. Record manual journal entries (depreciation, accruals, prepayments)
+  5. Verify Trial Balance: Total Debits = Total Credits
+  6. Run budget variance review
+
+YEAR-END CLOSING WORKFLOW
+--------------------------
+  1. Complete all month-end tasks for the final month
+  2. Post closing journal entries (transfer P&L to retained earnings)
+  3. Set current fiscal year status to "Closed"
+  4. Create and activate the new fiscal year
+  5. Enter opening balances for the new year (if needed)
+
+================================================================================
+19. STATUS REFERENCE
+================================================================================
+
+INVOICE STATUSES
+-----------------
+  Draft          — Created, not yet posted to GL. Can be edited or deleted.
+  Sent           — Posted to GL. AR debited, Revenue credited.
+  PartiallyPaid  — One or more payments received but balance still outstanding.
+  Paid           — Fully settled. No balance due.
+  Overdue        — Due date passed, balance still outstanding.
+  Cancelled      — Voided before posting. No GL impact.
+  Void           — Reversed after posting. Reversing entry created in GL.
+
+BILL STATUSES
+--------------
+  Draft          — Created, not yet posted to GL. Can be edited or deleted.
+  Received       — Posted to GL. Expense debited, AP credited.
+  PartiallyPaid  — One or more payments made but balance still outstanding.
+  Paid           — Fully settled.
+  Overdue        — Due date passed, balance still outstanding.
+  Cancelled      — Voided before posting.
+  Void           — Reversed after posting.
+
+JOURNAL ENTRY STATUSES
+-----------------------
+  Draft          — Saved but not posted. Can be edited or cancelled.
+  Posted         — Finalised and recorded in GL. Cannot be edited.
+  Cancelled      — Reversed or discarded.
+
+BUDGET STATUSES
+----------------
+  Draft          — Being prepared. Can be edited or deleted.
+  Approved       — Authorised but year not yet started.
+  Active         — Current budget period. Variance tracking is live.
+  Closed         — Fiscal year ended. Historical reference only.
+  Cancelled      — Abandoned. No financial impact.
+
+FISCAL YEAR STATUSES
+---------------------
+  Pending        — Future year. Not yet active.
+  Active         — Current financial year. Transactions can be recorded.
+  Closed         — Past year. No new transactions allowed.
+
+================================================================================
+20. FREQUENTLY ASKED QUESTIONS
+================================================================================
+
+Q: Can I edit a posted journal entry?
+A: No. Once a journal entry is posted, it cannot be edited. To correct it,
+   cancel the entry (which creates a reversal) and post a new correct entry.
+   Cancellation of posted entries may require administrator permission.
+
+Q: Can I delete a customer or vendor with transactions?
+A: No. Customers and vendors with existing invoices, bills, or payments cannot
+   be deleted. Deactivate them using the Active toggle — they will be hidden
+   from dropdowns but their history is preserved.
+
+Q: What happens if I void a paid invoice?
+A: Paid or PartiallyPaid invoices cannot be voided. You must first reverse the
+   payment allocations before voiding the invoice. Contact your administrator.
+
+Q: How do I handle a customer advance (payment before invoice)?
+A: Record a payment with type "AdvanceFromCustomer". No invoice is needed.
+   When you later raise the invoice, record a CustomerPayment and allocate it
+   to the invoice. The advance balance will reduce.
+
+Q: Can I have multiple active fiscal years?
+A: No. Only one fiscal year can be "Current" at a time. However, you can have
+   a Pending (future) year and a Closed (past) year existing simultaneously.
+
+Q: Why is the Submit button greyed out in Journal Entries?
+A: The debit and credit totals are not equal. Double-entry accounting requires
+   that every entry is balanced. Review your line amounts until the balance
+   shows zero.
+
+Q: How do I record a bank charge or interest?
+A: Go to Bank Accounts > select the account > Add Transaction.
+   Use type "Fee" for bank charges and "Interest" for interest earned.
+   For proper double-entry, also create a matching journal entry:
+     Bank Charge: DR Bank Charges Expense | CR Cash at Bank
+     Interest:    DR Cash at Bank          | CR Interest Income
+
+Q: Can I budget by month?
+A: Yes. When adding budget lines, select "Month 1" through "Month 12" for the
+   Period field to set monthly targets per account. You can mix annual and
+   monthly lines in the same budget.
+
+Q: How do I track project-specific costs?
+A: Assign a Cost Center to your invoices, bills, and journal entries. Create
+   one Cost Center per project. Variance reports will then show actual vs.
+   planned figures per project.
+
+Q: What permissions do I need?
+A: Your administrator assigns permissions. The minimum for read-only access
+   is Accounts.View. To create and edit, you need Accounts.Create and
+   Accounts.Edit. To post journal entries, you need Accounts.PostJournal.
+
+--------------------------------------------------------------------------------
+END OF MANUAL
+--------------------------------------------------------------------------------
+For technical support, contact your system administrator.
+uOrgHub ERP — Civil Construction | Accounts Module | v1.0
+================================================================================
