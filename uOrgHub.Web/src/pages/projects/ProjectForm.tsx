@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { AxiosError } from "axios";
 import { createProject, updateProject, Project } from "../../api/projects";
 
 interface ProjectFormProps {
@@ -9,6 +10,7 @@ interface ProjectFormProps {
 
 export default function ProjectForm({ project, onClose }: ProjectFormProps) {
   const qc = useQueryClient();
+  const [error, setError] = useState("");
   const [form, setForm] = useState({
     projectName: "",
     clientId: "",
@@ -52,6 +54,14 @@ export default function ProjectForm({ project, onClose }: ProjectFormProps) {
       qc.invalidateQueries({ queryKey: ["projects"] });
       qc.invalidateQueries({ queryKey: ["projectDashboard"] });
       onClose();
+    },
+    onError: (err: Error) => {
+      const axiosErr = err as AxiosError<{ message?: string; errors?: string[] }>;
+      const msg = axiosErr.response?.data?.message
+        || axiosErr.response?.data?.errors?.[0]
+        || err.message
+        || "An error occurred while saving the project.";
+      setError(msg);
     },
   });
 
@@ -225,6 +235,12 @@ export default function ProjectForm({ project, onClose }: ProjectFormProps) {
           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
         />
       </div>
+
+      {error && (
+        <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          {error}
+        </div>
+      )}
 
       <div className="flex justify-end gap-2 pt-2">
         <button

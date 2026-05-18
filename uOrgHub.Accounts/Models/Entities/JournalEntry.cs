@@ -30,9 +30,6 @@ public class JournalEntry : BaseEntity
     public decimal TotalCredit { get; set; } = 0;
 
     [MaxLength(100)]
-    public new string CreatedBy { get; set; } = string.Empty;
-
-    [MaxLength(100)]
     public string? PostedBy { get; set; }
 
     public DateTime? PostedAt { get; set; }
