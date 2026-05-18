@@ -77,4 +77,20 @@ public class EmployeeRepository : IEmployeeRepository
 
     public async Task<bool> EmailExistsAsync(string email, Guid? excludeId = null)
         => await BaseQuery().AnyAsync(x => x.Email == email && (excludeId == null || x.Id != excludeId));
+
+    public async Task<string> GetNextEmployeeCodeAsync()
+    {
+        var maxCode = await _context.Set<Employee>()
+            .IgnoreQueryFilters()
+            .Where(x => x.EmployeeCode.StartsWith("EMP-"))
+            .MaxAsync(x => x.EmployeeCode);
+
+        if (maxCode is null) return "EMP-00001";
+
+        var parts = maxCode.Split('-');
+        if (parts.Length != 2 || !int.TryParse(parts[1], out var num))
+            return "EMP-00001";
+
+        return $"EMP-{(num + 1):D5}";
+    }
 }

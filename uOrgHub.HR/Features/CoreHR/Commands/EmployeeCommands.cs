@@ -20,7 +20,9 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
 
     public async Task<EmployeeResponseDto> Handle(CreateEmployeeCommand request, CancellationToken ct)
     {
-        if (await _repo.CodeExistsAsync(request.Dto.EmployeeCode))
+        if (string.IsNullOrWhiteSpace(request.Dto.EmployeeCode))
+            request.Dto.EmployeeCode = await _repo.GetNextEmployeeCodeAsync();
+        else if (await _repo.CodeExistsAsync(request.Dto.EmployeeCode))
             throw new AppException($"Employee code '{request.Dto.EmployeeCode}' already exists.");
 
         if (await _repo.EmailExistsAsync(request.Dto.Email))
