@@ -1,10 +1,8 @@
 namespace uOrgHub.Tests;
 
-public class UnitTest1
+// Tests are organized under HR/, Accounts/, and Shared/ folders.
+public class PlaceholderTest
 {
     [Fact]
-    public void Test1()
-    {
-
-    }
+    public void Test_suite_loads() { }
 }
