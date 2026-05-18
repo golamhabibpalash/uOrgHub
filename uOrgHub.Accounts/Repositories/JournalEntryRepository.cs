@@ -47,6 +47,9 @@ public class JournalEntryRepository : IJournalEntryRepository
     {
         _context.Set<JournalEntry>().Add(entity);
         await _context.SaveChangesAsync();
+        await _context.Entry(entity).Collection(x => x.Lines).LoadAsync();
+        foreach (var line in entity.Lines)
+            await _context.Entry(line).Reference(l => l.Account).LoadAsync();
         return entity;
     }
 

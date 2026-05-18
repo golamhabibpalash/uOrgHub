@@ -46,6 +46,9 @@ public class ChartOfAccountRepository : IChartOfAccountRepository
     {
         _context.Set<ChartOfAccount>().Add(entity);
         await _context.SaveChangesAsync();
+        await _context.Entry(entity).Reference(x => x.AccountGroup).LoadAsync();
+        if (entity.ParentAccountId.HasValue)
+            await _context.Entry(entity).Reference(x => x.ParentAccount).LoadAsync();
         return entity;
     }
 
