@@ -30,7 +30,7 @@ export default function Employees() {
     employeeCode: "",
     departmentId: "",
     designationId: "",
-    employmentType: "FullTime",
+    employmentType: "Permanent",
     basicSalary: 0,
     joiningDate: "",
   });
@@ -106,7 +106,7 @@ export default function Employees() {
       employeeCode: "",
       departmentId: "",
       designationId: "",
-      employmentType: "FullTime",
+    employmentType: "Permanent",
       basicSalary: 0,
       joiningDate: "",
     });
@@ -304,10 +304,9 @@ export default function Employees() {
                 value={form.employmentType}
                 onChange={(e) => setForm((f) => ({ ...f, employmentType: e.target.value }))}
               >
-                <option value="FullTime">Full Time</option>
-                <option value="PartTime">Part Time</option>
+                <option value="Permanent">Permanent</option>
                 <option value="Contract">Contract</option>
-                <option value="Intern">Intern</option>
+                <option value="Daily">Daily</option>
               </select>
             </div>
             <div>
