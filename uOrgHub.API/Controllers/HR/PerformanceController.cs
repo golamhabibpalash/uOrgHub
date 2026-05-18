@@ -9,6 +9,7 @@ using uOrgHub.Shared.Models;
 namespace uOrgHub.API.Controllers.HR;
 
 [Authorize]
+[Route("api/v1/performance")]
 public class PerformanceController : BaseController
 {
     private readonly IMediator _mediator;

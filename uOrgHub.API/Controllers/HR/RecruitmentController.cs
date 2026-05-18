@@ -10,6 +10,7 @@ using uOrgHub.Shared.Models;
 namespace uOrgHub.API.Controllers.HR;
 
 [Authorize]
+[Route("api/v1/recruitment")]
 public class RecruitmentController : BaseController
 {
     private readonly IMediator _mediator;
