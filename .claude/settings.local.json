@@ -19,7 +19,8 @@
       "Bash(curl -s http://localhost:5173)",
       "Bash(dotnet new *)",
       "Bash(dotnet sln *)",
-      "Bash(dotnet add *)"
+      "Bash(dotnet add *)",
+      "Bash(chmod +x *)"
     ]
   }
 }

@@ -1,0 +1,35 @@
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Copy project files for layer-cached restore
+COPY uOrgHub.API/uOrgHub.API.csproj             uOrgHub.API/
+COPY uOrgHub.Auth/uOrgHub.Auth.csproj           uOrgHub.Auth/
+COPY uOrgHub.HR/uOrgHub.HR.csproj               uOrgHub.HR/
+COPY uOrgHub.Accounts/uOrgHub.Accounts.csproj   uOrgHub.Accounts/
+COPY uOrgHub.Inventory/uOrgHub.Inventory.csproj uOrgHub.Inventory/
+COPY uOrgHub.Procurement/uOrgHub.Procurement.csproj uOrgHub.Procurement/
+COPY uOrgHub.Projects/uOrgHub.Projects.csproj   uOrgHub.Projects/
+COPY uOrgHub.Shared/uOrgHub.Shared.csproj       uOrgHub.Shared/
+COPY global.json ./
+
+RUN dotnet restore "uOrgHub.API/uOrgHub.API.csproj"
+
+COPY uOrgHub.API/       uOrgHub.API/
+COPY uOrgHub.Auth/      uOrgHub.Auth/
+COPY uOrgHub.HR/        uOrgHub.HR/
+COPY uOrgHub.Accounts/  uOrgHub.Accounts/
+COPY uOrgHub.Inventory/ uOrgHub.Inventory/
+COPY uOrgHub.Procurement/ uOrgHub.Procurement/
+COPY uOrgHub.Projects/  uOrgHub.Projects/
+COPY uOrgHub.Shared/    uOrgHub.Shared/
+
+RUN dotnet publish "uOrgHub.API/uOrgHub.API.csproj" \
+    -c Release -o /app/publish --no-restore \
+    /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+WORKDIR /app
+EXPOSE 8080
+ENV ASPNETCORE_URLS=http://+:8080
+COPY --from=build /app/publish .
+ENTRYPOINT ["dotnet", "uOrgHub.API.dll"]

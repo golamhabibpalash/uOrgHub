@@ -74,8 +74,10 @@ out/
 # Environment
 appsettings.*.json
 !appsettings.json
+!appsettings.Production.json
 .env
 .env.*
+!.env.example
 appsettings.Development.json
 
 # Claude

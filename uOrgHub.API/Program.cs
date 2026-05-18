@@ -87,11 +87,17 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
-        policy
-        .SetIsOriginAllowed(origin => new Uri(origin).Host == "localhost")
-        .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials());
+    {
+        var configured = builder.Configuration["AllowedOrigins"]?
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            ?? [];
+
+        if (configured.Length > 0)
+            policy.WithOrigins(configured).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+        else
+            policy.SetIsOriginAllowed(o => new Uri(o).Host == "localhost")
+                  .AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+    });
 });
 
 var app = builder.Build();

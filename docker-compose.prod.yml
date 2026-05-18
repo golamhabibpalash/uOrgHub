@@ -1,0 +1,71 @@
+version: "3.8"
+
+services:
+
+  uorghub-db:
+    image: postgres:16-alpine
+    container_name: uorghub-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-orgHub}
+    volumes:
+      - uorghub-db-data:/var/lib/postgresql/data
+    networks:
+      - uorghub-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-orgHub}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  uorghub-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    image: uorghub-api:latest
+    container_name: uorghub-api
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: >-
+        Host=uorghub-db;Port=5432;
+        Database=${DB_NAME:-orgHub};
+        Username=${DB_USER:-postgres};
+        Password=${DB_PASSWORD}
+      JwtSettings__SecretKey: ${JWT_SECRET}
+      JwtSettings__Issuer: uOrgHub
+      JwtSettings__Audience: uOrgHub-clients
+      AllowedOrigins: ${ALLOWED_ORIGINS:-https://uorghub.unitymicrofund.com}
+    ports:
+      - "127.0.0.1:5177:8080"
+    depends_on:
+      uorghub-db:
+        condition: service_healthy
+    networks:
+      - uorghub-net
+
+  uorghub-web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        VITE_API_URL: ${VITE_API_URL:-https://uorghub.unitymicrofund.com/api/v1}
+    image: uorghub-web:latest
+    container_name: uorghub-web
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3001:80"
+    depends_on:
+      - uorghub-api
+    networks:
+      - uorghub-net
+
+networks:
+  uorghub-net:
+    driver: bridge
+
+volumes:
+  uorghub-db-data:
+    driver: local
