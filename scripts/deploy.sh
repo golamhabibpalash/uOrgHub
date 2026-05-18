@@ -97,14 +97,14 @@ else
     echo ""
 
     while true; do
-        read -rsp "  Database password: " DB_PASSWORD; echo
-        read -rsp "  Confirm password : " DB_CONFIRM; echo
+        read -rsp "  Database password: " DB_PASSWORD < /dev/tty; echo
+        read -rsp "  Confirm password : " DB_CONFIRM  < /dev/tty; echo
         [[ "$DB_PASSWORD" == "$DB_CONFIRM" ]] && break
         warn "Passwords do not match. Try again."
     done
 
     while true; do
-        read -rsp "  JWT secret key (min 32 chars): " JWT_SECRET; echo
+        read -rsp "  JWT secret key (min 32 chars): " JWT_SECRET < /dev/tty; echo
         [[ ${#JWT_SECRET} -ge 32 ]] && break
         warn "JWT secret must be at least 32 characters."
     done
