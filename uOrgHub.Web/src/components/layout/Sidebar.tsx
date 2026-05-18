@@ -39,12 +39,6 @@ import {
   LayoutDashboard,
   ShieldCheck,
   ScrollText,
-  Folder,
-  AlertTriangle,
-  ClipboardCheck,
-  BarChart2,
-  ShieldAlert,
-  Banknote,
 } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 

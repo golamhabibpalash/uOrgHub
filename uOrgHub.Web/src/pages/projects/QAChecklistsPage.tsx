@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, ArrowLeft, Pencil, Trash2, ClipboardCheck } from "lucide-react";
+import { Plus, ArrowLeft, Trash2, ClipboardCheck } from "lucide-react";
 import Modal from "../../components/shared/Modal";
 import ProjectNav from "../../components/projects/ProjectNav";
 import {
@@ -10,7 +10,6 @@ import {
   submitQAChecklist,
   deleteQAChecklist,
   QAChecklist,
-  QAChecklistItem,
 } from "../../api/projects";
 
 const STATUSES = ["Draft", "Open", "InProgress", "Passed", "Failed", "Waived"];
