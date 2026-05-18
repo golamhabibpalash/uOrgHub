@@ -59,10 +59,13 @@ export default function Employees() {
     : allDesignations;
 
   const saveMutation = useMutation({
-    mutationFn: () =>
-      editing
-        ? updateEmployee(editing.id, form)
-        : createEmployee(form),
+    mutationFn: () => {
+      const body = { ...form };
+      if (!body.joiningDate) delete (body as any).joiningDate;
+      return editing
+        ? updateEmployee(editing.id, body)
+        : createEmployee(body);
+    },
     onSuccess: () => {
       closeModal();
       qc.invalidateQueries({ queryKey: ["employees"] });
