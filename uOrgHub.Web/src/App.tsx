@@ -63,6 +63,14 @@ import MaterialRequestPage from "./pages/projects/MaterialRequestPage";
 import ExpensePage from "./pages/projects/ExpensePage";
 import ClientsPage from "./pages/projects/ClientsPage";
 import MilestonePage from "./pages/projects/MilestonePage";
+import DrawingsPage from "./pages/projects/DrawingsPage";
+import RFIsPage from "./pages/projects/RFIsPage";
+import SubmittalsPage from "./pages/projects/SubmittalsPage";
+import ResourceAllocationsPage from "./pages/projects/ResourceAllocationsPage";
+import QAChecklistsPage from "./pages/projects/QAChecklistsPage";
+import NCRsPage from "./pages/projects/NCRsPage";
+import SafetyIncidentsPage from "./pages/projects/SafetyIncidentsPage";
+import RABillsPage from "./pages/projects/RABillsPage";
 import { getCompanyStatus } from "./api/company";
 
 function Placeholder({ name }: { name: string }) {
@@ -170,6 +178,14 @@ export default function App() {
           <Route path="projects/:id/materials" element={<MaterialRequestPage />} />
           <Route path="projects/:id/expenses" element={<ExpensePage />} />
           <Route path="projects/:id/milestones" element={<MilestonePage />} />
+          <Route path="projects/:id/drawings" element={<DrawingsPage />} />
+          <Route path="projects/:id/rfis" element={<RFIsPage />} />
+          <Route path="projects/:id/submittals" element={<SubmittalsPage />} />
+          <Route path="projects/:id/resource-allocations" element={<ResourceAllocationsPage />} />
+          <Route path="projects/:id/qa-checklists" element={<QAChecklistsPage />} />
+          <Route path="projects/:id/ncrs" element={<NCRsPage />} />
+          <Route path="projects/:id/safety-incidents" element={<SafetyIncidentsPage />} />
+          <Route path="projects/:id/ra-bills" element={<RABillsPage />} />
           <Route path="settings/*" element={<Placeholder name="Settings" />} />
           <Route path="profile" element={<MyProfilePage />} />
           <Route path="admin/users" element={<ProtectedRoute requiredClaim="Users.View"><UsersPage /></ProtectedRoute>} />

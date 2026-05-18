@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, ArrowLeft } from "lucide-react";
 import Modal from "../../components/shared/Modal";
+import ProjectNav from "../../components/projects/ProjectNav";
 import {
   getMaterialRequests,
   getMaterialRequestItems,
@@ -138,6 +139,8 @@ export default function MaterialRequestPage() {
           <ArrowLeft size={16} /> Back to Project
         </Link>
       </div>
+
+      <ProjectNav />
 
       <div className="flex items-center justify-between mb-4">
         <div>

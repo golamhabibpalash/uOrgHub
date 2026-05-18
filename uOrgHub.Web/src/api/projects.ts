@@ -375,3 +375,357 @@ export const updateClient = (id: string, data: Partial<Client>) =>
 
 export const deleteClient = (id: string) =>
   apiClient.delete<ApiResponse<null>>(`/clients/${id}`);
+
+// ─── Civil Engineering Interfaces ────────────────────────────────────────────
+
+export interface Drawing {
+  id: string;
+  projectId: string;
+  drawingNumber: string;
+  title: string;
+  revision: string;
+  discipline: string;
+  status: string;
+  drawnById?: string;
+  drawnByName?: string;
+  checkedById?: string;
+  checkedByName?: string;
+  approvedById?: string;
+  approvedByName?: string;
+  issuedDate?: string;
+  filePath?: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface RFI {
+  id: string;
+  projectId: string;
+  rfiNumber: string;
+  subject: string;
+  description: string;
+  status: string;
+  raisedById: string;
+  raisedByName: string;
+  raisedDate: string;
+  assignedToId?: string;
+  assignedToName?: string;
+  responseDueDate?: string;
+  responseDate?: string;
+  response?: string;
+  isUrgent: boolean;
+  createdAt: string;
+}
+
+export interface Submittal {
+  id: string;
+  projectId: string;
+  submittalNumber: string;
+  title: string;
+  status: string;
+  contractorReference?: string;
+  submittedById: string;
+  submittedByName: string;
+  submittedDate: string;
+  reviewedById?: string;
+  reviewedByName?: string;
+  reviewDate?: string;
+  reviewComments?: string;
+  filePath?: string;
+  createdAt: string;
+}
+
+export interface ResourceAllocation {
+  id: string;
+  projectId: string;
+  resourceType: string;
+  description: string;
+  status: string;
+  employeeId?: string;
+  employeeName?: string;
+  equipmentCode?: string;
+  unitOfMeasure?: string;
+  plannedStartDate: string;
+  plannedEndDate: string;
+  actualStartDate?: string;
+  actualEndDate?: string;
+  plannedQuantity: number;
+  actualQuantity?: number;
+  unitCost: number;
+  plannedCost: number;
+  actualCost?: number;
+  createdAt: string;
+}
+
+export interface QAChecklistItem {
+  id: string;
+  checklistId: string;
+  sequence: number;
+  checkpointDescription: string;
+  inspectionType: string;
+  result?: string;
+  remarks?: string;
+  isRequired: boolean;
+}
+
+export interface QAChecklist {
+  id: string;
+  projectId: string;
+  checklistNumber: string;
+  title: string;
+  status: string;
+  inspectionDate?: string;
+  location?: string;
+  inspectedById?: string;
+  inspectedByName?: string;
+  approvedById?: string;
+  approvedByName?: string;
+  overallResult?: string;
+  remarks?: string;
+  items: QAChecklistItem[];
+  createdAt: string;
+}
+
+export interface NCR {
+  id: string;
+  projectId: string;
+  ncrNumber: string;
+  title: string;
+  description: string;
+  category: string;
+  severity: string;
+  status: string;
+  raisedById: string;
+  raisedByName: string;
+  raisedDate: string;
+  responsibleParty?: string;
+  correctiveAction?: string;
+  verifiedById?: string;
+  verifiedByName?: string;
+  verifiedDate?: string;
+  closedDate?: string;
+  createdAt: string;
+}
+
+export interface SafetyIncident {
+  id: string;
+  projectId: string;
+  incidentNumber: string;
+  incidentDate: string;
+  severity: string;
+  status: string;
+  location: string;
+  description: string;
+  injuredPersonName?: string;
+  injuryType?: string;
+  rootCause?: string;
+  correctiveAction?: string;
+  preventiveAction?: string;
+  investigatedById?: string;
+  investigatedByName?: string;
+  investigationDate?: string;
+  closedDate?: string;
+  createdAt: string;
+}
+
+export interface RABillItem {
+  id: string;
+  raBillId: string;
+  boqItemId?: string;
+  boqItemDescription?: string;
+  uom: string;
+  previousQuantity: number;
+  currentQuantity: number;
+  totalQuantity: number;
+  rate: number;
+  amount: number;
+}
+
+export interface RABill {
+  id: string;
+  projectId: string;
+  billNumber: string;
+  billSequence: number;
+  billDate: string;
+  status: string;
+  grossAmount: number;
+  deductionAmount: number;
+  retentionPercent: number;
+  retentionAmount: number;
+  netAmount: number;
+  previousBilledAmount: number;
+  cumulativeBilledAmount: number;
+  certifiedById?: string;
+  certifiedByName?: string;
+  certifiedDate?: string;
+  certificationNotes?: string;
+  paidDate?: string;
+  items: RABillItem[];
+  createdAt: string;
+}
+
+// ─── Drawings ────────────────────────────────────────────────────────────────
+
+export const getDrawings = (params: PaginationRequest, projectId?: string, discipline?: string, status?: string) =>
+  apiClient.get<ApiResponse<PagedResult<Drawing>>>("/drawings", { params: { ...params, projectId, discipline, status } });
+
+export const getDrawingById = (id: string) =>
+  apiClient.get<ApiResponse<Drawing>>(`/drawings/${id}`);
+
+export const createDrawing = (data: Partial<Drawing>) =>
+  apiClient.post<ApiResponse<Drawing>>("/drawings", data);
+
+export const updateDrawing = (id: string, data: Partial<Drawing>) =>
+  apiClient.put<ApiResponse<Drawing>>(`/drawings/${id}`, data);
+
+export const deleteDrawing = (id: string) =>
+  apiClient.delete<ApiResponse<null>>(`/drawings/${id}`);
+
+// ─── RFIs ─────────────────────────────────────────────────────────────────────
+
+export const getRFIs = (params: PaginationRequest, projectId?: string, status?: string) =>
+  apiClient.get<ApiResponse<PagedResult<RFI>>>("/rfis", { params: { ...params, projectId, status } });
+
+export const getRFIById = (id: string) =>
+  apiClient.get<ApiResponse<RFI>>(`/rfis/${id}`);
+
+export const createRFI = (data: Partial<RFI>) =>
+  apiClient.post<ApiResponse<RFI>>("/rfis", data);
+
+export const updateRFI = (id: string, data: Partial<RFI>) =>
+  apiClient.put<ApiResponse<RFI>>(`/rfis/${id}`, data);
+
+export const respondRFI = (id: string, data: { response: string; responseDate: string }) =>
+  apiClient.post<ApiResponse<RFI>>(`/rfis/${id}/respond`, data);
+
+export const closeRFI = (id: string) =>
+  apiClient.post<ApiResponse<RFI>>(`/rfis/${id}/close`, {});
+
+export const deleteRFI = (id: string) =>
+  apiClient.delete<ApiResponse<null>>(`/rfis/${id}`);
+
+// ─── Submittals ───────────────────────────────────────────────────────────────
+
+export const getSubmittals = (params: PaginationRequest, projectId?: string, status?: string) =>
+  apiClient.get<ApiResponse<PagedResult<Submittal>>>("/submittals", { params: { ...params, projectId, status } });
+
+export const getSubmittalById = (id: string) =>
+  apiClient.get<ApiResponse<Submittal>>(`/submittals/${id}`);
+
+export const createSubmittal = (data: Partial<Submittal>) =>
+  apiClient.post<ApiResponse<Submittal>>("/submittals", data);
+
+export const updateSubmittal = (id: string, data: Partial<Submittal>) =>
+  apiClient.put<ApiResponse<Submittal>>(`/submittals/${id}`, data);
+
+export const reviewSubmittal = (id: string, data: { status: string; reviewComments: string; reviewDate: string }) =>
+  apiClient.post<ApiResponse<Submittal>>(`/submittals/${id}/review`, data);
+
+export const deleteSubmittal = (id: string) =>
+  apiClient.delete<ApiResponse<null>>(`/submittals/${id}`);
+
+// ─── Resource Allocations ─────────────────────────────────────────────────────
+
+export const getResourceAllocations = (params: PaginationRequest, projectId?: string, resourceType?: string, status?: string) =>
+  apiClient.get<ApiResponse<PagedResult<ResourceAllocation>>>("/resourceallocations", { params: { ...params, projectId, resourceType, status } });
+
+export const getResourceAllocationById = (id: string) =>
+  apiClient.get<ApiResponse<ResourceAllocation>>(`/resourceallocations/${id}`);
+
+export const createResourceAllocation = (data: Partial<ResourceAllocation>) =>
+  apiClient.post<ApiResponse<ResourceAllocation>>("/resourceallocations", data);
+
+export const updateResourceAllocation = (id: string, data: Partial<ResourceAllocation>) =>
+  apiClient.put<ApiResponse<ResourceAllocation>>(`/resourceallocations/${id}`, data);
+
+export const deleteResourceAllocation = (id: string) =>
+  apiClient.delete<ApiResponse<null>>(`/resourceallocations/${id}`);
+
+// ─── QA Checklists ────────────────────────────────────────────────────────────
+
+export const getQAChecklists = (params: PaginationRequest, projectId?: string, status?: string) =>
+  apiClient.get<ApiResponse<PagedResult<QAChecklist>>>("/qachecklists", { params: { ...params, projectId, status } });
+
+export const getQAChecklistById = (id: string) =>
+  apiClient.get<ApiResponse<QAChecklist>>(`/qachecklists/${id}`);
+
+export const createQAChecklist = (data: object) =>
+  apiClient.post<ApiResponse<QAChecklist>>("/qachecklists", data);
+
+export const updateQAChecklist = (id: string, data: Partial<QAChecklist>) =>
+  apiClient.put<ApiResponse<QAChecklist>>(`/qachecklists/${id}`, data);
+
+export const submitQAChecklist = (id: string, data: object) =>
+  apiClient.post<ApiResponse<QAChecklist>>(`/qachecklists/${id}/submit`, data);
+
+export const deleteQAChecklist = (id: string) =>
+  apiClient.delete<ApiResponse<null>>(`/qachecklists/${id}`);
+
+// ─── NCRs ─────────────────────────────────────────────────────────────────────
+
+export const getNCRs = (params: PaginationRequest, projectId?: string, status?: string, severity?: string) =>
+  apiClient.get<ApiResponse<PagedResult<NCR>>>("/ncrs", { params: { ...params, projectId, status, severity } });
+
+export const getNCRById = (id: string) =>
+  apiClient.get<ApiResponse<NCR>>(`/ncrs/${id}`);
+
+export const createNCR = (data: Partial<NCR>) =>
+  apiClient.post<ApiResponse<NCR>>("/ncrs", data);
+
+export const updateNCR = (id: string, data: Partial<NCR>) =>
+  apiClient.put<ApiResponse<NCR>>(`/ncrs/${id}`, data);
+
+export const verifyNCR = (id: string, data: { verifiedDate: string; notes?: string }) =>
+  apiClient.post<ApiResponse<NCR>>(`/ncrs/${id}/verify`, data);
+
+export const closeNCR = (id: string) =>
+  apiClient.post<ApiResponse<NCR>>(`/ncrs/${id}/close`, {});
+
+export const voidNCR = (id: string) =>
+  apiClient.post<ApiResponse<NCR>>(`/ncrs/${id}/void`, {});
+
+export const deleteNCR = (id: string) =>
+  apiClient.delete<ApiResponse<null>>(`/ncrs/${id}`);
+
+// ─── Safety Incidents ─────────────────────────────────────────────────────────
+
+export const getSafetyIncidents = (params: PaginationRequest, projectId?: string, severity?: string, status?: string) =>
+  apiClient.get<ApiResponse<PagedResult<SafetyIncident>>>("/safetyincidents", { params: { ...params, projectId, severity, status } });
+
+export const getSafetyIncidentById = (id: string) =>
+  apiClient.get<ApiResponse<SafetyIncident>>(`/safetyincidents/${id}`);
+
+export const createSafetyIncident = (data: Partial<SafetyIncident>) =>
+  apiClient.post<ApiResponse<SafetyIncident>>("/safetyincidents", data);
+
+export const updateSafetyIncident = (id: string, data: Partial<SafetyIncident>) =>
+  apiClient.put<ApiResponse<SafetyIncident>>(`/safetyincidents/${id}`, data);
+
+export const deleteSafetyIncident = (id: string) =>
+  apiClient.delete<ApiResponse<null>>(`/safetyincidents/${id}`);
+
+// ─── RA Bills ─────────────────────────────────────────────────────────────────
+
+export const getRABills = (params: PaginationRequest, projectId?: string, status?: string) =>
+  apiClient.get<ApiResponse<PagedResult<RABill>>>("/rabills", { params: { ...params, projectId, status } });
+
+export const getRABillById = (id: string) =>
+  apiClient.get<ApiResponse<RABill>>(`/rabills/${id}`);
+
+export const createRABill = (data: object) =>
+  apiClient.post<ApiResponse<RABill>>("/rabills", data);
+
+export const updateRABill = (id: string, data: Partial<RABill>) =>
+  apiClient.put<ApiResponse<RABill>>(`/rabills/${id}`, data);
+
+export const submitRABill = (id: string) =>
+  apiClient.post<ApiResponse<RABill>>(`/rabills/${id}/submit`, {});
+
+export const certifyRABill = (id: string, data: { certifiedAmount: number; certificationNotes?: string }) =>
+  apiClient.post<ApiResponse<RABill>>(`/rabills/${id}/certify`, data);
+
+export const markRABillPaid = (id: string) =>
+  apiClient.post<ApiResponse<RABill>>(`/rabills/${id}/mark-paid`, {});
+
+export const deleteRABill = (id: string) =>
+  apiClient.delete<ApiResponse<null>>(`/rabills/${id}`);

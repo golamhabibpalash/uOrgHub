@@ -94,6 +94,14 @@ export default function ProjectDetail() {
     { label: "Materials", path: `/projects/${id}/materials`, icon: Package },
     { label: "Expenses", path: `/projects/${id}/expenses`, icon: Receipt },
     { label: "Milestones", path: `/projects/${id}/milestones`, icon: TrendingUp },
+    { label: "Drawings", path: `/projects/${id}/drawings`, icon: FileText },
+    { label: "RFIs", path: `/projects/${id}/rfis`, icon: FileText },
+    { label: "Submittals", path: `/projects/${id}/submittals`, icon: Package },
+    { label: "Resources", path: `/projects/${id}/resource-allocations`, icon: Package },
+    { label: "QA Checklists", path: `/projects/${id}/qa-checklists`, icon: Receipt },
+    { label: "NCRs", path: `/projects/${id}/ncrs`, icon: FileText },
+    { label: "Safety", path: `/projects/${id}/safety-incidents`, icon: Receipt },
+    { label: "RA Bills", path: `/projects/${id}/ra-bills`, icon: TrendingUp },
   ];
 
   return (
