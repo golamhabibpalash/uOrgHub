@@ -41,4 +41,12 @@ public class Project : BaseEntity
     public ICollection<DailyProgressReport> DPRs { get; set; } = new List<DailyProgressReport>();
     public ICollection<ProjectMaterialRequest> MaterialRequests { get; set; } = new List<ProjectMaterialRequest>();
     public ICollection<ProjectExpense> Expenses { get; set; } = new List<ProjectExpense>();
+    public ICollection<ProjectDrawing> Drawings { get; set; } = new List<ProjectDrawing>();
+    public ICollection<ProjectRFI> RFIs { get; set; } = new List<ProjectRFI>();
+    public ICollection<ProjectSubmittal> Submittals { get; set; } = new List<ProjectSubmittal>();
+    public ICollection<SiteResourceAllocation> ResourceAllocations { get; set; } = new List<SiteResourceAllocation>();
+    public ICollection<QAChecklist> QAChecklists { get; set; } = new List<QAChecklist>();
+    public ICollection<NonConformanceReport> NCRs { get; set; } = new List<NonConformanceReport>();
+    public ICollection<SafetyIncident> SafetyIncidents { get; set; } = new List<SafetyIncident>();
+    public ICollection<RABill> RABills { get; set; } = new List<RABill>();
 }
