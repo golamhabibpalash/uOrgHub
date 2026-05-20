@@ -196,7 +196,7 @@ export default function Sidebar() {
   );
 
   const toggleModule = useCallback(
-    (label: string, subItems: { path: string }[]) => {
+    (label: string) => {
       setToggleParity((prev) => {
         const next: Record<string, number> = { ...prev };
         next[label] = (prev[label] ?? 0) + 1;
@@ -263,7 +263,7 @@ export default function Sidebar() {
             {subItems ? (
               <div>
                 <button
-                  onClick={() => toggleModule(label, subItems)}
+                  onClick={() => toggleModule(label)}
                   className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors cursor-pointer text-left ${
                     isCollapsed ? "justify-center" : ""
                   } ${
