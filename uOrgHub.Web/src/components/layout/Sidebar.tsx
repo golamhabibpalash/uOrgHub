@@ -134,6 +134,20 @@ interface PersistedState {
   toggleParity: Record<string, number>;
 }
 
+function loadPersisted(): PersistedState {
+  try {
+    const raw = localStorage.getItem(SIDEBAR_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return {
+        isCollapsed: !!parsed.isCollapsed,
+        toggleParity: typeof parsed.toggleParity === "object" && parsed.toggleParity !== null ? parsed.toggleParity : {},
+      };
+    }
+  } catch { /* ignore */ }
+  return { isCollapsed: false, toggleParity: {} };
+}
+
 export default function Sidebar() {
   const location = useLocation();
   const authUser = useAuthStore((s) => s.user);
@@ -149,15 +163,6 @@ export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(() => loadPersisted().isCollapsed);
   const [toggleParity, setToggleParity] = useState<Record<string, number>>(() => loadPersisted().toggleParity);
   const prevPathRef = useRef(location.pathname);
-
-  function loadPersisted(): PersistedState {
-    if (!defaultPolicy.persistState) return { isCollapsed: false, toggleParity: {} };
-    try {
-      const raw = localStorage.getItem(SIDEBAR_KEY);
-      if (raw) return JSON.parse(raw);
-    } catch { /* ignore */ }
-    return { isCollapsed: false, toggleParity: {} };
-  }
 
   useEffect(() => {
     if (policy.persistState) {
