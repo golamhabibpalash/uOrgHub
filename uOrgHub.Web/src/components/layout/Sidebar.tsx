@@ -135,11 +135,19 @@ export default function Sidebar() {
     }
   });
 
+  const [manuallyExpanded, setManuallyExpanded] = useState<Record<string, boolean>>({});
+
   useEffect(() => {
     localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(isCollapsed));
   }, [isCollapsed]);
 
   const toggleCollapse = () => setIsCollapsed((prev) => !prev);
+
+  const toggleModule = (label: string) =>
+    setManuallyExpanded((prev) => ({ ...prev, [label]: !prev[label] }));
+
+  const isOpen = (label: string, subItems: { path: string }[]) =>
+    isModuleExpanded(subItems) || manuallyExpanded[label];
 
   return (
     <aside
@@ -186,9 +194,12 @@ export default function Sidebar() {
             {subItems ? (
               <div>
                 <div
-                  className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-400 cursor-pointer hover:text-slate-200 hover:bg-white/5 ${
+                  onClick={() => toggleModule(label)}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors cursor-pointer ${
                     isCollapsed ? "justify-center" : ""
-                  }`}
+                  } ${
+                    isOpen(label, subItems) ? "text-slate-200" : "text-slate-400"
+                  } hover:text-slate-200 hover:bg-white/5`}
                 >
                   {isCollapsed ? (
                     <div className="relative">
@@ -204,13 +215,13 @@ export default function Sidebar() {
                       <ChevronDown
                         size={14}
                         className={`transition-transform ${
-                          isModuleExpanded(subItems) ? "rotate-180" : ""
+                          isOpen(label, subItems) ? "rotate-180" : ""
                         }`}
                       />
                     </>
                   )}
                 </div>
-                {isModuleExpanded(subItems) && !isCollapsed && (
+                {isOpen(label, subItems) && !isCollapsed && (
                   <div className="overflow-hidden transition-all">
                     {subItems.map(({ label: subLabel, path: subPath, icon: SubIcon }) => (
                       <NavLink
