@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   Users,
   Receipt,
@@ -108,30 +108,17 @@ const navItems = [
   { label: "Projects", path: "/projects", icon: HardHat, subItems: projectsSubItems },
 ];
 
-const STORAGE_KEY = "uorghub-sidebar-state";
-
-interface SidebarState {
-  isCollapsed: boolean;
-  expandedModules: Record<string, boolean>;
-}
-
-function getStoredState(): SidebarState {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch (e) {
-    console.error("Failed to parse sidebar state:", e);
-  }
-  return { isCollapsed: false, expandedModules: { "HR & Payroll": true } };
-}
-
-function storeState(state: SidebarState) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-}
+const SIDEBAR_COLLAPSED_KEY = "uorghub-sidebar-collapsed";
 
 export default function Sidebar() {
+  const location = useLocation();
+  const isModuleExpanded = (subItems: { path: string }[]) =>
+    subItems.some(
+      (item) =>
+        location.pathname === item.path ||
+        location.pathname.startsWith(item.path + "/")
+    );
+
   const authUser = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const hasClaim = useAuthStore((s) => s.hasClaim);
@@ -140,27 +127,19 @@ export default function Sidebar() {
   const initials = displayName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
   const roleLabel = authUser?.roles?.[0] ?? "User";
   const canManageUsers = hasClaim("Users.View") || hasRole("Admin");
-  const [state, setState] = useState<SidebarState>(getStoredState);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
 
   useEffect(() => {
-    storeState(state);
-  }, [state]);
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(isCollapsed));
+  }, [isCollapsed]);
 
-  const toggleCollapse = () => {
-    setState((prev) => ({ ...prev, isCollapsed: !prev.isCollapsed }));
-  };
-
-  const toggleModule = (label: string) => {
-    setState((prev) => ({
-      ...prev,
-      expandedModules: {
-        ...prev.expandedModules,
-        [label]: !prev.expandedModules[label],
-      },
-    }));
-  };
-
-  const { isCollapsed, expandedModules } = state;
+  const toggleCollapse = () => setIsCollapsed((prev) => !prev);
 
   return (
     <aside
@@ -207,7 +186,6 @@ export default function Sidebar() {
             {subItems ? (
               <div>
                 <div
-                  onClick={() => toggleModule(label)}
                   className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-400 cursor-pointer hover:text-slate-200 hover:bg-white/5 ${
                     isCollapsed ? "justify-center" : ""
                   }`}
@@ -226,13 +204,13 @@ export default function Sidebar() {
                       <ChevronDown
                         size={14}
                         className={`transition-transform ${
-                          expandedModules[label] ? "rotate-180" : ""
+                          isModuleExpanded(subItems) ? "rotate-180" : ""
                         }`}
                       />
                     </>
                   )}
                 </div>
-                {expandedModules[label] && !isCollapsed && (
+                {isModuleExpanded(subItems) && !isCollapsed && (
                   <div className="overflow-hidden transition-all">
                     {subItems.map(({ label: subLabel, path: subPath, icon: SubIcon }) => (
                       <NavLink
