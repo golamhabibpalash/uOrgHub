@@ -228,8 +228,8 @@ export default function Sidebar() {
       <div className={`px-4 py-5 border-b border-white/10 ${isCollapsed ? "flex justify-center" : ""}`}>
         {!isCollapsed ? (
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center">
-              <Building2 size={18} className="text-white" />
+            <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center overflow-hidden">
+              <img src="/logo.png" alt="uOrgHub" className="h-6 w-6 object-contain" />
             </div>
             <div>
               <p className="text-slate-100 text-sm font-medium">uOrgHub</p>
@@ -237,8 +237,8 @@ export default function Sidebar() {
             </div>
           </div>
         ) : (
-          <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center">
-            <Building2 size={18} className="text-white" />
+          <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center overflow-hidden">
+            <img src="/logo.png" alt="uOrgHub" className="h-5 w-5 object-contain" />
           </div>
         )}
       </div>

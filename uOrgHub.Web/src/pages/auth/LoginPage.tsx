@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Lock, User, CheckCircle, Hexagon } from 'lucide-react';
+import { Eye, EyeOff, Lock, User, CheckCircle } from 'lucide-react';
 import { login } from '../../api/auth';
 import { useAuthStore } from '../../store/authStore';
 
@@ -68,29 +68,7 @@ function NebulaGlows() {
 function HexLogo() {
   return (
     <div className="flex flex-col items-center gap-2">
-      <div className="relative">
-        <Hexagon size={48} className="text-transparent" stroke="url(#logoGrad)" strokeWidth={1.5} />
-        <svg width="0" height="0" className="absolute">
-          <defs>
-            <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#2563eb" />
-              <stop offset="50%" stopColor="#11998e" />
-              <stop offset="100%" stopColor="#38ef7d" />
-            </linearGradient>
-            <linearGradient id="btnGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#2563eb" />
-              <stop offset="100%" stopColor="#11998e" />
-            </linearGradient>
-            <linearGradient id="btnGradHover" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#1d4ed8" />
-              <stop offset="100%" stopColor="#0d9488" />
-            </linearGradient>
-          </defs>
-        </svg>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-transparent bg-clip-text bg-gradient-to-br from-blue-500 via-teal-400 to-emerald-400 font-bold text-lg">uH</span>
-        </div>
-      </div>
+      <img src="/logo.png" alt="uOrgHub" className="h-12 w-auto" />
       <h1 className="text-white text-2xl font-bold tracking-tight">uOrgHub</h1>
       <p className="text-[10px] text-slate-500 tracking-[0.25em] font-medium">ENTERPRISE RESOURCE PLANNING</p>
     </div>
