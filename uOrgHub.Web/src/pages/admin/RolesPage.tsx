@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Plus, Shield, Check } from 'lucide-react';
-import { getRoles, getClaims, addRoleClaim, removeRoleClaim, type RoleDto, type ClaimDto } from '../../api/auth';
+import { getRoles, getRoleById, getClaims, assignRoleClaims, removeRoleClaim, type RoleDto, type ClaimDto } from '../../api/auth';
 
 export default function RolesPage() {
   const [roles, setRoles] = useState<RoleDto[]>([]);
@@ -9,10 +9,12 @@ export default function RolesPage() {
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    const [r, c] = await Promise.all([getRoles(), getClaims()]);
+    const [r] = await Promise.all([getRoles(), getClaims().then(setClaims)]);
     setRoles(r);
-    setClaims(c);
-    if (r.length > 0) setSelected(r[0]);
+    if (r.length > 0) {
+      const full = await getRoleById(r[0].id);
+      setSelected(full);
+    }
     setLoading(false);
   };
 
@@ -20,17 +22,24 @@ export default function RolesPage() {
 
   const toggleClaim = async (claim: ClaimDto) => {
     if (!selected) return;
-    const has = selected.claims.some(c => c.id === claim.id);
-    if (selected.isSystem && !has) {
-      await addRoleClaim(selected.id, claim.id);
-    } else if (!selected.isSystem) {
-      if (has) await removeRoleClaim(selected.id, claim.id);
-      else await addRoleClaim(selected.id, claim.id);
-    } else return;
+    const has = selected.claims?.some(c => c.id === claim.id) ?? false;
+    if (selected.isSystem && has) return;
+
+    if (has) {
+      await removeRoleClaim(selected.id, claim.id);
+    } else {
+      const allIds = [...(selected.claims?.map(c => c.id) ?? []), claim.id];
+      await assignRoleClaims(selected.id, allIds);
+    }
     const updated = await getRoles();
     setRoles(updated);
-    const refresh = updated.find(r => r.id === selected.id);
-    if (refresh) setSelected(refresh);
+    const full = await getRoleById(selected.id);
+    setSelected(full);
+  };
+
+  const handleSelect = async (role: RoleDto) => {
+    const full = await getRoleById(role.id);
+    setSelected(full);
   };
 
   const modules = [...new Set(claims.map(c => c.module ?? 'Other'))];
@@ -46,14 +55,14 @@ export default function RolesPage() {
         </div>
         <div className="space-y-1">
           {roles.map(role => (
-            <button key={role.id} onClick={() => setSelected(role)}
+            <button key={role.id} onClick={() => handleSelect(role)}
               className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-colors ${selected?.id === role.id ? 'bg-primary-600/20 text-primary-300' : 'text-slate-300 hover:bg-slate-700/50'}`}>
               <div className="flex items-center gap-2">
                 <Shield size={14} />
                 <span>{role.name}</span>
               </div>
               <div className="flex items-center gap-1">
-                <span className="text-xs text-slate-500">{role.claims.length}</span>
+                <span className="text-xs text-slate-500">{role.claims?.length ?? 0}</span>
                 {role.isSystem && <span className="text-xs bg-slate-700 text-slate-400 px-1 rounded">sys</span>}
               </div>
             </button>
@@ -77,7 +86,7 @@ export default function RolesPage() {
                     <h3 className="text-slate-400 text-xs font-medium tracking-wider mb-2">{module.toUpperCase()}</h3>
                     <div className="grid grid-cols-4 gap-2">
                       {moduleClaims.map(claim => {
-                        const has = selected.claims.some(c => c.id === claim.id);
+                        const has = selected.claims?.some(c => c.id === claim.id) ?? false;
                         const isLocked = selected.isSystem && has;
                         return (
                           <button key={claim.id} onClick={() => !isLocked && toggleClaim(claim)}

@@ -126,8 +126,8 @@ export const updateRole = (id: string, dto: { name?: string; description?: strin
 
 export const deleteRole = (id: string) => apiClient.delete(`/roles/${id}`);
 
-export const addRoleClaim = (roleId: string, claimId: string) =>
-  apiClient.post(`/roles/${roleId}/claims`, { claimId });
+export const assignRoleClaims = (roleId: string, claimIds: string[]) =>
+  apiClient.post(`/roles/${roleId}/claims`, { claimIds });
 
 export const removeRoleClaim = (roleId: string, claimId: string) =>
   apiClient.delete(`/roles/${roleId}/claims/${claimId}`);
