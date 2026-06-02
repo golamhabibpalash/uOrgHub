@@ -12,7 +12,7 @@ import {
 import { useDashboard } from '../../hooks/useDashboard';
 import { formatBDT, timeAgo, formatDate } from '../../utils/format';
 import SkeletonCard from '../../components/shared/SkeletonCard';
-import type { PendingApproval, LowStockAlert, RecentActivity, ProjectProgress, MonthlyExpenseData, BudgetUtilization } from '../../api/dashboard';
+import type { DashboardStats, PendingApproval, LowStockAlert, RecentActivity, ProjectProgress, MonthlyExpenseData, BudgetUtilization } from '../../api/dashboard';
 import type { UserRole, ModuleAccess } from '../../hooks/useDashboard';
 
 // ── helpers ─────────────────────────────────────────────────────────────────

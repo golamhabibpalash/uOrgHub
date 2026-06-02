@@ -70,6 +70,22 @@ export const forgotPassword = (email: string) =>
 export const resetPassword = (dto: { email: string; otpCode: string; newPassword: string; confirmPassword: string }) =>
   apiClient.post('/auth/reset-password', dto);
 
+export interface ValidateSetPasswordTokenResponse {
+  isValid: boolean;
+  username?: string;
+  fullName?: string;
+  expiresAt?: string;
+}
+
+export const validateSetPasswordToken = (token: string) =>
+  apiClient.get<{ data: ValidateSetPasswordTokenResponse }>('/auth/set-password/validate', { params: { token } }).then(unwrap);
+
+export const setPassword = (token: string, newPassword: string) =>
+  apiClient.post('/auth/set-password', { token, newPassword });
+
+export const resendInvite = (userId: string) =>
+  apiClient.post(`/users/${userId}/resend-invite`);
+
 export const sendOTP = (otpType: string, channel: string) =>
   apiClient.post<{ data: string }>('/auth/send-otp', { otpType, channel }).then(unwrap);
 

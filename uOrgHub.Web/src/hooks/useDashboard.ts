@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../store/authStore';
 import { getDashboardStats } from '../api/dashboard';
-import type { DashboardStats } from '../api/dashboard';
 
 export type UserRole =
   | 'Admin'
