@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
-  Search, X, Filter, RefreshCw, ChevronDown, ChevronUp,
+  Search, X, Filter, RefreshCw,
 } from 'lucide-react';
 import {
   getAccessLogs,
@@ -11,11 +11,6 @@ import {
 
 const HTTP_METHODS = ['', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
 const PAGE_SIZES = [20, 30, 50, 100];
-
-function toLocalDatetimeString(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
 
 function fromDatetimeLocal(value: string): Date | undefined {
   if (!value) return undefined;
@@ -33,6 +28,7 @@ export default function AccessLogsPage() {
     pageSize: 30,
     sortDescending: true,
   });
+  const pageSize = filters.pageSize ?? 30;
   const [local, setLocal] = useState({
     search: '',
     username: '',
@@ -88,9 +84,9 @@ export default function AccessLogsPage() {
     if (local.dateFrom) f.dateFrom = fromDatetimeLocal(local.dateFrom)?.toISOString();
     if (local.dateTo) f.dateTo = fromDatetimeLocal(local.dateTo)?.toISOString();
     f.page = 1;
-    f.pageSize = filters.pageSize;
+    f.pageSize = pageSize;
     setFilters(f);
-  }, [local, filters.pageSize]);
+  }, [local, pageSize]);
 
   const clearFilters = () => {
     setLocal({
@@ -99,7 +95,7 @@ export default function AccessLogsPage() {
       statusCodeFrom: '', statusCodeTo: '', durationMin: '', durationMax: '',
       dateFrom: '', dateTo: '',
     });
-    setFilters({ page: 1, pageSize: filters.pageSize, sortDescending: true });
+    setFilters({ page: 1, pageSize, sortDescending: true });
   };
 
   useEffect(() => {
@@ -117,7 +113,7 @@ export default function AccessLogsPage() {
     return 'text-red-400';
   };
 
-  const totalPages = logs ? Math.ceil(logs.totalCount / filters.pageSize) : 0;
+  const totalPages = logs ? Math.ceil(logs.totalCount / pageSize) : 0;
 
   return (
     <div className="p-6">
