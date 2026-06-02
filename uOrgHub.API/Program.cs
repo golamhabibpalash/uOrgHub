@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using uOrgHub.Accounts;
 using uOrgHub.API.Middleware;
+using uOrgHub.API.Services;
 using uOrgHub.Auth;
 using uOrgHub.HR;
 using uOrgHub.Inventory;
@@ -60,6 +61,9 @@ builder.Services.AddProjectsModule();
 
 // Auth Module
 builder.Services.AddAuthModule();
+
+// Dashboard Service
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 // Controllers
 builder.Services.AddControllers()

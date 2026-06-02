@@ -814,8 +814,21 @@ function DeadlinesSection({ stats, isLoading }: { stats: { upcomingDeadlines: { 
 
 // ── Main HomePage ────────────────────────────────────────────────────────────
 
+const EMPTY_STATS: DashboardStats = {
+  activeProjects: 0, totalProjectValue: 0, projectProgress: [],
+  totalEmployees: 0, newEmployeesThisMonth: 0, employeesByDepartment: [],
+  inventoryItems: 0, lowStockCount: 0, lowStockAlerts: [],
+  openPOs: 0, openPOValue: 0,
+  monthlyPayroll: 0, payrollDueInDays: 0,
+  pendingApprovalsCount: 0, pendingApprovalDetails: [],
+  recentActivities: [],
+  monthlyExpenseVsBudget: [],
+  budgetUtilization: [],
+  upcomingDeadlines: [],
+};
+
 export default function HomePage() {
-  const { stats, role, visibility, isLoading, refetch, lastUpdated } = useDashboard();
+  const { stats: liveStats, role, visibility, isLoading, isError, refetch, lastUpdated } = useDashboard();
   const user = { firstName: 'Admin' };
 
   // Try to get firstName from localStorage
@@ -827,6 +840,24 @@ export default function HomePage() {
     }
   } catch {
     // ignore
+  }
+
+  const stats = liveStats ?? EMPTY_STATS;
+
+  if (isError && !liveStats) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24">
+        <AlertTriangle size={48} className="text-red-400 mb-4" />
+        <h2 className="text-lg font-medium text-gray-800 mb-2">Failed to load dashboard</h2>
+        <p className="text-sm text-gray-500 mb-6">Could not fetch dashboard data. Please try again.</p>
+        <button
+          onClick={() => refetch()}
+          className="flex items-center gap-2 bg-primary-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
+        >
+          <RefreshCw size={14} /> Retry
+        </button>
+      </div>
+    );
   }
 
   const updatedMinsAgo = lastUpdated
@@ -848,17 +879,19 @@ export default function HomePage() {
           />
         </div>
         <div className="flex items-center gap-2 mt-1">
-          {updatedMinsAgo !== null && (
+          {updatedMinsAgo !== null && !isLoading && (
             <span className="text-xs text-gray-400">
               Updated {updatedMinsAgo === 0 ? 'just now' : `${updatedMinsAgo} min ago`}
             </span>
           )}
+          {isLoading && <span className="text-xs text-gray-400">Refreshing...</span>}
           <button
             onClick={() => refetch()}
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+            disabled={isLoading}
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
             title="Refresh dashboard"
           >
-            <RefreshCw size={14} />
+            <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
           </button>
         </div>
       </div>
