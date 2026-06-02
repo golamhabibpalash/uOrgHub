@@ -21,7 +21,8 @@ info() { echo -e "${CYAN}[→]${NC} $*"; }
 
 echo ""
 info "Pulling latest code..."
-git -C "$DEPLOY_DIR" pull
+git -C "$DEPLOY_DIR" fetch origin
+git -C "$DEPLOY_DIR" reset --hard origin/master
 log "Code updated."
 
 info "Rebuilding and restarting containers (zero-downtime rolling)..."
