@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using uOrgHub.Auth.DTOs;
 using uOrgHub.Auth.Models.Entities;
 using uOrgHub.Auth.Repositories;
@@ -8,17 +9,26 @@ namespace uOrgHub.Auth.Services;
 public class AccessLogService : IAccessLogService
 {
     private readonly IAccessLogRepository _repo;
+    private readonly IAccessLogQueue _queue;
+    private readonly ILogger<AccessLogService> _logger;
 
-    public AccessLogService(IAccessLogRepository repo) => _repo = repo;
+    public AccessLogService(IAccessLogRepository repo, IAccessLogQueue queue, ILogger<AccessLogService> logger)
+    {
+        _repo = repo;
+        _queue = queue;
+        _logger = logger;
+    }
 
-    public async Task LogAsync(UserAccessLog log) => await _repo.AddAsync(log);
+    public Task LogAsync(UserAccessLog log)
+    {
+        if (!_queue.TryEnqueue(log))
+            _logger.LogWarning("Access log queue rejected entry for {Endpoint}", log.Endpoint);
+        return Task.CompletedTask;
+    }
 
     public async Task<PagedResult<UserAccessLogDto>> GetLogsAsync(AccessLogFilterRequest request)
     {
-        var paged = await _repo.GetPagedAsync(
-            request.Page, request.PageSize, request.UserId, request.Module,
-            request.Action, request.DateFrom, request.DateTo, request.IsSuccess, request.HttpMethod);
-
+        var paged = await _repo.GetPagedAsync(request);
         return Map(paged);
     }
 
@@ -28,20 +38,8 @@ public class AccessLogService : IAccessLogService
         return await GetLogsAsync(req);
     }
 
-    public async Task<AccessLogSummaryDto> GetSummaryAsync()
-    {
-        // Summary uses today's data from a basic query
-        var today = DateTime.UtcNow.Date;
-        var paged = await _repo.GetPagedAsync(1, int.MaxValue, null, null, null, today, null, null, null);
-
-        var total = paged.TotalCount;
-        var failed = paged.Items.Count(l => !l.IsSuccess);
-        var failureRate = total > 0 ? (double)failed / total * 100 : 0;
-        var avgDuration = paged.Items.Count > 0 ? paged.Items.Average(l => (double)l.DurationMs) : 0;
-        var uniqueUsers = paged.Items.Where(l => l.UserId.HasValue).Select(l => l.UserId!.Value).Distinct().Count();
-
-        return new AccessLogSummaryDto(total, failed, failureRate, avgDuration, uniqueUsers, 0);
-    }
+    public Task<AccessLogSummaryDto> GetSummaryAsync() =>
+        _repo.GetSummaryAsync(DateTime.UtcNow.Date);
 
     private static PagedResult<UserAccessLogDto> Map(PagedResult<UserAccessLog> paged) =>
         new()

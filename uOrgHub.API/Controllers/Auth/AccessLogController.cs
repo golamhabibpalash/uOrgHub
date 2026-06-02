@@ -8,10 +8,8 @@ using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Auth;
 
-[ApiController]
-[Route("api/v1/access-logs")]
 [Authorize]
-public class AccessLogController : ControllerBase
+public class AccessLogController : BaseController
 {
     private readonly IAccessLogService _accessLogService;
 

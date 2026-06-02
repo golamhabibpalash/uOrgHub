@@ -25,6 +25,11 @@ public static class AuthServiceExtension
         services.AddScoped<IEmailService, EmailService>();
         services.AddScoped<ISmsService, SmsService>();
 
+        // Access log async pipeline
+        services.AddSingleton<IAccessLogQueue, AccessLogQueue>();
+        services.AddHostedService<AccessLogBackgroundWorker>();
+        services.AddHostedService<AccessLogRetentionWorker>();
+
         services.AddValidatorsFromAssembly(typeof(AuthServiceExtension).Assembly);
 
         return services;

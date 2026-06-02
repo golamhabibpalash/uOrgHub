@@ -108,7 +108,7 @@ export const removeUserClaim = (id: string, claimId: string) =>
 export const getUserSessions = (id: string) =>
   apiClient.get<{ data: SessionDto[] }>(`/users/${id}/sessions`).then(unwrap);
 
-export const getUserAccessLogs = (id: string, params?: { page?: number; pageSize?: number }) =>
+export const getUserAccessLogs = (id: string, params?: AccessLogFilterParams) =>
   apiClient.get<{ data: PagedResult<AccessLogDto> }>(`/users/${id}/access-logs`, { params }).then(unwrap);
 
 // Roles
@@ -136,9 +136,31 @@ export const removeRoleClaim = (roleId: string, claimId: string) =>
 export const getClaims = () =>
   apiClient.get<{ data: ClaimDto[] }>('/claims').then(unwrap);
 
+export interface AccessLogFilterParams {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  userId?: string;
+  username?: string;
+  module?: string;
+  action?: string;
+  httpMethod?: string;
+  isSuccess?: boolean;
+  entityType?: string;
+  ipAddress?: string;
+  statusCodeFrom?: number;
+  statusCodeTo?: number;
+  durationMin?: number;
+  durationMax?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  sortBy?: string;
+  sortDescending?: boolean;
+}
+
 // Access Logs
-export const getAccessLogs = (params?: { page?: number; pageSize?: number; search?: string }) =>
+export const getAccessLogs = (params?: AccessLogFilterParams) =>
   apiClient.get<{ data: PagedResult<AccessLogDto> }>('/access-logs', { params }).then(unwrap);
 
-export const getMyAccessLogs = (params?: { page?: number; pageSize?: number }) =>
+export const getMyAccessLogs = (params?: AccessLogFilterParams) =>
   apiClient.get<{ data: PagedResult<AccessLogDto> }>('/access-logs/my', { params }).then(unwrap);
