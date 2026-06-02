@@ -816,7 +816,7 @@ function DeadlinesSection({ stats, isLoading }: { stats: { upcomingDeadlines: { 
 
 const EMPTY_STATS: DashboardStats = {
   activeProjects: 0, totalProjectValue: 0, projectProgress: [],
-  totalEmployees: 0, newEmployeesThisMonth: 0, employeesByDepartment: [],
+  totalEmployees: 0, newEmployeesThisMonth: 0,
   inventoryItems: 0, lowStockCount: 0, lowStockAlerts: [],
   openPOs: 0, openPOValue: 0,
   monthlyPayroll: 0, payrollDueInDays: 0,
