@@ -309,6 +309,7 @@ export default function Sidebar() {
                       <NavLink
                         key={subPath}
                         to={subPath}
+                        end={subPath === path}
                         className={({ isActive }) =>
                           `flex items-center gap-3 pl-10 pr-3 py-1.5 rounded-md mb-0.5 text-xs transition-colors ${
                             isActive
