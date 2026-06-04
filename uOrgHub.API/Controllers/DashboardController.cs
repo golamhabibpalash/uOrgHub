@@ -16,7 +16,7 @@ public class DashboardController : BaseController
     public DashboardController(IDashboardService dashboardService) => _dashboardService = dashboardService;
 
     [HttpGet("stats")]
-    [RequireClaim(Claims.Admin.Company.View)]
+    [RequireClaim(Claims.Self.ViewProfile)]
     public async Task<IActionResult> GetStats()
     {
         var stats = await _dashboardService.GetStatsAsync();

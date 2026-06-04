@@ -10,6 +10,7 @@ import {
   LayoutDashboard, Wallet, FileText, Package,
 } from 'lucide-react';
 import { useDashboard } from '../../hooks/useDashboard';
+import { useAuthStore } from '../../store/authStore';
 import { formatBDT, timeAgo, formatDate } from '../../utils/format';
 import SkeletonCard from '../../components/shared/SkeletonCard';
 import type { DashboardStats, PendingApproval, LowStockAlert, RecentActivity, ProjectProgress, MonthlyExpenseData, BudgetUtilization } from '../../api/dashboard';
@@ -829,18 +830,8 @@ const EMPTY_STATS: DashboardStats = {
 
 export default function HomePage() {
   const { stats: liveStats, role, visibility, isLoading, isError, refetch, lastUpdated } = useDashboard();
-  const user = { firstName: 'Admin' };
-
-  // Try to get firstName from localStorage
-  try {
-    const stored = localStorage.getItem('user');
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      if (parsed.firstName) user.firstName = parsed.firstName;
-    }
-  } catch {
-    // ignore
-  }
+  const authUser = useAuthStore((s) => s.user);
+  const userFirstName = authUser?.firstName ?? 'Admin';
 
   const stats = liveStats ?? EMPTY_STATS;
 
@@ -871,7 +862,7 @@ export default function HomePage() {
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1">
           <WelcomeSection
-            firstName={user.firstName}
+            firstName={userFirstName}
             role={role}
             pendingCount={stats.pendingApprovalsCount}
             lowStockCount={stats.lowStockCount}

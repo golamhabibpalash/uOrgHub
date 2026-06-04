@@ -46,7 +46,19 @@ const MODULES: Record<string, ModuleAccess> = {
   accounts: { id: 'accounts', label: 'Accounts', path: '/accounts', color: 'bg-red-100 text-red-600', iconName: 'Receipt' },
 };
 
-function getVisibility(role: string): DashboardVisibility {
+function getVisibility(role: UserRole, claims: string[]): DashboardVisibility {
+  const has = (prefix: string) => claims.some(c => c.startsWith(prefix));
+  const isAdmin = role === 'Admin' || claims.includes('Admin.Company.View');
+
+  if (isAdmin) {
+    return {
+      showProjects: true, showHR: true, showInventory: true, showProcurement: true, showAccounts: true,
+      showPendingApprovals: true, showLowStock: true, showLeaveRequests: false, showJournalEntries: false, showMyTasks: false,
+      visibleModules: [MODULES.projects, MODULES.hr, MODULES.inventory, MODULES.procurement, MODULES.accounts],
+      leftChartType: 'projectProgress', rightChartType: 'expenseVsBudget',
+    };
+  }
+
   switch (role) {
     case 'ProjectManager':
       return {
@@ -90,19 +102,48 @@ function getVisibility(role: string): DashboardVisibility {
         visibleModules: [MODULES.procurement, MODULES.inventory, MODULES.accounts],
         leftChartType: 'poValueTrend', rightChartType: 'expenseVsBudget',
       };
-    default: // Admin
+    default: {
+      const modules: ModuleAccess[] = [];
+      let showProjects = false, showHR = false, showInventory = false, showProcurement = false, showAccounts = false;
+
+      if (has('Projects.')) { showProjects = true; modules.push(MODULES.projects); }
+      if (has('HR.')) { showHR = true; modules.push(MODULES.hr); }
+      if (has('Inventory.')) { showInventory = true; modules.push(MODULES.inventory); }
+      if (has('Procurement.')) { showProcurement = true; modules.push(MODULES.procurement); }
+      if (has('Accounts.')) { showAccounts = true; modules.push(MODULES.accounts); }
+
+      if (modules.length === 0) {
+        showProjects = true; showHR = true; showInventory = true; showProcurement = true; showAccounts = true;
+        modules.push(MODULES.projects, MODULES.hr, MODULES.inventory, MODULES.procurement, MODULES.accounts);
+      }
+
+      const hasInv = showInventory || showProcurement;
+
       return {
-        showProjects: true, showHR: true, showInventory: true, showProcurement: true, showAccounts: true,
-        showPendingApprovals: true, showLowStock: true, showLeaveRequests: false, showJournalEntries: false, showMyTasks: false,
-        visibleModules: [MODULES.projects, MODULES.hr, MODULES.inventory, MODULES.procurement, MODULES.accounts],
-        leftChartType: 'projectProgress', rightChartType: 'expenseVsBudget',
+        showProjects, showHR, showInventory, showProcurement, showAccounts,
+        showPendingApprovals: true, showLowStock: hasInv,
+        showLeaveRequests: showHR, showJournalEntries: showAccounts, showMyTasks: showProjects,
+        visibleModules: modules,
+        leftChartType: showProjects ? 'projectProgress' : showAccounts ? 'expenseTrend' : 'stockMovement',
+        rightChartType: showAccounts ? 'expenseVsBudget' : showProjects ? 'budgetUtilization' : 'stockByCategory',
       };
+    }
   }
 }
 
 export function useDashboard() {
   const user = useAuthStore((s) => s.user);
-  const role = (user?.roles?.[0] ?? localStorage.getItem('userRole') ?? 'Admin') as UserRole;
+  const claims = user?.claims ?? [];
+  const roles = user?.roles ?? [];
+
+  const role: UserRole =
+    roles.includes('Admin') ? 'Admin' :
+    roles.includes('HRManager') ? 'HRManager' :
+    roles.includes('Accountant') ? 'Accountant' :
+    roles.includes('InventoryManager') ? 'StoreKeeper' :
+    roles.includes('ProcurementOfficer') ? 'ProcurementOfficer' :
+    roles.includes('ProjectManager') ? 'ProjectManager' :
+    'Admin';
 
   const query = useQuery({
     queryKey: ['dashboard-stats'],
@@ -116,7 +157,7 @@ export function useDashboard() {
   });
 
   const stats = query.data;
-  const visibility = getVisibility(role);
+  const visibility = getVisibility(role, claims);
 
   return {
     stats,
