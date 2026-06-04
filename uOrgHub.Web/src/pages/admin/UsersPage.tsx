@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus, Search, UserCheck, UserX, Unlock, LogOut } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Plus, Search, UserCheck, UserX, Unlock, LogOut, CheckCircle } from 'lucide-react';
 import { getUsers, activateUser, deactivateUser, unlockUser, forceLogout, type UserDto } from '../../api/auth';
 
 export default function UsersPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const createdUser = (location.state as { created?: string })?.created;
   const [users, setUsers] = useState<UserDto[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -34,7 +36,12 @@ export default function UsersPage() {
           <h1 className="text-white text-xl font-semibold">Users</h1>
           <p className="text-slate-400 text-sm mt-0.5">{total} total users</p>
         </div>
-        <button onClick={() => navigate('/admin/users/new')}
+        {createdUser && (
+          <div className="bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 text-sm rounded-lg px-4 py-2.5 flex items-center gap-2">
+            <CheckCircle size={16} /> User <strong className="mx-1">{createdUser}</strong> created successfully.
+          </div>
+        )}
+        <button onClick={() => { window.history.replaceState({}, ''); navigate('/admin/users/new'); }}
           className="flex items-center gap-2 bg-primary-600 hover:bg-primary-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
           <Plus size={16} /> New User
         </button>

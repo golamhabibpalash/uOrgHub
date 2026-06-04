@@ -90,7 +90,7 @@ export default function UserCreatePage() {
         roleIds: form.roleIds,
         employeeId: userType === 'employee-linked' ? selectedEmployee?.id : undefined,
       });
-      navigate('/admin/users');
+      navigate('/admin/users', { state: { created: form.firstName + ' ' + form.lastName } });
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to create user.';
       setError(msg);
