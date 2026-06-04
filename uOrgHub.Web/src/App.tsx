@@ -8,6 +8,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import AccessDeniedPage from "./components/auth/AccessDeniedPage";
 import UsersPage from "./pages/admin/UsersPage";
 import UserDetailPage from "./pages/admin/UserDetailPage";
+import UserCreatePage from "./pages/admin/UserCreatePage";
 import RolesPage from "./pages/admin/RolesPage";
 import AccessLogsPage from "./pages/admin/AccessLogsPage";
 import CompanySettingsPage from "./pages/admin/CompanySettingsPage";
@@ -189,6 +190,7 @@ export default function App() {
           <Route path="settings/*" element={<Placeholder name="Settings" />} />
           <Route path="profile" element={<MyProfilePage />} />
           <Route path="admin/users" element={<ProtectedRoute requiredClaim="Users.View"><UsersPage /></ProtectedRoute>} />
+          <Route path="admin/users/new" element={<ProtectedRoute requiredClaim="Users.View"><UserCreatePage /></ProtectedRoute>} />
           <Route path="admin/users/:id" element={<ProtectedRoute requiredClaim="Users.View"><UserDetailPage /></ProtectedRoute>} />
           <Route path="admin/company" element={<ProtectedRoute><CompanySettingsPage /></ProtectedRoute>} />
           <Route path="admin/roles" element={<ProtectedRoute requiredClaim="Users.View"><RolesPage /></ProtectedRoute>} />
