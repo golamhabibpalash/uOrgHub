@@ -13,6 +13,7 @@ public interface IUserManagementService
     Task<PagedResult<UserDto>> GetUsersAsync(PaginationRequest request);
     Task<UserDto> GetUserByIdAsync(Guid id);
     Task UpdateUserAsync(Guid id, UpdateUserDto dto, string updatedBy);
+    Task<UserDto> ChangeUsernameAsync(Guid id, string newUsername, string updatedBy);
     Task AssignRoleAsync(Guid userId, Guid roleId, string assignedBy);
     Task RemoveRoleAsync(Guid userId, Guid roleId);
     Task AssignUserClaimAsync(Guid userId, Guid claimId, bool isGranted, string assignedBy);

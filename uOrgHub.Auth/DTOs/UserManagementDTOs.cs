@@ -48,6 +48,20 @@ public record UserDto(
 public record AssignRoleDto(List<Guid> RoleIds);
 public record AssignUserClaimDto(Guid ClaimId, bool IsGranted = true);
 
+public record ChangeUsernameDto(string NewUsername);
+
+public class ChangeUsernameDtoValidator : AbstractValidator<ChangeUsernameDto>
+{
+    public ChangeUsernameDtoValidator()
+    {
+        RuleFor(x => x.NewUsername)
+            .NotEmpty()
+            .MaximumLength(50)
+            .Matches("^[A-Za-z0-9._-]+$")
+            .WithMessage("Username may contain letters, digits, dot, underscore and hyphen only.");
+    }
+}
+
 public class CreateUserDtoValidator : AbstractValidator<CreateUserDto>
 {
     public CreateUserDtoValidator()

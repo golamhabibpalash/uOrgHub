@@ -300,6 +300,23 @@ export const updateEmployee = (id: string, data: Partial<Employee>) =>
 export const deleteEmployee = (id: string) =>
   apiClient.delete<ApiResponse<null>>(`/employees/${id}`);
 
+export interface EmployeeDependencies {
+  employeeId: string;
+  hasUserAccount: boolean;
+  leaveRequests: number;
+  attendanceLogs: number;
+  payrollEntries: number;
+  assetAssignments: number;
+  trainingEnrollments: number;
+  expenseRequests: number;
+  directReports: number;
+  canDelete: boolean;
+  blockingReason?: string;
+}
+
+export const getEmployeeDependencies = (id: string) =>
+  apiClient.get<ApiResponse<EmployeeDependencies>>(`/employees/${id}/dependencies`);
+
 // Departments
 export const getDepartments = (params: PaginationRequest) =>
   apiClient.get<ApiResponse<PagedResult<Department>>>("/departments", {

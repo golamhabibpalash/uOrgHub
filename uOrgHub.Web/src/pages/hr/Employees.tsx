@@ -2,15 +2,18 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { Plus, X } from "lucide-react";
+import toast from "react-hot-toast";
 import DataTable from "../../components/shared/DataTable";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
+import ConfirmDialog from "../../components/shared/ConfirmDialog";
 import {
   getEmployees,
   createEmployee,
   createEmployeeWithUser,
   updateEmployee,
   deleteEmployee,
+  getEmployeeDependencies,
   Employee,
   Department,
   Designation,
@@ -29,6 +32,8 @@ export default function Employees() {
   const [editing, setEditing] = useState<Employee | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
+  const [checkingDeps, setCheckingDeps] = useState(false);
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -142,8 +147,32 @@ export default function Employees() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteEmployee(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["employees"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["employees"] });
+      toast.success("Employee deleted successfully.");
+    },
+    onError: (err) => {
+      toast.error(extractApiError(err));
+    },
   });
+
+  async function handleDeleteClick(emp: Employee) {
+    setCheckingDeps(true);
+    try {
+      const res = await getEmployeeDependencies(emp.id);
+      const deps = res.data.data;
+      if (!deps) { toast.error("Could not check dependencies."); return; }
+      if (!deps.canDelete) {
+        toast.error(deps.blockingReason || "This employee cannot be deleted.");
+        return;
+      }
+      setDeleteTarget(emp);
+    } catch {
+      toast.error("Could not check dependencies.");
+    } finally {
+      setCheckingDeps(false);
+    }
+  }
 
   function extractApiError(err: unknown): string {
     const axiosErr = err as AxiosError<{
@@ -334,7 +363,7 @@ export default function Employees() {
           data={employees}
           loading={isLoading}
           onEdit={openEdit}
-          onDelete={(row) => deleteMutation.mutate(row.id)}
+          onDelete={(row) => handleDeleteClick(row)}
         />
         <Pagination
           page={page}
@@ -342,6 +371,36 @@ export default function Employees() {
           onPageChange={setPage}
         />
       </div>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        tone="danger"
+        title="Delete Employee"
+        message={
+          <>
+            Are you sure you want to delete{" "}
+            <span className="font-medium text-gray-900">
+              {deleteTarget ? `${deleteTarget.firstName} ${deleteTarget.lastName}` : ""}
+            </span>
+            ? This action cannot be undone.
+          </>
+        }
+        confirmLabel="Delete"
+        loading={deleteMutation.isPending}
+        onConfirm={() => {
+          if (deleteTarget) deleteMutation.mutate(deleteTarget.id);
+          setDeleteTarget(null);
+        }}
+        onCancel={() => setDeleteTarget(null)}
+      />
+
+      {checkingDeps && (
+        <div className="fixed inset-0 z-[55] flex items-center justify-center bg-black/20 pointer-events-none">
+          <div className="bg-white rounded-lg shadow-md px-4 py-2 text-sm text-gray-600">
+            Checking dependencies...
+          </div>
+        </div>
+      )}
 
       <Modal
         title={editing ? "Edit Employee" : "Add Employee"}

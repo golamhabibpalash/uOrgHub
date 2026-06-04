@@ -58,6 +58,13 @@ public class EmployeeController : BaseController
         return Ok(ApiResponse<EmployeeResponseDto>.Ok(result, "Employee updated successfully."));
     }
 
+    [HttpGet("{id:guid}/dependencies")]
+    public async Task<IActionResult> GetDependencies(Guid id)
+    {
+        var result = await _mediator.Send(new GetEmployeeDependenciesQuery(id));
+        return Ok(ApiResponse<EmployeeDependenciesDto>.Ok(result));
+    }
+
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

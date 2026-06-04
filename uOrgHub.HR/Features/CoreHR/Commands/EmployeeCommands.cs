@@ -67,6 +67,11 @@ public class DeleteEmployeeCommandHandler : IRequestHandler<DeleteEmployeeComman
     {
         if (!await _repo.ExistsAsync(request.Id))
             throw new NotFoundException(nameof(Models.Entities.Employee), request.Id);
+
+        var deps = await _repo.GetDependenciesAsync(request.Id, ct);
+        if (!deps.CanDelete)
+            throw new AppException(deps.BlockingReason ?? "Employee has linked records and cannot be deleted.", 409);
+
         await _repo.DeleteAsync(request.Id);
         return Unit.Value;
     }

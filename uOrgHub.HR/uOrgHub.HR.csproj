@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\uOrgHub.Shared\uOrgHub.Shared.csproj" />
+    <ProjectReference Include="..\uOrgHub.Auth\uOrgHub.Auth.csproj" />
   </ItemGroup>
 
   <ItemGroup>

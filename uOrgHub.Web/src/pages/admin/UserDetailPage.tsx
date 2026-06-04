@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Shield, Key, Monitor, ScrollText } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { ArrowLeft, Shield, Key, Monitor, ScrollText, Pencil, AlertTriangle, X } from 'lucide-react';
+import { AxiosError } from 'axios';
 import {
   getUserById, getRoles, getClaims, setUserRoles, addUserClaim, removeUserClaim,
-  getUserSessions, getUserAccessLogs,
+  getUserSessions, getUserAccessLogs, changeUsername,
   type UserDto, type RoleDto, type ClaimDto, type SessionDto, type AccessLogDto, type PagedResult
 } from '../../api/auth';
 
@@ -19,6 +21,10 @@ export default function UserDetailPage() {
   const [sessions, setSessions] = useState<SessionDto[]>([]);
   const [logs, setLogs] = useState<PagedResult<AccessLogDto> | null>(null);
   const [loading, setLoading] = useState(true);
+  const [usernameModalOpen, setUsernameModalOpen] = useState(false);
+  const [usernameInput, setUsernameInput] = useState('');
+  const [usernameSaving, setUsernameSaving] = useState(false);
+  const [usernameError, setUsernameError] = useState('');
 
   useEffect(() => {
     if (!id) return;
@@ -42,6 +48,39 @@ export default function UserDetailPage() {
     await setUserRoles(id, newRoleIds);
     const updated = await getUserById(id);
     setUser(updated);
+  };
+
+  const openUsernameModal = () => {
+    if (!user) return;
+    setUsernameInput(user.username);
+    setUsernameError('');
+    setUsernameModalOpen(true);
+  };
+
+  const submitUsername = async () => {
+    if (!id || !user) return;
+    const next = usernameInput.trim();
+    if (!next) { setUsernameError('Username is required.'); return; }
+    if (next === user.username) { setUsernameError('New username is the same as the current one.'); return; }
+
+    setUsernameSaving(true);
+    setUsernameError('');
+    try {
+      const updated = await changeUsername(id, next);
+      setUser(updated);
+      setUsernameModalOpen(false);
+      toast.success(`Username changed to "${updated.username}". The user has been signed out.`);
+    } catch (err: unknown) {
+      const axiosErr = err as AxiosError<{ message?: string; errors?: string[] }>;
+      const msg =
+        axiosErr.response?.data?.message ||
+        axiosErr.response?.data?.errors?.[0] ||
+        (err as Error)?.message ||
+        'Failed to change username.';
+      setUsernameError(msg);
+    } finally {
+      setUsernameSaving(false);
+    }
   };
 
   const toggleClaim = async (claim: ClaimDto) => {
@@ -101,8 +140,21 @@ export default function UserDetailPage() {
 
       {tab === 'profile' && (
         <div className="grid grid-cols-2 gap-4 max-w-2xl">
+          <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-1">
+              <div className="text-slate-400 text-xs">Username</div>
+              <button
+                onClick={openUsernameModal}
+                title="Change username (the user will be signed out)"
+                className="text-slate-500 hover:text-primary-400 transition-colors"
+              >
+                <Pencil size={12} />
+              </button>
+            </div>
+            <div className="text-white text-sm">{user.username}</div>
+          </div>
           {[
-            ['Username', user.username], ['Email', user.email], ['Phone', user.phoneNumber ?? '—'],
+            ['Email', user.email], ['Phone', user.phoneNumber ?? '—'],
             ['Employee ID', user.employeeId ?? '—'], ['2FA', user.isTwoFactorEnabled ? `Enabled (${user.twoFactorMethod})` : 'Disabled'],
             ['Last Login', user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : 'Never'],
           ].map(([label, value]) => (
@@ -196,6 +248,64 @@ export default function UserDetailPage() {
               </tbody>
             </table>
           )}
+        </div>
+      )}
+
+      {usernameModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
+          <div className="bg-slate-800 border border-slate-700 rounded-xl shadow-lg w-full max-w-md mx-4">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700">
+              <h2 className="text-white text-sm font-medium">Change username</h2>
+              <button
+                onClick={() => setUsernameModalOpen(false)}
+                disabled={usernameSaving}
+                className="text-slate-400 hover:text-slate-200 disabled:opacity-50"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="px-5 py-4 space-y-3">
+              <div className="flex items-start gap-2 text-xs bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded-lg px-3 py-2">
+                <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                <span>
+                  Changing the username will sign <span className="font-medium text-amber-200">{user.fullName}</span> out of all sessions. They will need to log in again using the new username.
+                </span>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">New username</label>
+                <input
+                  autoFocus
+                  type="text"
+                  value={usernameInput}
+                  onChange={(e) => setUsernameInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !usernameSaving) submitUsername(); }}
+                  className="w-full bg-slate-900 border border-slate-700 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-primary-500"
+                />
+                <p className="text-[11px] text-slate-500 mt-1">Letters, digits, dot, underscore and hyphen only. Max 50 characters.</p>
+              </div>
+              {usernameError && (
+                <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
+                  {usernameError}
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end gap-2 px-5 py-3 border-t border-slate-700 bg-slate-900/40 rounded-b-xl">
+              <button
+                onClick={() => setUsernameModalOpen(false)}
+                disabled={usernameSaving}
+                className="px-4 py-2 text-sm border border-slate-700 text-slate-300 rounded-lg hover:bg-slate-700 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitUsername}
+                disabled={usernameSaving}
+                className="px-4 py-2 text-sm bg-primary-600 hover:bg-primary-500 text-white rounded-lg disabled:opacity-50"
+              >
+                {usernameSaving ? 'Saving...' : 'Change username'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -105,6 +105,9 @@ export const createUser = (dto: { username: string; email: string; password: str
 export const updateUser = (id: string, dto: Partial<UserDto>) =>
   apiClient.put<{ data: UserDto }>(`/users/${id}`, dto).then(unwrap);
 
+export const changeUsername = (id: string, newUsername: string) =>
+  apiClient.put<{ data: UserDto }>(`/users/${id}/username`, { newUsername }).then(unwrap);
+
 export const deleteUser = (id: string) => apiClient.delete(`/users/${id}`);
 
 export const activateUser = (id: string) => apiClient.post(`/users/${id}/activate`);

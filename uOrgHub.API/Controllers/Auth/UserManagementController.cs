@@ -59,6 +59,14 @@ public class UserManagementController : ControllerBase
         return Ok(ApiResponse<string>.Ok("User updated successfully"));
     }
 
+    [HttpPut("{id:guid}/username")]
+    [RequireClaim("Users.Edit")]
+    public async Task<IActionResult> ChangeUsername(Guid id, [FromBody] ChangeUsernameDto dto)
+    {
+        var updated = await _userManagement.ChangeUsernameAsync(id, dto.NewUsername, GetCurrentUser());
+        return Ok(ApiResponse<UserDto>.Ok(updated, "Username changed. The user has been signed out everywhere."));
+    }
+
     [HttpPut("{id:guid}/activate")]
     [RequireClaim("Users.Edit")]
     public async Task<IActionResult> ActivateUser(Guid id)

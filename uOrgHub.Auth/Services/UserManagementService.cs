@@ -195,6 +195,51 @@ public class UserManagementService : IUserManagementService
         );
     }
 
+    public async Task<UserDto> ChangeUsernameAsync(Guid id, string newUsername, string updatedBy)
+    {
+        var trimmed = newUsername.Trim();
+
+        var user = await _db.Set<ApplicationUser>()
+            .FirstOrDefaultAsync(u => !u.IsDeleted && u.Id == id)
+            ?? throw new uOrgHub.Shared.Exceptions.NotFoundException(nameof(ApplicationUser), id);
+
+        if (string.Equals(user.Username, trimmed, StringComparison.Ordinal))
+            throw new uOrgHub.Shared.Exceptions.AppException("New username is the same as the current one.");
+
+        var taken = await _db.Set<ApplicationUser>()
+            .AnyAsync(u => !u.IsDeleted && u.Id != id && u.Username == trimmed);
+        if (taken)
+            throw new uOrgHub.Shared.Exceptions.AppException($"Username '{trimmed}' is already in use.", 409);
+
+        user.Username = trimmed;
+        user.UpdatedAt = DateTime.UtcNow;
+        user.UpdatedBy = updatedBy;
+
+        const string reason = "UsernameChanged";
+        var tokens = await _db.Set<RefreshToken>()
+            .Where(rt => rt.UserId == id && !rt.IsRevoked).ToListAsync();
+        foreach (var t in tokens)
+        {
+            t.IsRevoked = true;
+            t.RevokedAt = DateTime.UtcNow;
+            t.RevokedReason = reason;
+        }
+
+        var sessions = await _db.Set<UserSession>()
+            .Where(s => s.UserId == id && s.IsActive).ToListAsync();
+        foreach (var s in sessions)
+        {
+            s.IsActive = false;
+            s.LogoutAt = DateTime.UtcNow;
+            s.LogoutReason = reason;
+        }
+
+        await _db.SaveChangesAsync();
+        _permissions.InvalidateCache(id);
+
+        return await GetUserByIdAsync(id);
+    }
+
     public async Task UpdateUserAsync(Guid id, UpdateUserDto dto, string updatedBy)
     {
         var user = await _db.Set<ApplicationUser>().FirstAsync(u => u.Id == id);
