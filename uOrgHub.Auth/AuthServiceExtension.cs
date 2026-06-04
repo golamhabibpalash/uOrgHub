@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using uOrgHub.Auth.Repositories;
+using uOrgHub.Auth.Seeders;
 using uOrgHub.Auth.Services;
 
 namespace uOrgHub.Auth;
@@ -29,6 +30,9 @@ public static class AuthServiceExtension
         services.AddSingleton<IAccessLogQueue, AccessLogQueue>();
         services.AddHostedService<AccessLogBackgroundWorker>();
         services.AddHostedService<AccessLogRetentionWorker>();
+
+        // Seeders
+        services.AddScoped<IAuthSeeder, AuthSeeder>();
 
         services.AddValidatorsFromAssembly(typeof(AuthServiceExtension).Assembly);
 

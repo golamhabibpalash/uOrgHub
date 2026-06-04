@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Caching.Memory;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.Auth.Repositories;
 
 namespace uOrgHub.Auth.Services;
@@ -17,6 +18,9 @@ public class PermissionService : IPermissionService
 
     public async Task<bool> HasClaimAsync(Guid userId, string claimName)
     {
+        var roles = await GetUserRolesAsync(userId);
+        if (roles.Contains(Roles.Admin)) return true;
+
         var claims = await GetUserClaimsAsync(userId);
         return claims.Contains(claimName);
     }

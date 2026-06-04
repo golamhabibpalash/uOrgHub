@@ -73,6 +73,9 @@ public class CreateLeaveRequestCommandHandler : IRequestHandler<CreateLeaveReque
 
     public async Task<LeaveRequestResponseDto> Handle(CreateLeaveRequestCommand request, CancellationToken ct)
     {
+        if (request.Dto.EndDate.Date < request.Dto.StartDate.Date)
+            throw new AppException("Start date cannot be greater than end date.");
+
         var leaveType = await _context.Set<LeaveType>()
             .FirstOrDefaultAsync(x => !x.IsDeleted && x.Id == request.Dto.LeaveTypeId, ct)
             ?? throw new NotFoundException(nameof(LeaveType), request.Dto.LeaveTypeId);

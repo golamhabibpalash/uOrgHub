@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Check, X } from "lucide-react";
 import DataTable from "../../components/shared/DataTable";
@@ -33,6 +33,22 @@ export default function LeaveManagement() {
     reason: "",
     employeeId: "",
   });
+  const [reqFormError, setReqFormError] = useState("");
+
+  const reqFormValidation = useMemo(() => {
+    const s = reqForm.startDate;
+    const e = reqForm.endDate;
+    if (s && e) {
+      const start = new Date(s);
+      const end = new Date(e);
+      if (start > end) {
+        return { valid: false, error: "Start date cannot be greater than end date.", totalDays: null };
+      }
+      const diff = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      return { valid: true, error: "", totalDays: diff };
+    }
+    return { valid: true, error: "", totalDays: null };
+  }, [reqForm.startDate, reqForm.endDate]);
 
   const { data: typesData, isLoading: typesLoading } = useQuery({
     queryKey: ["leave-types", page],
@@ -148,7 +164,7 @@ export default function LeaveManagement() {
         )}
         {activeTab === "requests" && (
           <button
-            onClick={() => { setReqForm({ leaveTypeId: "", startDate: "", endDate: "", reason: "", employeeId: "" }); setReqModal(true); }}
+            onClick={() => { setReqForm({ leaveTypeId: "", startDate: "", endDate: "", reason: "", employeeId: "" }); setReqFormError(""); setReqModal(true); }}
             className="flex items-center gap-2 bg-primary-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-primary-600"
           >
             <Plus size={15} /> New Request
@@ -257,20 +273,42 @@ export default function LeaveManagement() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Start Date</label>
-              <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={reqForm.startDate} onChange={(e) => setReqForm(f => ({ ...f, startDate: e.target.value }))} />
+              <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={reqForm.startDate} onChange={(e) => { setReqForm(f => ({ ...f, startDate: e.target.value })); setReqFormError(""); }} />
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">End Date</label>
-              <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={reqForm.endDate} onChange={(e) => setReqForm(f => ({ ...f, endDate: e.target.value }))} />
+              <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={reqForm.endDate} onChange={(e) => { setReqForm(f => ({ ...f, endDate: e.target.value })); setReqFormError(""); }} />
             </div>
           </div>
+          {reqFormValidation.totalDays !== null && reqFormValidation.valid && (
+            <div className="text-xs text-gray-500">
+              Total days: <strong>{reqFormValidation.totalDays}</strong>
+            </div>
+          )}
+          {reqFormValidation.error && (
+            <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {reqFormValidation.error}
+            </div>
+          )}
+          {reqFormError && (
+            <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {reqFormError}
+            </div>
+          )}
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Reason</label>
             <textarea rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={reqForm.reason} onChange={(e) => setReqForm(f => ({ ...f, reason: e.target.value }))} />
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={() => setReqModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-            <button onClick={() => saveReqMutation.mutate()} disabled={saveReqMutation.isPending} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">
+            <button
+              onClick={() => {
+                if (!reqFormValidation.valid) { setReqFormError(reqFormValidation.error); return; }
+                saveReqMutation.mutate();
+              }}
+              disabled={saveReqMutation.isPending}
+              className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
+            >
               {saveReqMutation.isPending ? "Submitting..." : "Submit"}
             </button>
           </div>

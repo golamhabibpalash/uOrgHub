@@ -7,6 +7,7 @@ using uOrgHub.Accounts;
 using uOrgHub.API.Middleware;
 using uOrgHub.API.Services;
 using uOrgHub.Auth;
+using uOrgHub.Auth.Seeders;
 using uOrgHub.HR;
 using uOrgHub.Inventory;
 using uOrgHub.Procurement;
@@ -131,16 +132,31 @@ app.UseMiddleware<PermissionMiddleware>();
 // Auto-migrate on startup
 using (var scope = app.Services.CreateScope())
 {
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    var migrated = false;
     try
     {
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         db.Database.Migrate();
+        migrated = true;
     }
     catch (Exception ex)
     {
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
         logger.LogWarning(ex, "Database migration skipped: {Message}", ex.Message);
         Console.WriteLine($"Database migration skipped: {ex.Message}\nThe application will continue without applying migrations.");
+    }
+
+    if (migrated)
+    {
+        try
+        {
+            var seeder = scope.ServiceProvider.GetRequiredService<IAuthSeeder>();
+            await seeder.SeedAsync();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Auth seeding failed: {Message}", ex.Message);
+        }
     }
 }
 
