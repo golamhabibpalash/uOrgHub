@@ -10,12 +10,6 @@ export default function MyProfilePage() {
   const [pw, setPw] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-
-  const flash = (type: 'success' | 'error', text: string) => {
-    setMsg({ type, text });
-    setTimeout(() => setMsg(null), 3000);
-  };
 
   const handleProfileSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,21 +17,21 @@ export default function MyProfilePage() {
     try {
       const updated = await updateProfile(form);
       setUser(updated as unknown as typeof user extends null ? never : NonNullable<typeof user>);
-      flash('success', 'Profile updated successfully.');
-    } catch { flash('error', 'Failed to update profile.'); }
+    } catch {
+      // handled by axios interceptor
+    }
     finally { setLoading(false); }
   };
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pw.newPassword !== pw.confirmPassword) { flash('error', 'Passwords do not match.'); return; }
+    if (pw.newPassword !== pw.confirmPassword) { return; }
     setLoading(true);
     try {
       await changePassword(pw);
       setPw({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      flash('success', 'Password changed. You may need to login again on other devices.');
-    } catch (err: unknown) {
-      flash('error', (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to change password.');
+    } catch {
+      // handled by axios interceptor
     } finally { setLoading(false); }
   };
 
@@ -46,8 +40,9 @@ export default function MyProfilePage() {
     setLoading(true);
     try {
       await toggle2FA(!user.isTwoFactorEnabled, user.isTwoFactorEnabled ? undefined : 'Email');
-      flash('success', `2FA ${user.isTwoFactorEnabled ? 'disabled' : 'enabled'}.`);
-    } catch { flash('error', 'Failed to update 2FA settings.'); }
+    } catch {
+      // handled by axios interceptor
+    }
     finally { setLoading(false); }
   };
 
@@ -72,12 +67,6 @@ export default function MyProfilePage() {
           <p className="text-slate-400 text-sm">{user.email} · {user.roles.join(', ')}</p>
         </div>
       </div>
-
-      {msg && (
-        <div className={`text-sm rounded-lg px-4 py-3 mb-4 ${msg.type === 'success' ? 'bg-green-500/10 border border-green-500/30 text-green-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
-          {msg.text}
-        </div>
-      )}
 
       <div className="flex gap-1 mb-6 border-b border-slate-700">
         {([['info', 'Profile', User], ['password', 'Password', Lock], ['security', 'Security', Shield]] as const).map(([key, label, Icon]) => (

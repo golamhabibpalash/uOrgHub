@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { AxiosError } from "axios";
 import { Plus } from "lucide-react";
+import toast from "react-hot-toast";
 import DataTable from "../../components/shared/DataTable";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
@@ -21,16 +21,9 @@ export default function Departments() {
   const [search, setSearch] = useState("");
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Department | null>(null);
-  const [error, setError] = useState("");
   const [form, setForm] = useState({ name: "", code: "", description: "" });
   const [deleteTarget, setDeleteTarget] = useState<Department | null>(null);
   const [checkingDeps, setCheckingDeps] = useState(false);
-  const [toast, setToast] = useState<{ kind: "success" | "error"; text: string } | null>(null);
-
-  function showToast(kind: "success" | "error", text: string) {
-    setToast({ kind, text });
-    setTimeout(() => setToast(null), 5000);
-  }
 
   const { data, isLoading } = useQuery({
     queryKey: ["departments", page, search],
@@ -47,15 +40,6 @@ export default function Departments() {
       qc.invalidateQueries({ queryKey: ["departments"] });
       closeModal();
     },
-    onError: (err: Error) => {
-      const axiosErr = err as AxiosError<{ message?: string; errors?: string[] }>;
-      setError(
-        axiosErr.response?.data?.message ||
-          axiosErr.response?.data?.errors?.[0] ||
-          err.message ||
-          "An error occurred"
-      );
-    },
   });
 
   const deleteMutation = useMutation({
@@ -63,19 +47,9 @@ export default function Departments() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["departments"] });
       qc.invalidateQueries({ queryKey: ["departments-all"] });
-      showToast("success", `Department "${deleteTarget?.name ?? ""}" deleted successfully.`);
       setDeleteTarget(null);
     },
-    onError: (err: Error) => {
-      const axiosErr = err as AxiosError<{ message?: string; errors?: string[] }>;
-      const msg =
-        axiosErr.response?.data?.message ||
-        axiosErr.response?.data?.errors?.[0] ||
-        err.message ||
-        "Failed to delete department.";
-      showToast("error", msg);
-      setDeleteTarget(null);
-    },
+    onError: () => setDeleteTarget(null),
   });
 
   async function handleDeleteClick(dep: Department) {
@@ -84,17 +58,16 @@ export default function Departments() {
       const response = await getDepartmentDependencies(dep.id);
       const deps = response.data.data;
       if (!deps) {
-        showToast("error", "Could not check dependencies. Please try again.");
+        toast.error("Could not check dependencies. Please try again.");
         return;
       }
       if (!deps.canDelete) {
-        showToast("error", deps.blockingReason || "This department cannot be deleted.");
+        toast.error(deps.blockingReason || "This department cannot be deleted.");
         return;
       }
       setDeleteTarget(dep);
-    } catch (err) {
-      const axiosErr = err as AxiosError<{ message?: string }>;
-      showToast("error", axiosErr.response?.data?.message || "Could not check dependencies. Please try again.");
+    } catch {
+      toast.error("Could not check dependencies. Please try again.");
     } finally {
       setCheckingDeps(false);
     }
@@ -152,18 +125,6 @@ export default function Departments() {
           <Plus size={15} /> Add Department
         </button>
       </div>
-
-      {toast && (
-        <div
-          className={`fixed top-4 right-4 z-[70] max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${
-            toast.kind === "success"
-              ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-              : "bg-red-50 border-red-200 text-red-800"
-          }`}
-        >
-          {toast.text}
-        </div>
-      )}
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-100">
@@ -229,11 +190,6 @@ export default function Departments() {
               }
             />
           </div>
-          {error && (
-            <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-              {error}
-            </div>
-          )}
           <div className="flex justify-end gap-2 pt-2">
             <button
               onClick={closeModal}

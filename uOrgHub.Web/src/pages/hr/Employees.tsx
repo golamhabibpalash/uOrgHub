@@ -121,27 +121,6 @@ export default function Employees() {
     onSuccess: () => {
       closeModal();
       qc.invalidateQueries({ queryKey: ["employees"] });
-      setSuccess(editing ? "Employee updated successfully." : "Employee created successfully.");
-      setTimeout(() => setSuccess(""), 4000);
-    },
-    onError: (err: Error) => {
-      const axiosErr = err as AxiosError<{
-        message?: string;
-        errors?: string[] | Record<string, string[]>;
-      }>;
-      const data = axiosErr.response?.data;
-      let msg = "";
-      if (typeof data?.message === "string") {
-        msg = data.message;
-      } else if (data?.errors) {
-        if (Array.isArray(data.errors)) {
-          msg = data.errors[0];
-        } else {
-          const vals = Object.values(data.errors);
-          msg = vals.flat()[0] || "";
-        }
-      }
-      setError(msg || err.message || "An error occurred");
     },
   });
 

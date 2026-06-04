@@ -1,4 +1,5 @@
 import axios from 'axios';
+import toast from 'react-hot-toast';
 import { useAuthStore } from '../store/authStore';
 
 const apiClient = axios.create({
@@ -16,7 +17,16 @@ let isRefreshing = false;
 let refreshQueue: Array<(token: string) => void> = [];
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const method = response.config.method?.toLowerCase();
+    if (method && ['post', 'put', 'delete', 'patch'].includes(method)) {
+      const msg = response.data?.message;
+      if (msg && msg !== 'Success') {
+        toast.success(msg, { duration: 3000 });
+      }
+    }
+    return response;
+  },
   async (error) => {
     const original = error.config;
     const status = error.response?.status;
@@ -58,6 +68,14 @@ apiClient.interceptors.response.use(
       } finally {
         isRefreshing = false;
       }
+    }
+
+    const errMsg = error.response?.data?.message
+      || error.response?.data?.errors?.[0]
+      || error.message
+      || 'An error occurred';
+    if (status && status !== 401 && status !== 403) {
+      toast.error(errMsg, { duration: 4000 });
     }
 
     if (status === 403) {

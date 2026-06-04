@@ -29,7 +29,6 @@ export default function CompanySettingsPage() {
   const [company, setCompany] = useState<CompanyDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
@@ -68,16 +67,14 @@ export default function CompanySettingsPage() {
   const handleSave = async () => {
     if (!company) return;
     setSaving(true);
-    setMessage('');
     try {
       await updateCompany(company.id, form);
       if (logoFile) await uploadLogo(company.id, logoFile);
       setLogoFile(null);
       setLogoPreview(null);
-      setMessage('Company settings saved.');
       await load();
     } catch {
-      setMessage('Failed to save changes.');
+      // handled by axios interceptor
     } finally { setSaving(false); }
   };
 
@@ -97,12 +94,6 @@ export default function CompanySettingsPage() {
           <p className="text-slate-400 text-sm mt-0.5">Manage your organization information</p>
         </div>
       </div>
-
-      {message && (
-        <div className={`text-sm rounded-lg px-4 py-3 mb-4 ${message.includes('saved') ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
-          {message}
-        </div>
-      )}
 
       <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
         <div className="grid grid-cols-2 gap-6">

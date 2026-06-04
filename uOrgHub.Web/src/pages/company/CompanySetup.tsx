@@ -30,7 +30,6 @@ export default function CompanySetup() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [setupComplete, setSetupComplete] = useState(false);
   const [countdown, setCountdown] = useState(5);
@@ -71,7 +70,6 @@ export default function CompanySetup() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
     try {
       const result = await setupCompany({
@@ -99,9 +97,8 @@ export default function CompanySetup() {
       }
 
       setSetupComplete(true);
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Setup failed. Please try again.';
-      setError(msg);
+    } catch {
+      // handled by axios interceptor
     } finally {
       setLoading(false);
     }
@@ -190,12 +187,6 @@ export default function CompanySetup() {
               <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${step >= 2 ? 'bg-primary-600 text-white' : 'bg-slate-700 text-slate-400'}`}>2</span>
             </div>
           </div>
-
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-lg px-4 py-3 mb-4">
-              {error}
-            </div>
-          )}
 
           <form onSubmit={handleSubmit}>
             {step === 1 && (
