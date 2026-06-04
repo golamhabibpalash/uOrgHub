@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Plus, Shield, Check, Lock } from 'lucide-react';
-import { getRoles, getRoleById, getClaims, assignRoleClaims, removeRoleClaim, type RoleDto, type ClaimDto } from '../../api/auth';
+import { getRoles, getRoleById, getClaims, assignRoleClaims, type RoleDto, type ClaimDto } from '../../api/auth';
 
 export default function RolesPage() {
   const [roles, setRoles] = useState<RoleDto[]>([]);
@@ -22,15 +22,11 @@ export default function RolesPage() {
 
   const toggleClaim = async (claim: ClaimDto) => {
     if (!selected) return;
-    const has = selected.claims?.some(c => c.id === claim.id) ?? false;
-    if (selected.isSystem && has) return;
+    const currentIds = selected.claims?.map(c => c.id) ?? [];
+    const has = currentIds.includes(claim.id);
+    const nextIds = has ? currentIds.filter(id => id !== claim.id) : [...currentIds, claim.id];
 
-    if (has) {
-      await removeRoleClaim(selected.id, claim.id);
-    } else {
-      const allIds = [...(selected.claims?.map(c => c.id) ?? []), claim.id];
-      await assignRoleClaims(selected.id, allIds);
-    }
+    await assignRoleClaims(selected.id, nextIds);
     const updated = await getRoles();
     setRoles(updated);
     const full = await getRoleById(selected.id);
@@ -106,12 +102,10 @@ export default function RolesPage() {
                       <div className="grid grid-cols-4 gap-1.5">
                         {moduleClaims.map(claim => {
                           const has = selected.claims?.some(c => c.id === claim.id) ?? false;
-                          const isLocked = selected.isSystem && has;
                           return (
-                            <button key={claim.id} onClick={() => !isLocked && toggleClaim(claim)}
-                              disabled={isLocked}
-                              className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border text-left text-xs transition-all ${has ? 'bg-primary-600/20 border-primary-500/50 text-primary-300' : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500'} ${isLocked ? 'opacity-60 cursor-default' : 'cursor-pointer'}`}>
-                              {has ? <Check size={12} className="shrink-0" /> : isLocked ? <Lock size={12} className="shrink-0 text-slate-500" /> : null}
+                            <button key={claim.id} onClick={() => toggleClaim(claim)}
+                              className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border text-left text-xs transition-all cursor-pointer ${has ? 'bg-primary-600/20 border-primary-500/50 text-primary-300' : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500'}`}>
+                              {has && <Check size={12} className="shrink-0" />}
                               <span className="truncate">{claim.name.split('.')[1] ?? claim.name}</span>
                             </button>
                           );
