@@ -215,6 +215,11 @@ export default function Sidebar() {
     [policy.autoCollapseSiblings, isRouteActiveFor]
   );
 
+  const isParentActive = useCallback(
+    (subItems: { path: string }[]) => isRouteActiveFor(subItems),
+    [isRouteActiveFor]
+  );
+
   const toggleCollapse = () => setIsCollapsed((prev) => !prev);
 
   return (
@@ -267,8 +272,10 @@ export default function Sidebar() {
                   className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors cursor-pointer text-left ${
                     isCollapsed ? "justify-center" : ""
                   } ${
-                    isOpen(label, subItems) ? "text-slate-200" : "text-slate-400"
-                  } hover:text-slate-200 hover:bg-white/5`}
+                    isParentActive(subItems)
+                      ? "bg-primary-500/15 text-primary-300 font-medium"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+                  }`}
                   aria-expanded={isOpen(label, subItems)}
                   aria-label={`${label} module`}
                 >
@@ -320,6 +327,7 @@ export default function Sidebar() {
             ) : (
               <NavLink
                 to={path}
+                end
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2 rounded-md mb-0.5 text-sm transition-colors ${
                     isCollapsed ? "justify-center" : ""
