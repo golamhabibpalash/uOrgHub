@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 import { useEffect, useState } from "react";
 import LoginPage from "./pages/auth/LoginPage";
 import TwoFactorPage from "./pages/auth/TwoFactorPage";
@@ -123,6 +124,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
       <ThemeProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />

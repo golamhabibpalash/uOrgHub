@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 import { useThemeCtx } from '../../context/ThemeProvider';
 import { PALETTES, type PaletteKey, type ThemeSettings } from '../../api/theme';
 import { hexToRgbString, generateShades } from '../../utils/color';
@@ -111,7 +112,10 @@ export default function ThemeSettingsPage() {
       <div className="flex items-center gap-3 pt-4 border-t border-gray-200">
         <button
           onClick={async () => {
-            await saveTheme(current);
+            try {
+              await saveTheme(current);
+              toast.success('Theme saved');
+            } catch { toast.error('Failed to save theme'); }
             setDraft(null);
           }}
           className="px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600 transition-colors"
@@ -120,7 +124,10 @@ export default function ThemeSettingsPage() {
         </button>
         <button
           onClick={async () => {
-            await resetToDefault();
+            try {
+              await resetToDefault();
+              toast.success('Theme reset to defaults');
+            } catch { toast.error('Failed to reset theme'); }
             setDraft(null);
           }}
           className="px-4 py-2 border border-gray-200 text-gray-600 text-sm rounded-lg hover:bg-gray-50 transition-colors"
