@@ -526,3 +526,21 @@ export const createEmployeeTraining = (data: Partial<EmployeeTraining>) =>
 
 export const updateEmployeeTraining = (id: string, data: Partial<EmployeeTraining>) =>
   apiClient.put<ApiResponse<EmployeeTraining>>(`/performance/employee-trainings/${id}`, data);
+
+export interface HRDashboardData {
+  totalEmployees: number;
+  totalDepartments: number;
+  openPositions: number;
+  pendingLeaveRequests: number;
+  activePayrollCycles: number;
+  activeTrainings: number;
+  newEmployeesThisMonth: number;
+  leaveRequestsThisMonth: number;
+  activeJobPostings: number;
+  attendanceRate: number;
+  employeesPerDepartment: { departmentName: string; employeeCount: number }[];
+  recentActivities: { description: string; timestamp: string }[];
+}
+
+export const getHRDashboard = () =>
+  apiClient.get<ApiResponse<HRDashboardData>>("/hr/dashboard").then((r) => r.data.data!);

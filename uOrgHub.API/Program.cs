@@ -53,6 +53,9 @@ builder.Services.AddScoped<IEmployeeWithUserService, EmployeeWithUserService>();
 // HR Module
 builder.Services.AddHRModule();
 
+// HR Dashboard Service
+builder.Services.AddScoped<IHRDashboardService, HRDashboardService>();
+
 // Accounts Module
 builder.Services.AddAccountsModule();
 
