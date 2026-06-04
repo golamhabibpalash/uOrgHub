@@ -110,13 +110,13 @@ export const changeUsername = (id: string, newUsername: string) =>
 
 export const deleteUser = (id: string) => apiClient.delete(`/users/${id}`);
 
-export const activateUser = (id: string) => apiClient.post(`/users/${id}/activate`);
-export const deactivateUser = (id: string) => apiClient.post(`/users/${id}/deactivate`);
-export const unlockUser = (id: string) => apiClient.post(`/users/${id}/unlock`);
+export const activateUser = (id: string) => apiClient.put(`/users/${id}/activate`);
+export const deactivateUser = (id: string) => apiClient.put(`/users/${id}/deactivate`);
+export const unlockUser = (id: string) => apiClient.put(`/users/${id}/unlock`);
 export const forceLogout = (id: string) => apiClient.post(`/users/${id}/force-logout`);
 
 export const setUserRoles = (id: string, roleIds: string[]) =>
-  apiClient.put(`/users/${id}/roles`, { roleIds });
+  apiClient.post(`/users/${id}/roles`, { roleIds });
 
 export const addUserClaim = (id: string, claimId: string, isGranted: boolean) =>
   apiClient.post(`/users/${id}/claims`, { claimId, isGranted });

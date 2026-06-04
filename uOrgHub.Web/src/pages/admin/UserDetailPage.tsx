@@ -21,6 +21,7 @@ export default function UserDetailPage() {
   const [sessions, setSessions] = useState<SessionDto[]>([]);
   const [logs, setLogs] = useState<PagedResult<AccessLogDto> | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [usernameModalOpen, setUsernameModalOpen] = useState(false);
   const [usernameInput, setUsernameInput] = useState('');
   const [usernameSaving, setUsernameSaving] = useState(false);
@@ -28,15 +29,21 @@ export default function UserDetailPage() {
 
   useEffect(() => {
     if (!id) return;
+    setLoading(true);
+    setLoadError(null);
     Promise.all([getUserById(id), getRoles(), getClaims()])
       .then(([u, r, c]) => { setUser(u); setRoles(r); setClaims(c); })
+      .catch((err: unknown) => {
+        const axiosErr = err as AxiosError<{ message?: string }>;
+        setLoadError(axiosErr?.response?.data?.message || axiosErr?.message || 'Failed to load user details.');
+      })
       .finally(() => setLoading(false));
   }, [id]);
 
   useEffect(() => {
     if (!id) return;
-    if (tab === 'sessions' && sessions.length === 0) getUserSessions(id).then(setSessions);
-    if (tab === 'logs' && !logs) getUserAccessLogs(id).then(setLogs);
+    if (tab === 'sessions' && sessions.length === 0) getUserSessions(id).then(setSessions).catch(() => {});
+    if (tab === 'logs' && !logs) getUserAccessLogs(id).then(setLogs).catch(() => {});
   }, [tab, id]);
 
   const toggleRole = async (roleId: string, roleName: string) => {
@@ -100,8 +107,16 @@ export default function UserDetailPage() {
     { key: 'logs', label: 'Access Log', icon: ScrollText },
   ];
 
-  if (loading) return <div className="p-6 text-slate-400">Loading...</div>;
-  if (!user) return <div className="p-6 text-slate-400">User not found.</div>;
+  if (loading) return <div className="p-6 min-h-full bg-slate-900 text-slate-400">Loading...</div>;
+  if (loadError) return (
+    <div className="p-6 min-h-full bg-slate-900">
+      <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg p-4 mb-4">{loadError}</div>
+      <button onClick={() => navigate('/admin/users')} className="flex items-center gap-2 text-slate-400 hover:text-slate-200 text-sm">
+        <ArrowLeft size={16} /> Back to Users
+      </button>
+    </div>
+  );
+  if (!user) return <div className="p-6 min-h-full bg-slate-900 text-slate-400">User not found. <button onClick={() => navigate('/admin/users')} className="text-primary-400 hover:text-primary-300 ml-1">Back to Users</button></div>;
 
   const claimsByModule = claims.reduce((acc, c) => {
     const m = c.module ?? 'Other';
