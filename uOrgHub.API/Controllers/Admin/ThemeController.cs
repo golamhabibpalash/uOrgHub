@@ -27,7 +27,6 @@ public class ThemeController : ControllerBase
     }
 
     [HttpPut]
-    [RequireClaim("Settings.Edit")]
     public async Task<IActionResult> Update([FromBody] UpdateThemeDto dto)
     {
         var result = await _theme.UpdateAsync(dto);
@@ -35,7 +34,6 @@ public class ThemeController : ControllerBase
     }
 
     [HttpPost("reset")]
-    [RequireClaim("Settings.Edit")]
     public async Task<IActionResult> Reset()
     {
         var result = await _theme.ResetDefaultAsync();
