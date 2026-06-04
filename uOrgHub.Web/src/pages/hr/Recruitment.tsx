@@ -27,7 +27,7 @@ export default function Recruitment() {
   const [page, setPage] = useState(1);
   const [modal, setModal] = useState(false);
 
-  const [postingForm, setPostingForm] = useState({ title: "", departmentId: "", designationId: "", description: "", requirements: "", location: "", status: "Open", closingDate: "" });
+  const [postingForm, setPostingForm] = useState({ title: "", departmentId: "", designationId: "", description: "", requirements: "", location: "", status: "Published", closingDate: "" });
   const [candidateForm, setCandidateForm] = useState({ firstName: "", lastName: "", email: "", phone: "", source: "" });
   const [appForm, setAppForm] = useState({ candidateId: "", jobPostingId: "" });
   const [interviewForm, setInterviewForm] = useState({ applicationId: "", scheduledAt: "", location: "" });
@@ -59,7 +59,7 @@ export default function Recruitment() {
   function openModal(tab: typeof activeTab) {
     setActiveTab(tab);
     setModal(true);
-    if (tab === "postings") setPostingForm({ title: "", departmentId: "", designationId: "", description: "", requirements: "", location: "", status: "Open", closingDate: "" });
+    if (tab === "postings") setPostingForm({ title: "", departmentId: "", designationId: "", description: "", requirements: "", location: "", status: "Published", closingDate: "" });
     if (tab === "candidates") setCandidateForm({ firstName: "", lastName: "", email: "", phone: "", source: "" });
     if (tab === "applications") setAppForm({ candidateId: "", jobPostingId: "" });
     if (tab === "interviews") setInterviewForm({ applicationId: "", scheduledAt: "", location: "" });
@@ -99,7 +99,7 @@ export default function Recruitment() {
             <div><label className="text-xs text-gray-500 mb-1 block">Location</label><input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={postingForm.location} onChange={e => setPostingForm(f => ({ ...f, location: e.target.value }))} /></div>
             <div><label className="text-xs text-gray-500 mb-1 block">Description</label><textarea rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={postingForm.description} onChange={e => setPostingForm(f => ({ ...f, description: e.target.value }))} /></div>
             <div><label className="text-xs text-gray-500 mb-1 block">Requirements</label><textarea rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={postingForm.requirements} onChange={e => setPostingForm(f => ({ ...f, requirements: e.target.value }))} /></div>
-            <div className="grid grid-cols-2 gap-3"><div><label className="text-xs text-gray-500 mb-1 block">Status</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={postingForm.status} onChange={e => setPostingForm(f => ({ ...f, status: e.target.value }))}><option value="Open">Open</option><option value="Closed">Closed</option></select></div><div><label className="text-xs text-gray-500 mb-1 block">Closing Date</label><input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={postingForm.closingDate} onChange={e => setPostingForm(f => ({ ...f, closingDate: e.target.value }))} /></div></div>
+            <div className="grid grid-cols-2 gap-3"><div><label className="text-xs text-gray-500 mb-1 block">Status</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={postingForm.status} onChange={e => setPostingForm(f => ({ ...f, status: e.target.value }))}><option value="Published">Published</option><option value="Closed">Closed</option><option value="OnHold">On Hold</option></select></div><div><label className="text-xs text-gray-500 mb-1 block">Closing Date</label><input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={postingForm.closingDate} onChange={e => setPostingForm(f => ({ ...f, closingDate: e.target.value }))} /></div></div>
             <div className="flex justify-end gap-2 pt-2"><button onClick={() => setModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button><button onClick={() => postingMutation.mutate()} disabled={postingMutation.isPending} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">{postingMutation.isPending ? "Saving..." : "Save"}</button></div>
           </div>
         )}

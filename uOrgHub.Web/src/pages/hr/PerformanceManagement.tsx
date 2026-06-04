@@ -33,8 +33,8 @@ export default function PerformanceManagement() {
   const [cycleForm, setCycleForm] = useState({ name: "", startDate: "", endDate: "" });
   const [goalForm, setGoalForm] = useState({ employeeId: "", title: "", description: "", targetDate: "" });
   const [reviewForm, setReviewForm] = useState({ employeeId: "", reviewerId: "", reviewCycleId: "" });
-  const [trainingForm, setTrainingForm] = useState({ employeeId: "", programId: "" });
-  const [programForm, setProgramForm] = useState({ name: "", description: "", trainer: "", startDate: "", endDate: "", maxParticipants: 0 });
+  const [trainingForm, setTrainingForm] = useState({ employeeId: "", trainingProgramId: "" });
+  const [programForm, setProgramForm] = useState({ title: "", description: "", provider: "", startDate: "", endDate: "", maxParticipants: 0 });
 
   const { data: cyclesData, isLoading: cyclesLoading } = useQuery({ queryKey: ["review-cycles", page], queryFn: () => getReviewCycles({ page, pageSize: 10 }) });
   const { data: goalsData, isLoading: goalsLoading } = useQuery({ queryKey: ["goals", page], queryFn: () => getGoals({ page, pageSize: 10 }) });
@@ -71,15 +71,15 @@ export default function PerformanceManagement() {
     if (tab === "training") {
       setTrainingMode(action);
       if (action === "enroll") {
-        setTrainingForm({ employeeId: "", programId: "" });
+        setTrainingForm({ employeeId: "", trainingProgramId: "" });
       } else {
-        setProgramForm({ name: "", description: "", trainer: "", startDate: "", endDate: "", maxParticipants: 0 });
+        setProgramForm({ title: "", description: "", provider: "", startDate: "", endDate: "", maxParticipants: 0 });
       }
     }
   }
 
   function handleEnroll() {
-    if (trainingForm.employeeId && trainingForm.programId) {
+    if (trainingForm.employeeId && trainingForm.trainingProgramId) {
       enrollMutation.mutate();
     }
   }
@@ -87,7 +87,7 @@ export default function PerformanceManagement() {
   const cycleCols = [{ key: "name", label: "Cycle Name" }, { key: "startDate", label: "Start", render: (r: ReviewCycle) => new Date(r.startDate).toLocaleDateString() }, { key: "endDate", label: "End", render: (r: ReviewCycle) => new Date(r.endDate).toLocaleDateString() }, { key: "status", label: "Status", render: (r: ReviewCycle) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.status === "Active" ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-600"}`}>{r.status}</span> }];
   const goalCols = [{ key: "employeeName", label: "Employee" }, { key: "title", label: "Goal" }, { key: "description", label: "Description" }, { key: "targetDate", label: "Target", render: (r: Goal) => new Date(r.targetDate).toLocaleDateString() }, { key: "progress", label: "Progress", render: (r: Goal) => <div className="w-20 bg-gray-200 rounded-full h-2"><div className="bg-primary-500 h-2 rounded-full" style={{ width: `${r.progress}%` }} /></div> }, { key: "status", label: "Status", render: (r: Goal) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.status === "Completed" ? "bg-green-50 text-green-700" : r.status === "InProgress" ? "bg-blue-50 text-blue-700" : "bg-yellow-50 text-yellow-700"}`}>{r.status}</span> }];
   const reviewCols = [{ key: "employeeName", label: "Employee" }, { key: "reviewerName", label: "Reviewer" }, { key: "reviewCycleName", label: "Cycle" }, { key: "rating", label: "Rating", render: (r: PerformanceReview) => `${r.rating}/5` }, { key: "status", label: "Status", render: (r: PerformanceReview) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.status === "Submitted" ? "bg-green-50 text-green-700" : "bg-yellow-50 text-yellow-700"}`}>{r.status}</span> }];
-  const programCols = [{ key: "name", label: "Program Name" }, { key: "trainer", label: "Trainer" }, { key: "startDate", label: "Start", render: (r: TrainingProgram) => new Date(r.startDate).toLocaleDateString() }, { key: "endDate", label: "End", render: (r: TrainingProgram) => new Date(r.endDate).toLocaleDateString() }, { key: "maxParticipants", label: "Max Participants" }, { key: "isActive", label: "Status", render: (r: TrainingProgram) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.isActive ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>{r.isActive ? "Active" : "Inactive"}</span> }];
+  const programCols = [{ key: "title", label: "Program Name" }, { key: "provider", label: "Trainer" }, { key: "startDate", label: "Start", render: (r: TrainingProgram) => new Date(r.startDate).toLocaleDateString() }, { key: "endDate", label: "End", render: (r: TrainingProgram) => new Date(r.endDate).toLocaleDateString() }, { key: "maxParticipants", label: "Max Participants" }, { key: "isActive", label: "Status", render: (r: TrainingProgram) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.isActive ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>{r.isActive ? "Active" : "Inactive"}</span> }];
 
   const tabs = ["cycles", "goals", "reviews", "training"] as const;
 
@@ -126,7 +126,7 @@ export default function PerformanceManagement() {
               <h3 className="text-sm font-medium">Employee Enrollments</h3>
               <button onClick={() => openModal("training", "enroll")} className="text-xs bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">Enroll Employee</button>
             </div>
-            <DataTable columns={[{ key: "employeeName", label: "Employee" }, { key: "programName", label: "Program" }, { key: "status", label: "Status", render: (r: EmployeeTraining) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.status === "Completed" ? "bg-green-50 text-green-700" : r.status === "InProgress" ? "bg-blue-50 text-blue-700" : "bg-yellow-50 text-yellow-700"}`}>{r.status}</span> }, { key: "completionDate", label: "Completed", render: (r: EmployeeTraining) => r.completionDate ? new Date(r.completionDate).toLocaleDateString() : "-" }]} data={empTrainings} loading={empTrainingsLoading} />
+            <DataTable columns={[{ key: "employeeName", label: "Employee" }, { key: "trainingTitle", label: "Program" }, { key: "status", label: "Status", render: (r: EmployeeTraining) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.status === "Completed" ? "bg-green-50 text-green-700" : r.status === "InProgress" ? "bg-blue-50 text-blue-700" : "bg-yellow-50 text-yellow-700"}`}>{r.status}</span> }, { key: "completionDate", label: "Completed", render: (r: EmployeeTraining) => r.completionDate ? new Date(r.completionDate).toLocaleDateString() : "-" }]} data={empTrainings} loading={empTrainingsLoading} />
           </div>
         </div>
       )}
@@ -159,14 +159,14 @@ export default function PerformanceManagement() {
         {activeTab === "training" && trainingMode === "enroll" && (
           <div className="space-y-3">
             <div><label className="text-xs text-gray-500 mb-1 block">Employee</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={trainingForm.employeeId} onChange={e => setTrainingForm(f => ({ ...f, employeeId: e.target.value }))}><option value="">Select</option>{employees.map(e => <option key={e.id} value={e.id}>{e.firstName} {e.lastName}</option>)}</select></div>
-            <div><label className="text-xs text-gray-500 mb-1 block">Training Program</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={trainingForm.programId} onChange={e => setTrainingForm(f => ({ ...f, programId: e.target.value }))}><option value="">Select</option>{programs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
-            <div className="flex justify-end gap-2 pt-2"><button onClick={() => setModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button><button onClick={handleEnroll} disabled={enrollMutation.isPending || !trainingForm.employeeId || !trainingForm.programId} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">{enrollMutation.isPending ? "Enrolling..." : "Enroll"}</button></div>
+            <div><label className="text-xs text-gray-500 mb-1 block">Training Program</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={trainingForm.trainingProgramId} onChange={e => setTrainingForm(f => ({ ...f, trainingProgramId: e.target.value }))}><option value="">Select</option>{programs.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}</select></div>
+            <div className="flex justify-end gap-2 pt-2"><button onClick={() => setModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button><button onClick={handleEnroll} disabled={enrollMutation.isPending || !trainingForm.employeeId || !trainingForm.trainingProgramId} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">{enrollMutation.isPending ? "Enrolling..." : "Enroll"}</button></div>
           </div>
         )}
         {activeTab === "training" && trainingMode === "add" && (
           <div className="space-y-3">
-            <div><label className="text-xs text-gray-500 mb-1 block">Program Name</label><input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={programForm.name} onChange={e => setProgramForm(f => ({ ...f, name: e.target.value }))} /></div>
-            <div><label className="text-xs text-gray-500 mb-1 block">Trainer</label><input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={programForm.trainer} onChange={e => setProgramForm(f => ({ ...f, trainer: e.target.value }))} /></div>
+            <div><label className="text-xs text-gray-500 mb-1 block">Program Name</label><input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={programForm.title} onChange={e => setProgramForm(f => ({ ...f, title: e.target.value }))} /></div>
+            <div><label className="text-xs text-gray-500 mb-1 block">Trainer</label><input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={programForm.provider} onChange={e => setProgramForm(f => ({ ...f, provider: e.target.value }))} /></div>
             <div className="grid grid-cols-3 gap-3"><div><label className="text-xs text-gray-500 mb-1 block">Start</label><input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={programForm.startDate} onChange={e => setProgramForm(f => ({ ...f, startDate: e.target.value }))} /></div><div><label className="text-xs text-gray-500 mb-1 block">End</label><input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={programForm.endDate} onChange={e => setProgramForm(f => ({ ...f, endDate: e.target.value }))} /></div><div><label className="text-xs text-gray-500 mb-1 block">Max</label><input type="number" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={programForm.maxParticipants} onChange={e => setProgramForm(f => ({ ...f, maxParticipants: Number(e.target.value) }))} /></div></div>
             <div><label className="text-xs text-gray-500 mb-1 block">Description</label><textarea rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={programForm.description} onChange={e => setProgramForm(f => ({ ...f, description: e.target.value }))} /></div>
             <div className="flex justify-end gap-2 pt-2"><button onClick={() => setModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button><button onClick={() => programMutation.mutate()} disabled={programMutation.isPending} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">{programMutation.isPending ? "Saving..." : "Save"}</button></div>

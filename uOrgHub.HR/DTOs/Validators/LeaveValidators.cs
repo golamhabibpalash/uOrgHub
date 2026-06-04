@@ -32,8 +32,6 @@ public class ApproveLeaveRequestDtoValidator : AbstractValidator<ApproveLeaveReq
     public ApproveLeaveRequestDtoValidator()
     {
         RuleFor(x => x.LeaveRequestId).NotEmpty();
-        RuleFor(x => x.ApproverId).NotEmpty();
-        RuleFor(x => x.ApprovalLevel).GreaterThan(0);
         RuleFor(x => x.Comments).MaximumLength(1000).When(x => x.Comments != null);
     }
 }

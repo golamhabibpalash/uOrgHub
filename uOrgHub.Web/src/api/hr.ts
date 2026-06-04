@@ -43,7 +43,7 @@ export interface LeaveType {
   name: string;
   code: string;
   description: string;
-  maxDaysPerYear: number;
+  totalDaysPerYear: number;
   isPaid: boolean;
   isActive: boolean;
 }
@@ -95,18 +95,18 @@ export interface AttendanceLog {
   id: string;
   employeeId: string;
   employeeName: string;
-  date: string;
+  attendanceDate: string;
   checkIn: string;
   checkOut: string;
-  workingHours: number;
+  workHours: number;
   status: string;
-  notes?: string;
+  remarks?: string;
 }
 
 export interface SalaryGrade {
   id: string;
   name: string;
-  code: string;
+  gradeCode: string;
   description: string;
   minSalary: number;
   maxSalary: number;
@@ -117,17 +117,19 @@ export interface SalaryComponent {
   id: string;
   name: string;
   code: string;
-  type: string;
+  componentType: string;
   isTaxable: boolean;
   isActive: boolean;
 }
 
 export interface PayrollCycle {
   id: string;
-  name: string;
+  title: string;
+  year: number;
+  month: number;
   startDate: string;
   endDate: string;
-  paymentDate: string;
+  paymentDate?: string;
   status: string;
 }
 
@@ -241,9 +243,9 @@ export interface PerformanceReview {
 
 export interface TrainingProgram {
   id: string;
-  name: string;
+  title: string;
   description: string;
-  trainer: string;
+  provider: string;
   startDate: string;
   endDate: string;
   maxParticipants: number;
@@ -254,8 +256,8 @@ export interface EmployeeTraining {
   id: string;
   employeeId: string;
   employeeName: string;
-  programId: string;
-  programName: string;
+  trainingProgramId: string;
+  trainingTitle: string;
   status: string;
   completionDate?: string;
 }
@@ -273,13 +275,13 @@ export interface Asset {
 
 // Employees
 export const getEmployees = (params: PaginationRequest) =>
-  apiClient.get<ApiResponse<PagedResult<Employee>>>("/employees", { params });
+  apiClient.get<ApiResponse<PagedResult<Employee>>>("employees", { params });
 
 export const getEmployeeById = (id: string) =>
-  apiClient.get<ApiResponse<Employee>>(`/employees/${id}`);
+  apiClient.get<ApiResponse<Employee>>(`employees/${id}`);
 
 export const createEmployee = (data: Partial<Employee>) =>
-  apiClient.post<ApiResponse<Employee>>("/employees", data);
+  apiClient.post<ApiResponse<Employee>>("employees", data);
 
 export const createEmployeeWithUser = (data: {
   employee: Partial<Employee>;
@@ -292,13 +294,13 @@ export const createEmployeeWithUser = (data: {
     isActive: boolean;
     roleIds: string[];
   };
-}) => apiClient.post<ApiResponse<Employee>>("/employees/with-user", data);
+}) => apiClient.post<ApiResponse<Employee>>("employees/with-user", data);
 
 export const updateEmployee = (id: string, data: Partial<Employee>) =>
-  apiClient.put<ApiResponse<Employee>>(`/employees/${id}`, data);
+  apiClient.put<ApiResponse<Employee>>(`employees/${id}`, data);
 
 export const deleteEmployee = (id: string) =>
-  apiClient.delete<ApiResponse<null>>(`/employees/${id}`);
+  apiClient.delete<ApiResponse<null>>(`employees/${id}`);
 
 export interface EmployeeDependencies {
   employeeId: string;
@@ -315,25 +317,25 @@ export interface EmployeeDependencies {
 }
 
 export const getEmployeeDependencies = (id: string) =>
-  apiClient.get<ApiResponse<EmployeeDependencies>>(`/employees/${id}/dependencies`);
+  apiClient.get<ApiResponse<EmployeeDependencies>>(`employees/${id}/dependencies`);
 
 // Departments
 export const getDepartments = (params: PaginationRequest) =>
-  apiClient.get<ApiResponse<PagedResult<Department>>>("/departments", {
+  apiClient.get<ApiResponse<PagedResult<Department>>>("departments", {
     params,
   });
 
 export const getDepartmentById = (id: string) =>
-  apiClient.get<ApiResponse<Department>>(`/departments/${id}`);
+  apiClient.get<ApiResponse<Department>>(`departments/${id}`);
 
 export const createDepartment = (data: Partial<Department>) =>
-  apiClient.post<ApiResponse<Department>>("/departments", data);
+  apiClient.post<ApiResponse<Department>>("departments", data);
 
 export const updateDepartment = (id: string, data: Partial<Department>) =>
-  apiClient.put<ApiResponse<Department>>(`/departments/${id}`, data);
+  apiClient.put<ApiResponse<Department>>(`departments/${id}`, data);
 
 export const deleteDepartment = (id: string) =>
-  apiClient.delete<ApiResponse<null>>(`/departments/${id}`);
+  apiClient.delete<ApiResponse<null>>(`departments/${id}`);
 
 export interface DepartmentDependencies {
   departmentId: string;
@@ -347,7 +349,7 @@ export interface DepartmentDependencies {
 }
 
 export const getDepartmentDependencies = (id: string) =>
-  apiClient.get<ApiResponse<DepartmentDependencies>>(`/departments/${id}/dependencies`);
+  apiClient.get<ApiResponse<DepartmentDependencies>>(`departments/${id}/dependencies`);
 
 export interface DesignationDependencies {
   designationId: string;
@@ -358,52 +360,52 @@ export interface DesignationDependencies {
 }
 
 export const getDesignationDependencies = (id: string) =>
-  apiClient.get<ApiResponse<DesignationDependencies>>(`/designations/${id}/dependencies`);
+  apiClient.get<ApiResponse<DesignationDependencies>>(`designations/${id}/dependencies`);
 
 // Designations
 export const getDesignations = (params: PaginationRequest, departmentId?: string) =>
-  apiClient.get<ApiResponse<PagedResult<Designation>>>("/designations", {
+  apiClient.get<ApiResponse<PagedResult<Designation>>>("designations", {
     params: { ...params, departmentId },
   });
 
 export const getDesignationById = (id: string) =>
-  apiClient.get<ApiResponse<Designation>>(`/designations/${id}`);
+  apiClient.get<ApiResponse<Designation>>(`designations/${id}`);
 
 export const createDesignation = (data: Partial<Designation>) =>
-  apiClient.post<ApiResponse<Designation>>("/designations", data);
+  apiClient.post<ApiResponse<Designation>>("designations", data);
 
 export const updateDesignation = (id: string, data: Partial<Designation>) =>
-  apiClient.put<ApiResponse<Designation>>(`/designations/${id}`, data);
+  apiClient.put<ApiResponse<Designation>>(`designations/${id}`, data);
 
 export const deleteDesignation = (id: string) =>
-  apiClient.delete<ApiResponse<null>>(`/designations/${id}`);
+  apiClient.delete<ApiResponse<null>>(`designations/${id}`);
 
 // Leave Management
 export const getLeaveTypes = (params: PaginationRequest) =>
-  apiClient.get<ApiResponse<PagedResult<LeaveType>>>("/leave/types", { params });
+  apiClient.get<ApiResponse<PagedResult<LeaveType>>>("leave/types", { params });
 
 export const createLeaveType = (data: Partial<LeaveType>) =>
-  apiClient.post<ApiResponse<LeaveType>>("/leave/types", data);
+  apiClient.post<ApiResponse<LeaveType>>("leave/types", data);
 
 export const updateLeaveType = (id: string, data: Partial<LeaveType>) =>
-  apiClient.put<ApiResponse<LeaveType>>(`/leave/types/${id}`, data);
+  apiClient.put<ApiResponse<LeaveType>>(`leave/types/${id}`, data);
 
 export const getLeaveRequests = (params: PaginationRequest, employeeId?: string, status?: string) =>
-  apiClient.get<ApiResponse<PagedResult<LeaveRequest>>>("/leave/requests", {
+  apiClient.get<ApiResponse<PagedResult<LeaveRequest>>>("leave/requests", {
     params: { ...params, employeeId, status },
   });
 
 export const createLeaveRequest = (data: Partial<LeaveRequest>) =>
-  apiClient.post<ApiResponse<LeaveRequest>>("/leave/requests", data);
+  apiClient.post<ApiResponse<LeaveRequest>>("leave/requests", data);
 
 export const approveLeaveRequest = (id: string, data: { isApproved: boolean; remarks?: string }) =>
-  apiClient.post<ApiResponse<LeaveRequest>>(`/leave/requests/approve`, { ...data, leaveRequestId: id });
+  apiClient.post<ApiResponse<LeaveRequest>>("leave/requests/approve", { ...data, leaveRequestId: id });
 
 export const cancelLeaveRequest = (id: string) =>
-  apiClient.put<ApiResponse<null>>(`/leave/requests/${id}/cancel`, {});
+  apiClient.put<ApiResponse<null>>(`leave/requests/${id}/cancel`, {});
 
 export const getLeaveBalances = (employeeId: string, year?: number) =>
-  apiClient.get<ApiResponse<LeaveBalance[]>>(`/leave/balances/${employeeId}`, {
+  apiClient.get<ApiResponse<LeaveBalance[]>>(`leave/balances/${employeeId}`, {
     params: { year },
   });
 
@@ -412,7 +414,7 @@ export const getWorkSchedules = (params: PaginationRequest) =>
   apiClient.get<ApiResponse<PagedResult<WorkSchedule>>>("attendance/work-schedules", { params });
 
 export const createWorkSchedule = (data: Partial<WorkSchedule>) =>
-  apiClient.post<ApiResponse<WorkSchedule>>("/attendance/work-schedules", data);
+  apiClient.post<ApiResponse<WorkSchedule>>("attendance/work-schedules", data);
 
 export const getShifts = (params: PaginationRequest, workScheduleId?: string) =>
   apiClient.get<ApiResponse<PagedResult<Shift>>>("attendance/shifts", {
@@ -420,7 +422,7 @@ export const getShifts = (params: PaginationRequest, workScheduleId?: string) =>
   });
 
 export const createShift = (data: Partial<Shift>) =>
-  apiClient.post<ApiResponse<Shift>>("/attendance/shifts", data);
+  apiClient.post<ApiResponse<Shift>>("attendance/shifts", data);
 
 export const getAttendanceLogs = (params: PaginationRequest, employeeId?: string, fromDate?: string, toDate?: string) =>
   apiClient.get<ApiResponse<PagedResult<AttendanceLog>>>("attendance/logs", {
@@ -428,29 +430,29 @@ export const getAttendanceLogs = (params: PaginationRequest, employeeId?: string
   });
 
 export const createAttendanceLog = (data: Partial<AttendanceLog>) =>
-  apiClient.post<ApiResponse<AttendanceLog>>("/attendance/logs", data);
+  apiClient.post<ApiResponse<AttendanceLog>>("attendance/logs", data);
 
 export const updateAttendanceLog = (id: string, data: Partial<AttendanceLog>) =>
-  apiClient.put<ApiResponse<AttendanceLog>>(`/attendance/logs/${id}`, data);
+  apiClient.put<ApiResponse<AttendanceLog>>(`attendance/logs/${id}`, data);
 
 // Payroll
 export const getSalaryGrades = (params: PaginationRequest) =>
   apiClient.get<ApiResponse<PagedResult<SalaryGrade>>>("payroll/salary-grades", { params });
 
 export const createSalaryGrade = (data: Partial<SalaryGrade>) =>
-  apiClient.post<ApiResponse<SalaryGrade>>("/payroll/salary-grades", data);
+  apiClient.post<ApiResponse<SalaryGrade>>("payroll/salary-grades", data);
 
 export const getSalaryComponents = (params: PaginationRequest) =>
   apiClient.get<ApiResponse<PagedResult<SalaryComponent>>>("payroll/salary-components", { params });
 
 export const createSalaryComponent = (data: Partial<SalaryComponent>) =>
-  apiClient.post<ApiResponse<SalaryComponent>>("/payroll/salary-components", data);
+  apiClient.post<ApiResponse<SalaryComponent>>("payroll/salary-components", data);
 
 export const getPayrollCycles = (params: PaginationRequest) =>
   apiClient.get<ApiResponse<PagedResult<PayrollCycle>>>("payroll/cycles", { params });
 
 export const createPayrollCycle = (data: Partial<PayrollCycle>) =>
-  apiClient.post<ApiResponse<PayrollCycle>>("/payroll/cycles", data);
+  apiClient.post<ApiResponse<PayrollCycle>>("payroll/cycles", data);
 
 export const getExpenses = (params: PaginationRequest, employeeId?: string) =>
   apiClient.get<ApiResponse<PagedResult<ExpenseRequest>>>("payroll/expenses", {
@@ -458,10 +460,10 @@ export const getExpenses = (params: PaginationRequest, employeeId?: string) =>
   });
 
 export const createExpense = (data: Partial<ExpenseRequest>) =>
-  apiClient.post<ApiResponse<ExpenseRequest>>("/payroll/expenses", data);
+  apiClient.post<ApiResponse<ExpenseRequest>>("payroll/expenses", data);
 
 export const approveExpense = (id: string, data: { isApproved: boolean; remarks?: string }) =>
-  apiClient.put<ApiResponse<ExpenseRequest>>(`/payroll/expenses/${id}/approve`, data);
+  apiClient.put<ApiResponse<ExpenseRequest>>(`payroll/expenses/${id}/approve`, data);
 
 // Recruitment
 export const getJobPostings = (params: PaginationRequest, status?: string) =>
@@ -470,16 +472,16 @@ export const getJobPostings = (params: PaginationRequest, status?: string) =>
   });
 
 export const createJobPosting = (data: Partial<JobPosting>) =>
-  apiClient.post<ApiResponse<JobPosting>>("/recruitment/job-postings", data);
+  apiClient.post<ApiResponse<JobPosting>>("recruitment/job-postings", data);
 
 export const updateJobPosting = (id: string, data: Partial<JobPosting>) =>
-  apiClient.put<ApiResponse<JobPosting>>(`/recruitment/job-postings/${id}`, data);
+  apiClient.put<ApiResponse<JobPosting>>(`recruitment/job-postings/${id}`, data);
 
 export const getCandidates = (params: PaginationRequest) =>
   apiClient.get<ApiResponse<PagedResult<Candidate>>>("recruitment/candidates", { params });
 
 export const createCandidate = (data: Partial<Candidate>) =>
-  apiClient.post<ApiResponse<Candidate>>("/recruitment/candidates", data);
+  apiClient.post<ApiResponse<Candidate>>("recruitment/candidates", data);
 
 export const getApplications = (params: PaginationRequest, jobPostingId?: string) =>
   apiClient.get<ApiResponse<PagedResult<JobApplication>>>("recruitment/applications", {
@@ -487,10 +489,10 @@ export const getApplications = (params: PaginationRequest, jobPostingId?: string
   });
 
 export const createApplication = (data: Partial<JobApplication>) =>
-  apiClient.post<ApiResponse<JobApplication>>("/recruitment/applications", data);
+  apiClient.post<ApiResponse<JobApplication>>("recruitment/applications", data);
 
 export const updateApplication = (id: string, data: Partial<JobApplication>) =>
-  apiClient.put<ApiResponse<JobApplication>>(`/recruitment/applications/${id}`, data);
+  apiClient.put<ApiResponse<JobApplication>>(`recruitment/applications/${id}`, data);
 
 export const getInterviews = (params: PaginationRequest, jobApplicationId?: string) =>
   apiClient.get<ApiResponse<PagedResult<InterviewSchedule>>>("recruitment/interviews", {
@@ -498,23 +500,23 @@ export const getInterviews = (params: PaginationRequest, jobApplicationId?: stri
   });
 
 export const createInterview = (data: Partial<InterviewSchedule>) =>
-  apiClient.post<ApiResponse<InterviewSchedule>>("/recruitment/interviews", data);
+  apiClient.post<ApiResponse<InterviewSchedule>>("recruitment/interviews", data);
 
 export const getOnboardingChecklists = (params: PaginationRequest) =>
   apiClient.get<ApiResponse<PagedResult<OnboardingChecklist>>>("recruitment/onboarding-checklists", { params });
 
 export const createOnboardingChecklist = (data: Partial<OnboardingChecklist>) =>
-  apiClient.post<ApiResponse<OnboardingChecklist>>("/recruitment/onboarding-checklists", data);
+  apiClient.post<ApiResponse<OnboardingChecklist>>("recruitment/onboarding-checklists", data);
 
 // Performance
 export const getReviewCycles = (params: PaginationRequest) =>
   apiClient.get<ApiResponse<PagedResult<ReviewCycle>>>("performance/review-cycles", { params });
 
 export const createReviewCycle = (data: Partial<ReviewCycle>) =>
-  apiClient.post<ApiResponse<ReviewCycle>>("/performance/review-cycles", data);
+  apiClient.post<ApiResponse<ReviewCycle>>("performance/review-cycles", data);
 
 export const updateReviewCycle = (id: string, data: Partial<ReviewCycle>) =>
-  apiClient.put<ApiResponse<ReviewCycle>>(`/performance/review-cycles/${id}`, data);
+  apiClient.put<ApiResponse<ReviewCycle>>(`performance/review-cycles/${id}`, data);
 
 export const getGoals = (params: PaginationRequest, employeeId?: string, reviewCycleId?: string) =>
   apiClient.get<ApiResponse<PagedResult<Goal>>>("performance/goals", {
@@ -522,10 +524,10 @@ export const getGoals = (params: PaginationRequest, employeeId?: string, reviewC
   });
 
 export const createGoal = (data: Partial<Goal>) =>
-  apiClient.post<ApiResponse<Goal>>("/performance/goals", data);
+  apiClient.post<ApiResponse<Goal>>("performance/goals", data);
 
 export const updateGoal = (id: string, data: Partial<Goal>) =>
-  apiClient.put<ApiResponse<Goal>>(`/performance/goals/${id}`, data);
+  apiClient.put<ApiResponse<Goal>>(`performance/goals/${id}`, data);
 
 export const getPerformanceReviews = (params: PaginationRequest, employeeId?: string, reviewCycleId?: string) =>
   apiClient.get<ApiResponse<PagedResult<PerformanceReview>>>("performance/reviews", {
@@ -533,16 +535,16 @@ export const getPerformanceReviews = (params: PaginationRequest, employeeId?: st
   });
 
 export const createPerformanceReview = (data: Partial<PerformanceReview>) =>
-  apiClient.post<ApiResponse<PerformanceReview>>("/performance/reviews", data);
+  apiClient.post<ApiResponse<PerformanceReview>>("performance/reviews", data);
 
 export const submitPerformanceReview = (id: string, data: { rating: number; comments: string }) =>
-  apiClient.put<ApiResponse<PerformanceReview>>(`/performance/reviews/${id}/submit`, data);
+  apiClient.put<ApiResponse<PerformanceReview>>(`performance/reviews/${id}/submit`, data);
 
 export const getTrainingPrograms = (params: PaginationRequest) =>
   apiClient.get<ApiResponse<PagedResult<TrainingProgram>>>("performance/training-programs", { params });
 
 export const createTrainingProgram = (data: Partial<TrainingProgram>) =>
-  apiClient.post<ApiResponse<TrainingProgram>>("/performance/training-programs", data);
+  apiClient.post<ApiResponse<TrainingProgram>>("performance/training-programs", data);
 
 export const getEmployeeTrainings = (params: PaginationRequest, employeeId?: string) =>
   apiClient.get<ApiResponse<PagedResult<EmployeeTraining>>>("performance/employee-trainings", {
@@ -550,10 +552,10 @@ export const getEmployeeTrainings = (params: PaginationRequest, employeeId?: str
   });
 
 export const createEmployeeTraining = (data: Partial<EmployeeTraining>) =>
-  apiClient.post<ApiResponse<EmployeeTraining>>("/performance/employee-trainings", data);
+  apiClient.post<ApiResponse<EmployeeTraining>>("performance/employee-trainings", data);
 
 export const updateEmployeeTraining = (id: string, data: Partial<EmployeeTraining>) =>
-  apiClient.put<ApiResponse<EmployeeTraining>>(`/performance/employee-trainings/${id}`, data);
+  apiClient.put<ApiResponse<EmployeeTraining>>(`performance/employee-trainings/${id}`, data);
 
 export interface HRDashboardData {
   totalEmployees: number;
@@ -571,4 +573,4 @@ export interface HRDashboardData {
 }
 
 export const getHRDashboard = () =>
-  apiClient.get<ApiResponse<HRDashboardData>>("/hr/dashboard").then((r) => r.data.data!);
+  apiClient.get<ApiResponse<HRDashboardData>>("hr/dashboard").then((r) => r.data.data!);

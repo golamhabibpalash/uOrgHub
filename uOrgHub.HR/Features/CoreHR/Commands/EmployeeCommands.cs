@@ -31,7 +31,11 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
         var entity = _mapper.ToEntity(request.Dto);
         entity.CreatedAt = DateTime.UtcNow;
         var created = await _repo.CreateAsync(entity);
-        return _mapper.ToDto(created);
+        var dto = _mapper.ToDto(created);
+        dto.DepartmentName = created.Department?.Name ?? "";
+        dto.DesignationName = created.Designation?.Name ?? "";
+        dto.ManagerName = created.Manager != null ? $"{created.Manager.FirstName} {created.Manager.LastName}" : null;
+        return dto;
     }
 }
 
@@ -53,7 +57,11 @@ public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeComman
         _mapper.UpdateEntity(request.Dto, entity);
         entity.UpdatedAt = DateTime.UtcNow;
         var updated = await _repo.UpdateAsync(entity);
-        return _mapper.ToDto(updated);
+        var dto = _mapper.ToDto(updated);
+        dto.DepartmentName = updated.Department?.Name ?? "";
+        dto.DesignationName = updated.Designation?.Name ?? "";
+        dto.ManagerName = updated.Manager != null ? $"{updated.Manager.FirstName} {updated.Manager.LastName}" : null;
+        return dto;
     }
 }
 

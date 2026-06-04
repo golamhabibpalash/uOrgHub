@@ -26,7 +26,7 @@ export default function AttendanceManagement() {
   const [modalType, setModalType] = useState<"schedule" | "shift" | "log">("schedule");
   const [form, setForm] = useState({ name: "", description: "" });
   const [shiftForm, setShiftForm] = useState({ name: "", startTime: "", endTime: "", workScheduleId: "" });
-  const [logForm, setLogForm] = useState({ employeeId: "", date: "", checkIn: "", checkOut: "", status: "Present", notes: "" });
+  const [logForm, setLogForm] = useState({ employeeId: "", attendanceDate: "", checkIn: "", checkOut: "", status: "Present", remarks: "" });
   const [editingLog, setEditingLog] = useState<AttendanceLog | null>(null);
 
   const { data: schedulesData, isLoading: schedulesLoading } = useQuery({
@@ -88,18 +88,18 @@ export default function AttendanceManagement() {
     setModal(true);
     if (type === "schedule") setForm({ name: "", description: "" });
     if (type === "shift") setShiftForm({ name: "", startTime: "", endTime: "", workScheduleId: "" });
-    if (type === "log") { setLogForm({ employeeId: "", date: "", checkIn: "", checkOut: "", status: "Present", notes: "" }); setEditingLog(null); }
+    if (type === "log") { setLogForm({ employeeId: "", attendanceDate: "", checkIn: "", checkOut: "", status: "Present", remarks: "" }); setEditingLog(null); }
   }
 
   function editLog(log: AttendanceLog) {
     setEditingLog(log);
     setLogForm({
       employeeId: log.employeeId,
-      date: log.date.split("T")[0],
+      attendanceDate: log.attendanceDate.split("T")[0],
       checkIn: log.checkIn,
       checkOut: log.checkOut,
       status: log.status,
-      notes: log.notes || "",
+      remarks: log.remarks || "",
     });
     setModalType("log");
     setModal(true);
@@ -121,10 +121,10 @@ export default function AttendanceManagement() {
 
   const logCols = [
     { key: "employeeName", label: "Employee" },
-    { key: "date", label: "Date", render: (row: AttendanceLog) => new Date(row.date).toLocaleDateString() },
+    { key: "attendanceDate", label: "Date", render: (row: AttendanceLog) => new Date(row.attendanceDate).toLocaleDateString() },
     { key: "checkIn", label: "Check In" },
     { key: "checkOut", label: "Check Out" },
-    { key: "workingHours", label: "Hours" },
+    { key: "workHours", label: "Hours" },
     { key: "status", label: "Status", render: (row: AttendanceLog) => <span className={`text-xs px-2 py-0.5 rounded-full ${row.status === "Present" ? "bg-green-50 text-green-700" : row.status === "Absent" ? "bg-red-50 text-red-600" : "bg-yellow-50 text-yellow-700"}`}>{row.status}</span> },
   ];
 
@@ -177,13 +177,13 @@ export default function AttendanceManagement() {
         {modalType === "log" && (
           <div className="space-y-3">
             <div><label className="text-xs text-gray-500 mb-1 block">Employee</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={logForm.employeeId} onChange={e => setLogForm(f => ({ ...f, employeeId: e.target.value }))}><option value="">Select Employee</option>{employees.map(e => <option key={e.id} value={e.id}>{e.firstName} {e.lastName}</option>)}</select></div>
-            <div><label className="text-xs text-gray-500 mb-1 block">Date</label><input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={logForm.date} onChange={e => setLogForm(f => ({ ...f, date: e.target.value }))} /></div>
+            <div><label className="text-xs text-gray-500 mb-1 block">Date</label><input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={logForm.attendanceDate} onChange={e => setLogForm(f => ({ ...f, attendanceDate: e.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-3">
               <div><label className="text-xs text-gray-500 mb-1 block">Check In</label><input type="time" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={logForm.checkIn} onChange={e => setLogForm(f => ({ ...f, checkIn: e.target.value }))} /></div>
               <div><label className="text-xs text-gray-500 mb-1 block">Check Out</label><input type="time" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={logForm.checkOut} onChange={e => setLogForm(f => ({ ...f, checkOut: e.target.value }))} /></div>
             </div>
             <div><label className="text-xs text-gray-500 mb-1 block">Status</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={logForm.status} onChange={e => setLogForm(f => ({ ...f, status: e.target.value }))}><option value="Present">Present</option><option value="Absent">Absent</option><option value="Late">Late</option><option value="OnLeave">On Leave</option></select></div>
-            <div><label className="text-xs text-gray-500 mb-1 block">Notes</label><input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={logForm.notes} onChange={e => setLogForm(f => ({ ...f, notes: e.target.value }))} /></div>
+            <div><label className="text-xs text-gray-500 mb-1 block">Notes</label><input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={logForm.remarks} onChange={e => setLogForm(f => ({ ...f, remarks: e.target.value }))} /></div>
             <div className="flex justify-end gap-2 pt-2"><button onClick={() => setModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button><button onClick={() => saveLogMutation.mutate()} disabled={saveLogMutation.isPending} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">{saveLogMutation.isPending ? "Saving..." : "Save"}</button></div>
           </div>
         )}

@@ -6,7 +6,7 @@ public class CreateEmployeeDtoValidator : AbstractValidator<CreateEmployeeDto>
 {
     public CreateEmployeeDtoValidator()
     {
-        RuleFor(x => x.EmployeeCode).NotEmpty().MaximumLength(20);
+        RuleFor(x => x.EmployeeCode).MaximumLength(20).When(x => !string.IsNullOrWhiteSpace(x.EmployeeCode));
         RuleFor(x => x.FirstName).NotEmpty().MaximumLength(100);
         RuleFor(x => x.LastName).NotEmpty().MaximumLength(100);
         RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(200);

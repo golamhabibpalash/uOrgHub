@@ -32,6 +32,8 @@ public class CreateEmployeeDto
     public string? Division { get; set; }
 
     public DateTime JoiningDate { get; set; }
+    public DateTime? ConfirmationDate { get; set; }
+    public DateTime? LastWorkingDate { get; set; }
     public EmploymentType EmploymentType { get; set; }
     public EmployeeStatus Status { get; set; } = EmployeeStatus.Active;
 

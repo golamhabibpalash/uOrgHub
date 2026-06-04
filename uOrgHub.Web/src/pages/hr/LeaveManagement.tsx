@@ -23,7 +23,7 @@ export default function LeaveManagement() {
   const [statusFilter, setStatusFilter] = useState("");
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<LeaveType | null>(null);
-  const [form, setForm] = useState({ name: "", code: "", description: "", maxDaysPerYear: 0, isPaid: true });
+  const [form, setForm] = useState({ name: "", code: "", description: "", totalDaysPerYear: 0, isPaid: true });
 
   const [reqModal, setReqModal] = useState(false);
   const [reqForm, setReqForm] = useState({
@@ -100,7 +100,7 @@ export default function LeaveManagement() {
     { key: "code", label: "Code" },
     { key: "name", label: "Leave Type" },
     { key: "description", label: "Description" },
-    { key: "maxDaysPerYear", label: "Max Days/Year" },
+    { key: "totalDaysPerYear", label: "Max Days/Year" },
     {
       key: "isPaid",
       label: "Paid",
@@ -156,7 +156,7 @@ export default function LeaveManagement() {
         </div>
         {activeTab === "types" && (
           <button
-            onClick={() => { setEditing(null); setForm({ name: "", code: "", description: "", maxDaysPerYear: 0, isPaid: true }); setModal(true); }}
+            onClick={() => { setEditing(null); setForm({ name: "", code: "", description: "", totalDaysPerYear: 0, isPaid: true }); setModal(true); }}
             className="flex items-center gap-2 bg-primary-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-primary-600"
           >
             <Plus size={15} /> Add Leave Type
@@ -205,7 +205,7 @@ export default function LeaveManagement() {
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         {activeTab === "types" ? (
           <>
-            <DataTable columns={typeColumns} data={leaveTypes} loading={typesLoading} onEdit={(row) => { setEditing(row); setForm({ name: row.name, code: row.code, description: row.description, maxDaysPerYear: row.maxDaysPerYear, isPaid: row.isPaid }); setModal(true); }} />
+            <DataTable columns={typeColumns} data={leaveTypes} loading={typesLoading} onEdit={(row) => { setEditing(row); setForm({ name: row.name, code: row.code, description: row.description, totalDaysPerYear: row.totalDaysPerYear, isPaid: row.isPaid }); setModal(true); }} />
             <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
           </>
         ) : (
@@ -235,7 +235,7 @@ export default function LeaveManagement() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Max Days/Year</label>
-              <input type="number" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.maxDaysPerYear} onChange={(e) => setForm(f => ({ ...f, maxDaysPerYear: Number(e.target.value) }))} />
+              <input type="number" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.totalDaysPerYear} onChange={(e) => setForm(f => ({ ...f, totalDaysPerYear: Number(e.target.value) }))} />
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Is Paid</label>
