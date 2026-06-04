@@ -1,6 +1,8 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.HR.DTOs;
 using uOrgHub.HR.Features.CoreHR.Commands;
 using uOrgHub.HR.Features.CoreHR.Queries;
@@ -17,6 +19,7 @@ public class DesignationController : BaseController
     public DesignationController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.HR.Designations.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request, [FromQuery] Guid? departmentId = null)
     {
         var result = await _mediator.Send(new GetDesignationsQuery(request, departmentId));
@@ -24,6 +27,7 @@ public class DesignationController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.HR.Designations.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetDesignationByIdQuery(id));
@@ -31,6 +35,7 @@ public class DesignationController : BaseController
     }
 
     [HttpGet("{id:guid}/dependencies")]
+    [RequireClaim(Claims.HR.Designations.Delete)]
     public async Task<IActionResult> GetDependencies(Guid id)
     {
         var result = await _mediator.Send(new GetDesignationDependenciesQuery(id));
@@ -38,6 +43,7 @@ public class DesignationController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.HR.Designations.Create)]
     public async Task<IActionResult> Create([FromBody] CreateDesignationDto dto)
     {
         var result = await _mediator.Send(new CreateDesignationCommand(dto));
@@ -45,6 +51,7 @@ public class DesignationController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.HR.Designations.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateDesignationDto dto)
     {
         var result = await _mediator.Send(new UpdateDesignationCommand(id, dto));
@@ -52,6 +59,7 @@ public class DesignationController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.HR.Designations.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteDesignationCommand(id));

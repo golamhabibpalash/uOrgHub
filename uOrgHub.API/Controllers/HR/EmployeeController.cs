@@ -2,7 +2,9 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using uOrgHub.API.DTOs;
+using uOrgHub.API.Middleware;
 using uOrgHub.API.Services;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.HR.DTOs;
 using uOrgHub.HR.Features.CoreHR.Commands;
 using uOrgHub.HR.Features.CoreHR.Queries;
@@ -24,6 +26,7 @@ public class EmployeeController : BaseController
     }
 
     [HttpGet]
+    [RequireClaim(Claims.HR.Employees.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request, [FromQuery] Guid? departmentId = null, [FromQuery] Guid? designationId = null)
     {
         var result = await _mediator.Send(new GetEmployeesQuery(request, departmentId, designationId));
@@ -31,6 +34,7 @@ public class EmployeeController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.HR.Employees.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetEmployeeByIdQuery(id));
@@ -38,6 +42,7 @@ public class EmployeeController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.HR.Employees.Create)]
     public async Task<IActionResult> Create([FromBody] CreateEmployeeDto dto)
     {
         var result = await _mediator.Send(new CreateEmployeeCommand(dto));
@@ -45,6 +50,7 @@ public class EmployeeController : BaseController
     }
 
     [HttpPost("with-user")]
+    [RequireClaim(Claims.HR.Employees.Create)]
     public async Task<IActionResult> CreateWithUser([FromBody] CreateEmployeeWithUserDto dto)
     {
         var result = await _employeeWithUserService.CreateEmployeeWithUserAsync(dto);
@@ -52,6 +58,7 @@ public class EmployeeController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.HR.Employees.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateEmployeeDto dto)
     {
         var result = await _mediator.Send(new UpdateEmployeeCommand(id, dto));
@@ -59,6 +66,7 @@ public class EmployeeController : BaseController
     }
 
     [HttpGet("{id:guid}/dependencies")]
+    [RequireClaim(Claims.HR.Employees.Delete)]
     public async Task<IActionResult> GetDependencies(Guid id)
     {
         var result = await _mediator.Send(new GetEmployeeDependenciesQuery(id));
@@ -66,6 +74,7 @@ public class EmployeeController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.HR.Employees.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteEmployeeCommand(id));

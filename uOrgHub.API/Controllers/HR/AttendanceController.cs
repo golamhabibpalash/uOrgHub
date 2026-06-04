@@ -1,6 +1,8 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.HR.DTOs.Attendance;
 using uOrgHub.HR.Features.Attendance.Commands;
 using uOrgHub.HR.Features.Attendance.Queries;
@@ -17,6 +19,7 @@ public class AttendanceController : BaseController
     public AttendanceController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet("work-schedules")]
+    [RequireClaim(Claims.HR.WorkSchedules.View)]
     public async Task<IActionResult> GetWorkSchedules([FromQuery] PaginationRequest request)
     {
         var result = await _mediator.Send(new GetWorkSchedulesQuery(request));
@@ -24,6 +27,7 @@ public class AttendanceController : BaseController
     }
 
     [HttpPost("work-schedules")]
+    [RequireClaim(Claims.HR.WorkSchedules.Create)]
     public async Task<IActionResult> CreateWorkSchedule([FromBody] CreateWorkScheduleDto dto)
     {
         var result = await _mediator.Send(new CreateWorkScheduleCommand(dto));
@@ -31,6 +35,7 @@ public class AttendanceController : BaseController
     }
 
     [HttpGet("shifts")]
+    [RequireClaim(Claims.HR.Shifts.View)]
     public async Task<IActionResult> GetShifts([FromQuery] PaginationRequest request, [FromQuery] Guid? workScheduleId = null)
     {
         var result = await _mediator.Send(new GetShiftsQuery(request, workScheduleId));
@@ -38,6 +43,7 @@ public class AttendanceController : BaseController
     }
 
     [HttpPost("shifts")]
+    [RequireClaim(Claims.HR.Shifts.Create)]
     public async Task<IActionResult> CreateShift([FromBody] CreateShiftDto dto)
     {
         var result = await _mediator.Send(new CreateShiftCommand(dto));
@@ -45,6 +51,7 @@ public class AttendanceController : BaseController
     }
 
     [HttpPost("rosters")]
+    [RequireClaim(Claims.HR.Shifts.Edit)]
     public async Task<IActionResult> CreateRoster([FromBody] CreateEmployeeRosterDto dto)
     {
         var result = await _mediator.Send(new CreateEmployeeRosterCommand(dto));
@@ -52,6 +59,7 @@ public class AttendanceController : BaseController
     }
 
     [HttpPut("rosters/{id:guid}")]
+    [RequireClaim(Claims.HR.Shifts.Edit)]
     public async Task<IActionResult> UpdateRoster(Guid id, [FromBody] UpdateEmployeeRosterDto dto)
     {
         var result = await _mediator.Send(new UpdateEmployeeRosterCommand(id, dto));
@@ -59,6 +67,7 @@ public class AttendanceController : BaseController
     }
 
     [HttpGet("logs")]
+    [RequireClaim(Claims.HR.AttendanceLogs.View)]
     public async Task<IActionResult> GetLogs([FromQuery] PaginationRequest request, [FromQuery] Guid? employeeId = null, [FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null)
     {
         var result = await _mediator.Send(new GetAttendanceLogsQuery(request, employeeId, fromDate, toDate));
@@ -66,6 +75,7 @@ public class AttendanceController : BaseController
     }
 
     [HttpPost("logs")]
+    [RequireClaim(Claims.HR.AttendanceLogs.Create)]
     public async Task<IActionResult> CreateLog([FromBody] CreateAttendanceLogDto dto)
     {
         var result = await _mediator.Send(new CreateAttendanceLogCommand(dto));
@@ -73,6 +83,7 @@ public class AttendanceController : BaseController
     }
 
     [HttpPut("logs/{id:guid}")]
+    [RequireClaim(Claims.HR.AttendanceLogs.Edit)]
     public async Task<IActionResult> UpdateLog(Guid id, [FromBody] UpdateAttendanceLogDto dto)
     {
         var result = await _mediator.Send(new UpdateAttendanceLogCommand(id, dto));

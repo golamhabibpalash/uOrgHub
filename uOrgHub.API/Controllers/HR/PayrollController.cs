@@ -1,6 +1,8 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.HR.DTOs.Payroll;
 using uOrgHub.HR.Features.Payroll.Commands;
 using uOrgHub.HR.Features.Payroll.Queries;
@@ -17,6 +19,7 @@ public class PayrollController : BaseController
     public PayrollController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet("salary-grades")]
+    [RequireClaim(Claims.HR.SalaryGrades.View)]
     public async Task<IActionResult> GetSalaryGrades([FromQuery] PaginationRequest request)
     {
         var result = await _mediator.Send(new GetSalaryGradesQuery(request));
@@ -24,6 +27,7 @@ public class PayrollController : BaseController
     }
 
     [HttpPost("salary-grades")]
+    [RequireClaim(Claims.HR.SalaryGrades.Create)]
     public async Task<IActionResult> CreateSalaryGrade([FromBody] CreateSalaryGradeDto dto)
     {
         var result = await _mediator.Send(new CreateSalaryGradeCommand(dto));
@@ -31,6 +35,7 @@ public class PayrollController : BaseController
     }
 
     [HttpGet("salary-components")]
+    [RequireClaim(Claims.HR.SalaryComponents.View)]
     public async Task<IActionResult> GetSalaryComponents([FromQuery] PaginationRequest request)
     {
         var result = await _mediator.Send(new GetSalaryComponentsQuery(request));
@@ -38,6 +43,7 @@ public class PayrollController : BaseController
     }
 
     [HttpPost("salary-components")]
+    [RequireClaim(Claims.HR.SalaryComponents.Create)]
     public async Task<IActionResult> CreateSalaryComponent([FromBody] CreateSalaryComponentDto dto)
     {
         var result = await _mediator.Send(new CreateSalaryComponentCommand(dto));
@@ -45,6 +51,7 @@ public class PayrollController : BaseController
     }
 
     [HttpGet("cycles")]
+    [RequireClaim(Claims.HR.PayrollCycles.View)]
     public async Task<IActionResult> GetCycles([FromQuery] PaginationRequest request)
     {
         var result = await _mediator.Send(new GetPayrollCyclesQuery(request));
@@ -52,6 +59,7 @@ public class PayrollController : BaseController
     }
 
     [HttpPost("cycles")]
+    [RequireClaim(Claims.HR.PayrollCycles.Create)]
     public async Task<IActionResult> CreateCycle([FromBody] CreatePayrollCycleDto dto)
     {
         var result = await _mediator.Send(new CreatePayrollCycleCommand(dto));
@@ -59,6 +67,7 @@ public class PayrollController : BaseController
     }
 
     [HttpPut("cycles/{id:guid}")]
+    [RequireClaim(Claims.HR.PayrollCycles.Edit)]
     public async Task<IActionResult> UpdateCycle(Guid id, [FromBody] UpdatePayrollCycleDto dto)
     {
         var result = await _mediator.Send(new UpdatePayrollCycleCommand(id, dto));
@@ -66,6 +75,7 @@ public class PayrollController : BaseController
     }
 
     [HttpGet("cycles/{cycleId:guid}/entries")]
+    [RequireClaim(Claims.HR.PayrollCycles.View)]
     public async Task<IActionResult> GetEntries(Guid cycleId, [FromQuery] PaginationRequest request)
     {
         var result = await _mediator.Send(new GetPayrollEntriesQuery(cycleId, request));
@@ -73,6 +83,7 @@ public class PayrollController : BaseController
     }
 
     [HttpPost("overtime-rules")]
+    [RequireClaim(Claims.HR.PayrollCycles.Edit)]
     public async Task<IActionResult> CreateOvertimeRule([FromBody] CreateOvertimeRuleDto dto)
     {
         var result = await _mediator.Send(new CreateOvertimeRuleCommand(dto));
@@ -80,6 +91,7 @@ public class PayrollController : BaseController
     }
 
     [HttpGet("expenses")]
+    [RequireClaim(Claims.HR.ExpenseRequests.View)]
     public async Task<IActionResult> GetExpenses([FromQuery] PaginationRequest request, [FromQuery] Guid? employeeId = null)
     {
         var result = await _mediator.Send(new GetExpenseRequestsQuery(request, employeeId));
@@ -87,6 +99,7 @@ public class PayrollController : BaseController
     }
 
     [HttpPost("expenses")]
+    [RequireClaim(Claims.HR.ExpenseRequests.Create)]
     public async Task<IActionResult> CreateExpense([FromBody] CreateExpenseRequestDto dto)
     {
         var result = await _mediator.Send(new CreateExpenseRequestCommand(dto));
@@ -94,6 +107,7 @@ public class PayrollController : BaseController
     }
 
     [HttpPut("expenses/{id:guid}/approve")]
+    [RequireClaim(Claims.HR.ExpenseRequests.Approve)]
     public async Task<IActionResult> ApproveExpense(Guid id, [FromBody] ApproveExpenseDto dto)
     {
         var result = await _mediator.Send(new ApproveExpenseRequestCommand(id, dto));

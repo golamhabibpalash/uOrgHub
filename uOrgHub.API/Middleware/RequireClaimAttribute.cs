@@ -28,6 +28,7 @@ public class RequireClaimAttribute : Attribute, IAsyncAuthorizationFilter
 
         if (!hasClaim)
         {
+            context.HttpContext.Items["AccessDeniedClaim"] = ClaimName;
             context.Result = new ObjectResult(new
             {
                 Success = false,

@@ -1,6 +1,8 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.HR.DTOs.Recruitment;
 using uOrgHub.HR.Features.Recruitment.Commands;
 using uOrgHub.HR.Features.Recruitment.Queries;
@@ -18,6 +20,7 @@ public class RecruitmentController : BaseController
     public RecruitmentController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet("job-postings")]
+    [RequireClaim(Claims.HR.JobPostings.View)]
     public async Task<IActionResult> GetJobPostings([FromQuery] PaginationRequest request, [FromQuery] JobPostingStatus? status = null)
     {
         var result = await _mediator.Send(new GetJobPostingsQuery(request, status));
@@ -25,6 +28,7 @@ public class RecruitmentController : BaseController
     }
 
     [HttpPost("job-postings")]
+    [RequireClaim(Claims.HR.JobPostings.Create)]
     public async Task<IActionResult> CreateJobPosting([FromBody] CreateJobPostingDto dto)
     {
         var result = await _mediator.Send(new CreateJobPostingCommand(dto));
@@ -32,6 +36,7 @@ public class RecruitmentController : BaseController
     }
 
     [HttpPut("job-postings/{id:guid}")]
+    [RequireClaim(Claims.HR.JobPostings.Edit)]
     public async Task<IActionResult> UpdateJobPosting(Guid id, [FromBody] UpdateJobPostingDto dto)
     {
         var result = await _mediator.Send(new UpdateJobPostingCommand(id, dto));
@@ -39,6 +44,7 @@ public class RecruitmentController : BaseController
     }
 
     [HttpGet("candidates")]
+    [RequireClaim(Claims.HR.Candidates.View)]
     public async Task<IActionResult> GetCandidates([FromQuery] PaginationRequest request)
     {
         var result = await _mediator.Send(new GetCandidatesQuery(request));
@@ -46,6 +52,7 @@ public class RecruitmentController : BaseController
     }
 
     [HttpPost("candidates")]
+    [RequireClaim(Claims.HR.Candidates.Create)]
     public async Task<IActionResult> CreateCandidate([FromBody] CreateCandidateDto dto)
     {
         var result = await _mediator.Send(new CreateCandidateCommand(dto));
@@ -53,6 +60,7 @@ public class RecruitmentController : BaseController
     }
 
     [HttpGet("applications")]
+    [RequireClaim(Claims.HR.Applications.View)]
     public async Task<IActionResult> GetApplications([FromQuery] PaginationRequest request, [FromQuery] Guid? jobPostingId = null)
     {
         var result = await _mediator.Send(new GetJobApplicationsQuery(request, jobPostingId));
@@ -60,6 +68,7 @@ public class RecruitmentController : BaseController
     }
 
     [HttpPost("applications")]
+    [RequireClaim(Claims.HR.Applications.Create)]
     public async Task<IActionResult> CreateApplication([FromBody] CreateJobApplicationDto dto)
     {
         var result = await _mediator.Send(new CreateJobApplicationCommand(dto));
@@ -67,6 +76,7 @@ public class RecruitmentController : BaseController
     }
 
     [HttpPut("applications/{id:guid}")]
+    [RequireClaim(Claims.HR.Applications.Edit)]
     public async Task<IActionResult> UpdateApplication(Guid id, [FromBody] UpdateJobApplicationDto dto)
     {
         var result = await _mediator.Send(new UpdateJobApplicationCommand(id, dto));
@@ -74,6 +84,7 @@ public class RecruitmentController : BaseController
     }
 
     [HttpGet("interviews")]
+    [RequireClaim(Claims.HR.Interviews.View)]
     public async Task<IActionResult> GetInterviews([FromQuery] PaginationRequest request, [FromQuery] Guid? jobApplicationId = null)
     {
         var result = await _mediator.Send(new GetInterviewSchedulesQuery(request, jobApplicationId));
@@ -81,6 +92,7 @@ public class RecruitmentController : BaseController
     }
 
     [HttpPost("interviews")]
+    [RequireClaim(Claims.HR.Interviews.Create)]
     public async Task<IActionResult> ScheduleInterview([FromBody] CreateInterviewScheduleDto dto)
     {
         var result = await _mediator.Send(new ScheduleInterviewCommand(dto));
@@ -88,6 +100,7 @@ public class RecruitmentController : BaseController
     }
 
     [HttpGet("onboarding-checklists")]
+    [RequireClaim(Claims.HR.Applications.View)]
     public async Task<IActionResult> GetChecklists([FromQuery] PaginationRequest request)
     {
         var result = await _mediator.Send(new GetOnboardingChecklistsQuery(request));
@@ -95,6 +108,7 @@ public class RecruitmentController : BaseController
     }
 
     [HttpPost("onboarding-checklists")]
+    [RequireClaim(Claims.HR.Applications.Edit)]
     public async Task<IActionResult> CreateChecklist([FromBody] CreateOnboardingChecklistDto dto)
     {
         var result = await _mediator.Send(new CreateOnboardingChecklistCommand(dto));
@@ -102,6 +116,7 @@ public class RecruitmentController : BaseController
     }
 
     [HttpGet("employee-onboardings")]
+    [RequireClaim(Claims.HR.Applications.View)]
     public async Task<IActionResult> GetEmployeeOnboardings([FromQuery] PaginationRequest request, [FromQuery] Guid? employeeId = null)
     {
         var result = await _mediator.Send(new GetEmployeeOnboardingsQuery(request, employeeId));
@@ -109,6 +124,7 @@ public class RecruitmentController : BaseController
     }
 
     [HttpPost("employee-onboardings")]
+    [RequireClaim(Claims.HR.Applications.Edit)]
     public async Task<IActionResult> CreateEmployeeOnboarding([FromBody] CreateEmployeeOnboardingDto dto)
     {
         var result = await _mediator.Send(new CreateEmployeeOnboardingCommand(dto));

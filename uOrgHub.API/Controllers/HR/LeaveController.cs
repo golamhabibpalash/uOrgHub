@@ -1,10 +1,16 @@
+using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
+using uOrgHub.Auth.Models.Entities;
 using uOrgHub.HR.DTOs.Leave;
 using uOrgHub.HR.Features.Leave.Commands;
 using uOrgHub.HR.Features.Leave.Queries;
+using uOrgHub.HR.Models.Entities;
 using uOrgHub.HR.Models.Enums;
+using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.HR;
@@ -14,10 +20,16 @@ namespace uOrgHub.API.Controllers.HR;
 public class LeaveController : BaseController
 {
     private readonly IMediator _mediator;
+    private readonly AppDbContext _context;
 
-    public LeaveController(IMediator mediator) => _mediator = mediator;
+    public LeaveController(IMediator mediator, AppDbContext context)
+    {
+        _mediator = mediator;
+        _context = context;
+    }
 
     [HttpGet("types")]
+    [RequireClaim(Claims.HR.LeaveTypes.View)]
     public async Task<IActionResult> GetTypes([FromQuery] PaginationRequest request)
     {
         var result = await _mediator.Send(new GetLeaveTypesQuery(request));
@@ -25,6 +37,7 @@ public class LeaveController : BaseController
     }
 
     [HttpPost("types")]
+    [RequireClaim(Claims.HR.LeaveTypes.Create)]
     public async Task<IActionResult> CreateType([FromBody] CreateLeaveTypeDto dto)
     {
         var result = await _mediator.Send(new CreateLeaveTypeCommand(dto));
@@ -32,6 +45,7 @@ public class LeaveController : BaseController
     }
 
     [HttpPut("types/{id:guid}")]
+    [RequireClaim(Claims.HR.LeaveTypes.Edit)]
     public async Task<IActionResult> UpdateType(Guid id, [FromBody] UpdateLeaveTypeDto dto)
     {
         var result = await _mediator.Send(new UpdateLeaveTypeCommand(id, dto));
@@ -39,6 +53,7 @@ public class LeaveController : BaseController
     }
 
     [HttpGet("requests")]
+    [RequireClaim(Claims.HR.LeaveRequests.View)]
     public async Task<IActionResult> GetRequests([FromQuery] PaginationRequest request, [FromQuery] Guid? employeeId = null, [FromQuery] LeaveStatus? status = null)
     {
         var result = await _mediator.Send(new GetLeaveRequestsQuery(request, employeeId, status));
@@ -46,6 +61,7 @@ public class LeaveController : BaseController
     }
 
     [HttpPost("requests")]
+    [RequireClaim(Claims.HR.LeaveRequests.Create)]
     public async Task<IActionResult> CreateRequest([FromBody] CreateLeaveRequestDto dto)
     {
         var result = await _mediator.Send(new CreateLeaveRequestCommand(dto));
@@ -53,13 +69,25 @@ public class LeaveController : BaseController
     }
 
     [HttpPost("requests/approve")]
+    [RequireClaim(Claims.HR.LeaveRequests.Approve)]
     public async Task<IActionResult> ApproveRequest([FromBody] ApproveLeaveRequestDto dto)
     {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var user = await _context.Set<ApplicationUser>().FindAsync(userId);
+        if (user?.EmployeeId == null)
+            return BadRequest(ApiResponse<LeaveApprovalResponseDto>.Fail("Current user is not linked to an employee."));
+
+        dto.ApproverId = user.EmployeeId.Value;
+
+        var leaveRequest = await _context.Set<LeaveRequest>().FindAsync(dto.LeaveRequestId);
+        dto.ApprovalLevel = leaveRequest?.CurrentApprovalLevel ?? 1;
+
         var result = await _mediator.Send(new ApproveLeaveRequestCommand(dto));
         return Ok(ApiResponse<LeaveApprovalResponseDto>.Ok(result, "Leave request processed successfully."));
     }
 
     [HttpPut("requests/{id:guid}/cancel")]
+    [RequireClaim(Claims.HR.LeaveRequests.Edit)]
     public async Task<IActionResult> CancelRequest(Guid id)
     {
         await _mediator.Send(new CancelLeaveRequestCommand(id));
@@ -67,6 +95,7 @@ public class LeaveController : BaseController
     }
 
     [HttpGet("balances/{employeeId:guid}")]
+    [RequireClaim(Claims.HR.LeaveRequests.View)]
     public async Task<IActionResult> GetBalances(Guid employeeId, [FromQuery] int? year = null)
     {
         var result = await _mediator.Send(new GetLeaveBalancesQuery(employeeId, year));

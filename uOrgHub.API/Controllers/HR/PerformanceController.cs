@@ -1,6 +1,8 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.HR.DTOs.Performance;
 using uOrgHub.HR.Features.Performance.Commands;
 using uOrgHub.HR.Features.Performance.Queries;
@@ -17,6 +19,7 @@ public class PerformanceController : BaseController
     public PerformanceController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet("review-cycles")]
+    [RequireClaim(Claims.HR.ReviewCycles.View)]
     public async Task<IActionResult> GetReviewCycles([FromQuery] PaginationRequest request)
     {
         var result = await _mediator.Send(new GetReviewCyclesQuery(request));
@@ -24,6 +27,7 @@ public class PerformanceController : BaseController
     }
 
     [HttpPost("review-cycles")]
+    [RequireClaim(Claims.HR.ReviewCycles.Create)]
     public async Task<IActionResult> CreateReviewCycle([FromBody] CreateReviewCycleDto dto)
     {
         var result = await _mediator.Send(new CreateReviewCycleCommand(dto));
@@ -31,6 +35,7 @@ public class PerformanceController : BaseController
     }
 
     [HttpPut("review-cycles/{id:guid}")]
+    [RequireClaim(Claims.HR.ReviewCycles.Edit)]
     public async Task<IActionResult> UpdateReviewCycle(Guid id, [FromBody] UpdateReviewCycleDto dto)
     {
         var result = await _mediator.Send(new UpdateReviewCycleCommand(id, dto));
@@ -38,6 +43,7 @@ public class PerformanceController : BaseController
     }
 
     [HttpPost("kpis")]
+    [RequireClaim(Claims.HR.PerformanceReviews.Edit)]
     public async Task<IActionResult> CreateKPI([FromBody] CreateKPIDto dto)
     {
         var result = await _mediator.Send(new CreateKPICommand(dto));
@@ -45,6 +51,7 @@ public class PerformanceController : BaseController
     }
 
     [HttpGet("goals")]
+    [RequireClaim(Claims.HR.Goals.View)]
     public async Task<IActionResult> GetGoals([FromQuery] PaginationRequest request, [FromQuery] Guid? employeeId = null, [FromQuery] Guid? reviewCycleId = null)
     {
         var result = await _mediator.Send(new GetGoalsQuery(request, employeeId, reviewCycleId));
@@ -52,6 +59,7 @@ public class PerformanceController : BaseController
     }
 
     [HttpPost("goals")]
+    [RequireClaim(Claims.HR.Goals.Create)]
     public async Task<IActionResult> CreateGoal([FromBody] CreateGoalDto dto)
     {
         var result = await _mediator.Send(new CreateGoalCommand(dto));
@@ -59,6 +67,7 @@ public class PerformanceController : BaseController
     }
 
     [HttpPut("goals/{id:guid}")]
+    [RequireClaim(Claims.HR.Goals.Edit)]
     public async Task<IActionResult> UpdateGoal(Guid id, [FromBody] UpdateGoalDto dto)
     {
         var result = await _mediator.Send(new UpdateGoalCommand(id, dto));
@@ -66,6 +75,7 @@ public class PerformanceController : BaseController
     }
 
     [HttpGet("reviews")]
+    [RequireClaim(Claims.HR.PerformanceReviews.View)]
     public async Task<IActionResult> GetReviews([FromQuery] PaginationRequest request, [FromQuery] Guid? employeeId = null, [FromQuery] Guid? reviewCycleId = null)
     {
         var result = await _mediator.Send(new GetPerformanceReviewsQuery(request, employeeId, reviewCycleId));
@@ -73,6 +83,7 @@ public class PerformanceController : BaseController
     }
 
     [HttpPost("reviews")]
+    [RequireClaim(Claims.HR.PerformanceReviews.Create)]
     public async Task<IActionResult> CreateReview([FromBody] CreatePerformanceReviewDto dto)
     {
         var result = await _mediator.Send(new CreatePerformanceReviewCommand(dto));
@@ -80,6 +91,7 @@ public class PerformanceController : BaseController
     }
 
     [HttpPut("reviews/{id:guid}/submit")]
+    [RequireClaim(Claims.HR.PerformanceReviews.Edit)]
     public async Task<IActionResult> SubmitReview(Guid id, [FromBody] UpdatePerformanceReviewDto dto)
     {
         var result = await _mediator.Send(new SubmitPerformanceReviewCommand(id, dto));
@@ -87,6 +99,7 @@ public class PerformanceController : BaseController
     }
 
     [HttpGet("training-programs")]
+    [RequireClaim(Claims.HR.PerformanceReviews.View)]
     public async Task<IActionResult> GetTrainingPrograms([FromQuery] PaginationRequest request)
     {
         var result = await _mediator.Send(new GetTrainingProgramsQuery(request));
@@ -94,6 +107,7 @@ public class PerformanceController : BaseController
     }
 
     [HttpPost("training-programs")]
+    [RequireClaim(Claims.HR.PerformanceReviews.Edit)]
     public async Task<IActionResult> CreateTrainingProgram([FromBody] CreateTrainingProgramDto dto)
     {
         var result = await _mediator.Send(new CreateTrainingProgramCommand(dto));
@@ -101,6 +115,7 @@ public class PerformanceController : BaseController
     }
 
     [HttpGet("employee-trainings")]
+    [RequireClaim(Claims.HR.PerformanceReviews.View)]
     public async Task<IActionResult> GetEmployeeTrainings([FromQuery] PaginationRequest request, [FromQuery] Guid? employeeId = null)
     {
         var result = await _mediator.Send(new GetEmployeeTrainingsQuery(request, employeeId));
@@ -108,6 +123,7 @@ public class PerformanceController : BaseController
     }
 
     [HttpPost("employee-trainings")]
+    [RequireClaim(Claims.HR.PerformanceReviews.Edit)]
     public async Task<IActionResult> EnrollTraining([FromBody] CreateEmployeeTrainingDto dto)
     {
         var result = await _mediator.Send(new EnrollEmployeeTrainingCommand(dto));
@@ -115,6 +131,7 @@ public class PerformanceController : BaseController
     }
 
     [HttpPut("employee-trainings/{id:guid}")]
+    [RequireClaim(Claims.HR.PerformanceReviews.Edit)]
     public async Task<IActionResult> UpdateTraining(Guid id, [FromBody] UpdateEmployeeTrainingDto dto)
     {
         var result = await _mediator.Send(new UpdateEmployeeTrainingCommand(id, dto));

@@ -68,6 +68,11 @@ public class AccessLogMiddleware
 
             var username = context.User?.FindFirst("username")?.Value;
 
+            var deniedClaim = context.Items["AccessDeniedClaim"] as string;
+            var status = context.Response.StatusCode;
+            var effectiveError = errorMessage
+                ?? (deniedClaim != null ? $"Missing claim: {deniedClaim}" : null);
+
             var log = new UserAccessLog
             {
                 UserId = userId,
@@ -79,12 +84,12 @@ public class AccessLogMiddleware
                 HttpMethod = context.Request.Method,
                 Endpoint = context.Request.Path,
                 RequestBody = requestBody,
-                ResponseStatusCode = context.Response.StatusCode,
+                ResponseStatusCode = status,
                 IpAddress = context.Connection.RemoteIpAddress?.ToString(),
                 UserAgent = context.Request.Headers["User-Agent"].FirstOrDefault(),
                 DurationMs = durationMs,
-                IsSuccess = errorMessage == null && context.Response.StatusCode < 500,
-                ErrorMessage = errorMessage,
+                IsSuccess = effectiveError == null && status < 400,
+                ErrorMessage = effectiveError,
             };
 
             await accessLogService.LogAsync(log);
