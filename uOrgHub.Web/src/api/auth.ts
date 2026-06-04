@@ -99,7 +99,7 @@ export const getUsers = (params: { page?: number; pageSize?: number; search?: st
 export const getUserById = (id: string) =>
   apiClient.get<{ data: UserDto }>(`/users/${id}`).then(unwrap);
 
-export const createUser = (dto: { username: string; email: string; password: string; firstName: string; lastName: string; roleIds?: string[] }) =>
+export const createUser = (dto: { username: string; email: string; password: string; firstName: string; lastName: string; roleIds?: string[]; employeeId?: string }) =>
   apiClient.post<{ data: UserDto }>('/users', dto).then(unwrap);
 
 export const updateUser = (id: string, dto: Partial<UserDto>) =>
