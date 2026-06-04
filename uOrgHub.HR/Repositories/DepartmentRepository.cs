@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using uOrgHub.HR.DTOs;
 using uOrgHub.HR.Models.Entities;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Models;
@@ -65,4 +66,46 @@ public class DepartmentRepository : IDepartmentRepository
 
     public async Task<bool> CodeExistsAsync(string code, Guid? excludeId = null)
         => await BaseQuery().AnyAsync(x => x.Code == code && (excludeId == null || x.Id != excludeId));
+
+    public async Task<DepartmentDependenciesDto> GetDependenciesAsync(Guid id, CancellationToken ct = default)
+    {
+        var employees = await _context.Set<Employee>()
+            .CountAsync(e => !e.IsDeleted && e.DepartmentId == id, ct);
+
+        var designations = await _context.Set<Designation>()
+            .CountAsync(d => !d.IsDeleted && d.DepartmentId == id, ct);
+
+        var children = await _context.Set<Department>()
+            .CountAsync(d => !d.IsDeleted && d.ParentDepartmentId == id, ct);
+
+        var jobPostings = await _context.Set<JobPosting>()
+            .CountAsync(j => !j.IsDeleted && j.DepartmentId == id, ct);
+
+        var kpis = await _context.Set<KPI>()
+            .CountAsync(k => !k.IsDeleted && k.DepartmentId == id, ct);
+
+        var parts = new List<string>();
+        if (employees > 0) parts.Add($"{employees} employee{(employees == 1 ? "" : "s")}");
+        if (designations > 0) parts.Add($"{designations} designation{(designations == 1 ? "" : "s")}");
+        if (children > 0) parts.Add($"{children} sub-department{(children == 1 ? "" : "s")}");
+        if (jobPostings > 0) parts.Add($"{jobPostings} job posting{(jobPostings == 1 ? "" : "s")}");
+        if (kpis > 0) parts.Add($"{kpis} KPI{(kpis == 1 ? "" : "s")}");
+
+        var canDelete = parts.Count == 0;
+        var reason = canDelete
+            ? null
+            : $"Cannot delete department: {string.Join(", ", parts)} {(parts.Count == 1 ? "is" : "are")} still linked to it.";
+
+        return new DepartmentDependenciesDto
+        {
+            DepartmentId = id,
+            ActiveEmployees = employees,
+            ActiveDesignations = designations,
+            ActiveChildDepartments = children,
+            ActiveJobPostings = jobPostings,
+            ActiveKpis = kpis,
+            CanDelete = canDelete,
+            BlockingReason = reason,
+        };
+    }
 }

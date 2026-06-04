@@ -1,6 +1,18 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
 import { getTheme, updateTheme, resetTheme, PALETTES, type ThemeSettings, type PaletteKey } from '../api/theme';
 import { generateShades, hexToRgbString } from '../utils/color';
+import { useAuthStore } from '../store/authStore';
+
+const FALLBACK_THEME: ThemeSettings = {
+  id: '',
+  themeName: 'corporate-blue',
+  primaryColor: '#0ea5e9',
+  sidebarBg: '#1e293b',
+  sidebarText: '#cbd5e1',
+  sidebarActiveBg: '#0ea5e9',
+  sidebarActiveText: '#ffffff',
+  isDarkMode: false,
+};
 
 interface ThemeContextValue {
   theme: ThemeSettings | null;
@@ -43,6 +55,7 @@ function setCSSVars(settings: ThemeSettings) {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<ThemeSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   const load = useCallback(async () => {
     try {
@@ -50,18 +63,21 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       setTheme(t);
       setCSSVars(t);
     } catch {
-      const fallback: ThemeSettings = {
-        id: '', themeName: 'corporate-blue', primaryColor: '#0ea5e9',
-        sidebarBg: '#1e293b', sidebarText: '#cbd5e1',
-        sidebarActiveBg: '#0ea5e9', sidebarActiveText: '#ffffff', isDarkMode: false,
-      };
-      setTheme(fallback);
-      setCSSVars(fallback);
+      setTheme(FALLBACK_THEME);
+      setCSSVars(FALLBACK_THEME);
     }
     setIsLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setTheme(FALLBACK_THEME);
+      setCSSVars(FALLBACK_THEME);
+      setIsLoading(false);
+      return;
+    }
+    load();
+  }, [isAuthenticated, load]);
 
   const applyPalette = useCallback((key: PaletteKey) => {
     const p = PALETTES[key];

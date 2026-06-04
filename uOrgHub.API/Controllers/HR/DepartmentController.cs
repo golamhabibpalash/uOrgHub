@@ -44,6 +44,13 @@ public class DepartmentController : BaseController
         return Ok(ApiResponse<DepartmentResponseDto>.Ok(result, "Department updated successfully."));
     }
 
+    [HttpGet("{id:guid}/dependencies")]
+    public async Task<IActionResult> GetDependencies(Guid id)
+    {
+        var result = await _mediator.Send(new GetDepartmentDependenciesQuery(id));
+        return Ok(ApiResponse<DepartmentDependenciesDto>.Ok(result));
+    }
+
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

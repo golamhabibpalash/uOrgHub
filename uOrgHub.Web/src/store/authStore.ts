@@ -51,7 +51,9 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () => {
         set({ user: null, token: null, refreshToken: null, isAuthenticated: false });
-        window.location.href = '/login';
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
       },
 
       hasRole: (role) => get().user?.roles.includes(role) ?? false,

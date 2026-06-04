@@ -62,6 +62,11 @@ public class DeleteDepartmentCommandHandler : IRequestHandler<DeleteDepartmentCo
     {
         if (!await _repo.ExistsAsync(request.Id))
             throw new NotFoundException(nameof(Models.Entities.Department), request.Id);
+
+        var deps = await _repo.GetDependenciesAsync(request.Id, ct);
+        if (!deps.CanDelete)
+            throw new AppException(deps.BlockingReason ?? "Department has linked records and cannot be deleted.", 409);
+
         await _repo.DeleteAsync(request.Id);
         return Unit.Value;
     }

@@ -12,6 +12,7 @@ namespace uOrgHub.HR.Features.CoreHR.Queries;
 
 public record GetDepartmentsQuery(PaginationRequest Request) : IQuery<PagedResult<DepartmentResponseDto>>;
 public record GetDepartmentByIdQuery(Guid Id) : IQuery<DepartmentResponseDto>;
+public record GetDepartmentDependenciesQuery(Guid Id) : IQuery<DepartmentDependenciesDto>;
 
 public class GetDepartmentsQueryHandler : IRequestHandler<GetDepartmentsQuery, PagedResult<DepartmentResponseDto>>
 {
@@ -64,6 +65,21 @@ public class GetDepartmentsQueryHandler : IRequestHandler<GetDepartmentsQuery, P
             Page = request.Request.Page,
             PageSize = request.Request.PageSize
         };
+    }
+}
+
+public class GetDepartmentDependenciesQueryHandler : IRequestHandler<GetDepartmentDependenciesQuery, DepartmentDependenciesDto>
+{
+    private readonly IDepartmentRepository _repo;
+
+    public GetDepartmentDependenciesQueryHandler(IDepartmentRepository repo) => _repo = repo;
+
+    public async Task<DepartmentDependenciesDto> Handle(GetDepartmentDependenciesQuery request, CancellationToken ct)
+    {
+        if (!await _repo.ExistsAsync(request.Id))
+            throw new NotFoundException(nameof(Models.Entities.Department), request.Id);
+
+        return await _repo.GetDependenciesAsync(request.Id, ct);
     }
 }
 

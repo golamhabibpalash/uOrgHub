@@ -118,6 +118,7 @@ var app = builder.Build();
 app.UseCors("AllowFrontend");
 
 // Middleware order (MUST be exact):
+app.UseMiddleware<MaintenanceMiddleware>();
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseMiddleware<AccessLogMiddleware>();
 app.UseAuthentication();

@@ -5,11 +5,13 @@ import { Plus } from "lucide-react";
 import DataTable from "../../components/shared/DataTable";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
+import ConfirmDialog from "../../components/shared/ConfirmDialog";
 import {
   getDepartments,
   createDepartment,
   updateDepartment,
   deleteDepartment,
+  getDepartmentDependencies,
   Department,
 } from "../../api/hr";
 
@@ -21,6 +23,14 @@ export default function Departments() {
   const [editing, setEditing] = useState<Department | null>(null);
   const [error, setError] = useState("");
   const [form, setForm] = useState({ name: "", code: "", description: "" });
+  const [deleteTarget, setDeleteTarget] = useState<Department | null>(null);
+  const [checkingDeps, setCheckingDeps] = useState(false);
+  const [toast, setToast] = useState<{ kind: "success" | "error"; text: string } | null>(null);
+
+  function showToast(kind: "success" | "error", text: string) {
+    setToast({ kind, text });
+    setTimeout(() => setToast(null), 5000);
+  }
 
   const { data, isLoading } = useQuery({
     queryKey: ["departments", page, search],
@@ -50,8 +60,45 @@ export default function Departments() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteDepartment(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["departments"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["departments"] });
+      qc.invalidateQueries({ queryKey: ["departments-all"] });
+      showToast("success", `Department "${deleteTarget?.name ?? ""}" deleted successfully.`);
+      setDeleteTarget(null);
+    },
+    onError: (err: Error) => {
+      const axiosErr = err as AxiosError<{ message?: string; errors?: string[] }>;
+      const msg =
+        axiosErr.response?.data?.message ||
+        axiosErr.response?.data?.errors?.[0] ||
+        err.message ||
+        "Failed to delete department.";
+      showToast("error", msg);
+      setDeleteTarget(null);
+    },
   });
+
+  async function handleDeleteClick(dep: Department) {
+    setCheckingDeps(true);
+    try {
+      const response = await getDepartmentDependencies(dep.id);
+      const deps = response.data.data;
+      if (!deps) {
+        showToast("error", "Could not check dependencies. Please try again.");
+        return;
+      }
+      if (!deps.canDelete) {
+        showToast("error", deps.blockingReason || "This department cannot be deleted.");
+        return;
+      }
+      setDeleteTarget(dep);
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      showToast("error", axiosErr.response?.data?.message || "Could not check dependencies. Please try again.");
+    } finally {
+      setCheckingDeps(false);
+    }
+  }
 
   function openAdd() {
     setEditing(null);
@@ -106,6 +153,18 @@ export default function Departments() {
         </button>
       </div>
 
+      {toast && (
+        <div
+          className={`fixed top-4 right-4 z-[70] max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${
+            toast.kind === "success"
+              ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+              : "bg-red-50 border-red-200 text-red-800"
+          }`}
+        >
+          {toast.text}
+        </div>
+      )}
+
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-100">
           <input
@@ -124,7 +183,7 @@ export default function Departments() {
           data={departments}
           loading={isLoading}
           onEdit={openEdit}
-          onDelete={(row) => deleteMutation.mutate(row.id)}
+          onDelete={handleDeleteClick}
         />
         <Pagination
           page={page}
@@ -192,6 +251,35 @@ export default function Departments() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        tone="danger"
+        title="Delete Department"
+        message={
+          <>
+            Are you sure you want to delete{" "}
+            <span className="font-medium text-gray-900">
+              {deleteTarget?.name}
+            </span>
+            ? This action cannot be undone.
+          </>
+        }
+        confirmLabel="Delete"
+        loading={deleteMutation.isPending}
+        onConfirm={() => {
+          if (deleteTarget) deleteMutation.mutate(deleteTarget.id);
+        }}
+        onCancel={() => setDeleteTarget(null)}
+      />
+
+      {checkingDeps && (
+        <div className="fixed inset-0 z-[55] flex items-center justify-center bg-black/20 pointer-events-none">
+          <div className="bg-white rounded-lg shadow-md px-4 py-2 text-sm text-gray-600">
+            Checking dependencies...
+          </div>
+        </div>
+      )}
     </div>
   );
 }
