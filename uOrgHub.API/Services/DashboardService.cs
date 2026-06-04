@@ -24,25 +24,18 @@ public class DashboardService : IDashboardService
     {
         var now = DateTime.UtcNow;
         var firstOfMonth = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-        var monthName = now.ToString("MMM");
-
-        var tasks = new Task[]
-        {
-            LoadProjects(),
-            LoadEmployees(firstOfMonth),
-            LoadInventory(),
-            LoadProcurement(),
-            LoadPayroll(now),
-            LoadPendingApprovals(),
-            LoadRecentActivities(now),
-            LoadLowStockAlerts(),
-            LoadProjectProgress(now),
-            LoadExpenseVsBudget(now),
-            LoadBudgetUtilization(),
-            LoadUpcomingDeadlines(now),
-        };
-
-        await Task.WhenAll(tasks);
+        await LoadProjects();
+        await LoadEmployees(firstOfMonth);
+        await LoadInventory();
+        await LoadProcurement();
+        await LoadPayroll(now);
+        await LoadPendingApprovals();
+        await LoadRecentActivities(now);
+        await LoadLowStockAlerts();
+        await LoadProjectProgress(now);
+        await LoadExpenseVsBudget(now);
+        await LoadBudgetUtilization();
+        await LoadUpcomingDeadlines(now);
 
         return new DashboardStatsDto(
             ActiveProjects: _activeProjects,

@@ -11,6 +11,7 @@ using uOrgHub.HR;
 using uOrgHub.Inventory;
 using uOrgHub.Procurement;
 using uOrgHub.Projects;
+using uOrgHub.API.Services;
 using uOrgHub.Shared.Data;
 
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
@@ -43,6 +44,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 // Memory cache for permission caching
 builder.Services.AddMemoryCache();
+
+// Dashboard
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 // HR Module
 builder.Services.AddHRModule();
