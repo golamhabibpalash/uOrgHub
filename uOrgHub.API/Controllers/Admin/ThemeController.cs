@@ -9,7 +9,6 @@ namespace uOrgHub.API.Controllers.Admin;
 
 [ApiController]
 [Route("api/v1/theme")]
-[Authorize]
 public class ThemeController : ControllerBase
 {
     private readonly IThemeService _theme;
@@ -20,6 +19,7 @@ public class ThemeController : ControllerBase
     }
 
     [HttpGet]
+    [AllowAnonymous]
     public async Task<IActionResult> Get()
     {
         var result = await _theme.GetCurrentAsync();
@@ -27,6 +27,7 @@ public class ThemeController : ControllerBase
     }
 
     [HttpPut]
+    [Authorize]
     public async Task<IActionResult> Update([FromBody] UpdateThemeDto dto)
     {
         var result = await _theme.UpdateAsync(dto);
@@ -34,6 +35,7 @@ public class ThemeController : ControllerBase
     }
 
     [HttpPost("reset")]
+    [Authorize]
     public async Task<IActionResult> Reset()
     {
         var result = await _theme.ResetDefaultAsync();
