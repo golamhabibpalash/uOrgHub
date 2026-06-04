@@ -48,6 +48,9 @@ builder.Services.AddMemoryCache();
 // Dashboard
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 
+// Cross-module services
+builder.Services.AddScoped<IEmployeeWithUserService, EmployeeWithUserService>();
+
 // HR Module
 builder.Services.AddHRModule();
 

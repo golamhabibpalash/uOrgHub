@@ -1,6 +1,8 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using uOrgHub.API.DTOs;
+using uOrgHub.API.Services;
 using uOrgHub.HR.DTOs;
 using uOrgHub.HR.Features.CoreHR.Commands;
 using uOrgHub.HR.Features.CoreHR.Queries;
@@ -13,8 +15,13 @@ namespace uOrgHub.API.Controllers.HR;
 public class EmployeeController : BaseController
 {
     private readonly IMediator _mediator;
+    private readonly IEmployeeWithUserService _employeeWithUserService;
 
-    public EmployeeController(IMediator mediator) => _mediator = mediator;
+    public EmployeeController(IMediator mediator, IEmployeeWithUserService employeeWithUserService)
+    {
+        _mediator = mediator;
+        _employeeWithUserService = employeeWithUserService;
+    }
 
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request, [FromQuery] Guid? departmentId = null, [FromQuery] Guid? designationId = null)
@@ -35,6 +42,13 @@ public class EmployeeController : BaseController
     {
         var result = await _mediator.Send(new CreateEmployeeCommand(dto));
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, ApiResponse<EmployeeResponseDto>.Ok(result, "Employee created successfully."));
+    }
+
+    [HttpPost("with-user")]
+    public async Task<IActionResult> CreateWithUser([FromBody] CreateEmployeeWithUserDto dto)
+    {
+        var result = await _employeeWithUserService.CreateEmployeeWithUserAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = result.Id }, ApiResponse<EmployeeResponseDto>.Ok(result, "Employee and user account created successfully."));
     }
 
     [HttpPut("{id:guid}")]

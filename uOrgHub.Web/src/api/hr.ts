@@ -281,6 +281,19 @@ export const getEmployeeById = (id: string) =>
 export const createEmployee = (data: Partial<Employee>) =>
   apiClient.post<ApiResponse<Employee>>("/employees", data);
 
+export const createEmployeeWithUser = (data: {
+  employee: Partial<Employee>;
+  createUserAccount: boolean;
+  userAccount?: {
+    username: string;
+    email?: string;
+    password: string;
+    autoGeneratePassword: boolean;
+    isActive: boolean;
+    roleIds: string[];
+  };
+}) => apiClient.post<ApiResponse<Employee>>("/employees/with-user", data);
+
 export const updateEmployee = (id: string, data: Partial<Employee>) =>
   apiClient.put<ApiResponse<Employee>>(`/employees/${id}`, data);
 
