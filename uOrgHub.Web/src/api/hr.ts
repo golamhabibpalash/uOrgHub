@@ -349,6 +349,17 @@ export interface DepartmentDependencies {
 export const getDepartmentDependencies = (id: string) =>
   apiClient.get<ApiResponse<DepartmentDependencies>>(`/departments/${id}/dependencies`);
 
+export interface DesignationDependencies {
+  designationId: string;
+  employeeCount: number;
+  childDesignationCount: number;
+  canDelete: boolean;
+  blockingReason?: string;
+}
+
+export const getDesignationDependencies = (id: string) =>
+  apiClient.get<ApiResponse<DesignationDependencies>>(`/designations/${id}/dependencies`);
+
 // Designations
 export const getDesignations = (params: PaginationRequest, departmentId?: string) =>
   apiClient.get<ApiResponse<PagedResult<Designation>>>("/designations", {

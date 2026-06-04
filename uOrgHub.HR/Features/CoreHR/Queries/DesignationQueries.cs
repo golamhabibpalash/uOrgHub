@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using uOrgHub.HR.DTOs;
 using uOrgHub.HR.Features._Common;
+using uOrgHub.HR.Repositories;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
 using uOrgHub.Shared.Models;
@@ -10,6 +11,7 @@ namespace uOrgHub.HR.Features.CoreHR.Queries;
 
 public record GetDesignationsQuery(PaginationRequest Request, Guid? DepartmentId = null) : IQuery<PagedResult<DesignationResponseDto>>;
 public record GetDesignationByIdQuery(Guid Id) : IQuery<DesignationResponseDto>;
+public record GetDesignationDependenciesQuery(Guid Id) : IQuery<DesignationDependenciesDto>;
 
 public class GetDesignationsQueryHandler : IRequestHandler<GetDesignationsQuery, PagedResult<DesignationResponseDto>>
 {
@@ -94,5 +96,20 @@ public class GetDesignationByIdQueryHandler : IRequestHandler<GetDesignationById
             SalaryGradeId = e.SalaryGradeId,
             CreatedAt = e.CreatedAt
         };
+    }
+}
+
+public class GetDesignationDependenciesQueryHandler : IRequestHandler<GetDesignationDependenciesQuery, DesignationDependenciesDto>
+{
+    private readonly IDesignationRepository _repo;
+
+    public GetDesignationDependenciesQueryHandler(IDesignationRepository repo) => _repo = repo;
+
+    public async Task<DesignationDependenciesDto> Handle(GetDesignationDependenciesQuery request, CancellationToken ct)
+    {
+        if (!await _repo.ExistsAsync(request.Id))
+            throw new NotFoundException(nameof(Models.Entities.Designation), request.Id);
+
+        return await _repo.GetDependenciesAsync(request.Id, ct);
     }
 }

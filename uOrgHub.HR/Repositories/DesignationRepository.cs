@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using uOrgHub.HR.DTOs;
 using uOrgHub.HR.Models.Entities;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Models;
@@ -68,4 +69,29 @@ public class DesignationRepository : IDesignationRepository
 
     public async Task<bool> CodeExistsAsync(string code, Guid? excludeId = null)
         => await BaseQuery().AnyAsync(x => x.Code == code && (excludeId == null || x.Id != excludeId));
+
+    public async Task<DesignationDependenciesDto> GetDependenciesAsync(Guid id, CancellationToken ct = default)
+    {
+        var employeeCount = await _context.Set<Employee>()
+            .CountAsync(e => !e.IsDeleted && e.DesignationId == id, ct);
+
+        var childCount = await _context.Set<Designation>()
+            .CountAsync(d => !d.IsDeleted && d.ParentDesignationId == id, ct);
+
+        var parts = new List<string>();
+        if (employeeCount > 0) parts.Add($"{employeeCount} employee{(employeeCount == 1 ? "" : "s")}");
+        if (childCount > 0) parts.Add($"{childCount} child designation{(childCount == 1 ? "" : "s")}");
+
+        var canDelete = parts.Count == 0;
+        var reason = canDelete ? null : $"Cannot delete designation: {string.Join(", ", parts)} assigned.";
+
+        return new DesignationDependenciesDto
+        {
+            DesignationId = id,
+            EmployeeCount = employeeCount,
+            ChildDesignationCount = childCount,
+            CanDelete = canDelete,
+            BlockingReason = reason,
+        };
+    }
 }

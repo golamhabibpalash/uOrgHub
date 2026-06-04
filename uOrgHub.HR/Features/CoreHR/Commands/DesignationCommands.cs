@@ -62,6 +62,11 @@ public class DeleteDesignationCommandHandler : IRequestHandler<DeleteDesignation
     {
         if (!await _repo.ExistsAsync(request.Id))
             throw new NotFoundException(nameof(Models.Entities.Designation), request.Id);
+
+        var deps = await _repo.GetDependenciesAsync(request.Id, ct);
+        if (!deps.CanDelete)
+            throw new AppException(deps.BlockingReason ?? "Cannot delete designation with existing dependencies.");
+
         await _repo.DeleteAsync(request.Id);
         return Unit.Value;
     }

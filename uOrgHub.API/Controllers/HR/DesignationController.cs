@@ -30,6 +30,13 @@ public class DesignationController : BaseController
         return Ok(ApiResponse<DesignationResponseDto>.Ok(result));
     }
 
+    [HttpGet("{id:guid}/dependencies")]
+    public async Task<IActionResult> GetDependencies(Guid id)
+    {
+        var result = await _mediator.Send(new GetDesignationDependenciesQuery(id));
+        return Ok(ApiResponse<DesignationDependenciesDto>.Ok(result));
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateDesignationDto dto)
     {

@@ -135,10 +135,12 @@ public class DeleteDesignationCommandHandlerTests
     }
 
     [Fact]
-    public async Task Deletes_designation_when_it_exists()
+    public async Task Deletes_designation_when_it_exists_and_no_dependencies()
     {
         var id = Guid.NewGuid();
         _repo.Setup(r => r.ExistsAsync(id)).ReturnsAsync(true);
+        _repo.Setup(r => r.GetDependenciesAsync(id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DesignationDependenciesDto { DesignationId = id, CanDelete = true });
         _repo.Setup(r => r.DeleteAsync(id)).Returns(Task.CompletedTask);
 
         var result = await _handler.Handle(new DeleteDesignationCommand(id), CancellationToken.None);

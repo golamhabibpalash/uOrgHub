@@ -1,14 +1,18 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { AxiosError } from "axios";
 import { Plus } from "lucide-react";
+import toast from "react-hot-toast";
 import DataTable from "../../components/shared/DataTable";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
+import ConfirmDialog from "../../components/shared/ConfirmDialog";
 import {
   getDesignations,
   createDesignation,
   updateDesignation,
   deleteDesignation,
+  getDesignationDependencies,
   Designation,
   getDepartments,
 } from "../../api/hr";
@@ -21,6 +25,7 @@ export default function Designations() {
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Designation | null>(null);
   const [form, setForm] = useState({ name: "", code: "", departmentId: "" });
+  const [deleteTarget, setDeleteTarget] = useState<Designation | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["designations", page, search, deptFilter],
@@ -49,8 +54,45 @@ export default function Designations() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteDesignation(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["designations"] }),
+    onSuccess: () => {
+      setDeleteTarget(null);
+      qc.invalidateQueries({ queryKey: ["designations"] });
+      toast.success("Designation deleted successfully.");
+    },
+    onError: (err) => {
+      toast.error(extractApiError(err));
+    },
   });
+
+  async function handleDeleteClick(desig: Designation) {
+    try {
+      const res = await getDesignationDependencies(desig.id);
+      const deps = res.data.data;
+      if (!deps) { toast.error("Could not check dependencies."); return; }
+      if (!deps.canDelete) {
+        toast.error(deps.blockingReason || "This designation cannot be deleted.");
+        return;
+      }
+      setDeleteTarget(desig);
+    } catch {
+      toast.error("Could not check dependencies.");
+    }
+  }
+
+  function extractApiError(err: unknown): string {
+    const axiosErr = err as AxiosError<{
+      message?: string;
+      errors?: string[] | Record<string, string[]>;
+    }>;
+    const body = axiosErr.response?.data;
+    if (typeof body?.message === "string") return body.message;
+    if (body?.errors) {
+      if (Array.isArray(body.errors)) return body.errors[0] ?? "";
+      const first = Object.values(body.errors).flat()[0];
+      if (first) return first;
+    }
+    return (err as Error)?.message ?? "An error occurred";
+  }
 
   function openAdd() {
     setEditing(null);
@@ -136,7 +178,7 @@ export default function Designations() {
           data={designations}
           loading={isLoading}
           onEdit={openEdit}
-          onDelete={(row) => deleteMutation.mutate(row.id)}
+          onDelete={(row) => handleDeleteClick(row)}
         />
         <Pagination
           page={page}
@@ -197,6 +239,22 @@ export default function Designations() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete Designation"
+        message={
+          <span>
+            Are you sure you want to delete{" "}
+            <strong>{deleteTarget?.name}</strong>? This action cannot be undone.
+          </span>
+        }
+        confirmLabel="Delete"
+        tone="danger"
+        loading={deleteMutation.isPending}
+        onConfirm={() => { if (deleteTarget) deleteMutation.mutate(deleteTarget.id); }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }
