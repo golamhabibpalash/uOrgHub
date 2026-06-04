@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import DataTable from "../../components/shared/DataTable";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
@@ -12,8 +12,12 @@ import {
   updateEmployee,
   deleteEmployee,
   Employee,
+  Department,
+  Designation,
   getDepartments,
   getDesignations,
+  createDepartment,
+  createDesignation,
 } from "../../api/hr";
 import { getRoles } from "../../api/auth";
 
@@ -45,6 +49,14 @@ export default function Employees() {
     isActive: true,
     roleIds: [] as string[],
   });
+
+  // Inline create state — Department / Designation
+  const [deptInlineOpen, setDeptInlineOpen] = useState(false);
+  const [deptForm, setDeptForm] = useState({ name: "", code: "", description: "" });
+  const [deptInlineError, setDeptInlineError] = useState("");
+  const [desigInlineOpen, setDesigInlineOpen] = useState(false);
+  const [desigForm, setDesigForm] = useState({ name: "", code: "" });
+  const [desigInlineError, setDesigInlineError] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["employees", page, search],
@@ -133,6 +145,72 @@ export default function Employees() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["employees"] }),
   });
 
+  function extractApiError(err: unknown): string {
+    const axiosErr = err as AxiosError<{
+      message?: string;
+      errors?: string[] | Record<string, string[]>;
+    }>;
+    const body = axiosErr.response?.data;
+    if (typeof body?.message === "string") return body.message;
+    if (body?.errors) {
+      if (Array.isArray(body.errors)) return body.errors[0] ?? "";
+      const first = Object.values(body.errors).flat()[0];
+      if (first) return first;
+    }
+    return (err as Error)?.message ?? "An error occurred";
+  }
+
+  const createDeptMutation = useMutation({
+    mutationFn: () => createDepartment(deptForm),
+    onSuccess: async (response) => {
+      const created = response.data?.data as Department | undefined;
+      await qc.invalidateQueries({ queryKey: ["departments-all"] });
+      if (created?.id) {
+        setForm((f) => ({ ...f, departmentId: created.id, designationId: "" }));
+      }
+      setDeptForm({ name: "", code: "", description: "" });
+      setDeptInlineOpen(false);
+      setDeptInlineError("");
+      setSuccess(`Department "${created?.name ?? ""}" created and selected.`);
+      setTimeout(() => setSuccess(""), 4000);
+    },
+    onError: (err: Error) => setDeptInlineError(extractApiError(err)),
+  });
+
+  const createDesigMutation = useMutation({
+    mutationFn: () => {
+      if (!form.departmentId) {
+        return Promise.reject(new Error("Select a Department before creating a Designation."));
+      }
+      return createDesignation({ ...desigForm, departmentId: form.departmentId });
+    },
+    onSuccess: async (response) => {
+      const created = response.data?.data as Designation | undefined;
+      await qc.invalidateQueries({ queryKey: ["designations-all"] });
+      if (created?.id) {
+        setForm((f) => ({ ...f, designationId: created.id }));
+      }
+      setDesigForm({ name: "", code: "" });
+      setDesigInlineOpen(false);
+      setDesigInlineError("");
+      setSuccess(`Designation "${created?.name ?? ""}" created and selected.`);
+      setTimeout(() => setSuccess(""), 4000);
+    },
+    onError: (err: Error) => setDesigInlineError(extractApiError(err)),
+  });
+
+  function closeDeptInline() {
+    setDeptInlineOpen(false);
+    setDeptForm({ name: "", code: "", description: "" });
+    setDeptInlineError("");
+  }
+
+  function closeDesigInline() {
+    setDesigInlineOpen(false);
+    setDesigForm({ name: "", code: "" });
+    setDesigInlineError("");
+  }
+
   function openAdd() {
     setEditing(null);
     setForm({
@@ -175,6 +253,8 @@ export default function Employees() {
     setEditing(null);
     setCreateUser(false);
     setError("");
+    closeDeptInline();
+    closeDesigInline();
   }
 
   function toggleRole(id: string) {
@@ -318,31 +398,200 @@ export default function Employees() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Department</label>
-              <select
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
-                value={form.departmentId}
-                onChange={(e) => setForm((f) => ({ ...f, departmentId: e.target.value }))}
-              >
-                <option value="">Select Department</option>
-                {departments.map((d) => (
-                  <option key={d.id} value={d.id}>{d.name}</option>
-                ))}
-              </select>
+              <div className="flex gap-1.5">
+                <select
+                  className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  value={form.departmentId}
+                  onChange={(e) => setForm((f) => ({ ...f, departmentId: e.target.value, designationId: "" }))}
+                >
+                  <option value="">Select Department</option>
+                  {departments.map((d) => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDeptInlineError("");
+                    setDeptInlineOpen((v) => !v);
+                  }}
+                  title="Create new department"
+                  className={`shrink-0 w-9 rounded-lg border transition-colors flex items-center justify-center ${
+                    deptInlineOpen
+                      ? "bg-primary-500 border-primary-500 text-white hover:bg-primary-600"
+                      : "border-primary-200 bg-primary-50 text-primary-600 hover:bg-primary-100"
+                  }`}
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Designation</label>
-              <select
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
-                value={form.designationId}
-                onChange={(e) => setForm((f) => ({ ...f, designationId: e.target.value }))}
-              >
-                <option value="">Select Designation</option>
-                {designations.map((d) => (
-                  <option key={d.id} value={d.id}>{d.name}</option>
-                ))}
-              </select>
+              <div className="flex gap-1.5">
+                <select
+                  className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  value={form.designationId}
+                  onChange={(e) => setForm((f) => ({ ...f, designationId: e.target.value }))}
+                >
+                  <option value="">Select Designation</option>
+                  {designations.map((d) => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDesigInlineError("");
+                    setDesigInlineOpen((v) => !v);
+                  }}
+                  title="Create new designation"
+                  className={`shrink-0 w-9 rounded-lg border transition-colors flex items-center justify-center ${
+                    desigInlineOpen
+                      ? "bg-primary-500 border-primary-500 text-white hover:bg-primary-600"
+                      : "border-primary-200 bg-primary-50 text-primary-600 hover:bg-primary-100"
+                  }`}
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
             </div>
           </div>
+
+          {deptInlineOpen && (
+            <div className="border border-primary-200 bg-primary-50/40 rounded-lg p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-primary-700">New Department</span>
+                <button
+                  type="button"
+                  onClick={closeDeptInline}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  autoFocus
+                  placeholder="Department Name *"
+                  value={deptForm.name}
+                  onChange={(e) => setDeptForm((f) => ({ ...f, name: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500 bg-white"
+                />
+                <input
+                  placeholder="Code *"
+                  value={deptForm.code}
+                  onChange={(e) => setDeptForm((f) => ({ ...f, code: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500 bg-white"
+                />
+              </div>
+              <input
+                placeholder="Description (optional)"
+                value={deptForm.description}
+                onChange={(e) => setDeptForm((f) => ({ ...f, description: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500 bg-white"
+              />
+              {deptInlineError && (
+                <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded px-2 py-1">
+                  {deptInlineError}
+                </div>
+              )}
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={closeDeptInline}
+                  className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!deptForm.name.trim() || !deptForm.code.trim()) {
+                      setDeptInlineError("Department Name and Code are required.");
+                      return;
+                    }
+                    createDeptMutation.mutate();
+                  }}
+                  disabled={createDeptMutation.isPending}
+                  className="px-3 py-1.5 text-xs bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
+                >
+                  {createDeptMutation.isPending ? "Saving..." : "Save Department"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {desigInlineOpen && (
+            <div className="border border-primary-200 bg-primary-50/40 rounded-lg p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-primary-700">New Designation</span>
+                <button
+                  type="button"
+                  onClick={closeDesigInline}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+              {!form.departmentId ? (
+                <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
+                  Select a Department first — the new designation will belong to it.
+                </div>
+              ) : (
+                <div className="text-xs text-gray-500">
+                  Will be added under <span className="text-gray-700 font-medium">{departments.find((d) => d.id === form.departmentId)?.name}</span>.
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  autoFocus
+                  placeholder="Designation Name *"
+                  value={desigForm.name}
+                  onChange={(e) => setDesigForm((f) => ({ ...f, name: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500 bg-white"
+                />
+                <input
+                  placeholder="Code *"
+                  value={desigForm.code}
+                  onChange={(e) => setDesigForm((f) => ({ ...f, code: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500 bg-white"
+                />
+              </div>
+              {desigInlineError && (
+                <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded px-2 py-1">
+                  {desigInlineError}
+                </div>
+              )}
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={closeDesigInline}
+                  className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!form.departmentId) {
+                      setDesigInlineError("Select a Department first.");
+                      return;
+                    }
+                    if (!desigForm.name.trim() || !desigForm.code.trim()) {
+                      setDesigInlineError("Designation Name and Code are required.");
+                      return;
+                    }
+                    createDesigMutation.mutate();
+                  }}
+                  disabled={createDesigMutation.isPending || !form.departmentId}
+                  className="px-3 py-1.5 text-xs bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
+                >
+                  {createDesigMutation.isPending ? "Saving..." : "Save Designation"}
+                </button>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Employment Type</label>
