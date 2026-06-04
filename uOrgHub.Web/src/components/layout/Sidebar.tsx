@@ -39,6 +39,7 @@ import {
   LayoutDashboard,
   ShieldCheck,
   ScrollText,
+  Palette,
 } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 
@@ -237,8 +238,8 @@ export default function Sidebar() {
               <img src="/logo.png" alt="uOrgHub" className="h-6 w-6 object-contain" />
             </div>
             <div>
-              <p className="text-slate-100 text-sm font-medium">uOrgHub</p>
-              <p className="text-slate-500 text-xs">Civil ERP</p>
+              <p className="sidebar-text text-sm font-medium">uOrgHub</p>
+              <p className="sidebar-text-dim text-xs">Civil ERP</p>
             </div>
           </div>
         ) : (
@@ -258,8 +259,8 @@ export default function Sidebar() {
       </button>
 
       <nav className="flex-1 px-2 py-3 overflow-y-auto overflow-x-hidden">
-        {!isCollapsed && (
-          <p className="text-slate-600 text-[10px] font-medium px-2 pb-1 tracking-widest">MODULES</p>
+          {!isCollapsed && (
+          <p className="sidebar-text-dim text-[10px] font-medium px-2 pb-1 tracking-widest">MODULES</p>
         )}
         {isCollapsed && <div className="h-4" />}
 
@@ -274,7 +275,7 @@ export default function Sidebar() {
                   } ${
                     isParentActive(subItems)
                       ? "bg-primary-500/15 text-primary-300 font-medium"
-                      : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+                      : "sidebar-text-muted sidebar-hover"
                   }`}
                   aria-expanded={isOpen(label, subItems)}
                   aria-label={`${label} module`}
@@ -310,12 +311,12 @@ export default function Sidebar() {
                         key={subPath}
                         to={subPath}
                         end={subPath === path}
-                        className={({ isActive }) =>
-                          `flex items-center gap-3 pl-10 pr-3 py-1.5 rounded-md mb-0.5 text-xs transition-colors ${
-                            isActive
-                              ? "bg-primary-500 text-white font-medium"
-                              : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
-                          }`
+                          className={({ isActive }) =>
+                            `flex items-center gap-3 pl-10 pr-3 py-1.5 rounded-md mb-0.5 text-xs transition-colors ${
+                              isActive
+                                ? "bg-primary-500 text-white font-medium"
+                                : "sidebar-text-muted sidebar-hover"
+                            }`
                         }
                       >
                         <SubIcon size={14} />
@@ -335,14 +336,14 @@ export default function Sidebar() {
                   } ${
                     isActive
                       ? "bg-primary-500 text-white font-medium"
-                      : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+                      : "sidebar-text-muted sidebar-hover"
                   }`
                 }
               >
                 {isCollapsed ? (
                   <div className="relative">
                     <Icon size={16} />
-                    <div className="absolute left-full ml-2 top-0 bg-slate-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity">
+                    <div className="absolute left-full ml-2 top-0 bg-sidebar text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity">
                       {label}
                     </div>
                   </div>
@@ -360,17 +361,18 @@ export default function Sidebar() {
         {canManageUsers && (
           <>
             {!isCollapsed && (
-              <p className="text-slate-600 text-[10px] font-medium px-2 pb-1 pt-4 tracking-widest">ADMIN</p>
+              <p className="sidebar-text-dim text-[10px] font-medium px-2 pb-1 pt-4 tracking-widest">ADMIN</p>
             )}
             {isCollapsed && <div className="h-2" />}
             {[
               { label: "Users", path: "/admin/users", icon: Users },
               { label: "Roles", path: "/admin/roles", icon: ShieldCheck },
               { label: "Access Logs", path: "/admin/access-logs", icon: ScrollText },
+              { label: "Theme", path: "/admin/theme", icon: Palette },
               { label: "Company", path: "/admin/company", icon: Building2 },
             ].map(({ label, path, icon: Icon }) => (
               <NavLink key={path} to={path}
-                className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-md mb-0.5 text-sm transition-colors ${isCollapsed ? "justify-center" : ""} ${isActive ? "bg-primary-500 text-white font-medium" : "text-slate-400 hover:text-slate-200 hover:bg-white/5"}`}>
+                className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-md mb-0.5 text-sm transition-colors ${isCollapsed ? "justify-center" : ""} ${isActive ? "bg-primary-500 text-white font-medium" : "sidebar-text-muted sidebar-hover"}`}>
                 {isCollapsed ? <Icon size={16} /> : <><Icon size={16} /><span className="truncate">{label}</span></>}
               </NavLink>
             ))}
@@ -378,12 +380,12 @@ export default function Sidebar() {
         )}
 
         <NavLink to="/profile"
-          className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-md mb-0.5 text-sm transition-colors ${isCollapsed ? "justify-center" : ""} ${isActive ? "bg-primary-500 text-white font-medium" : "text-slate-400 hover:text-slate-200 hover:bg-white/5"}`}>
+          className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-md mb-0.5 text-sm transition-colors ${isCollapsed ? "justify-center" : ""} ${isActive ? "bg-primary-500 text-white font-medium" : "sidebar-text-muted sidebar-hover"}`}>
           {isCollapsed ? <UserCircle size={16} /> : <><UserCircle size={16} /><span className="truncate">My Profile</span></>}
         </NavLink>
 
         {!isCollapsed && (
-          <p className="text-slate-600 text-[10px] font-medium px-2 pb-1 pt-4 tracking-widest">SYSTEM</p>
+          <p className="sidebar-text-dim text-[10px] font-medium px-2 pb-1 pt-4 tracking-widest">SYSTEM</p>
         )}
         {isCollapsed && <div className="h-4" />}
         <NavLink
@@ -394,14 +396,14 @@ export default function Sidebar() {
             } ${
               isActive
                 ? "bg-primary-500 text-white font-medium"
-                : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+                : "sidebar-text-muted sidebar-hover"
             }`
           }
         >
           {isCollapsed ? (
             <div className="relative">
               <Settings size={16} />
-              <div className="absolute left-full ml-2 top-0 bg-slate-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity">
+              <div className="absolute left-full ml-2 top-0 bg-sidebar text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity">
                 Settings
               </div>
             </div>
@@ -421,12 +423,12 @@ export default function Sidebar() {
         {!isCollapsed && (
           <>
             <div className="flex-1 min-w-0">
-              <p className="text-slate-100 text-xs font-medium truncate">{displayName}</p>
-              <p className="text-slate-500 text-xs truncate">{roleLabel}</p>
+              <p className="sidebar-text text-xs font-medium truncate">{displayName}</p>
+              <p className="sidebar-text-dim text-xs truncate">{roleLabel}</p>
             </div>
             <LogOut
               size={16}
-              className="text-slate-600 cursor-pointer hover:text-slate-400 flex-shrink-0"
+              className="sidebar-text-dim cursor-pointer sidebar-hover flex-shrink-0 rounded p-0.5"
               onClick={logout}
             />
           </>

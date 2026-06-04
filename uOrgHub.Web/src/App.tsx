@@ -12,6 +12,8 @@ import UserCreatePage from "./pages/admin/UserCreatePage";
 import RolesPage from "./pages/admin/RolesPage";
 import AccessLogsPage from "./pages/admin/AccessLogsPage";
 import CompanySettingsPage from "./pages/admin/CompanySettingsPage";
+import ThemeSettingsPage from "./pages/admin/ThemeSettingsPage";
+import { ThemeProvider } from "./context/ThemeProvider";
 import MyProfilePage from "./pages/profile/MyProfilePage";
 import AppLayout from "./components/layout/AppLayout";
 import HomePage from "./pages/dashboard/HomePage";
@@ -121,82 +123,85 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/auth/2fa" element={<TwoFactorPage />} />
-        <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/access-denied" element={<AccessDeniedPage />} />
+      <ThemeProvider>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/auth/2fa" element={<TwoFactorPage />} />
+          <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/access-denied" element={<AccessDeniedPage />} />
 
-        <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard" element={<HomePage />} />
-          <Route path="hr" element={<HRDashboard />} />
-          <Route path="hr/departments" element={<Departments />} />
-          <Route path="hr/employees" element={<Employees />} />
-          <Route path="hr/designations" element={<Designations />} />
-          <Route path="hr/leave" element={<LeaveManagement />} />
-          <Route path="hr/attendance" element={<AttendanceManagement />} />
-          <Route path="hr/payroll" element={<PayrollManagement />} />
-          <Route path="hr/recruitment" element={<Recruitment />} />
-          <Route path="hr/performance" element={<PerformanceManagement />} />
-          <Route path="accounts" element={<AccountsDashboard />} />
-          <Route path="accounts/account-groups" element={<AccountGroups />} />
-          <Route path="accounts/fiscal-years" element={<FiscalYears />} />
-          <Route path="accounts/chart-of-accounts" element={<ChartOfAccounts />} />
-          <Route path="accounts/journal-entries" element={<JournalEntries />} />
-          <Route path="accounts/cost-centers" element={<CostCenters />} />
-          <Route path="accounts/tax-rates" element={<TaxRates />} />
-          <Route path="accounts/bank-accounts" element={<BankAccounts />} />
-          <Route path="accounts/customers" element={<AccountsCustomers />} />
-          <Route path="accounts/invoices" element={<Invoices />} />
-          <Route path="accounts/vendors" element={<AccountsVendors />} />
-          <Route path="accounts/bills" element={<Bills />} />
-          <Route path="accounts/payments" element={<Payments />} />
-          <Route path="accounts/budgets" element={<Budgets />} />
-          <Route path="inventory" element={<InventoryDashboard />} />
-          <Route path="inventory/types" element={<InventoryTypes />} />
-          <Route path="inventory/categories" element={<InventoryCategories />} />
-          <Route path="inventory/units-of-measure" element={<UnitsOfMeasure />} />
-          <Route path="inventory/attributes" element={<AttributeDefinitions />} />
-          <Route path="inventory/items" element={<Items />} />
-          <Route path="inventory/item-variants" element={<ItemVariants />} />
-          <Route path="inventory/warehouses" element={<Warehouses />} />
-          <Route path="inventory/stock-balances" element={<StockBalances />} />
-          <Route path="inventory/stock-transactions" element={<StockTransactions />} />
-          <Route path="procurement" element={<ProcurementDashboard />} />
-          <Route path="procurement/vendors" element={<ProcurementVendors />} />
-          <Route path="procurement/purchase-requisitions" element={<PurchaseRequisitions />} />
-          <Route path="procurement/rfqs" element={<RequestForQuotations />} />
-          <Route path="procurement/quotations" element={<VendorQuotations />} />
-          <Route path="procurement/purchase-orders" element={<PurchaseOrders />} />
-          <Route path="procurement/grns" element={<GoodsReceivedNotes />} />
-          <Route path="projects" element={<ProjectsDashboard />} />
-          <Route path="projects/clients" element={<ClientsPage />} />
-          <Route path="projects/:id" element={<ProjectDetail />} />
-          <Route path="projects/:id/wbs" element={<WBSPage />} />
-          <Route path="projects/:id/boq" element={<BOQPage />} />
-          <Route path="projects/:id/dpr" element={<DPRPage />} />
-          <Route path="projects/:id/materials" element={<MaterialRequestPage />} />
-          <Route path="projects/:id/expenses" element={<ExpensePage />} />
-          <Route path="projects/:id/milestones" element={<MilestonePage />} />
-          <Route path="projects/:id/drawings" element={<DrawingsPage />} />
-          <Route path="projects/:id/rfis" element={<RFIsPage />} />
-          <Route path="projects/:id/submittals" element={<SubmittalsPage />} />
-          <Route path="projects/:id/resource-allocations" element={<ResourceAllocationsPage />} />
-          <Route path="projects/:id/qa-checklists" element={<QAChecklistsPage />} />
-          <Route path="projects/:id/ncrs" element={<NCRsPage />} />
-          <Route path="projects/:id/safety-incidents" element={<SafetyIncidentsPage />} />
-          <Route path="projects/:id/ra-bills" element={<RABillsPage />} />
-          <Route path="settings/*" element={<Placeholder name="Settings" />} />
-          <Route path="profile" element={<MyProfilePage />} />
-          <Route path="admin/users" element={<ProtectedRoute requiredClaim="Users.View"><UsersPage /></ProtectedRoute>} />
-          <Route path="admin/users/new" element={<ProtectedRoute requiredClaim="Users.View"><UserCreatePage /></ProtectedRoute>} />
-          <Route path="admin/users/:id" element={<ProtectedRoute requiredClaim="Users.View"><UserDetailPage /></ProtectedRoute>} />
-          <Route path="admin/company" element={<ProtectedRoute><CompanySettingsPage /></ProtectedRoute>} />
-          <Route path="admin/roles" element={<ProtectedRoute requiredClaim="Users.View"><RolesPage /></ProtectedRoute>} />
-          <Route path="admin/access-logs" element={<ProtectedRoute requiredClaim="Users.View"><AccessLogsPage /></ProtectedRoute>} />
-        </Route>
-      </Routes>
+          <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="dashboard" element={<HomePage />} />
+            <Route path="hr" element={<HRDashboard />} />
+            <Route path="hr/departments" element={<Departments />} />
+            <Route path="hr/employees" element={<Employees />} />
+            <Route path="hr/designations" element={<Designations />} />
+            <Route path="hr/leave" element={<LeaveManagement />} />
+            <Route path="hr/attendance" element={<AttendanceManagement />} />
+            <Route path="hr/payroll" element={<PayrollManagement />} />
+            <Route path="hr/recruitment" element={<Recruitment />} />
+            <Route path="hr/performance" element={<PerformanceManagement />} />
+            <Route path="accounts" element={<AccountsDashboard />} />
+            <Route path="accounts/account-groups" element={<AccountGroups />} />
+            <Route path="accounts/fiscal-years" element={<FiscalYears />} />
+            <Route path="accounts/chart-of-accounts" element={<ChartOfAccounts />} />
+            <Route path="accounts/journal-entries" element={<JournalEntries />} />
+            <Route path="accounts/cost-centers" element={<CostCenters />} />
+            <Route path="accounts/tax-rates" element={<TaxRates />} />
+            <Route path="accounts/bank-accounts" element={<BankAccounts />} />
+            <Route path="accounts/customers" element={<AccountsCustomers />} />
+            <Route path="accounts/invoices" element={<Invoices />} />
+            <Route path="accounts/vendors" element={<AccountsVendors />} />
+            <Route path="accounts/bills" element={<Bills />} />
+            <Route path="accounts/payments" element={<Payments />} />
+            <Route path="accounts/budgets" element={<Budgets />} />
+            <Route path="inventory" element={<InventoryDashboard />} />
+            <Route path="inventory/types" element={<InventoryTypes />} />
+            <Route path="inventory/categories" element={<InventoryCategories />} />
+            <Route path="inventory/units-of-measure" element={<UnitsOfMeasure />} />
+            <Route path="inventory/attributes" element={<AttributeDefinitions />} />
+            <Route path="inventory/items" element={<Items />} />
+            <Route path="inventory/item-variants" element={<ItemVariants />} />
+            <Route path="inventory/warehouses" element={<Warehouses />} />
+            <Route path="inventory/stock-balances" element={<StockBalances />} />
+            <Route path="inventory/stock-transactions" element={<StockTransactions />} />
+            <Route path="procurement" element={<ProcurementDashboard />} />
+            <Route path="procurement/vendors" element={<ProcurementVendors />} />
+            <Route path="procurement/purchase-requisitions" element={<PurchaseRequisitions />} />
+            <Route path="procurement/rfqs" element={<RequestForQuotations />} />
+            <Route path="procurement/quotations" element={<VendorQuotations />} />
+            <Route path="procurement/purchase-orders" element={<PurchaseOrders />} />
+            <Route path="procurement/grns" element={<GoodsReceivedNotes />} />
+            <Route path="projects" element={<ProjectsDashboard />} />
+            <Route path="projects/clients" element={<ClientsPage />} />
+            <Route path="projects/:id" element={<ProjectDetail />} />
+            <Route path="projects/:id/wbs" element={<WBSPage />} />
+            <Route path="projects/:id/boq" element={<BOQPage />} />
+            <Route path="projects/:id/dpr" element={<DPRPage />} />
+            <Route path="projects/:id/materials" element={<MaterialRequestPage />} />
+            <Route path="projects/:id/expenses" element={<ExpensePage />} />
+            <Route path="projects/:id/milestones" element={<MilestonePage />} />
+            <Route path="projects/:id/drawings" element={<DrawingsPage />} />
+            <Route path="projects/:id/rfis" element={<RFIsPage />} />
+            <Route path="projects/:id/submittals" element={<SubmittalsPage />} />
+            <Route path="projects/:id/resource-allocations" element={<ResourceAllocationsPage />} />
+            <Route path="projects/:id/qa-checklists" element={<QAChecklistsPage />} />
+            <Route path="projects/:id/ncrs" element={<NCRsPage />} />
+            <Route path="projects/:id/safety-incidents" element={<SafetyIncidentsPage />} />
+            <Route path="projects/:id/ra-bills" element={<RABillsPage />} />
+            <Route path="settings/*" element={<Placeholder name="Settings" />} />
+            <Route path="profile" element={<MyProfilePage />} />
+            <Route path="admin/theme" element={<ThemeSettingsPage />} />
+            <Route path="admin/users" element={<ProtectedRoute requiredClaim="Users.View"><UsersPage /></ProtectedRoute>} />
+            <Route path="admin/users/new" element={<ProtectedRoute requiredClaim="Users.View"><UserCreatePage /></ProtectedRoute>} />
+            <Route path="admin/users/:id" element={<ProtectedRoute requiredClaim="Users.View"><UserDetailPage /></ProtectedRoute>} />
+            <Route path="admin/company" element={<ProtectedRoute><CompanySettingsPage /></ProtectedRoute>} />
+            <Route path="admin/roles" element={<ProtectedRoute requiredClaim="Users.View"><RolesPage /></ProtectedRoute>} />
+            <Route path="admin/access-logs" element={<ProtectedRoute requiredClaim="Users.View"><AccessLogsPage /></ProtectedRoute>} />
+          </Route>
+        </Routes>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }
