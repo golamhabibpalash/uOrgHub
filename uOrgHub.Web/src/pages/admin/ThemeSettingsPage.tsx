@@ -111,7 +111,7 @@ export default function ThemeSettingsPage() {
       <div className="flex items-center gap-3 pt-4 border-t border-gray-200">
         <button
           onClick={async () => {
-            if (draft) await saveTheme(draft);
+            await saveTheme(current);
             setDraft(null);
           }}
           className="px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600 transition-colors"
