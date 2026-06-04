@@ -42,12 +42,22 @@ import {
   Palette,
 } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
+import { getMenuItems, type MenuItemDto } from "../../api/auth";
+
+const iconMap: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
+  LayoutDashboard, Users, Receipt, Box, ShoppingCart, HardHat,
+  Building2, UserCircle, Briefcase, CalendarClock, Clock, Wallet,
+  UserCheck, Target, ShieldCheck, ScrollText, Palette, Settings,
+  BookOpen, Calendar, Layers, MapPin, Percent, Landmark, FileText,
+  CreditCard, PiggyBank, FileSpreadsheet, ShoppingBag, Tag, Ruler,
+  Package, Warehouse, ArrowDownToLine, ArrowUpFromLine,
+};
 
 interface NavItem {
   label: string;
-  path: string;
-  icon: React.ComponentType<{ size?: number }>;
-  subItems?: { label: string; path: string; icon: React.ComponentType<{ size?: number }> }[];
+  path?: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  subItems?: { label: string; path: string; icon: React.ComponentType<{ size?: number; className?: string }> }[];
 }
 
 interface NavPolicy {
@@ -61,72 +71,6 @@ const defaultPolicy: NavPolicy = {
   defaultExpanded: [],
   persistState: true,
 };
-
-const hrSubItems = [
-  { label: "Dashboard", path: "/hr", icon: Users },
-  { label: "Departments", path: "/hr/departments", icon: Building2 },
-  { label: "Employees", path: "/hr/employees", icon: UserCircle },
-  { label: "Designations", path: "/hr/designations", icon: Briefcase },
-  { label: "Leave", path: "/hr/leave", icon: CalendarClock },
-  { label: "Attendance", path: "/hr/attendance", icon: Clock },
-  { label: "Payroll", path: "/hr/payroll", icon: Wallet },
-  { label: "Recruitment", path: "/hr/recruitment", icon: UserCheck },
-  { label: "Performance", path: "/hr/performance", icon: Target },
-];
-
-const accountsSubItems = [
-  { label: "Dashboard", path: "/accounts", icon: Receipt },
-  { label: "Account Groups", path: "/accounts/account-groups", icon: Layers },
-  { label: "Fiscal Years", path: "/accounts/fiscal-years", icon: Calendar },
-  { label: "Chart of Accounts", path: "/accounts/chart-of-accounts", icon: BookOpen },
-  { label: "Journal Entries", path: "/accounts/journal-entries", icon: FileSpreadsheet },
-  { label: "Cost Centers", path: "/accounts/cost-centers", icon: MapPin },
-  { label: "Tax Rates", path: "/accounts/tax-rates", icon: Percent },
-  { label: "Bank Accounts", path: "/accounts/bank-accounts", icon: Landmark },
-  { label: "Customers", path: "/accounts/customers", icon: Users },
-  { label: "Invoices", path: "/accounts/invoices", icon: FileText },
-  { label: "Vendors", path: "/accounts/vendors", icon: ShoppingBag },
-  { label: "Bills", path: "/accounts/bills", icon: FileText },
-  { label: "Payments", path: "/accounts/payments", icon: CreditCard },
-  { label: "Budgets", path: "/accounts/budgets", icon: PiggyBank },
-];
-
-const inventorySubItems = [
-  { label: "Dashboard", path: "/inventory", icon: Box },
-  { label: "Inventory Types", path: "/inventory/types", icon: Tag },
-  { label: "Categories", path: "/inventory/categories", icon: Package },
-  { label: "Units of Measure", path: "/inventory/units-of-measure", icon: Ruler },
-  { label: "Attributes", path: "/inventory/attributes", icon: Tag },
-  { label: "Items", path: "/inventory/items", icon: Package },
-  { label: "Item Variants", path: "/inventory/item-variants", icon: Package },
-  { label: "Warehouses", path: "/inventory/warehouses", icon: Warehouse },
-  { label: "Stock Balances", path: "/inventory/stock-balances", icon: ArrowDownToLine },
-  { label: "Stock Transactions", path: "/inventory/stock-transactions", icon: ArrowUpFromLine },
-];
-
-const procurementSubItems = [
-  { label: "Dashboard", path: "/procurement", icon: ShoppingCart },
-  { label: "Vendors", path: "/procurement/vendors", icon: Users },
-  { label: "Purchase Requisitions", path: "/procurement/purchase-requisitions", icon: FileText },
-  { label: "Request for Quotation", path: "/procurement/rfqs", icon: FileSpreadsheet },
-  { label: "Vendor Quotations", path: "/procurement/quotations", icon: Tag },
-  { label: "Purchase Orders", path: "/procurement/purchase-orders", icon: Package },
-  { label: "Goods Received Notes", path: "/procurement/grns", icon: ArrowDownToLine },
-];
-
-const projectsSubItems = [
-  { label: "All Projects", path: "/projects", icon: HardHat },
-  { label: "Clients", path: "/projects/clients", icon: Users },
-];
-
-const navItems: NavItem[] = [
-  { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
-  { label: "HR & Payroll", path: "/hr", icon: Users, subItems: hrSubItems },
-  { label: "Accounts", path: "/accounts", icon: Receipt, subItems: accountsSubItems },
-  { label: "Inventory", path: "/inventory", icon: Box, subItems: inventorySubItems },
-  { label: "Procurement", path: "/procurement", icon: ShoppingCart, subItems: procurementSubItems },
-  { label: "Projects", path: "/projects", icon: HardHat, subItems: projectsSubItems },
-];
 
 const SIDEBAR_KEY = "uorghub-sidebar-state";
 
@@ -149,21 +93,37 @@ function loadPersisted(): PersistedState {
   return { isCollapsed: false, toggleParity: {} };
 }
 
+function dtoToNavItem(dto: MenuItemDto): NavItem {
+  return {
+    label: dto.label,
+    path: dto.path,
+    icon: dto.icon ? iconMap[dto.icon] ?? (() => null) : (() => null),
+    subItems: dto.children?.filter(c => c.path).map(c => ({
+      label: c.label,
+      path: c.path!,
+      icon: c.icon ? iconMap[c.icon] ?? (() => null) : (() => null),
+    })),
+  };
+}
+
 export default function Sidebar() {
   const location = useLocation();
   const authUser = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
-  const hasClaim = useAuthStore((s) => s.hasClaim);
-  const hasRole = useAuthStore((s) => s.hasRole);
   const displayName = authUser ? `${authUser.firstName} ${authUser.lastName}`.trim() : "Admin";
   const initials = displayName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
   const roleLabel = authUser?.roles?.[0] ?? "User";
-  const canManageUsers = hasClaim("Users.View") || hasRole("Admin");
 
+  const [menuItems, setMenuItems] = useState<MenuItemDto[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const [policy] = useState<NavPolicy>(defaultPolicy);
   const [isCollapsed, setIsCollapsed] = useState(() => loadPersisted().isCollapsed);
   const [toggleParity, setToggleParity] = useState<Record<string, number>>(() => loadPersisted().toggleParity);
   const prevPathRef = useRef(location.pathname);
+
+  useEffect(() => {
+    getMenuItems().then(setMenuItems).catch(() => setMenuItems([])).finally(() => setLoaded(true));
+  }, []);
 
   useEffect(() => {
     if (policy.persistState) {
@@ -203,8 +163,15 @@ export default function Sidebar() {
         next[label] = (prev[label] ?? 0) + 1;
 
         if (policy.autoCollapseSiblings) {
-          navItems.forEach((item) => {
-            if (item.subItems && item.label !== label) {
+          const siblings: NavItem[] = [];
+          for (const item of menuItems) {
+            const nav = dtoToNavItem(item);
+            if (nav.subItems && nav.label !== label) {
+              siblings.push(nav);
+            }
+          }
+          siblings.forEach((item) => {
+            if (item.subItems) {
               next[item.label] = isRouteActiveFor(item.subItems) ? 1 : 0;
             }
           });
@@ -213,7 +180,7 @@ export default function Sidebar() {
         return next;
       });
     },
-    [policy.autoCollapseSiblings, isRouteActiveFor]
+    [policy.autoCollapseSiblings, isRouteActiveFor, menuItems]
   );
 
   const isParentActive = useCallback(
@@ -222,6 +189,135 @@ export default function Sidebar() {
   );
 
   const toggleCollapse = () => setIsCollapsed((prev) => !prev);
+
+  const renderNavItem = (dto: MenuItemDto) => {
+    const nav = dtoToNavItem(dto);
+    const { label, path, icon: Icon, subItems } = nav;
+
+    if (!subItems || subItems.length === 0) {
+      if (!path) return null;
+      return (
+        <div key={dto.key} className="mb-1">
+          <NavLink
+            to={path}
+            end
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2 rounded-md mb-0.5 text-sm transition-colors ${
+                isCollapsed ? "justify-center" : ""
+              } ${
+                isActive
+                  ? "bg-primary-500 text-white font-medium"
+                  : "sidebar-text-muted sidebar-hover"
+              }`
+            }
+          >
+            {isCollapsed ? (
+              <div className="relative">
+                <Icon size={16} />
+                <div className="absolute left-full ml-2 top-0 bg-sidebar text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity">
+                  {label}
+                </div>
+              </div>
+            ) : (
+              <>
+                <Icon size={16} />
+                <span className="truncate">{label}</span>
+              </>
+            )}
+          </NavLink>
+        </div>
+      );
+    }
+
+    return (
+      <div key={dto.key} className="mb-1">
+        <div>
+          <button
+            onClick={() => toggleModule(label)}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors cursor-pointer text-left ${
+              isCollapsed ? "justify-center" : ""
+            } ${
+              isParentActive(subItems)
+                ? "bg-primary-500/15 text-primary-300 font-medium"
+                : "sidebar-text-muted sidebar-hover"
+            }`}
+            aria-expanded={isOpen(label, subItems)}
+            aria-label={`${label} module`}
+          >
+            {isCollapsed ? (
+              <div className="relative">
+                <Icon size={16} />
+                <div className="absolute left-full ml-2 top-0 bg-slate-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity">
+                  {label}
+                </div>
+              </div>
+            ) : (
+              <>
+                <Icon size={16} />
+                <span className="flex-1 truncate">{label}</span>
+                <ChevronDown
+                  size={14}
+                  className={`shrink-0 transition-transform duration-200 ${
+                    isOpen(label, subItems) ? "rotate-180" : ""
+                  }`}
+                />
+              </>
+            )}
+          </button>
+          <div
+            className={`overflow-hidden transition-all duration-200 ease-in-out ${
+              isOpen(label, subItems) && !isCollapsed ? "max-h-[800px] opacity-100" : "max-h-0 opacity-0"
+            }`}
+          >
+            <div className="pt-1">
+              {subItems.map(({ label: subLabel, path: subPath, icon: SubIcon }) => (
+                <NavLink
+                  key={subPath}
+                  to={subPath}
+                  end={subPath === path}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 pl-10 pr-3 py-1.5 rounded-md mb-0.5 text-xs transition-colors ${
+                      isActive
+                        ? "bg-primary-500 text-white font-medium"
+                        : "sidebar-text-muted sidebar-hover"
+                    }`
+                  }
+                >
+                  <SubIcon size={14} />
+                  <span className="truncate">{subLabel}</span>
+                </NavLink>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderSection = (key: string, label: string | null) => {
+    const items = menuItems.filter(m => (m.section ?? "main") === key);
+    if (items.length === 0) return null;
+
+    return (
+      <div key={key}>
+        {label ? (
+          !isCollapsed && (
+            <p className="sidebar-text-dim text-[10px] font-medium px-2 pb-1 pt-4 tracking-widest">{label}</p>
+          )
+        ) : (
+          !isCollapsed && <div className="h-3" />
+        )}
+        {isCollapsed && label !== null && <div className="h-2" />}
+        {items.map(renderNavItem)}
+      </div>
+    );
+  };
+
+  if (!loaded) {
+    return (
+      <aside className={`${isCollapsed ? "w-16 min-w-16" : "w-60 min-w-60"} bg-sidebar flex flex-col h-screen transition-all duration-300 relative`} />
+    );
+  }
 
   return (
     <aside
@@ -259,161 +355,10 @@ export default function Sidebar() {
       </button>
 
       <nav className="flex-1 px-2 py-3 overflow-y-auto overflow-x-hidden">
-          {!isCollapsed && (
-          <p className="sidebar-text-dim text-[10px] font-medium px-2 pb-1 tracking-widest">MODULES</p>
-        )}
-        {isCollapsed && <div className="h-4" />}
-
-        {navItems.map(({ label, path, icon: Icon, subItems }) => (
-          <div key={path} className="mb-1">
-            {subItems ? (
-              <div>
-                <button
-                  onClick={() => toggleModule(label)}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors cursor-pointer text-left ${
-                    isCollapsed ? "justify-center" : ""
-                  } ${
-                    isParentActive(subItems)
-                      ? "bg-primary-500/15 text-primary-300 font-medium"
-                      : "sidebar-text-muted sidebar-hover"
-                  }`}
-                  aria-expanded={isOpen(label, subItems)}
-                  aria-label={`${label} module`}
-                >
-                  {isCollapsed ? (
-                    <div className="relative">
-                      <Icon size={16} />
-                      <div className="absolute left-full ml-2 top-0 bg-slate-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity">
-                        {label}
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <Icon size={16} />
-                      <span className="flex-1 truncate">{label}</span>
-                      <ChevronDown
-                        size={14}
-                        className={`shrink-0 transition-transform duration-200 ${
-                          isOpen(label, subItems) ? "rotate-180" : ""
-                        }`}
-                      />
-                    </>
-                  )}
-                </button>
-                <div
-                  className={`overflow-hidden transition-all duration-200 ease-in-out ${
-                    isOpen(label, subItems) && !isCollapsed ? "max-h-[800px] opacity-100" : "max-h-0 opacity-0"
-                  }`}
-                >
-                  <div className="pt-1">
-                    {subItems.map(({ label: subLabel, path: subPath, icon: SubIcon }) => (
-                      <NavLink
-                        key={subPath}
-                        to={subPath}
-                        end={subPath === path}
-                          className={({ isActive }) =>
-                            `flex items-center gap-3 pl-10 pr-3 py-1.5 rounded-md mb-0.5 text-xs transition-colors ${
-                              isActive
-                                ? "bg-primary-500 text-white font-medium"
-                                : "sidebar-text-muted sidebar-hover"
-                            }`
-                        }
-                      >
-                        <SubIcon size={14} />
-                        <span className="truncate">{subLabel}</span>
-                      </NavLink>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <NavLink
-                to={path}
-                end
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2 rounded-md mb-0.5 text-sm transition-colors ${
-                    isCollapsed ? "justify-center" : ""
-                  } ${
-                    isActive
-                      ? "bg-primary-500 text-white font-medium"
-                      : "sidebar-text-muted sidebar-hover"
-                  }`
-                }
-              >
-                {isCollapsed ? (
-                  <div className="relative">
-                    <Icon size={16} />
-                    <div className="absolute left-full ml-2 top-0 bg-sidebar text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity">
-                      {label}
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <Icon size={16} />
-                    <span className="truncate">{label}</span>
-                  </>
-                )}
-              </NavLink>
-            )}
-          </div>
-        ))}
-
-        {canManageUsers && (
-          <>
-            {!isCollapsed && (
-              <p className="sidebar-text-dim text-[10px] font-medium px-2 pb-1 pt-4 tracking-widest">ADMIN</p>
-            )}
-            {isCollapsed && <div className="h-2" />}
-            {[
-              { label: "Users", path: "/admin/users", icon: Users },
-              { label: "Roles", path: "/admin/roles", icon: ShieldCheck },
-              { label: "Access Logs", path: "/admin/access-logs", icon: ScrollText },
-              { label: "Theme", path: "/admin/theme", icon: Palette },
-              { label: "Company", path: "/admin/company", icon: Building2 },
-            ].map(({ label, path, icon: Icon }) => (
-              <NavLink key={path} to={path}
-                className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-md mb-0.5 text-sm transition-colors ${isCollapsed ? "justify-center" : ""} ${isActive ? "bg-primary-500 text-white font-medium" : "sidebar-text-muted sidebar-hover"}`}>
-                {isCollapsed ? <Icon size={16} /> : <><Icon size={16} /><span className="truncate">{label}</span></>}
-              </NavLink>
-            ))}
-          </>
-        )}
-
-        <NavLink to="/profile"
-          className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-md mb-0.5 text-sm transition-colors ${isCollapsed ? "justify-center" : ""} ${isActive ? "bg-primary-500 text-white font-medium" : "sidebar-text-muted sidebar-hover"}`}>
-          {isCollapsed ? <UserCircle size={16} /> : <><UserCircle size={16} /><span className="truncate">My Profile</span></>}
-        </NavLink>
-
-        {!isCollapsed && (
-          <p className="sidebar-text-dim text-[10px] font-medium px-2 pb-1 pt-4 tracking-widest">SYSTEM</p>
-        )}
-        {isCollapsed && <div className="h-4" />}
-        <NavLink
-          to="/settings"
-          className={({ isActive }) =>
-            `flex items-center gap-3 px-3 py-2 rounded-md mb-0.5 text-sm transition-colors ${
-              isCollapsed ? "justify-center" : ""
-            } ${
-              isActive
-                ? "bg-primary-500 text-white font-medium"
-                : "sidebar-text-muted sidebar-hover"
-            }`
-          }
-        >
-          {isCollapsed ? (
-            <div className="relative">
-              <Settings size={16} />
-              <div className="absolute left-full ml-2 top-0 bg-sidebar text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity">
-                Settings
-              </div>
-            </div>
-          ) : (
-            <>
-              <Settings size={16} />
-              <span className="truncate">Settings</span>
-            </>
-          )}
-        </NavLink>
+        {renderSection("main", "MODULES")}
+        {renderSection("admin", "ADMIN")}
+        {renderSection("profile", null)}
+        {renderSection("system", "SYSTEM")}
       </nav>
 
       <div className={`px-3 py-3 border-t border-white/10 flex items-center gap-3 ${isCollapsed ? "justify-center" : ""}`}>

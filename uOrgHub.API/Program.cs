@@ -78,6 +78,9 @@ builder.Services.AddScoped<IDashboardService, DashboardService>();
 // Theme Service
 builder.Services.AddScoped<IThemeService, ThemeService>();
 
+// Menu Service
+builder.Services.AddScoped<IMenuService, MenuService>();
+
 // Controllers
 builder.Services.AddControllers()
     .AddJsonOptions(options =>

@@ -155,6 +155,21 @@ export const removeRoleClaim = (roleId: string, claimId: string) =>
 export const getClaims = () =>
   apiClient.get<{ data: ClaimDto[] }>('/claims').then(unwrap);
 
+// Menu
+export interface MenuItemDto {
+  key: string;
+  label: string;
+  icon?: string;
+  path?: string;
+  requiredClaim?: string;
+  requiredRole?: string;
+  section?: string;
+  children?: MenuItemDto[];
+}
+
+export const getMenuItems = () =>
+  apiClient.get<{ data: MenuItemDto[] }>('/auth/menu').then(unwrap);
+
 export interface AccessLogFilterParams {
   page?: number;
   pageSize?: number;
