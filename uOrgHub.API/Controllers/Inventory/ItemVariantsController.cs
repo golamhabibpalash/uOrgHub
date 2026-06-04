@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Inventory.DTOs;
 using uOrgHub.Inventory.Features.Items.Commands;
 using uOrgHub.Inventory.Features.Items.Queries;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Inventory;
@@ -15,6 +17,7 @@ public class ItemVariantsController : BaseController
     public ItemVariantsController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Inventory.ItemVariants.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request, [FromQuery] Guid? itemId = null)
     {
         var result = await _mediator.Send(new GetItemVariantsQuery(request, itemId));
@@ -22,6 +25,7 @@ public class ItemVariantsController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Inventory.ItemVariants.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetItemVariantByIdQuery(id));
@@ -29,6 +33,7 @@ public class ItemVariantsController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Inventory.ItemVariants.Create)]
     public async Task<IActionResult> Create([FromBody] CreateItemVariantDto dto)
     {
         var result = await _mediator.Send(new CreateItemVariantCommand(dto));
@@ -36,6 +41,7 @@ public class ItemVariantsController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Inventory.ItemVariants.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateItemVariantDto dto)
     {
         var result = await _mediator.Send(new UpdateItemVariantCommand(id, dto));
@@ -43,6 +49,7 @@ public class ItemVariantsController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Inventory.ItemVariants.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteItemVariantCommand(id));

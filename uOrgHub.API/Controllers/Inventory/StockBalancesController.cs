@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Inventory.DTOs;
 using uOrgHub.Inventory.Features.Stock.Queries;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Inventory;
@@ -14,6 +16,7 @@ public class StockBalancesController : BaseController
     public StockBalancesController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Inventory.StockBalances.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request, [FromQuery] Guid? warehouseId = null, [FromQuery] Guid? itemVariantId = null)
     {
         var result = await _mediator.Send(new GetStockBalancesQuery(request, warehouseId, itemVariantId));
@@ -21,6 +24,7 @@ public class StockBalancesController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Inventory.StockBalances.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetStockBalanceByIdQuery(id));

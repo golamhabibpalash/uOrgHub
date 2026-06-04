@@ -6,6 +6,8 @@ using uOrgHub.Projects.Features.RFIs.Commands;
 using uOrgHub.Projects.Features.RFIs.Queries;
 using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Shared.Models;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 
 namespace uOrgHub.API.Controllers.Projects;
 
@@ -16,6 +18,7 @@ public class RFIsController : BaseController
     public RFIsController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Projects.RFIs.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request,
         [FromQuery] Guid? projectId = null, [FromQuery] RFIStatus? status = null)
     {
@@ -24,6 +27,7 @@ public class RFIsController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Projects.RFIs.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetRFIByIdQuery(id));
@@ -31,6 +35,7 @@ public class RFIsController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Projects.RFIs.Create)]
     public async Task<IActionResult> Create([FromBody] CreateRFIDto dto)
     {
         var result = await _mediator.Send(new CreateRFICommand(dto));
@@ -38,6 +43,7 @@ public class RFIsController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Projects.RFIs.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateRFIDto dto)
     {
         var result = await _mediator.Send(new UpdateRFICommand(id, dto));
@@ -45,6 +51,7 @@ public class RFIsController : BaseController
     }
 
     [HttpPost("{id:guid}/respond")]
+    [RequireClaim(Claims.Projects.RFIs.Edit)]
     public async Task<IActionResult> Respond(Guid id, [FromBody] RespondRFIDto dto)
     {
         var result = await _mediator.Send(new RespondRFICommand(id, dto));
@@ -52,6 +59,7 @@ public class RFIsController : BaseController
     }
 
     [HttpPost("{id:guid}/close")]
+    [RequireClaim(Claims.Projects.RFIs.Edit)]
     public async Task<IActionResult> Close(Guid id)
     {
         var result = await _mediator.Send(new CloseRFICommand(id));
@@ -59,6 +67,7 @@ public class RFIsController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Projects.RFIs.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteRFICommand(id));

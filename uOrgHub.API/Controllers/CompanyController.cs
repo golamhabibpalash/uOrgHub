@@ -2,6 +2,8 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.Auth.DTOs;
 using uOrgHub.Auth.Models.Entities;
 using uOrgHub.Shared.Data;
@@ -97,6 +99,7 @@ public class CompanyController : ControllerBase
 
     [HttpGet]
     [Authorize]
+    [RequireClaim(Claims.Admin.Company.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request)
     {
         var query = _db.Set<Company>().Where(c => !c.IsDeleted);
@@ -122,6 +125,7 @@ public class CompanyController : ControllerBase
 
     [HttpGet("mine")]
     [Authorize]
+    [RequireClaim(Claims.Admin.Company.View)]
     public async Task<IActionResult> GetMine()
     {
         var userId = GetUserId();
@@ -137,6 +141,7 @@ public class CompanyController : ControllerBase
 
     [HttpGet("{id:guid}")]
     [Authorize]
+    [RequireClaim(Claims.Admin.Company.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var company = await _db.Set<Company>().FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted)
@@ -147,6 +152,7 @@ public class CompanyController : ControllerBase
 
     [HttpPut("{id:guid}")]
     [Authorize]
+    [RequireClaim(Claims.Admin.Company.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCompanyDto dto)
     {
         var company = await _db.Set<Company>().FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted)
@@ -171,6 +177,7 @@ public class CompanyController : ControllerBase
 
     [HttpPost("{id:guid}/logo")]
     [Authorize]
+    [RequireClaim(Claims.Admin.Company.Edit)]
     public async Task<IActionResult> UploadLogo(Guid id, IFormFile file)
     {
         var company = await _db.Set<Company>().FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted)
@@ -199,6 +206,7 @@ public class CompanyController : ControllerBase
 
     [HttpDelete("{id:guid}")]
     [Authorize]
+    [RequireClaim(Claims.Admin.Company.Edit)]
     public async Task<IActionResult> Delete(Guid id)
     {
         var company = await _db.Set<Company>().FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted)

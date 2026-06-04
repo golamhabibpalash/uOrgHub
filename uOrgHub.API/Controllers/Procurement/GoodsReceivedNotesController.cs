@@ -1,6 +1,8 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.Procurement.DTOs;
 using uOrgHub.Procurement.Features.GoodsReceivedNotes.Commands;
 using uOrgHub.Procurement.Features.GoodsReceivedNotes.Queries;
@@ -16,6 +18,7 @@ public class GoodsReceivedNotesController : BaseController
     public GoodsReceivedNotesController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Procurement.GRNs.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request, [FromQuery] GRNStatus? status = null)
     {
         var result = await _mediator.Send(new GetGRNsQuery(request, status));
@@ -23,6 +26,7 @@ public class GoodsReceivedNotesController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Procurement.GRNs.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetGRNByIdQuery(id));
@@ -30,6 +34,7 @@ public class GoodsReceivedNotesController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Procurement.GRNs.Create)]
     public async Task<IActionResult> Create([FromBody] CreateGRNDto dto)
     {
         var result = await _mediator.Send(new CreateGRNCommand(dto));
@@ -37,6 +42,7 @@ public class GoodsReceivedNotesController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Procurement.GRNs.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateGRNDto dto)
     {
         var result = await _mediator.Send(new UpdateGRNCommand(id, dto));
@@ -44,6 +50,7 @@ public class GoodsReceivedNotesController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Procurement.GRNs.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteGRNCommand(id));
@@ -51,6 +58,7 @@ public class GoodsReceivedNotesController : BaseController
     }
 
     [HttpPost("{id:guid}/confirm")]
+    [RequireClaim(Claims.Procurement.GRNs.Edit)]
     public async Task<IActionResult> Confirm(Guid id)
     {
         var result = await _mediator.Send(new ConfirmGRNCommand(id));

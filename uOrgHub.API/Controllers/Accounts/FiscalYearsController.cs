@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Accounts.DTOs;
 using uOrgHub.Accounts.Services;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Accounts;
@@ -15,6 +17,7 @@ public class FiscalYearsController : BaseController
     public FiscalYearsController(IFiscalYearService service) => _service = service;
 
     [HttpGet]
+    [RequireClaim(Claims.Accounts.FiscalYears.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request)
     {
         var result = await _service.GetAllAsync(request);
@@ -22,6 +25,7 @@ public class FiscalYearsController : BaseController
     }
 
     [HttpGet("current")]
+    [RequireClaim(Claims.Accounts.FiscalYears.View)]
     public async Task<IActionResult> GetCurrent()
     {
         var result = await _service.GetCurrentAsync();
@@ -29,6 +33,7 @@ public class FiscalYearsController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Accounts.FiscalYears.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _service.GetByIdAsync(id);
@@ -36,6 +41,7 @@ public class FiscalYearsController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Accounts.FiscalYears.Create)]
     public async Task<IActionResult> Create([FromBody] CreateFiscalYearDto dto)
     {
         var result = await _service.CreateAsync(dto);
@@ -43,6 +49,7 @@ public class FiscalYearsController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Accounts.FiscalYears.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateFiscalYearDto dto)
     {
         var result = await _service.UpdateAsync(id, dto);
@@ -50,6 +57,7 @@ public class FiscalYearsController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Accounts.FiscalYears.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _service.DeleteAsync(id);

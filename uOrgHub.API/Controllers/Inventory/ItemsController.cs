@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Inventory.DTOs;
 using uOrgHub.Inventory.Features.Items.Commands;
 using uOrgHub.Inventory.Features.Items.Queries;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Inventory;
@@ -15,6 +17,7 @@ public class ItemsController : BaseController
     public ItemsController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Inventory.Items.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request, [FromQuery] Guid? categoryId = null, [FromQuery] Guid? typeId = null)
     {
         var result = await _mediator.Send(new GetItemsQuery(request, categoryId, typeId));
@@ -22,6 +25,7 @@ public class ItemsController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Inventory.Items.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetItemByIdQuery(id));
@@ -29,6 +33,7 @@ public class ItemsController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Inventory.Items.Create)]
     public async Task<IActionResult> Create([FromBody] CreateItemDto dto)
     {
         var result = await _mediator.Send(new CreateItemCommand(dto));
@@ -36,6 +41,7 @@ public class ItemsController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Inventory.Items.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateItemDto dto)
     {
         var result = await _mediator.Send(new UpdateItemCommand(id, dto));
@@ -43,6 +49,7 @@ public class ItemsController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Inventory.Items.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteItemCommand(id));
@@ -50,6 +57,7 @@ public class ItemsController : BaseController
     }
 
     [HttpGet("{id:guid}/variants")]
+    [RequireClaim(Claims.Inventory.Items.View)]
     public async Task<IActionResult> GetVariants(Guid id, [FromQuery] PaginationRequest request)
     {
         var result = await _mediator.Send(new GetItemVariantsQuery(request, id));

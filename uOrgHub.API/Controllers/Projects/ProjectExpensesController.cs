@@ -5,6 +5,8 @@ using uOrgHub.Projects.DTOs;
 using uOrgHub.Projects.Features.ProjectExpenses.Commands;
 using uOrgHub.Projects.Features.ProjectExpenses.Queries;
 using uOrgHub.Shared.Models;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 
 namespace uOrgHub.API.Controllers.Projects;
 
@@ -15,6 +17,7 @@ public class ProjectExpensesController : BaseController
     public ProjectExpensesController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Projects.Expenses.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request, [FromQuery] Guid? projectId = null)
     {
         var result = await _mediator.Send(new GetProjectExpensesListQuery(request, projectId));
@@ -22,6 +25,7 @@ public class ProjectExpensesController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Projects.Expenses.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetProjectExpenseByIdQuery(id));
@@ -29,6 +33,7 @@ public class ProjectExpensesController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Projects.Expenses.Create)]
     public async Task<IActionResult> Create([FromBody] CreateProjectExpenseDto dto)
     {
         var result = await _mediator.Send(new CreateProjectExpenseCommand(dto));
@@ -36,6 +41,7 @@ public class ProjectExpensesController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Projects.Expenses.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProjectExpenseDto dto)
     {
         var result = await _mediator.Send(new UpdateProjectExpenseCommand(id, dto));
@@ -43,6 +49,7 @@ public class ProjectExpensesController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Projects.Expenses.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteProjectExpenseCommand(id));
@@ -50,6 +57,7 @@ public class ProjectExpensesController : BaseController
     }
 
     [HttpPost("{id:guid}/approve")]
+    [RequireClaim(Claims.Projects.Expenses.Approve)]
     public async Task<IActionResult> Approve(Guid id, [FromBody] ApproveExpenseDto dto)
     {
         var result = await _mediator.Send(new ApproveProjectExpenseCommand(id, dto));

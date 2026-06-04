@@ -6,6 +6,8 @@ using uOrgHub.Projects.Features.Projects.Commands;
 using uOrgHub.Projects.Features.Projects.Queries;
 using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Shared.Models;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 
 namespace uOrgHub.API.Controllers.Projects;
 
@@ -16,6 +18,7 @@ public class ProjectsController : BaseController
     public ProjectsController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Projects.Projects_.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request,
         [FromQuery] ProjectStatus? status = null, [FromQuery] Guid? clientId = null)
     {
@@ -24,6 +27,7 @@ public class ProjectsController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Projects.Projects_.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetProjectByIdQuery(id));
@@ -31,6 +35,7 @@ public class ProjectsController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Projects.Projects_.Create)]
     public async Task<IActionResult> Create([FromBody] CreateProjectDto dto)
     {
         var result = await _mediator.Send(new CreateProjectCommand(dto));
@@ -38,6 +43,7 @@ public class ProjectsController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Projects.Projects_.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProjectDto dto)
     {
         var result = await _mediator.Send(new UpdateProjectCommand(id, dto));
@@ -45,6 +51,7 @@ public class ProjectsController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Projects.Projects_.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteProjectCommand(id));
@@ -54,6 +61,7 @@ public class ProjectsController : BaseController
     // --- Dashboard ---
 
     [HttpGet("{id:guid}/dashboard")]
+    [RequireClaim(Claims.Projects.Projects_.View)]
     public async Task<IActionResult> GetDashboard(Guid id)
     {
         var result = await _mediator.Send(new GetProjectDashboardQuery(id));
@@ -63,6 +71,7 @@ public class ProjectsController : BaseController
     // --- WBS Tree ---
 
     [HttpGet("{id:guid}/wbs")]
+    [RequireClaim(Claims.Projects.Projects_.View)]
     public async Task<IActionResult> GetWBSTree(Guid id)
     {
         var result = await _mediator.Send(new GetProjectWBSTreeQuery(id));
@@ -72,6 +81,7 @@ public class ProjectsController : BaseController
     // --- Budget Summary ---
 
     [HttpGet("{id:guid}/budget-summary")]
+    [RequireClaim(Claims.Projects.Projects_.View)]
     public async Task<IActionResult> GetBudgetSummary(Guid id)
     {
         var result = await _mediator.Send(new GetProjectBudgetSummaryQuery(id));
@@ -81,6 +91,7 @@ public class ProjectsController : BaseController
     // --- Progress ---
 
     [HttpGet("{id:guid}/progress")]
+    [RequireClaim(Claims.Projects.Projects_.View)]
     public async Task<IActionResult> GetProgress(Guid id)
     {
         var result = await _mediator.Send(new GetProjectProgressQuery(id));
@@ -90,6 +101,7 @@ public class ProjectsController : BaseController
     // --- Team ---
 
     [HttpGet("{id:guid}/team")]
+    [RequireClaim(Claims.Projects.Projects_.View)]
     public async Task<IActionResult> GetTeam(Guid id)
     {
         var result = await _mediator.Send(new GetProjectTeamQuery(id));
@@ -97,6 +109,7 @@ public class ProjectsController : BaseController
     }
 
     [HttpPost("{id:guid}/team")]
+    [RequireClaim(Claims.Projects.Projects_.Edit)]
     public async Task<IActionResult> AddTeamMember(Guid id, [FromBody] AddProjectTeamMemberDto dto)
     {
         var result = await _mediator.Send(new AddProjectTeamMemberCommand(id, dto));
@@ -104,6 +117,7 @@ public class ProjectsController : BaseController
     }
 
     [HttpDelete("{id:guid}/team/{employeeId:guid}")]
+    [RequireClaim(Claims.Projects.Projects_.Edit)]
     public async Task<IActionResult> RemoveTeamMember(Guid id, Guid employeeId)
     {
         await _mediator.Send(new RemoveProjectTeamMemberCommand(id, employeeId));
@@ -113,6 +127,7 @@ public class ProjectsController : BaseController
     // --- Milestones ---
 
     [HttpGet("{id:guid}/milestones")]
+    [RequireClaim(Claims.Projects.Projects_.View)]
     public async Task<IActionResult> GetMilestones(Guid id)
     {
         var result = await _mediator.Send(new GetProjectMilestonesQuery(id));
@@ -122,6 +137,7 @@ public class ProjectsController : BaseController
     // --- DPRs ---
 
     [HttpGet("{id:guid}/dprs")]
+    [RequireClaim(Claims.Projects.Projects_.View)]
     public async Task<IActionResult> GetDPRs(Guid id, [FromQuery] PaginationRequest request)
     {
         var result = await _mediator.Send(new GetProjectDPRsQuery(id, request));
@@ -131,6 +147,7 @@ public class ProjectsController : BaseController
     // --- Expenses ---
 
     [HttpGet("{id:guid}/expenses")]
+    [RequireClaim(Claims.Projects.Projects_.View)]
     public async Task<IActionResult> GetExpenses(Guid id, [FromQuery] PaginationRequest request)
     {
         var result = await _mediator.Send(new GetProjectExpensesQuery(id, request));

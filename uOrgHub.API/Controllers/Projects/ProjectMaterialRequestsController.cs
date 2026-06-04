@@ -5,6 +5,8 @@ using uOrgHub.Projects.DTOs;
 using uOrgHub.Projects.Features.MaterialRequests.Commands;
 using uOrgHub.Projects.Features.MaterialRequests.Queries;
 using uOrgHub.Shared.Models;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 
 namespace uOrgHub.API.Controllers.Projects;
 
@@ -15,6 +17,7 @@ public class ProjectMaterialRequestsController : BaseController
     public ProjectMaterialRequestsController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Projects.MaterialRequests.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request, [FromQuery] Guid? projectId = null)
     {
         var result = await _mediator.Send(new GetMaterialRequestsQuery(request, projectId));
@@ -22,6 +25,7 @@ public class ProjectMaterialRequestsController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Projects.MaterialRequests.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetMaterialRequestByIdQuery(id));
@@ -29,6 +33,7 @@ public class ProjectMaterialRequestsController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Projects.MaterialRequests.Create)]
     public async Task<IActionResult> Create([FromBody] CreateMaterialRequestDto dto)
     {
         var result = await _mediator.Send(new CreateMaterialRequestCommand(dto));
@@ -36,6 +41,7 @@ public class ProjectMaterialRequestsController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Projects.MaterialRequests.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateMaterialRequestDto dto)
     {
         var result = await _mediator.Send(new UpdateMaterialRequestCommand(id, dto));
@@ -43,6 +49,7 @@ public class ProjectMaterialRequestsController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Projects.MaterialRequests.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteMaterialRequestCommand(id));
@@ -50,6 +57,7 @@ public class ProjectMaterialRequestsController : BaseController
     }
 
     [HttpPost("{id:guid}/submit")]
+    [RequireClaim(Claims.Projects.MaterialRequests.Edit)]
     public async Task<IActionResult> Submit(Guid id)
     {
         var result = await _mediator.Send(new SubmitMaterialRequestCommand(id));
@@ -57,6 +65,7 @@ public class ProjectMaterialRequestsController : BaseController
     }
 
     [HttpPost("{id:guid}/approve")]
+    [RequireClaim(Claims.Projects.MaterialRequests.Approve)]
     public async Task<IActionResult> Approve(Guid id, [FromBody] ApproveMaterialRequestDto dto)
     {
         var result = await _mediator.Send(new ApproveMaterialRequestCommand(id, dto));

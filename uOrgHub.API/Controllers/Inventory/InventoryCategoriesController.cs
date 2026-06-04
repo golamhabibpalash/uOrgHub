@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Inventory.DTOs;
 using uOrgHub.Inventory.Features.Catalog.Commands;
 using uOrgHub.Inventory.Features.Catalog.Queries;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Inventory;
@@ -15,6 +17,7 @@ public class InventoryCategoriesController : BaseController
     public InventoryCategoriesController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Inventory.Categories.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request, [FromQuery] Guid? typeId = null)
     {
         var result = await _mediator.Send(new GetInventoryCategoriesQuery(request, typeId));
@@ -22,6 +25,7 @@ public class InventoryCategoriesController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Inventory.Categories.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetInventoryCategoryByIdQuery(id));
@@ -29,6 +33,7 @@ public class InventoryCategoriesController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Inventory.Categories.Create)]
     public async Task<IActionResult> Create([FromBody] CreateInventoryCategoryDto dto)
     {
         var result = await _mediator.Send(new CreateInventoryCategoryCommand(dto));
@@ -36,6 +41,7 @@ public class InventoryCategoriesController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Inventory.Categories.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateInventoryCategoryDto dto)
     {
         var result = await _mediator.Send(new UpdateInventoryCategoryCommand(id, dto));
@@ -43,6 +49,7 @@ public class InventoryCategoriesController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Inventory.Categories.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteInventoryCategoryCommand(id));

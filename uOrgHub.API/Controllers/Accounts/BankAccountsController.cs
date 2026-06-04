@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Accounts.DTOs.Banking;
 using uOrgHub.Accounts.Features.Banking;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Accounts;
@@ -15,6 +17,7 @@ public class BankAccountsController : BaseController
     public BankAccountsController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Accounts.BankAccounts.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request)
     {
         var result = await _mediator.Send(new GetBankAccountsQuery(request));
@@ -22,6 +25,7 @@ public class BankAccountsController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Accounts.BankAccounts.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetBankAccountByIdQuery(id));
@@ -29,6 +33,7 @@ public class BankAccountsController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Accounts.BankAccounts.Create)]
     public async Task<IActionResult> Create([FromBody] CreateBankAccountDto dto)
     {
         var result = await _mediator.Send(new CreateBankAccountCommand(dto));
@@ -36,6 +41,7 @@ public class BankAccountsController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Accounts.BankAccounts.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateBankAccountDto dto)
     {
         var result = await _mediator.Send(new UpdateBankAccountCommand(id, dto));
@@ -43,6 +49,7 @@ public class BankAccountsController : BaseController
     }
 
     [HttpGet("{id:guid}/transactions")]
+    [RequireClaim(Claims.Accounts.BankAccounts.View)]
     public async Task<IActionResult> GetTransactions(Guid id, [FromQuery] PaginationRequest request)
     {
         var result = await _mediator.Send(new GetBankTransactionsQuery(id, request));
@@ -50,6 +57,7 @@ public class BankAccountsController : BaseController
     }
 
     [HttpPost("{id:guid}/transactions")]
+    [RequireClaim(Claims.Accounts.BankAccounts.Edit)]
     public async Task<IActionResult> CreateTransaction(Guid id, [FromBody] CreateBankTransactionDto dto)
     {
         dto.BankAccountId = id;

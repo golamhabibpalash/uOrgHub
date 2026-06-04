@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Inventory.DTOs;
 using uOrgHub.Inventory.Features.Catalog.Commands;
 using uOrgHub.Inventory.Features.Catalog.Queries;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Inventory;
@@ -15,6 +17,7 @@ public class InventoryTypesController : BaseController
     public InventoryTypesController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Inventory.Types.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request)
     {
         var result = await _mediator.Send(new GetInventoryTypesQuery(request));
@@ -22,6 +25,7 @@ public class InventoryTypesController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Inventory.Types.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetInventoryTypeByIdQuery(id));
@@ -29,6 +33,7 @@ public class InventoryTypesController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Inventory.Types.Create)]
     public async Task<IActionResult> Create([FromBody] CreateInventoryTypeDto dto)
     {
         var result = await _mediator.Send(new CreateInventoryTypeCommand(dto));
@@ -36,6 +41,7 @@ public class InventoryTypesController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Inventory.Types.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateInventoryTypeDto dto)
     {
         var result = await _mediator.Send(new UpdateInventoryTypeCommand(id, dto));
@@ -43,6 +49,7 @@ public class InventoryTypesController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Inventory.Types.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteInventoryTypeCommand(id));

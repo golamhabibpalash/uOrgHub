@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Accounts.DTOs;
 using uOrgHub.Accounts.Services;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Accounts;
@@ -15,6 +17,7 @@ public class JournalEntriesController : BaseController
     public JournalEntriesController(IJournalEntryService service) => _service = service;
 
     [HttpGet]
+    [RequireClaim(Claims.Accounts.JournalEntries.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request)
     {
         var result = await _service.GetAllAsync(request);
@@ -22,6 +25,7 @@ public class JournalEntriesController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Accounts.JournalEntries.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _service.GetByIdAsync(id);
@@ -29,6 +33,7 @@ public class JournalEntriesController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Accounts.JournalEntries.Create)]
     public async Task<IActionResult> Create([FromBody] CreateJournalEntryDto dto)
     {
         var result = await _service.CreateAsync(dto);
@@ -36,6 +41,7 @@ public class JournalEntriesController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Accounts.JournalEntries.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateJournalEntryDto dto)
     {
         var result = await _service.UpdateAsync(id, dto);
@@ -43,6 +49,7 @@ public class JournalEntriesController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Accounts.JournalEntries.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _service.DeleteAsync(id);
@@ -50,6 +57,7 @@ public class JournalEntriesController : BaseController
     }
 
     [HttpPost("{id:guid}/post")]
+    [RequireClaim(Claims.Accounts.JournalEntries.Post)]
     public async Task<IActionResult> Post(Guid id)
     {
         var result = await _service.PostAsync(id, User.Identity?.Name ?? "System");
@@ -57,6 +65,7 @@ public class JournalEntriesController : BaseController
     }
 
     [HttpPost("{id:guid}/cancel")]
+    [RequireClaim(Claims.Accounts.JournalEntries.Delete)]
     public async Task<IActionResult> Cancel(Guid id)
     {
         var result = await _service.CancelAsync(id);

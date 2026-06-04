@@ -1,6 +1,8 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.Procurement.DTOs;
 using uOrgHub.Procurement.Features.RequestForQuotations.Commands;
 using uOrgHub.Procurement.Features.RequestForQuotations.Queries;
@@ -16,6 +18,7 @@ public class RFQsController : BaseController
     public RFQsController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Procurement.RFQs.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request, [FromQuery] RFQStatus? status = null)
     {
         var result = await _mediator.Send(new GetRFQsQuery(request, status));
@@ -23,6 +26,7 @@ public class RFQsController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Procurement.RFQs.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetRFQByIdQuery(id));
@@ -30,6 +34,7 @@ public class RFQsController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Procurement.RFQs.Create)]
     public async Task<IActionResult> Create([FromBody] CreateRFQDto dto)
     {
         var result = await _mediator.Send(new CreateRFQCommand(dto));
@@ -37,6 +42,7 @@ public class RFQsController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Procurement.RFQs.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateRFQDto dto)
     {
         var result = await _mediator.Send(new UpdateRFQCommand(id, dto));
@@ -44,6 +50,7 @@ public class RFQsController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Procurement.RFQs.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteRFQCommand(id));
@@ -51,6 +58,7 @@ public class RFQsController : BaseController
     }
 
     [HttpGet("{id:guid}/quotations")]
+    [RequireClaim(Claims.Procurement.RFQs.View)]
     public async Task<IActionResult> GetQuotations(Guid id, [FromQuery] PaginationRequest request)
     {
         var result = await _mediator.Send(new GetRFQQuotationsQuery(id, request));

@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Accounts.DTOs.AR;
 using uOrgHub.Accounts.Features.AR;
 using uOrgHub.Accounts.Models.Enums;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Accounts;
@@ -16,6 +18,7 @@ public class InvoicesController : BaseController
     public InvoicesController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Accounts.Invoices.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request, [FromQuery] Guid? customerId, [FromQuery] InvoiceStatus? status)
     {
         var result = await _mediator.Send(new GetInvoicesQuery(request, customerId, status));
@@ -23,6 +26,7 @@ public class InvoicesController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Accounts.Invoices.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetInvoiceByIdQuery(id));
@@ -30,6 +34,7 @@ public class InvoicesController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Accounts.Invoices.Create)]
     public async Task<IActionResult> Create([FromBody] CreateInvoiceDto dto)
     {
         var result = await _mediator.Send(new CreateInvoiceCommand(dto));
@@ -37,6 +42,7 @@ public class InvoicesController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Accounts.Invoices.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateInvoiceDto dto)
     {
         var result = await _mediator.Send(new UpdateInvoiceCommand(id, dto));
@@ -44,6 +50,7 @@ public class InvoicesController : BaseController
     }
 
     [HttpPost("{id:guid}/post")]
+    [RequireClaim(Claims.Accounts.Invoices.Approve)]
     public async Task<IActionResult> Post(Guid id)
     {
         var result = await _mediator.Send(new PostInvoiceCommand(id));
@@ -51,6 +58,7 @@ public class InvoicesController : BaseController
     }
 
     [HttpPost("{id:guid}/void")]
+    [RequireClaim(Claims.Accounts.Invoices.Delete)]
     public async Task<IActionResult> Void(Guid id)
     {
         var result = await _mediator.Send(new VoidInvoiceCommand(id));

@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.Auth.DTOs;
 using uOrgHub.Auth.Services;
 using uOrgHub.Shared.Models;
@@ -46,6 +47,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("logout")]
     [Authorize]
+    [RequireClaim(Claims.Self.ViewProfile)]
     public async Task<IActionResult> Logout([FromBody] LogoutRequest request)
     {
         await _authService.LogoutAsync(GetUserId(), request.SessionToken);
@@ -71,6 +73,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("change-password")]
     [Authorize]
+    [RequireClaim(Claims.Self.EditProfile)]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
     {
         await _authService.ChangePasswordAsync(GetUserId(), dto);
@@ -79,6 +82,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("send-otp")]
     [Authorize]
+    [RequireClaim(Claims.Self.EditProfile)]
     public async Task<IActionResult> SendOTP([FromBody] SendOTPDto dto)
     {
         var result = await _authService.SendOTPAsync(GetUserId(), dto.OTPType, dto.Channel);
@@ -87,6 +91,7 @@ public class AuthController : ControllerBase
 
     [HttpGet("me")]
     [Authorize]
+    [RequireClaim(Claims.Self.ViewProfile)]
     public async Task<IActionResult> GetProfile()
     {
         var profile = await _authService.GetProfileAsync(GetUserId());
@@ -95,6 +100,7 @@ public class AuthController : ControllerBase
 
     [HttpPut("me")]
     [Authorize]
+    [RequireClaim(Claims.Self.EditProfile)]
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto dto)
     {
         var profile = await _authService.UpdateProfileAsync(GetUserId(), dto);
@@ -103,6 +109,7 @@ public class AuthController : ControllerBase
 
     [HttpPut("me/2fa")]
     [Authorize]
+    [RequireClaim(Claims.Self.EditProfile)]
     public async Task<IActionResult> Toggle2FA([FromBody] Toggle2FADto dto)
     {
         await _authService.Toggle2FAAsync(GetUserId(), dto);

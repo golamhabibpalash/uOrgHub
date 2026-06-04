@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using uOrgHub.API.DTOs;
 using uOrgHub.API.Middleware;
 using uOrgHub.API.Services;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Admin;
@@ -28,6 +29,7 @@ public class ThemeController : ControllerBase
 
     [HttpPut]
     [Authorize]
+    [RequireClaim(Claims.Admin.Theme.Edit)]
     public async Task<IActionResult> Update([FromBody] UpdateThemeDto dto)
     {
         var result = await _theme.UpdateAsync(dto);
@@ -36,6 +38,7 @@ public class ThemeController : ControllerBase
 
     [HttpPost("reset")]
     [Authorize]
+    [RequireClaim(Claims.Admin.Theme.Edit)]
     public async Task<IActionResult> Reset()
     {
         var result = await _theme.ResetDefaultAsync();

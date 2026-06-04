@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Inventory.DTOs;
 using uOrgHub.Inventory.Features.Catalog.Commands;
 using uOrgHub.Inventory.Features.Catalog.Queries;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Inventory;
@@ -15,6 +17,7 @@ public class AttributeDefinitionsController : BaseController
     public AttributeDefinitionsController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Inventory.Attributes.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request, [FromQuery] Guid? categoryId = null)
     {
         var result = await _mediator.Send(new GetAttributeDefinitionsQuery(request, categoryId));
@@ -22,6 +25,7 @@ public class AttributeDefinitionsController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Inventory.Attributes.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetAttributeDefinitionByIdQuery(id));
@@ -29,6 +33,7 @@ public class AttributeDefinitionsController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Inventory.Attributes.Create)]
     public async Task<IActionResult> Create([FromBody] CreateAttributeDefinitionDto dto)
     {
         var result = await _mediator.Send(new CreateAttributeDefinitionCommand(dto));
@@ -36,6 +41,7 @@ public class AttributeDefinitionsController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Inventory.Attributes.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateAttributeDefinitionDto dto)
     {
         var result = await _mediator.Send(new UpdateAttributeDefinitionCommand(id, dto));
@@ -43,6 +49,7 @@ public class AttributeDefinitionsController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Inventory.Attributes.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteAttributeDefinitionCommand(id));

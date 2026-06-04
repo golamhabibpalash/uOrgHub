@@ -1,6 +1,8 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.Procurement.DTOs;
 using uOrgHub.Procurement.Features.PurchaseRequisitions.Commands;
 using uOrgHub.Procurement.Features.PurchaseRequisitions.Queries;
@@ -16,6 +18,7 @@ public class PurchaseRequisitionsController : BaseController
     public PurchaseRequisitionsController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Procurement.PurchaseRequisitions.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request, [FromQuery] PRStatus? status = null)
     {
         var result = await _mediator.Send(new GetPRsQuery(request, status));
@@ -23,6 +26,7 @@ public class PurchaseRequisitionsController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Procurement.PurchaseRequisitions.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetPRByIdQuery(id));
@@ -30,6 +34,7 @@ public class PurchaseRequisitionsController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Procurement.PurchaseRequisitions.Create)]
     public async Task<IActionResult> Create([FromBody] CreatePRDto dto)
     {
         var result = await _mediator.Send(new CreatePRCommand(dto));
@@ -37,6 +42,7 @@ public class PurchaseRequisitionsController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Procurement.PurchaseRequisitions.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdatePRDto dto)
     {
         var result = await _mediator.Send(new UpdatePRCommand(id, dto));
@@ -44,6 +50,7 @@ public class PurchaseRequisitionsController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Procurement.PurchaseRequisitions.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeletePRCommand(id));
@@ -51,6 +58,7 @@ public class PurchaseRequisitionsController : BaseController
     }
 
     [HttpPost("{id:guid}/submit")]
+    [RequireClaim(Claims.Procurement.PurchaseRequisitions.Edit)]
     public async Task<IActionResult> Submit(Guid id)
     {
         var result = await _mediator.Send(new SubmitPRCommand(id));
@@ -58,6 +66,7 @@ public class PurchaseRequisitionsController : BaseController
     }
 
     [HttpPost("{id:guid}/approve")]
+    [RequireClaim(Claims.Procurement.PurchaseRequisitions.Approve)]
     public async Task<IActionResult> Approve(Guid id)
     {
         var result = await _mediator.Send(new ApprovePRCommand(id));
@@ -65,6 +74,7 @@ public class PurchaseRequisitionsController : BaseController
     }
 
     [HttpPost("{id:guid}/reject")]
+    [RequireClaim(Claims.Procurement.PurchaseRequisitions.Approve)]
     public async Task<IActionResult> Reject(Guid id, [FromBody] RejectPRDto dto)
     {
         var result = await _mediator.Send(new RejectPRCommand(id, dto));

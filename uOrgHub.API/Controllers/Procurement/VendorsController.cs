@@ -1,6 +1,8 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.Procurement.DTOs;
 using uOrgHub.Procurement.Features.Vendors.Commands;
 using uOrgHub.Procurement.Features.Vendors.Queries;
@@ -16,6 +18,7 @@ public class VendorsController : BaseController
     public VendorsController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Procurement.Vendors.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request, [FromQuery] VendorStatus? status = null, [FromQuery] VendorType? vendorType = null)
     {
         var result = await _mediator.Send(new GetVendorsQuery(request, status, vendorType));
@@ -23,6 +26,7 @@ public class VendorsController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Procurement.Vendors.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetVendorByIdQuery(id));
@@ -30,6 +34,7 @@ public class VendorsController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Procurement.Vendors.Create)]
     public async Task<IActionResult> Create([FromBody] CreateVendorDto dto)
     {
         var result = await _mediator.Send(new CreateVendorCommand(dto));
@@ -37,6 +42,7 @@ public class VendorsController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Procurement.Vendors.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateVendorDto dto)
     {
         var result = await _mediator.Send(new UpdateVendorCommand(id, dto));
@@ -44,6 +50,7 @@ public class VendorsController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Procurement.Vendors.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteVendorCommand(id));
@@ -51,6 +58,7 @@ public class VendorsController : BaseController
     }
 
     [HttpGet("{id:guid}/quotations")]
+    [RequireClaim(Claims.Procurement.Vendors.View)]
     public async Task<IActionResult> GetQuotations(Guid id, [FromQuery] PaginationRequest request)
     {
         var result = await _mediator.Send(new GetVendorQuotationsQuery(id, request));
@@ -58,6 +66,7 @@ public class VendorsController : BaseController
     }
 
     [HttpGet("{id:guid}/orders")]
+    [RequireClaim(Claims.Procurement.Vendors.View)]
     public async Task<IActionResult> GetOrders(Guid id, [FromQuery] PaginationRequest request)
     {
         var result = await _mediator.Send(new GetVendorOrdersQuery(id, request));

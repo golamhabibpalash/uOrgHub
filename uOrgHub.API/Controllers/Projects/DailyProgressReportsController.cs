@@ -5,6 +5,8 @@ using uOrgHub.Projects.DTOs;
 using uOrgHub.Projects.Features.DPR.Commands;
 using uOrgHub.Projects.Features.DPR.Queries;
 using uOrgHub.Shared.Models;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 
 namespace uOrgHub.API.Controllers.Projects;
 
@@ -15,6 +17,7 @@ public class DailyProgressReportsController : BaseController
     public DailyProgressReportsController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Projects.DPRs.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request, [FromQuery] Guid? projectId = null)
     {
         var result = await _mediator.Send(new GetDPRsQuery(request, projectId));
@@ -22,6 +25,7 @@ public class DailyProgressReportsController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Projects.DPRs.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetDPRByIdQuery(id));
@@ -29,6 +33,7 @@ public class DailyProgressReportsController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Projects.DPRs.Create)]
     public async Task<IActionResult> Create([FromBody] CreateDPRDto dto)
     {
         var result = await _mediator.Send(new CreateDPRCommand(dto));
@@ -36,6 +41,7 @@ public class DailyProgressReportsController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Projects.DPRs.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateDPRDto dto)
     {
         var result = await _mediator.Send(new UpdateDPRCommand(id, dto));
@@ -43,6 +49,7 @@ public class DailyProgressReportsController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Projects.DPRs.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteDPRCommand(id));
@@ -50,6 +57,7 @@ public class DailyProgressReportsController : BaseController
     }
 
     [HttpPost("{id:guid}/submit")]
+    [RequireClaim(Claims.Projects.DPRs.Edit)]
     public async Task<IActionResult> Submit(Guid id)
     {
         var result = await _mediator.Send(new SubmitDPRCommand(id));
@@ -57,6 +65,7 @@ public class DailyProgressReportsController : BaseController
     }
 
     [HttpPost("{id:guid}/approve")]
+    [RequireClaim(Claims.Projects.DPRs.Edit)]
     public async Task<IActionResult> Approve(Guid id, [FromBody] ApproveDPRDto dto)
     {
         var result = await _mediator.Send(new ApproveDPRCommand(id, dto));

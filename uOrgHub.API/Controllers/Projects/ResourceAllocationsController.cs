@@ -6,6 +6,8 @@ using uOrgHub.Projects.Features.ResourceAllocations.Commands;
 using uOrgHub.Projects.Features.ResourceAllocations.Queries;
 using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Shared.Models;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 
 namespace uOrgHub.API.Controllers.Projects;
 
@@ -16,6 +18,7 @@ public class ResourceAllocationsController : BaseController
     public ResourceAllocationsController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Projects.ResourceAllocations.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request,
         [FromQuery] Guid? projectId = null, [FromQuery] ResourceType? resourceType = null,
         [FromQuery] ResourceAllocationStatus? status = null)
@@ -25,6 +28,7 @@ public class ResourceAllocationsController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Projects.ResourceAllocations.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetResourceAllocationByIdQuery(id));
@@ -32,6 +36,7 @@ public class ResourceAllocationsController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Projects.ResourceAllocations.Create)]
     public async Task<IActionResult> Create([FromBody] CreateResourceAllocationDto dto)
     {
         var result = await _mediator.Send(new CreateResourceAllocationCommand(dto));
@@ -39,6 +44,7 @@ public class ResourceAllocationsController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Projects.ResourceAllocations.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateResourceAllocationDto dto)
     {
         var result = await _mediator.Send(new UpdateResourceAllocationCommand(id, dto));
@@ -46,6 +52,7 @@ public class ResourceAllocationsController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Projects.ResourceAllocations.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteResourceAllocationCommand(id));

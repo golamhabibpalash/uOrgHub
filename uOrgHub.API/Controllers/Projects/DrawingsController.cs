@@ -6,6 +6,8 @@ using uOrgHub.Projects.Features.Drawings.Commands;
 using uOrgHub.Projects.Features.Drawings.Queries;
 using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Shared.Models;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 
 namespace uOrgHub.API.Controllers.Projects;
 
@@ -16,6 +18,7 @@ public class DrawingsController : BaseController
     public DrawingsController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Projects.Drawings.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request,
         [FromQuery] Guid? projectId = null, [FromQuery] DrawingStatus? status = null,
         [FromQuery] DrawingDiscipline? discipline = null)
@@ -25,6 +28,7 @@ public class DrawingsController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Projects.Drawings.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetDrawingByIdQuery(id));
@@ -32,6 +36,7 @@ public class DrawingsController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Projects.Drawings.Create)]
     public async Task<IActionResult> Create([FromBody] CreateDrawingDto dto)
     {
         var result = await _mediator.Send(new CreateDrawingCommand(dto));
@@ -39,6 +44,7 @@ public class DrawingsController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Projects.Drawings.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateDrawingDto dto)
     {
         var result = await _mediator.Send(new UpdateDrawingCommand(id, dto));
@@ -46,6 +52,7 @@ public class DrawingsController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Projects.Drawings.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteDrawingCommand(id));

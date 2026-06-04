@@ -6,6 +6,8 @@ using uOrgHub.Projects.Features.NCRs.Commands;
 using uOrgHub.Projects.Features.NCRs.Queries;
 using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Shared.Models;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 
 namespace uOrgHub.API.Controllers.Projects;
 
@@ -16,6 +18,7 @@ public class NCRsController : BaseController
     public NCRsController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Projects.NCRs.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request,
         [FromQuery] Guid? projectId = null, [FromQuery] NCRStatus? status = null,
         [FromQuery] NCRSeverity? severity = null)
@@ -25,6 +28,7 @@ public class NCRsController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Projects.NCRs.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetNCRByIdQuery(id));
@@ -32,6 +36,7 @@ public class NCRsController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Projects.NCRs.Create)]
     public async Task<IActionResult> Create([FromBody] CreateNCRDto dto)
     {
         var result = await _mediator.Send(new CreateNCRCommand(dto));
@@ -39,6 +44,7 @@ public class NCRsController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Projects.NCRs.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateNCRDto dto)
     {
         var result = await _mediator.Send(new UpdateNCRCommand(id, dto));
@@ -46,6 +52,7 @@ public class NCRsController : BaseController
     }
 
     [HttpPost("{id:guid}/verify")]
+    [RequireClaim(Claims.Projects.NCRs.Edit)]
     public async Task<IActionResult> Verify(Guid id, [FromBody] VerifyNCRDto dto)
     {
         var result = await _mediator.Send(new VerifyNCRCommand(id, dto));
@@ -53,6 +60,7 @@ public class NCRsController : BaseController
     }
 
     [HttpPost("{id:guid}/close")]
+    [RequireClaim(Claims.Projects.NCRs.Edit)]
     public async Task<IActionResult> Close(Guid id)
     {
         var result = await _mediator.Send(new CloseNCRCommand(id));
@@ -60,6 +68,7 @@ public class NCRsController : BaseController
     }
 
     [HttpPost("{id:guid}/void")]
+    [RequireClaim(Claims.Projects.NCRs.Edit)]
     public async Task<IActionResult> Void(Guid id)
     {
         var result = await _mediator.Send(new VoidNCRCommand(id));
@@ -67,6 +76,7 @@ public class NCRsController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Projects.NCRs.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteNCRCommand(id));

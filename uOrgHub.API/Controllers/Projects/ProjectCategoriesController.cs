@@ -5,6 +5,8 @@ using uOrgHub.Projects.DTOs;
 using uOrgHub.Projects.Features.ProjectCategories.Commands;
 using uOrgHub.Projects.Features.ProjectCategories.Queries;
 using uOrgHub.Shared.Models;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 
 namespace uOrgHub.API.Controllers.Projects;
 
@@ -15,6 +17,7 @@ public class ProjectCategoriesController : BaseController
     public ProjectCategoriesController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Projects.Projects_.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request)
     {
         var result = await _mediator.Send(new GetProjectCategoriesQuery(request));
@@ -22,6 +25,7 @@ public class ProjectCategoriesController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Projects.Projects_.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetProjectCategoryByIdQuery(id));
@@ -29,6 +33,7 @@ public class ProjectCategoriesController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Projects.Projects_.Create)]
     public async Task<IActionResult> Create([FromBody] CreateProjectCategoryDto dto)
     {
         var result = await _mediator.Send(new CreateProjectCategoryCommand(dto));
@@ -36,6 +41,7 @@ public class ProjectCategoriesController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Projects.Projects_.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProjectCategoryDto dto)
     {
         var result = await _mediator.Send(new UpdateProjectCategoryCommand(id, dto));
@@ -43,6 +49,7 @@ public class ProjectCategoriesController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Projects.Projects_.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteProjectCategoryCommand(id));

@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Accounts.DTOs.AR;
 using uOrgHub.Accounts.Features.AR;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Accounts;
@@ -15,6 +17,7 @@ public class CustomersController : BaseController
     public CustomersController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Accounts.Customers.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request)
     {
         var result = await _mediator.Send(new GetCustomersQuery(request));
@@ -22,6 +25,7 @@ public class CustomersController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Accounts.Customers.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetCustomerByIdQuery(id));
@@ -29,6 +33,7 @@ public class CustomersController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Accounts.Customers.Create)]
     public async Task<IActionResult> Create([FromBody] CreateCustomerDto dto)
     {
         var result = await _mediator.Send(new CreateCustomerCommand(dto));
@@ -36,6 +41,7 @@ public class CustomersController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Accounts.Customers.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCustomerDto dto)
     {
         var result = await _mediator.Send(new UpdateCustomerCommand(id, dto));
@@ -43,6 +49,7 @@ public class CustomersController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Accounts.Customers.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteCustomerCommand(id));

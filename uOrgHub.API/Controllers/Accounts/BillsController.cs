@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Accounts.DTOs.AP;
 using uOrgHub.Accounts.Features.AP;
 using uOrgHub.Accounts.Models.Enums;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Accounts;
@@ -16,6 +18,7 @@ public class BillsController : BaseController
     public BillsController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Accounts.Bills.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request, [FromQuery] Guid? vendorId, [FromQuery] BillStatus? status)
     {
         var result = await _mediator.Send(new GetBillsQuery(request, vendorId, status));
@@ -23,6 +26,7 @@ public class BillsController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Accounts.Bills.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetBillByIdQuery(id));
@@ -30,6 +34,7 @@ public class BillsController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Accounts.Bills.Create)]
     public async Task<IActionResult> Create([FromBody] CreateBillDto dto)
     {
         var result = await _mediator.Send(new CreateBillCommand(dto));
@@ -37,6 +42,7 @@ public class BillsController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Accounts.Bills.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateBillDto dto)
     {
         var result = await _mediator.Send(new UpdateBillCommand(id, dto));
@@ -44,6 +50,7 @@ public class BillsController : BaseController
     }
 
     [HttpPost("{id:guid}/approve")]
+    [RequireClaim(Claims.Accounts.Bills.Approve)]
     public async Task<IActionResult> Approve(Guid id)
     {
         var result = await _mediator.Send(new ApproveBillCommand(id));
@@ -51,6 +58,7 @@ public class BillsController : BaseController
     }
 
     [HttpPost("{id:guid}/void")]
+    [RequireClaim(Claims.Accounts.Bills.Delete)]
     public async Task<IActionResult> Void(Guid id)
     {
         var result = await _mediator.Send(new VoidBillCommand(id));

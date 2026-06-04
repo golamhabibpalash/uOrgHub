@@ -5,6 +5,8 @@ using uOrgHub.Projects.DTOs;
 using uOrgHub.Projects.Features.ProjectBudgets.Commands;
 using uOrgHub.Projects.Features.ProjectBudgets.Queries;
 using uOrgHub.Shared.Models;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 
 namespace uOrgHub.API.Controllers.Projects;
 
@@ -15,6 +17,7 @@ public class ProjectBudgetsController : BaseController
     public ProjectBudgetsController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Projects.Budgets.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request, [FromQuery] Guid projectId)
     {
         var result = await _mediator.Send(new GetProjectBudgetsQuery(projectId, request));
@@ -22,6 +25,7 @@ public class ProjectBudgetsController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Projects.Budgets.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetProjectBudgetByIdQuery(id));
@@ -29,6 +33,7 @@ public class ProjectBudgetsController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Projects.Budgets.Create)]
     public async Task<IActionResult> Create([FromBody] CreateProjectBudgetDto dto)
     {
         var result = await _mediator.Send(new CreateProjectBudgetCommand(dto));
@@ -36,6 +41,7 @@ public class ProjectBudgetsController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Projects.Budgets.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProjectBudgetDto dto)
     {
         var result = await _mediator.Send(new UpdateProjectBudgetCommand(id, dto));
@@ -43,6 +49,7 @@ public class ProjectBudgetsController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Projects.Budgets.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteProjectBudgetCommand(id));

@@ -6,6 +6,8 @@ using uOrgHub.Projects.Features.BOQ.Commands;
 using uOrgHub.Projects.Features.BOQ.Queries;
 using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Shared.Models;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 
 namespace uOrgHub.API.Controllers.Projects;
 
@@ -16,6 +18,7 @@ public class BOQsController : BaseController
     public BOQsController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Projects.BOQs.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request,
         [FromQuery] Guid? projectId = null, [FromQuery] BOQStatus? status = null)
     {
@@ -24,6 +27,7 @@ public class BOQsController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Projects.BOQs.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetBOQByIdQuery(id));
@@ -31,6 +35,7 @@ public class BOQsController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Projects.BOQs.Create)]
     public async Task<IActionResult> Create([FromBody] CreateBOQDto dto)
     {
         var result = await _mediator.Send(new CreateBOQCommand(dto));
@@ -38,6 +43,7 @@ public class BOQsController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Projects.BOQs.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateBOQDto dto)
     {
         var result = await _mediator.Send(new UpdateBOQCommand(id, dto));
@@ -45,6 +51,7 @@ public class BOQsController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Projects.BOQs.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteBOQCommand(id));
@@ -52,6 +59,7 @@ public class BOQsController : BaseController
     }
 
     [HttpPost("{id:guid}/approve")]
+    [RequireClaim(Claims.Projects.BOQs.Edit)]
     public async Task<IActionResult> Approve(Guid id, [FromBody] ApproveBOQDto dto)
     {
         var result = await _mediator.Send(new ApproveBOQCommand(id, dto));
@@ -59,6 +67,7 @@ public class BOQsController : BaseController
     }
 
     [HttpPost("{id:guid}/items")]
+    [RequireClaim(Claims.Projects.BOQs.Edit)]
     public async Task<IActionResult> AddItem(Guid id, [FromBody] CreateBOQItemDto dto)
     {
         var result = await _mediator.Send(new AddBOQItemCommand(id, dto));
@@ -66,6 +75,7 @@ public class BOQsController : BaseController
     }
 
     [HttpPut("{id:guid}/items/{itemId:guid}")]
+    [RequireClaim(Claims.Projects.BOQs.Edit)]
     public async Task<IActionResult> UpdateItem(Guid id, Guid itemId, [FromBody] UpdateBOQItemDto dto)
     {
         var result = await _mediator.Send(new UpdateBOQItemCommand(id, itemId, dto));
@@ -73,6 +83,7 @@ public class BOQsController : BaseController
     }
 
     [HttpDelete("{id:guid}/items/{itemId:guid}")]
+    [RequireClaim(Claims.Projects.BOQs.Edit)]
     public async Task<IActionResult> DeleteItem(Guid id, Guid itemId)
     {
         var result = await _mediator.Send(new DeleteBOQItemCommand(id, itemId));

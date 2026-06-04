@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using uOrgHub.API.DTOs;
+using uOrgHub.API.Middleware;
 using uOrgHub.API.Services;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.HR;
@@ -19,6 +21,7 @@ public class HRDashboardController : ControllerBase
     }
 
     [HttpGet]
+    [RequireClaim(Claims.HR.Employees.View)]
     public async Task<IActionResult> Get()
     {
         var result = await _service.GetAsync();

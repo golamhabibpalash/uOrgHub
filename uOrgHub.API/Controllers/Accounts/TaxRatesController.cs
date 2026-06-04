@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Accounts.DTOs.TaxRate;
 using uOrgHub.Accounts.Features.TaxRate;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Accounts;
@@ -15,6 +17,7 @@ public class TaxRatesController : BaseController
     public TaxRatesController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Accounts.TaxRates.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request)
     {
         var result = await _mediator.Send(new GetTaxRatesQuery(request));
@@ -22,6 +25,7 @@ public class TaxRatesController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Accounts.TaxRates.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetTaxRateByIdQuery(id));
@@ -29,6 +33,7 @@ public class TaxRatesController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Accounts.TaxRates.Create)]
     public async Task<IActionResult> Create([FromBody] CreateTaxRateDto dto)
     {
         var result = await _mediator.Send(new CreateTaxRateCommand(dto));
@@ -36,6 +41,7 @@ public class TaxRatesController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Accounts.TaxRates.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateTaxRateDto dto)
     {
         var result = await _mediator.Send(new UpdateTaxRateCommand(id, dto));
@@ -43,6 +49,7 @@ public class TaxRatesController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Accounts.TaxRates.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteTaxRateCommand(id));

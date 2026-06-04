@@ -5,6 +5,8 @@ using uOrgHub.Projects.DTOs;
 using uOrgHub.Projects.Features.ProjectMilestones.Commands;
 using uOrgHub.Projects.Features.ProjectMilestones.Queries;
 using uOrgHub.Shared.Models;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 
 namespace uOrgHub.API.Controllers.Projects;
 
@@ -15,6 +17,7 @@ public class ProjectMilestonesController : BaseController
     public ProjectMilestonesController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Projects.Milestones.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request, [FromQuery] Guid projectId)
     {
         var result = await _mediator.Send(new GetProjectMilestonesListQuery(projectId, request));
@@ -22,6 +25,7 @@ public class ProjectMilestonesController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Projects.Milestones.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetProjectMilestoneByIdQuery(id));
@@ -29,6 +33,7 @@ public class ProjectMilestonesController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Projects.Milestones.Create)]
     public async Task<IActionResult> Create([FromBody] CreateProjectMilestoneDto dto)
     {
         var result = await _mediator.Send(new CreateProjectMilestoneCommand(dto));
@@ -36,6 +41,7 @@ public class ProjectMilestonesController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Projects.Milestones.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProjectMilestoneDto dto)
     {
         var result = await _mediator.Send(new UpdateProjectMilestoneCommand(id, dto));
@@ -43,6 +49,7 @@ public class ProjectMilestonesController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Projects.Milestones.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteProjectMilestoneCommand(id));

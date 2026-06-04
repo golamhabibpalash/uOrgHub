@@ -1,6 +1,8 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.Procurement.DTOs;
 using uOrgHub.Procurement.Features.PurchaseOrders.Commands;
 using uOrgHub.Procurement.Features.PurchaseOrders.Queries;
@@ -16,6 +18,7 @@ public class PurchaseOrdersController : BaseController
     public PurchaseOrdersController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Procurement.PurchaseOrders.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request, [FromQuery] POStatus? status = null)
     {
         var result = await _mediator.Send(new GetPOsQuery(request, status));
@@ -23,6 +26,7 @@ public class PurchaseOrdersController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Procurement.PurchaseOrders.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetPOByIdQuery(id));
@@ -30,6 +34,7 @@ public class PurchaseOrdersController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Procurement.PurchaseOrders.Create)]
     public async Task<IActionResult> Create([FromBody] CreatePurchaseOrderDto dto)
     {
         var result = await _mediator.Send(new CreatePOCommand(dto));
@@ -37,6 +42,7 @@ public class PurchaseOrdersController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Procurement.PurchaseOrders.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdatePurchaseOrderDto dto)
     {
         var result = await _mediator.Send(new UpdatePOCommand(id, dto));
@@ -44,6 +50,7 @@ public class PurchaseOrdersController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Procurement.PurchaseOrders.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeletePOCommand(id));
@@ -51,6 +58,7 @@ public class PurchaseOrdersController : BaseController
     }
 
     [HttpPost("{id:guid}/send")]
+    [RequireClaim(Claims.Procurement.PurchaseOrders.Edit)]
     public async Task<IActionResult> Send(Guid id)
     {
         var result = await _mediator.Send(new SendPOCommand(id));
@@ -58,6 +66,7 @@ public class PurchaseOrdersController : BaseController
     }
 
     [HttpPost("{id:guid}/confirm")]
+    [RequireClaim(Claims.Procurement.PurchaseOrders.Approve)]
     public async Task<IActionResult> Confirm(Guid id)
     {
         var result = await _mediator.Send(new ConfirmPOCommand(id));
@@ -65,6 +74,7 @@ public class PurchaseOrdersController : BaseController
     }
 
     [HttpPost("{id:guid}/cancel")]
+    [RequireClaim(Claims.Procurement.PurchaseOrders.Edit)]
     public async Task<IActionResult> Cancel(Guid id)
     {
         var result = await _mediator.Send(new CancelPOCommand(id));
@@ -72,6 +82,7 @@ public class PurchaseOrdersController : BaseController
     }
 
     [HttpGet("{id:guid}/grns")]
+    [RequireClaim(Claims.Procurement.PurchaseOrders.View)]
     public async Task<IActionResult> GetGRNs(Guid id, [FromQuery] PaginationRequest request)
     {
         var result = await _mediator.Send(new GetPOGRNsQuery(id, request));

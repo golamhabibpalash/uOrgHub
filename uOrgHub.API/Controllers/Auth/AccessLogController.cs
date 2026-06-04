@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.Auth.DTOs;
 using uOrgHub.Auth.Services;
 using uOrgHub.Shared.Models;
@@ -30,6 +31,7 @@ public class AccessLogController : BaseController
     }
 
     [HttpGet("my")]
+    [RequireClaim(Claims.Self.ViewAccessLogs)]
     public async Task<IActionResult> GetMyLogs([FromQuery] AccessLogFilterRequest request)
     {
         var result = await _accessLogService.GetUserLogsAsync(GetUserId(), request);

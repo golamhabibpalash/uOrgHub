@@ -6,6 +6,8 @@ using uOrgHub.Projects.Features.RABills.Commands;
 using uOrgHub.Projects.Features.RABills.Queries;
 using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Shared.Models;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 
 namespace uOrgHub.API.Controllers.Projects;
 
@@ -16,6 +18,7 @@ public class RABillsController : BaseController
     public RABillsController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Projects.RABills.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request,
         [FromQuery] Guid? projectId = null, [FromQuery] RABillStatus? status = null)
     {
@@ -24,6 +27,7 @@ public class RABillsController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Projects.RABills.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetRABillByIdQuery(id));
@@ -31,6 +35,7 @@ public class RABillsController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Projects.RABills.Create)]
     public async Task<IActionResult> Create([FromBody] CreateRABillDto dto)
     {
         var result = await _mediator.Send(new CreateRABillCommand(dto));
@@ -38,6 +43,7 @@ public class RABillsController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Projects.RABills.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateRABillDto dto)
     {
         var result = await _mediator.Send(new UpdateRABillCommand(id, dto));
@@ -45,6 +51,7 @@ public class RABillsController : BaseController
     }
 
     [HttpPost("{id:guid}/submit")]
+    [RequireClaim(Claims.Projects.RABills.Edit)]
     public async Task<IActionResult> Submit(Guid id)
     {
         var result = await _mediator.Send(new SubmitRABillCommand(id));
@@ -52,6 +59,7 @@ public class RABillsController : BaseController
     }
 
     [HttpPost("{id:guid}/certify")]
+    [RequireClaim(Claims.Projects.RABills.Edit)]
     public async Task<IActionResult> Certify(Guid id, [FromBody] CertifyRABillDto dto)
     {
         var result = await _mediator.Send(new CertifyRABillCommand(id, dto));
@@ -59,6 +67,7 @@ public class RABillsController : BaseController
     }
 
     [HttpPost("{id:guid}/mark-paid")]
+    [RequireClaim(Claims.Projects.RABills.Edit)]
     public async Task<IActionResult> MarkPaid(Guid id)
     {
         var result = await _mediator.Send(new MarkRABillPaidCommand(id));
@@ -66,6 +75,7 @@ public class RABillsController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Projects.RABills.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteRABillCommand(id));

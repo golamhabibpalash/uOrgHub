@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Inventory.DTOs;
 using uOrgHub.Inventory.Features.Catalog.Commands;
 using uOrgHub.Inventory.Features.Catalog.Queries;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Inventory;
@@ -15,6 +17,7 @@ public class UnitsOfMeasureController : BaseController
     public UnitsOfMeasureController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Inventory.UnitsOfMeasure.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request)
     {
         var result = await _mediator.Send(new GetUnitsOfMeasureQuery(request));
@@ -22,6 +25,7 @@ public class UnitsOfMeasureController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Inventory.UnitsOfMeasure.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetUnitOfMeasureByIdQuery(id));
@@ -29,6 +33,7 @@ public class UnitsOfMeasureController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Inventory.UnitsOfMeasure.Create)]
     public async Task<IActionResult> Create([FromBody] CreateUnitOfMeasureDto dto)
     {
         var result = await _mediator.Send(new CreateUnitOfMeasureCommand(dto));
@@ -36,6 +41,7 @@ public class UnitsOfMeasureController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Inventory.UnitsOfMeasure.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateUnitOfMeasureDto dto)
     {
         var result = await _mediator.Send(new UpdateUnitOfMeasureCommand(id, dto));
@@ -43,6 +49,7 @@ public class UnitsOfMeasureController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Inventory.UnitsOfMeasure.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteUnitOfMeasureCommand(id));

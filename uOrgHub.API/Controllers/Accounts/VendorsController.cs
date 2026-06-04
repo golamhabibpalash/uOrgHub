@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Accounts.DTOs.AP;
 using uOrgHub.Accounts.Features.AP;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Accounts;
@@ -15,6 +17,7 @@ public class VendorsController : BaseController
     public VendorsController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Accounts.Vendors.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request)
     {
         var result = await _mediator.Send(new GetVendorsQuery(request));
@@ -22,6 +25,7 @@ public class VendorsController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Accounts.Vendors.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetVendorByIdQuery(id));
@@ -29,6 +33,7 @@ public class VendorsController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Accounts.Vendors.Create)]
     public async Task<IActionResult> Create([FromBody] CreateVendorDto dto)
     {
         var result = await _mediator.Send(new CreateVendorCommand(dto));
@@ -36,6 +41,7 @@ public class VendorsController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Accounts.Vendors.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateVendorDto dto)
     {
         var result = await _mediator.Send(new UpdateVendorCommand(id, dto));
@@ -43,6 +49,7 @@ public class VendorsController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Accounts.Vendors.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteVendorCommand(id));

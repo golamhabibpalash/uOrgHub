@@ -6,6 +6,8 @@ using uOrgHub.Projects.Features.Clients.Commands;
 using uOrgHub.Projects.Features.Clients.Queries;
 using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Shared.Models;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 
 namespace uOrgHub.API.Controllers.Projects;
 
@@ -16,6 +18,7 @@ public class ClientsController : BaseController
     public ClientsController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Projects.Clients.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request, [FromQuery] ClientStatus? status = null)
     {
         var result = await _mediator.Send(new GetClientsQuery(request, status));
@@ -23,6 +26,7 @@ public class ClientsController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Projects.Clients.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetClientByIdQuery(id));
@@ -30,6 +34,7 @@ public class ClientsController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Projects.Clients.Create)]
     public async Task<IActionResult> Create([FromBody] CreateClientDto dto)
     {
         var result = await _mediator.Send(new CreateClientCommand(dto));
@@ -37,6 +42,7 @@ public class ClientsController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Projects.Clients.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateClientDto dto)
     {
         var result = await _mediator.Send(new UpdateClientCommand(id, dto));
@@ -44,6 +50,7 @@ public class ClientsController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Projects.Clients.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteClientCommand(id));

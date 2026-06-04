@@ -6,6 +6,8 @@ using uOrgHub.Projects.Features.QAChecklists.Commands;
 using uOrgHub.Projects.Features.QAChecklists.Queries;
 using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Shared.Models;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 
 namespace uOrgHub.API.Controllers.Projects;
 
@@ -16,6 +18,7 @@ public class QAChecklistsController : BaseController
     public QAChecklistsController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Projects.QAChecklists.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request,
         [FromQuery] Guid? projectId = null, [FromQuery] QAChecklistStatus? status = null)
     {
@@ -24,6 +27,7 @@ public class QAChecklistsController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Projects.QAChecklists.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetQAChecklistByIdQuery(id));
@@ -31,6 +35,7 @@ public class QAChecklistsController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Projects.QAChecklists.Create)]
     public async Task<IActionResult> Create([FromBody] CreateQAChecklistDto dto)
     {
         var result = await _mediator.Send(new CreateQAChecklistCommand(dto));
@@ -38,6 +43,7 @@ public class QAChecklistsController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Projects.QAChecklists.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateQAChecklistDto dto)
     {
         var result = await _mediator.Send(new UpdateQAChecklistCommand(id, dto));
@@ -45,6 +51,7 @@ public class QAChecklistsController : BaseController
     }
 
     [HttpPost("{id:guid}/submit")]
+    [RequireClaim(Claims.Projects.QAChecklists.Edit)]
     public async Task<IActionResult> Submit(Guid id, [FromBody] SubmitQAChecklistDto dto)
     {
         var result = await _mediator.Send(new SubmitQAChecklistCommand(id, dto));
@@ -52,6 +59,7 @@ public class QAChecklistsController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Projects.QAChecklists.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteQAChecklistCommand(id));

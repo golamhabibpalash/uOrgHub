@@ -5,6 +5,8 @@ using uOrgHub.Projects.DTOs;
 using uOrgHub.Projects.Features.WBS.Commands;
 using uOrgHub.Projects.Features.WBS.Queries;
 using uOrgHub.Shared.Models;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 
 namespace uOrgHub.API.Controllers.Projects;
 
@@ -15,6 +17,7 @@ public class WBSController : BaseController
     public WBSController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Projects.WBS.View)]
     public async Task<IActionResult> GetAll([FromQuery] Guid projectId, [FromQuery] PaginationRequest request)
     {
         var result = await _mediator.Send(new GetWBSItemsQuery(projectId, request));
@@ -22,6 +25,7 @@ public class WBSController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Projects.WBS.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetWBSByIdQuery(id));
@@ -29,6 +33,7 @@ public class WBSController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Projects.WBS.Create)]
     public async Task<IActionResult> Create([FromBody] CreateWBSDto dto)
     {
         var result = await _mediator.Send(new CreateWBSCommand(dto));
@@ -36,6 +41,7 @@ public class WBSController : BaseController
     }
 
     [HttpPut("{id:guid}")]
+    [RequireClaim(Claims.Projects.WBS.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateWBSDto dto)
     {
         var result = await _mediator.Send(new UpdateWBSCommand(id, dto));
@@ -43,6 +49,7 @@ public class WBSController : BaseController
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireClaim(Claims.Projects.WBS.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteWBSCommand(id));

@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Accounts.DTOs.Payment;
 using uOrgHub.Accounts.Features.Payment;
+using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Accounts;
@@ -15,6 +17,7 @@ public class PaymentsController : BaseController
     public PaymentsController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [RequireClaim(Claims.Accounts.Payments.View)]
     public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request, [FromQuery] Guid? customerId, [FromQuery] Guid? vendorId)
     {
         var result = await _mediator.Send(new GetPaymentsQuery(request, customerId, vendorId));
@@ -22,6 +25,7 @@ public class PaymentsController : BaseController
     }
 
     [HttpGet("{id:guid}")]
+    [RequireClaim(Claims.Accounts.Payments.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _mediator.Send(new GetPaymentByIdQuery(id));
@@ -29,6 +33,7 @@ public class PaymentsController : BaseController
     }
 
     [HttpPost]
+    [RequireClaim(Claims.Accounts.Payments.Create)]
     public async Task<IActionResult> Create([FromBody] CreatePaymentDto dto)
     {
         var result = await _mediator.Send(new CreatePaymentCommand(dto));
