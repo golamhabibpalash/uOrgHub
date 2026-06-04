@@ -35,8 +35,8 @@ export default function UserDetailPage() {
 
   useEffect(() => {
     if (!id) return;
-    if (tab === 'sessions') getUserSessions(id).then(setSessions);
-    if (tab === 'logs') getUserAccessLogs(id).then(setLogs);
+    if (tab === 'sessions' && sessions.length === 0) getUserSessions(id).then(setSessions);
+    if (tab === 'logs' && !logs) getUserAccessLogs(id).then(setLogs);
   }, [tab, id]);
 
   const toggleRole = async (roleId: string, roleName: string) => {
@@ -138,7 +138,7 @@ export default function UserDetailPage() {
         ))}
       </div>
 
-      {tab === 'profile' && (
+      <div className={tab !== 'profile' ? 'hidden' : ''}>
         <div className="grid grid-cols-2 gap-4 max-w-2xl">
           <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
             <div className="flex items-center justify-between mb-1">
@@ -164,9 +164,9 @@ export default function UserDetailPage() {
             </div>
           ))}
         </div>
-      )}
+      </div>
 
-      {tab === 'roles' && (
+      <div className={tab !== 'roles' ? 'hidden' : ''}>
         <div className="grid grid-cols-3 gap-3 max-w-2xl">
           {roles.map(role => {
             const has = user.roles.includes(role.name);
@@ -182,9 +182,9 @@ export default function UserDetailPage() {
             );
           })}
         </div>
-      )}
+      </div>
 
-      {tab === 'claims' && (
+      <div className={tab !== 'claims' ? 'hidden' : ''}>
         <div className="space-y-4 max-w-3xl">
           {Object.entries(claimsByModule).map(([module, moduleClaims]) => (
             <div key={module}>
@@ -203,9 +203,9 @@ export default function UserDetailPage() {
             </div>
           ))}
         </div>
-      )}
+      </div>
 
-      {tab === 'sessions' && (
+      <div className={tab !== 'sessions' ? 'hidden' : ''}>
         <div className="space-y-2 max-w-3xl">
           {sessions.length === 0 && <p className="text-slate-400 text-sm">No active sessions.</p>}
           {sessions.map(s => (
@@ -220,9 +220,9 @@ export default function UserDetailPage() {
             </div>
           ))}
         </div>
-      )}
+      </div>
 
-      {tab === 'logs' && (
+      <div className={tab !== 'logs' ? 'hidden' : ''}>
         <div className="max-w-4xl">
           {!logs || logs.items.length === 0 ? <p className="text-slate-400 text-sm">No access logs.</p> : (
             <table className="w-full text-sm">
@@ -249,7 +249,7 @@ export default function UserDetailPage() {
             </table>
           )}
         </div>
-      )}
+      </div>
 
       {usernameModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
