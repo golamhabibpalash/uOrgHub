@@ -131,7 +131,9 @@ public class RoleController : ControllerBase
         var existing = _db.Set<RoleClaim>().Where(rc => rc.RoleId == id);
         _db.Set<RoleClaim>().RemoveRange(existing);
 
-        foreach (var claimId in dto.ClaimIds)
+        var uniqueClaimIds = dto.ClaimIds.Distinct().ToList();
+
+        foreach (var claimId in uniqueClaimIds)
         {
             _db.Set<RoleClaim>().Add(new RoleClaim
             {

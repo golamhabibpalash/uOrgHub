@@ -9,7 +9,9 @@ export default function RolesPage() {
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    const [r] = await Promise.all([getRoles(), getClaims().then(setClaims)]);
+    const [r, allClaims] = await Promise.all([getRoles(), getClaims()]);
+    const deduped = allClaims.filter((c, i, arr) => arr.findIndex(x => x.name === c.name) === i);
+    setClaims(deduped);
     setRoles(r);
     if (r.length > 0) {
       const full = await getRoleById(r[0].id);
@@ -22,7 +24,7 @@ export default function RolesPage() {
 
   const toggleClaim = async (claim: ClaimDto) => {
     if (!selected) return;
-    const currentIds = selected.claims?.map(c => c.id) ?? [];
+    const currentIds = [...new Set(selected.claims?.map(c => c.id) ?? [])];
     const has = currentIds.includes(claim.id);
     const nextIds = has ? currentIds.filter(id => id !== claim.id) : [...currentIds, claim.id];
 
