@@ -1,0 +1,14 @@
+import { chromium } from "playwright";
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: 1440, height: 900 } });
+p.on("console", m => console.log("CONSOLE:", m.type(), m.text().slice(0,200)));
+p.on("pageerror", e => console.log("PAGEERROR:", e.message.slice(0,300)));
+await p.goto("http://localhost:5173/auth/login", { waitUntil: "load" });
+await new Promise(r=>setTimeout(r,3500));
+console.log("URL:", p.url());
+console.log("TITLE:", await p.title());
+const txt = await p.evaluate(() => document.body.innerText.slice(0,400));
+console.log("BODY:", JSON.stringify(txt));
+const inputs = await p.$$eval("input", els => els.map(e=>e.placeholder||e.type));
+console.log("INPUTS:", JSON.stringify(inputs));
+await b.close();

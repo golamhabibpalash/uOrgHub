@@ -159,7 +159,7 @@ export default function Employees() {
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["employees"] });
       if (editing) {
-        const fresh = qc.getQueryData<{ data: { data: { items: Employee[] } } }>(["employees", page, search]);
+        const fresh = qc.getQueryData<{ data: { data: { items: Employee[] } } }>(["employees", dg.page, dg.search, dg.sortBy, dg.sortDescending]);
         const items = fresh?.data?.data?.items ?? [];
         const found = items.find((e) => e.id === editing.id);
         if (found) setEditing(found);

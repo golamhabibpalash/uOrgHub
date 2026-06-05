@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, ArrowRight, ArrowLeftRight } from "lucide-react";
+import DataGrid from "../../components/shared/DataGrid";
 import DataTable from "../../components/shared/DataTable";
 import Pagination from "../../components/shared/Pagination";
+import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
 import {
@@ -31,8 +33,7 @@ const txnTypeColors: Record<BankTransactionType, string> = {
 
 export default function BankAccounts() {
   const qc = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const dg = useDataGrid({ defaultSortBy: "accountName" });
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<BankAccount | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<BankAccount | null>(null);
@@ -62,8 +63,8 @@ export default function BankAccounts() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["bank-accounts", page, search],
-    queryFn: () => getBankAccounts({ page, pageSize: 10, search }),
+    queryKey: ["bank-accounts", dg.page, dg.search, dg.sortBy, dg.sortDescending],
+    queryFn: () => getBankAccounts(dg.queryParams),
   });
 
   const { data: accountsData } = useQuery({

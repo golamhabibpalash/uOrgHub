@@ -71,7 +71,6 @@ export default function MyProfilePage() {
 
   if (!user) return null;
 
-  const fullName = `${user.firstName} ${user.lastName}`.trim();
   const TABS = [
     ['info', 'Profile', User],
     ['photo', 'Photo', User],

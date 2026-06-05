@@ -3,8 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { Plus } from "lucide-react";
 import toast from "react-hot-toast";
-import DataTable from "../../components/shared/DataTable";
-import Pagination from "../../components/shared/Pagination";
+import DataGrid from "../../components/shared/DataGrid";
+import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
 import ConfirmDialog from "../../components/shared/ConfirmDialog";
 import ExportMenu from "../../components/shared/ExportMenu";
@@ -20,8 +20,7 @@ import {
 
 export default function Departments() {
   const qc = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const dg = useDataGrid({ defaultSortBy: "name" });
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Department | null>(null);
   const [form, setForm] = useState({ name: "", code: "", description: "", isActive: true, parentDepartmentId: "" });
@@ -29,8 +28,8 @@ export default function Departments() {
   const [checkingDeps, setCheckingDeps] = useState(false);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["departments", page, search],
-    queryFn: () => getDepartments({ page, pageSize: 10, search }),
+    queryKey: ["departments", dg.page, dg.search, dg.sortBy, dg.sortDescending],
+    queryFn: () => getDepartments(dg.queryParams),
   });
 
   const { data: allDeptData } = useQuery({
@@ -40,6 +39,7 @@ export default function Departments() {
 
   const departments = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
+  const totalCount = data?.data?.data?.totalCount ?? 0;
   const allDepartments = allDeptData?.data?.data ?? [];
 
   const parentOptions = allDepartments.filter((d) =>
@@ -144,6 +144,7 @@ export default function Departments() {
     {
       key: "parentDepartmentName",
       label: "Parent Department",
+      sortable: false,
       render: (row: Department) => (
         <span className="text-sm text-gray-600">
           {row.parentDepartmentName || "—"}
@@ -154,6 +155,7 @@ export default function Departments() {
     {
       key: "isActive",
       label: "Status",
+      sortable: false,
       render: (row: Department) => (
         <span
           className={`text-xs px-2 py-0.5 rounded-full ${

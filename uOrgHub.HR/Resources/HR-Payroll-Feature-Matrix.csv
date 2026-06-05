@@ -1,0 +1,46 @@
+Module,Feature,What it does,Client Benefit
+Core HR,Employee master records,"Full profile: identity, contact, personal, employment, pay grade",Single source of truth for every employee
+Core HR,Departments,Organization units with parent/child hierarchy,Clear org structure
+Core HR,Designations,Job titles with hierarchy and pay-grade link,Consistent role definitions
+Core HR,Reporting lines,Assign manager and view direct reports,See the chain of command
+Core HR,Emergency contacts,Multiple contacts per employee,Safety and compliance
+Core HR,Employee documents,Store NID/Passport/TIN/certificates,Paperless personnel files
+Core HR,Employment contracts,Permanent/Fixed/Probation/Internship/Consultant,Contract lifecycle on record
+Core HR,Bangladesh localization,"NID, TIN, division/district, religion, blood group",Built for the local context
+Attendance,Daily attendance log,Check-in/out with auto work-hour and overtime calc,Accurate time records
+Attendance,Capture sources,Biometric / Manual / Geo-Fence / Mobile,Flexible time capture
+Attendance,Attendance states,"Present, Absent, Half-Day, Late, WFH, Holiday, Week-Off",Complete daily picture
+Attendance,Work schedules,Start/end times, flexible hours, grace period,Match real working patterns
+Attendance,Shifts & rosters,Day/night shifts and employee rostering,Coverage planning
+Attendance,Edit tracking,Manual corrections flagged and attributed,Tamper-evident records
+Leave,Leave types & policy,"Days/year, paid/unpaid, carry-forward, notice, limits",Airtight leave policy
+Leave,Leave balances,Live allocated/used/pending/remaining per year,Employees always informed
+Leave,Multi-level approval,Manager then HR sign-off with rejection reasons,Controlled approvals
+Leave,Gender-restricted leave,e.g. maternity/paternity,Policy correctness
+Payroll,Salary grades,Pay bands with min/max and basic percentage,Structured compensation
+Payroll,Salary components,"Allowances & deductions; fixed or % of basic/gross; taxable flag",Flexible pay structure
+Payroll,Employee salary structures,Per-employee grade/gross/basic/component breakdown,Tailored to each employee
+Payroll,Monthly payroll cycles,"One run per month; Draft to Paid workflow",Controlled payroll process
+Payroll,Payroll entries / payslips,"Gross, basic, allowances, deductions, tax, OT, bonus, net",A payslip for every employee
+Payroll,Overtime rules,Configurable multiplier, monthly cap, weekend handling,Fair overtime pay
+Payroll,Expense claims,"Submit expenses with receipts; approval & reimbursement",Streamlined reimbursements
+Performance,Review cycles,Organize quarterly/annual evaluations,Structured review periods
+Performance,360-degree reviews,Self / Manager / Peer / Subordinate / HR 360,Well-rounded feedback
+Performance,Goals,Target vs achieved, weighting, due dates,Clear objectives
+Performance,KPI library,Reusable measures linked to dept/designation,Align goals to KPIs
+Recruitment,Job postings,Auto job code, requirements, salary & headcount,Organized hiring
+Recruitment,Candidate database,Source-tracked candidate pool,Talent pipeline
+Recruitment,Applications,Candidate-to-posting pipeline with statuses,Track every applicant
+Recruitment,Interview scheduling,Phone/Video/Technical/HR/Panel/Final,Coordinated interviews
+Onboarding,Onboarding checklists,Reusable task templates,Consistent first week
+Onboarding,Progress tracking,Per-employee task-by-task status,Nothing missed
+Training,Training programs,"Mode, provider, duration, cost, capacity, schedule",Plan L&D
+Training,Enrolment & certificates,Track participants and certification,Prove development
+Assets,Asset register,"Laptops, vehicles, tools, furniture, etc.",Know what you own
+Assets,Asset assignment,Assign to employees with condition & status,Track who holds what
+Platform,Role-based security,Claim-based view/create/edit/export/approve/delete,Right access for right people
+Platform,Audit trail,No hard deletes; full created/updated/deleted history,Compliance ready
+Platform,One-click export,Every list exports to Excel/CSV,Easy reporting
+Platform,Search & pagination,Fast lists across large datasets,Find anything instantly
+Platform,Live HR dashboard,"Headcount, pending leave, payroll, hiring, attendance rate",Real-time visibility
+Platform,Part of uOrgHub ERP,Connects to Accounts/Inventory/Procurement/Projects,One integrated platform
