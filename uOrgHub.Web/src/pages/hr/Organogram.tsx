@@ -19,7 +19,7 @@ import { getOrganogram, getAllDepartments, getAllDesignations, getEmployeeById }
 import OrganogramTree from "../../components/shared/OrganogramTree";
 import Modal from "../../components/shared/Modal";
 import Avatar from "../../components/shared/Avatar";
-import { profilePictureUrl } from "../../utils/profilePicture";
+
 import type { OrganogramNode, Employee } from "../../api/hr";
 
 export default function Organogram() {
@@ -285,7 +285,7 @@ export default function Organogram() {
             <div className="flex items-center gap-4">
               <div className="shrink-0">
                 <Avatar
-                  src={detailData.profilePicturePath ? profilePictureUrl(detailData.profilePicturePath) : undefined}
+                  src={detailData.profilePicturePath}
                   firstName={detailData.firstName}
                   lastName={detailData.lastName}
                   size="xl"

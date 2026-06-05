@@ -10,7 +10,6 @@ import ConfirmDialog from "../../components/shared/ConfirmDialog";
 import ExportMenu from "../../components/shared/ExportMenu";
 import Avatar from "../../components/shared/Avatar";
 import ProfilePictureUploader from "../../components/shared/ProfilePictureUploader";
-import { profilePictureUrl } from "../../utils/profilePicture";
 import {
   getEmployees,
   getAllEmployees,
@@ -137,8 +136,14 @@ export default function Employees() {
 
       return createEmployee(body);
     },
-    onSuccess: () => {
-      closeModal();
+    onSuccess: (res) => {
+      if (editing) {
+        closeModal();
+      } else {
+        const emp = res?.data?.data as Employee | undefined;
+        if (emp?.id) setEditing(emp);
+        toast.success("Employee created.");
+      }
       qc.invalidateQueries({ queryKey: ["employees"] });
     },
   });
@@ -326,7 +331,7 @@ export default function Employees() {
       label: "",
       render: (row: Employee) => (
         <Avatar
-          src={row.profilePicturePath ? profilePictureUrl(row.profilePicturePath) : undefined}
+          src={row.profilePicturePath}
           firstName={row.firstName}
           lastName={row.lastName}
           size="sm"
@@ -441,7 +446,7 @@ export default function Employees() {
         onClose={closeModal}
       >
         <div className="space-y-3">
-          {editing && (
+          {editing ? (
             <div className="bg-gray-50 -mx-5 -mt-3 px-5 py-4 border-b border-gray-100">
               <ProfilePictureUploader
                 currentPath={editing.profilePicturePath}
@@ -451,6 +456,10 @@ export default function Employees() {
                 onUpload={async (file) => { await uploadPicMutation.mutateAsync({ id: editing.id, file }); }}
                 onDelete={async () => { await deletePicMutation.mutateAsync(editing.id); }}
               />
+            </div>
+          ) : (
+            <div className="bg-gray-50 -mx-5 -mt-3 px-5 py-6 border-b border-gray-100 text-center">
+              <p className="text-sm text-slate-400">Profile picture can be added after saving the employee.</p>
             </div>
           )}
           <div className="grid grid-cols-2 gap-3">

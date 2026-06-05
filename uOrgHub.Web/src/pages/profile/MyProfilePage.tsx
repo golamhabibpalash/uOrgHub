@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Avatar from '../../components/shared/Avatar';
 import { User, Lock, Shield, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { updateProfile, changePassword, toggle2FA, uploadMyProfilePicture, deleteMyProfilePicture } from '../../api/auth';
@@ -89,9 +90,13 @@ export default function MyProfilePage() {
   return (
     <div className="p-6 max-w-2xl">
       <div className="flex items-center gap-4 mb-6">
-        <div className="w-14 h-14 rounded-full bg-primary-700 flex items-center justify-center text-white text-xl font-semibold">
-          {user.firstName[0]}{user.lastName[0]}
-        </div>
+        <Avatar
+          src={user.profilePicture}
+          firstName={user.firstName}
+          lastName={user.lastName}
+          size="xl"
+          className="!w-14 !h-14 !text-xl"
+        />
         <div>
           <h1 className="text-white text-xl font-semibold">{user.fullName}</h1>
           <p className="text-slate-400 text-sm">{user.email} · {user.roles.join(', ')}</p>
