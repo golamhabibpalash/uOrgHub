@@ -29,6 +29,12 @@ public class LocalFileStorageService : IFileStorageService
         _options = options ?? new LocalFileStorageOptions();
     }
 
+    // Use the content root (stable across launch dir) rather than WebRootPath.
+    // In Development, static web assets serve the project wwwroot while WebRootPath
+    // points at bin/wwwroot — writing there would make uploads unservable (404).
+    // Program.cs maps "/uploads" to {ContentRoot}/wwwroot/uploads to match this.
+    private string UploadsWebRoot => Path.Combine(_env.ContentRootPath, "wwwroot");
+
     public async Task<StoredFileResult> SaveAsync(
         IFormFile file,
         string folder,
@@ -42,7 +48,7 @@ public class LocalFileStorageService : IFileStorageService
 
         var id = Guid.NewGuid().ToString("N");
         var safeFolder = SanitizeFolder(folder);
-        var webRoot = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        var webRoot = UploadsWebRoot;
         var root = Path.Combine(webRoot, _options.RootFolder, safeFolder);
         Directory.CreateDirectory(root);
 
@@ -72,7 +78,7 @@ public class LocalFileStorageService : IFileStorageService
     {
         if (string.IsNullOrWhiteSpace(relativePath)) return Task.CompletedTask;
 
-        var webRoot = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        var webRoot = UploadsWebRoot;
         var prefix = _options.RootFolder.Replace("\\", "/") + "/";
         var rel = relativePath.Replace("\\", "/");
         if (rel.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))

@@ -180,6 +180,19 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseStaticFiles();
+
+// Serve user uploads from an explicit physical path so they work regardless of how the
+// app is launched. In Development, default static files come from the project wwwroot via
+// the static-web-assets manifest, but uploads are written to {ContentRoot}/wwwroot/uploads —
+// map that folder to "/uploads" directly so uploaded images are always served.
+var uploadsPhysicalPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot", "uploads");
+Directory.CreateDirectory(uploadsPhysicalPath);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadsPhysicalPath),
+    RequestPath = "/uploads",
+});
+
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseHttpsRedirection();
