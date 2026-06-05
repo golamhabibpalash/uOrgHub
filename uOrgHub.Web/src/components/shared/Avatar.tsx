@@ -1,52 +1,46 @@
 import { useState } from "react";
-import { profilePictureUrl, getInitials, DEFAULT_AVATAR } from "../../utils/profilePicture";
+import { DEFAULT_AVATAR, getInitials, profilePictureUrl } from "../../utils/profilePicture";
 
-interface AvatarProps {
-  src?: string | null;
-  name: string;
-  size?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
-  className?: string;
-  ring?: boolean;
-}
+type AvatarSize = "xs" | "sm" | "md" | "lg" | "xl";
 
-const SIZE_CLASSES: Record<NonNullable<AvatarProps["size"]>, string> = {
+const SIZE_CLASSES: Record<AvatarSize, string> = {
   xs: "w-6 h-6 text-[10px]",
   sm: "w-8 h-8 text-xs",
   md: "w-10 h-10 text-sm",
-  lg: "w-14 h-14 text-lg",
-  xl: "w-20 h-20 text-2xl",
-  "2xl": "w-28 h-28 text-3xl",
+  lg: "w-14 h-14 text-base",
+  xl: "w-24 h-24 text-2xl",
 };
 
-const RING_CLASSES = "ring-2 ring-white/20";
+interface AvatarProps {
+  src?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  size?: AvatarSize;
+  className?: string;
+}
 
-export default function Avatar({ src, name, size = "md", className = "", ring = false }: AvatarProps) {
+export default function Avatar({
+  src,
+  firstName,
+  lastName,
+  size = "md",
+  className = "",
+}: AvatarProps) {
   const [errored, setErrored] = useState(false);
-  const url = src ? profilePictureUrl(src) : null;
-  const showImg = url && !errored && url !== DEFAULT_AVATAR;
+  const url = !errored ? profilePictureUrl(src ?? null) : DEFAULT_AVATAR;
 
   return (
     <div
-      className={`${SIZE_CLASSES[size]} rounded-full overflow-hidden shrink-0 flex items-center justify-center font-semibold text-white ${
-        ring ? RING_CLASSES : ""
-      } ${className}`}
-      style={{
-        background: showImg
-          ? "transparent"
-          : "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)",
-      }}
+      className={`${SIZE_CLASSES[size]} ${className} relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-indigo-500 to-sky-500 text-white font-semibold`}
     >
-      {showImg ? (
-        <img
-          src={url}
-          alt={name}
-          className="w-full h-full object-cover"
-          onError={() => setErrored(true)}
-          loading="lazy"
-        />
-      ) : (
-        <span>{getInitials(name)}</span>
-      )}
+      <img
+        src={url}
+        alt={firstName ? `${firstName} ${lastName ?? ""}`.trim() : "User"}
+        className="h-full w-full object-cover"
+        onError={() => setErrored(true)}
+      />
     </div>
   );
 }
+
+export { DEFAULT_AVATAR, getInitials, profilePictureUrl };

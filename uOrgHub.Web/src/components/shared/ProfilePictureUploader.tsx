@@ -1,131 +1,180 @@
 import { useRef, useState } from "react";
-import { Trash2, Upload, X } from "lucide-react";
+import { Camera, Trash2, Upload, X } from "lucide-react";
 import Avatar from "./Avatar";
-import { profilePictureUrl } from "../../utils/profilePicture";
+import { getInitials } from "../../utils/profilePicture";
+
+const MAX_BYTES = 5 * 1024 * 1024;
+const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
 interface ProfilePictureUploaderProps {
   currentPath?: string | null;
-  name: string;
-  uploading: boolean;
-  deleting: boolean;
-  onUpload: (file: File) => void;
-  onDelete: () => void;
-  size?: "lg" | "xl" | "2xl";
-  hint?: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  onUpload: (file: File) => Promise<string | void>;
+  onDelete: () => Promise<void>;
+  size?: "sm" | "md" | "lg" | "xl";
+  disabled?: boolean;
 }
-
-const ACCEPT = "image/jpeg,image/jpg,image/png,image/webp";
-const MAX_BYTES = 5 * 1024 * 1024;
 
 export default function ProfilePictureUploader({
   currentPath,
-  name,
-  uploading,
-  deleting,
+  firstName,
+  lastName,
   onUpload,
   onDelete,
-  size = "2xl",
-  hint,
+  size = "xl",
+  disabled = false,
 }: ProfilePictureUploaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
-  const handlePick = () => {
-    setError(null);
-    fileInputRef.current?.click();
+  const validate = (file: File): string | null => {
+    if (!ALLOWED_TYPES.includes(file.type))
+      return "Unsupported file type. Allowed: JPEG, PNG, WEBP.";
+    if (file.size > MAX_BYTES)
+      return `File is too large. Maximum allowed size is ${MAX_BYTES / (1024 * 1024)} MB.`;
+    return null;
   };
 
-  const handleFile = (file: File | null | undefined) => {
-    if (!file) return;
+  const handleFile = async (file: File) => {
     setError(null);
-    if (!ACCEPT.split(",").includes(file.type)) {
-      setError("Please choose a JPG, PNG, or WEBP image.");
+    const v = validate(file);
+    if (v) {
+      setError(v);
       return;
     }
-    if (file.size > MAX_BYTES) {
-      setError("Image is too large. Maximum size is 5 MB.");
-      return;
+    setPreview(URL.createObjectURL(file));
+    setUploading(true);
+    try {
+      await onUpload(file);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Upload failed.");
+      setPreview(null);
+    } finally {
+      setUploading(false);
     }
-    const objectUrl = URL.createObjectURL(file);
-    setPreviewUrl(objectUrl);
-    onUpload(file);
   };
 
-  const reset = () => {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+  const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) void handleFile(file);
+    e.target.value = "";
   };
 
-  const displaySrc = previewUrl ?? (currentPath ? profilePictureUrl(currentPath) : undefined);
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragOver(false);
+    if (disabled || uploading || deleting) return;
+    const file = e.dataTransfer.files?.[0];
+    if (file) void handleFile(file);
+  };
+
+  const handleDelete = async () => {
+    if (disabled || deleting) return;
+    setError(null);
+    setDeleting(true);
+    try {
+      await onDelete();
+      setPreview(null);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Delete failed.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const initials = getInitials(firstName, lastName);
 
   return (
-    <div className="flex items-start gap-4">
-      <div className="relative">
-        <Avatar src={displaySrc ?? undefined} name={name} size={size} ring />
-        {(uploading || deleting) && (
-          <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+    <div className="flex flex-col items-center gap-3">
+      <div
+        className={`group relative inline-block ${dragOver ? "ring-4 ring-indigo-300" : ""} rounded-full transition`}
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (!disabled) setDragOver(true);
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={handleDrop}
+      >
+        {preview ? (
+          <img
+            src={preview}
+            alt="Preview"
+            className="rounded-full object-cover"
+            style={{ width: 160, height: 160 }}
+          />
+        ) : currentPath ? (
+          <Avatar
+            src={currentPath}
+            firstName={firstName}
+            lastName={lastName}
+            size={size}
+            className="!w-40 !h-40 !text-3xl"
+          />
+        ) : (
+          <div className="flex h-40 w-40 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-sky-500 text-4xl font-semibold text-white">
+            {initials}
           </div>
         )}
-      </div>
 
-      <div className="flex-1 min-w-0">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept={ACCEPT}
-          className="hidden"
-          onChange={(e) => handleFile(e.target.files?.[0])}
-        />
+        {uploading && (
+          <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50">
+            <Upload className="h-6 w-6 animate-pulse text-white" />
+          </div>
+        )}
 
-        <div className="flex flex-wrap gap-2">
+        {preview && !uploading && (
           <button
             type="button"
-            onClick={handlePick}
-            disabled={uploading || deleting}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary-500 text-white hover:bg-primary-600 disabled:opacity-50 transition-colors"
+            onClick={() => setPreview(null)}
+            className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white hover:bg-black/80"
+            title="Cancel preview"
           >
-            <Upload size={13} />
-            {currentPath ? "Replace" : "Upload Photo"}
+            <X className="h-3 w-3" />
           </button>
-
-          {currentPath && !previewUrl && (
-            <button
-              type="button"
-              onClick={onDelete}
-              disabled={uploading || deleting}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
-            >
-              <Trash2 size={13} />
-              Remove
-            </button>
-          )}
-
-          {previewUrl && (
-            <button
-              type="button"
-              onClick={reset}
-              disabled={uploading || deleting}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors"
-            >
-              <X size={13} />
-              Cancel
-            </button>
-          )}
-        </div>
-
-        <p className="text-[11px] text-gray-400 mt-2 leading-relaxed">
-          {hint ?? "JPG, PNG, or WEBP. Maximum 5 MB. Recommended: square image, at least 200×200 px."}
-        </p>
-
-        {error && (
-          <p className="text-[11px] text-red-600 mt-1.5 bg-red-50 border border-red-200 rounded px-2 py-1 inline-block">
-            {error}
-          </p>
         )}
       </div>
+
+      {error && <p className="text-sm text-red-600">{error}</p>}
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={ALLOWED_TYPES.join(",")}
+        onChange={handleInput}
+        className="hidden"
+        disabled={disabled || uploading || deleting}
+      />
+
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={disabled || uploading || deleting}
+          className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+        >
+          <Camera className="h-4 w-4" />
+          {currentPath ? "Change photo" : "Upload photo"}
+        </button>
+
+        {currentPath && !preview && (
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={disabled || uploading || deleting}
+            className="inline-flex items-center gap-2 rounded-md border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+          >
+            <Trash2 className="h-4 w-4" />
+            Remove
+          </button>
+        )}
+      </div>
+
+      <p className="text-xs text-gray-500">JPEG, PNG, WEBP · up to 5 MB · min 100×100px</p>
     </div>
   );
 }
