@@ -48,6 +48,20 @@ public class CreateSalaryComponentDto
     public string? Description { get; set; }
 }
 
+public class UpdateSalaryComponentDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+    public SalaryComponentType ComponentType { get; set; }
+    public CalculationType CalculationType { get; set; } = CalculationType.Fixed;
+    public decimal DefaultValue { get; set; }
+    public bool IsTaxable { get; set; }
+    public bool IsFixed { get; set; } = true;
+    public bool IsActive { get; set; }
+    public int SortOrder { get; set; }
+    public string? Description { get; set; }
+}
+
 public class SalaryComponentResponseDto
 {
     public Guid Id { get; set; }

@@ -37,6 +37,16 @@ public class CreateSalaryComponentDtoValidator : AbstractValidator<CreateSalaryC
     }
 }
 
+public class UpdateSalaryComponentDtoValidator : AbstractValidator<UpdateSalaryComponentDto>
+{
+    public UpdateSalaryComponentDtoValidator()
+    {
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
+        RuleFor(x => x.Code).NotEmpty().MaximumLength(30);
+        RuleFor(x => x.DefaultValue).GreaterThanOrEqualTo(0);
+    }
+}
+
 public class CreatePayrollCycleDtoValidator : AbstractValidator<CreatePayrollCycleDto>
 {
     public CreatePayrollCycleDtoValidator()

@@ -479,17 +479,35 @@ export const getAllSalaryGrades = () =>
 export const createSalaryGrade = (data: Partial<SalaryGrade>) =>
   apiClient.post<ApiResponse<SalaryGrade>>("payroll/salary-grades", data);
 
+export const updateSalaryGrade = (id: string, data: Partial<SalaryGrade>) =>
+  apiClient.put<ApiResponse<SalaryGrade>>(`payroll/salary-grades/${id}`, data);
+
+export const deleteSalaryGrade = (id: string) =>
+  apiClient.delete<ApiResponse<null>>(`payroll/salary-grades/${id}`);
+
 export const getSalaryComponents = (params: PaginationRequest) =>
   apiClient.get<ApiResponse<PagedResult<SalaryComponent>>>("payroll/salary-components", { params });
 
 export const createSalaryComponent = (data: Partial<SalaryComponent>) =>
   apiClient.post<ApiResponse<SalaryComponent>>("payroll/salary-components", data);
 
+export const updateSalaryComponent = (id: string, data: Partial<SalaryComponent>) =>
+  apiClient.put<ApiResponse<SalaryComponent>>(`payroll/salary-components/${id}`, data);
+
+export const deleteSalaryComponent = (id: string) =>
+  apiClient.delete<ApiResponse<null>>(`payroll/salary-components/${id}`);
+
 export const getPayrollCycles = (params: PaginationRequest) =>
   apiClient.get<ApiResponse<PagedResult<PayrollCycle>>>("payroll/cycles", { params });
 
 export const createPayrollCycle = (data: Partial<PayrollCycle>) =>
   apiClient.post<ApiResponse<PayrollCycle>>("payroll/cycles", data);
+
+export const updatePayrollCycle = (id: string, data: Partial<PayrollCycle>) =>
+  apiClient.put<ApiResponse<PayrollCycle>>(`payroll/cycles/${id}`, data);
+
+export const deletePayrollCycle = (id: string) =>
+  apiClient.delete<ApiResponse<null>>(`payroll/cycles/${id}`);
 
 export const getExpenses = (params: PaginationRequest, employeeId?: string) =>
   apiClient.get<ApiResponse<PagedResult<ExpenseRequest>>>("payroll/expenses", {

@@ -109,6 +109,22 @@ public class PayrollController : BaseController
         return Ok(ApiResponse<SalaryComponentResponseDto>.Ok(result, "Salary component created successfully."));
     }
 
+    [HttpPut("salary-components/{id:guid}")]
+    [RequireClaim(Claims.HR.SalaryComponents.Edit)]
+    public async Task<IActionResult> UpdateSalaryComponent(Guid id, [FromBody] UpdateSalaryComponentDto dto)
+    {
+        var result = await _mediator.Send(new UpdateSalaryComponentCommand(id, dto));
+        return Ok(ApiResponse<SalaryComponentResponseDto>.Ok(result, "Salary component updated successfully."));
+    }
+
+    [HttpDelete("salary-components/{id:guid}")]
+    [RequireClaim(Claims.HR.SalaryComponents.Delete)]
+    public async Task<IActionResult> DeleteSalaryComponent(Guid id)
+    {
+        await _mediator.Send(new DeleteSalaryComponentCommand(id));
+        return Ok(ApiResponse<object>.Ok(null!, "Salary component deleted successfully."));
+    }
+
     [HttpGet("cycles")]
     [RequireClaim(Claims.HR.PayrollCycles.View)]
     public async Task<IActionResult> GetCycles([FromQuery] PaginationRequest request)
@@ -145,6 +161,14 @@ public class PayrollController : BaseController
     {
         var result = await _mediator.Send(new UpdatePayrollCycleCommand(id, dto));
         return Ok(ApiResponse<PayrollCycleResponseDto>.Ok(result, "Payroll cycle updated successfully."));
+    }
+
+    [HttpDelete("cycles/{id:guid}")]
+    [RequireClaim(Claims.HR.PayrollCycles.Delete)]
+    public async Task<IActionResult> DeleteCycle(Guid id)
+    {
+        await _mediator.Send(new DeletePayrollCycleCommand(id));
+        return Ok(ApiResponse<object>.Ok(null!, "Payroll cycle deleted successfully."));
     }
 
     [HttpGet("cycles/{cycleId:guid}/entries")]

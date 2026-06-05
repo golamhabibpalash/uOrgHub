@@ -13,8 +13,11 @@ public record CreateSalaryGradeCommand(CreateSalaryGradeDto Dto) : ICommand<Sala
 public record UpdateSalaryGradeCommand(Guid Id, UpdateSalaryGradeDto Dto) : ICommand<SalaryGradeResponseDto>;
 public record DeleteSalaryGradeCommand(Guid Id) : ICommand<Unit>;
 public record CreateSalaryComponentCommand(CreateSalaryComponentDto Dto) : ICommand<SalaryComponentResponseDto>;
+public record UpdateSalaryComponentCommand(Guid Id, UpdateSalaryComponentDto Dto) : ICommand<SalaryComponentResponseDto>;
+public record DeleteSalaryComponentCommand(Guid Id) : ICommand<Unit>;
 public record CreatePayrollCycleCommand(CreatePayrollCycleDto Dto) : ICommand<PayrollCycleResponseDto>;
 public record UpdatePayrollCycleCommand(Guid Id, UpdatePayrollCycleDto Dto) : ICommand<PayrollCycleResponseDto>;
+public record DeletePayrollCycleCommand(Guid Id) : ICommand<Unit>;
 public record CreateOvertimeRuleCommand(CreateOvertimeRuleDto Dto) : ICommand<OvertimeRuleResponseDto>;
 public record CreateExpenseRequestCommand(CreateExpenseRequestDto Dto) : ICommand<ExpenseRequestResponseDto>;
 public record ApproveExpenseRequestCommand(Guid Id, ApproveExpenseDto Dto) : ICommand<ExpenseRequestResponseDto>;
@@ -140,6 +143,64 @@ public class CreateSalaryComponentCommandHandler : IRequestHandler<CreateSalaryC
     }
 }
 
+public class UpdateSalaryComponentCommandHandler : IRequestHandler<UpdateSalaryComponentCommand, SalaryComponentResponseDto>
+{
+    private readonly AppDbContext _context;
+    public UpdateSalaryComponentCommandHandler(AppDbContext context) => _context = context;
+
+    public async Task<SalaryComponentResponseDto> Handle(UpdateSalaryComponentCommand request, CancellationToken ct)
+    {
+        var entity = await _context.Set<SalaryComponent>()
+            .FirstOrDefaultAsync(x => !x.IsDeleted && x.Id == request.Id, ct)
+            ?? throw new NotFoundException(nameof(SalaryComponent), request.Id);
+
+        var codeTaken = await _context.Set<SalaryComponent>()
+            .AnyAsync(x => !x.IsDeleted && x.Id != request.Id && x.Code == request.Dto.Code, ct);
+        if (codeTaken) throw new AppException($"Salary component code '{request.Dto.Code}' already exists.");
+
+        entity.Name = request.Dto.Name;
+        entity.Code = request.Dto.Code;
+        entity.ComponentType = request.Dto.ComponentType;
+        entity.CalculationType = request.Dto.CalculationType;
+        entity.DefaultValue = request.Dto.DefaultValue;
+        entity.IsTaxable = request.Dto.IsTaxable;
+        entity.IsFixed = request.Dto.IsFixed;
+        entity.IsActive = request.Dto.IsActive;
+        entity.SortOrder = request.Dto.SortOrder;
+        entity.Description = request.Dto.Description;
+        entity.UpdatedAt = DateTime.UtcNow;
+
+        _context.Set<SalaryComponent>().Update(entity);
+        await _context.SaveChangesAsync(ct);
+        return new SalaryComponentResponseDto
+        {
+            Id = entity.Id, Name = entity.Name, Code = entity.Code,
+            ComponentType = entity.ComponentType, CalculationType = entity.CalculationType,
+            DefaultValue = entity.DefaultValue, IsTaxable = entity.IsTaxable,
+            IsFixed = entity.IsFixed, IsActive = entity.IsActive,
+            SortOrder = entity.SortOrder, Description = entity.Description, CreatedAt = entity.CreatedAt
+        };
+    }
+}
+
+public class DeleteSalaryComponentCommandHandler : IRequestHandler<DeleteSalaryComponentCommand, Unit>
+{
+    private readonly AppDbContext _context;
+    public DeleteSalaryComponentCommandHandler(AppDbContext context) => _context = context;
+
+    public async Task<Unit> Handle(DeleteSalaryComponentCommand request, CancellationToken ct)
+    {
+        var entity = await _context.Set<SalaryComponent>()
+            .FirstOrDefaultAsync(x => !x.IsDeleted && x.Id == request.Id, ct)
+            ?? throw new NotFoundException(nameof(SalaryComponent), request.Id);
+
+        entity.IsDeleted = true;
+        entity.DeletedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync(ct);
+        return Unit.Value;
+    }
+}
+
 public class CreatePayrollCycleCommandHandler : IRequestHandler<CreatePayrollCycleCommand, PayrollCycleResponseDto>
 {
     private readonly AppDbContext _context;
@@ -182,6 +243,24 @@ public class UpdatePayrollCycleCommandHandler : IRequestHandler<UpdatePayrollCyc
         _context.Set<PayrollCycle>().Update(entity);
         await _context.SaveChangesAsync(ct);
         return PayrollMappingHelper.MapCycleToDto(entity);
+    }
+}
+
+public class DeletePayrollCycleCommandHandler : IRequestHandler<DeletePayrollCycleCommand, Unit>
+{
+    private readonly AppDbContext _context;
+    public DeletePayrollCycleCommandHandler(AppDbContext context) => _context = context;
+
+    public async Task<Unit> Handle(DeletePayrollCycleCommand request, CancellationToken ct)
+    {
+        var entity = await _context.Set<PayrollCycle>()
+            .FirstOrDefaultAsync(x => !x.IsDeleted && x.Id == request.Id, ct)
+            ?? throw new NotFoundException(nameof(PayrollCycle), request.Id);
+
+        entity.IsDeleted = true;
+        entity.DeletedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync(ct);
+        return Unit.Value;
     }
 }
 
