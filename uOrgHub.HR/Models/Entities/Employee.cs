@@ -39,6 +39,7 @@ public class Employee : BaseEntity
     [MaxLength(500)] public string? CurrentAddress { get; set; }
     [MaxLength(100)] public string? District { get; set; }
     [MaxLength(100)] public string? Division { get; set; }
+    [MaxLength(100)] public string? Upazila { get; set; }
 
     // Employment
     public DateTime JoiningDate { get; set; }

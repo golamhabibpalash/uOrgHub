@@ -29,6 +29,7 @@ public class UpdateEmployeeDto
     public string? CurrentAddress { get; set; }
     public string? District { get; set; }
     public string? Division { get; set; }
+    public string? Upazila { get; set; }
 
     public EmploymentType EmploymentType { get; set; }
     public EmployeeStatus Status { get; set; }

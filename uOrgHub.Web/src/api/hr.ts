@@ -49,11 +49,13 @@ export interface Employee {
   dateOfBirth?: string;
   nationalId?: string;
   passportNo?: string;
+  passportExpiry?: string;
   nationality?: string;
   permanentAddress?: string;
   currentAddress?: string;
   district?: string;
   division?: string;
+  upazila?: string;
   confirmationDate?: string;
   salaryGradeId?: string;
   createdAt?: string;

@@ -85,3 +85,4 @@ appsettings.Development.json
 
 # Claude
 .claude/
+.aider*

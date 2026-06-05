@@ -45,14 +45,24 @@ export default function Employees() {
   const [checkingDeps, setCheckingDeps] = useState(false);
   const [form, setForm] = useState({
     firstName: "",
+    middleName: "",
     lastName: "",
     email: "",
     phone: "",
     gender: "Male",
     bloodGroup: "",
+    dateOfBirth: "",
+    maritalStatus: "Single",
+    religion: "Islam",
+    nationality: "Bangladeshi",
     nationalId: "",
+    passportNo: "",
+    passportExpiry: "",
     currentAddress: "",
     permanentAddress: "",
+    division: "",
+    district: "",
+    upazila: "",
     departmentId: "",
     designationId: "",
     employmentType: "Permanent",
@@ -124,6 +134,8 @@ export default function Employees() {
       if (!body.joiningDate) delete (body as any).joiningDate;
       if (!body.managerId) delete (body as any).managerId;
       if (!body.bloodGroup) delete (body as any).bloodGroup;
+      if (!body.dateOfBirth) delete (body as any).dateOfBirth;
+      if (!body.passportExpiry) delete (body as any).passportExpiry;
 
       if (editing) {
         return updateEmployee(editing.id, body);
@@ -302,14 +314,24 @@ export default function Employees() {
     setEditing(null);
     setForm({
       firstName: "",
+      middleName: "",
       lastName: "",
       email: "",
       phone: "",
       gender: "Male",
       bloodGroup: "",
+      dateOfBirth: "",
+      maritalStatus: "Single",
+      religion: "Islam",
+      nationality: "Bangladeshi",
       nationalId: "",
+      passportNo: "",
+      passportExpiry: "",
       currentAddress: "",
       permanentAddress: "",
+      division: "",
+      district: "",
+      upazila: "",
       departmentId: "",
       designationId: "",
       employmentType: "Permanent",
@@ -327,14 +349,24 @@ export default function Employees() {
     setEditing(emp);
     setForm({
       firstName: emp.firstName,
+      middleName: emp.middleName || "",
       lastName: emp.lastName,
       email: emp.email,
       phone: emp.phone,
       gender: emp.gender || "Male",
       bloodGroup: emp.bloodGroup || "",
+      dateOfBirth: emp.dateOfBirth ? emp.dateOfBirth.split("T")[0] : "",
+      maritalStatus: emp.maritalStatus || "Single",
+      religion: emp.religion || "Islam",
+      nationality: emp.nationality || "Bangladeshi",
       nationalId: emp.nationalId || "",
+      passportNo: emp.passportNo || "",
+      passportExpiry: emp.passportExpiry ? emp.passportExpiry.split("T")[0] : "",
       currentAddress: emp.currentAddress || "",
       permanentAddress: emp.permanentAddress || "",
+      division: emp.division || "",
+      district: emp.district || "",
+      upazila: emp.upazila || "",
       departmentId: emp.departmentId,
       designationId: emp.designationId,
       employmentType: emp.employmentType,
@@ -505,13 +537,21 @@ export default function Employees() {
               <p className="text-sm text-slate-400">Profile picture can be added after saving the employee.</p>
             </div>
           )}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">First Name *</label>
               <input
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
                 value={form.firstName}
                 onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Middle Name</label>
+              <input
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                value={form.middleName}
+                onChange={(e) => setForm((f) => ({ ...f, middleName: e.target.value }))}
               />
             </div>
             <div>
@@ -583,6 +623,54 @@ export default function Employees() {
               </select>
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Date of Birth</label>
+              <input
+                type="date"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                value={form.dateOfBirth}
+                onChange={(e) => setForm((f) => ({ ...f, dateOfBirth: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Marital Status</label>
+              <select
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                value={form.maritalStatus}
+                onChange={(e) => setForm((f) => ({ ...f, maritalStatus: e.target.value }))}
+              >
+                <option value="Single">Single</option>
+                <option value="Married">Married</option>
+                <option value="Divorced">Divorced</option>
+                <option value="Widowed">Widowed</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Religion</label>
+              <select
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                value={form.religion}
+                onChange={(e) => setForm((f) => ({ ...f, religion: e.target.value }))}
+              >
+                <option value="Islam">Islam</option>
+                <option value="Hinduism">Hinduism</option>
+                <option value="Christianity">Christianity</option>
+                <option value="Buddhism">Buddhism</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Nationality</label>
+              <input
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                value={form.nationality}
+                onChange={(e) => setForm((f) => ({ ...f, nationality: e.target.value }))}
+              />
+            </div>
+          </div>
           <div>
             <label className="text-xs text-gray-500 mb-1 block">NID Number</label>
             <input
@@ -591,6 +679,26 @@ export default function Employees() {
               onChange={(e) => setForm((f) => ({ ...f, nationalId: e.target.value }))}
               placeholder="National ID number"
             />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Passport No.</label>
+              <input
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                value={form.passportNo}
+                onChange={(e) => setForm((f) => ({ ...f, passportNo: e.target.value }))}
+                placeholder="Passport number"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Passport Expiry</label>
+              <input
+                type="date"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                value={form.passportExpiry}
+                onChange={(e) => setForm((f) => ({ ...f, passportExpiry: e.target.value }))}
+              />
+            </div>
           </div>
           <div>
             <label className="text-xs text-gray-500 mb-1 block">NID Photo</label>
@@ -655,6 +763,32 @@ export default function Employees() {
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
                 value={form.permanentAddress}
                 onChange={(e) => setForm((f) => ({ ...f, permanentAddress: e.target.value }))}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Division</label>
+              <input
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                value={form.division}
+                onChange={(e) => setForm((f) => ({ ...f, division: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">District</label>
+              <input
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                value={form.district}
+                onChange={(e) => setForm((f) => ({ ...f, district: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Upazila</label>
+              <input
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                value={form.upazila}
+                onChange={(e) => setForm((f) => ({ ...f, upazila: e.target.value }))}
               />
             </div>
           </div>

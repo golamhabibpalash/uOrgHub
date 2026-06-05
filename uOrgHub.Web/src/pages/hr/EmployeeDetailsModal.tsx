@@ -176,8 +176,9 @@ export default function EmployeeDetailsModal({ employeeId, onClose }: Props) {
                 <Field label="Phone" value={emp.phone} />
                 <Field label="Current Address" value={emp.currentAddress} />
                 <Field label="Permanent Address" value={emp.permanentAddress} />
-                <Field label="District" value={emp.district} />
                 <Field label="Division" value={emp.division} />
+                <Field label="District" value={emp.district} />
+                <Field label="Upazila" value={emp.upazila} />
               </Section>
 
               <hr className="border-gray-100" />
@@ -191,6 +192,7 @@ export default function EmployeeDetailsModal({ employeeId, onClose }: Props) {
                 <Field label="Nationality" value={emp.nationality} />
                 <Field label="National ID" value={emp.nationalId} />
                 <Field label="Passport No." value={emp.passportNo} />
+                <Field label="Passport Expiry" value={fmtDate(emp.passportExpiry)} />
               </Section>
 
               {emp.nidPhotoUrl && (
