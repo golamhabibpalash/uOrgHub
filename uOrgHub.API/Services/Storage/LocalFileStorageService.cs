@@ -168,7 +168,8 @@ public class LocalFileStorageService : IFileStorageService
     {
         if (string.IsNullOrWhiteSpace(folder)) return "misc";
         var invalid = Path.GetInvalidFileNameChars();
-        var cleaned = new string(folder.Trim().Replace("..", "").Where(c => !invalid.Contains(c) && c != '/').ToArray());
-        return string.IsNullOrWhiteSpace(cleaned) ? "misc" : cleaned;
+        var segments = folder.Trim().Replace("..", "").Split('/');
+        var cleaned = string.Join("/", segments.Select(s => string.Concat(s.Where(c => !invalid.Contains(c)))));
+        return string.IsNullOrWhiteSpace(cleaned.Replace("/", "")) ? "misc" : cleaned;
     }
 }
