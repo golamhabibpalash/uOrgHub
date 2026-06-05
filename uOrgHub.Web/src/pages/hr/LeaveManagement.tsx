@@ -4,6 +4,7 @@ import { Plus, Check, X } from "lucide-react";
 import DataTable from "../../components/shared/DataTable";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
+import ExportMenu from "../../components/shared/ExportMenu";
 import {
   getLeaveTypes,
   createLeaveType,
@@ -188,23 +189,29 @@ export default function LeaveManagement() {
       </div>
 
       {activeTab === "requests" && (
-        <div className="mb-4 flex gap-3">
-          <select
-            value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          >
-            <option value="">All Status</option>
-            <option value="Pending">Pending</option>
-            <option value="Approved">Approved</option>
-            <option value="Rejected">Rejected</option>
-          </select>
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex gap-3">
+            <select
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            >
+              <option value="">All Status</option>
+              <option value="Pending">Pending</option>
+              <option value="Approved">Approved</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+          </div>
+          <ExportMenu baseUrl="leave/requests" filters={{ status: statusFilter || undefined }} />
         </div>
       )}
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         {activeTab === "types" ? (
           <>
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <ExportMenu baseUrl="leave/types" />
+            </div>
             <DataTable columns={typeColumns} data={leaveTypes} loading={typesLoading} onEdit={(row) => { setEditing(row); setForm({ name: row.name, code: row.code, description: row.description, totalDaysPerYear: row.totalDaysPerYear, isPaid: row.isPaid }); setModal(true); }} />
             <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
           </>

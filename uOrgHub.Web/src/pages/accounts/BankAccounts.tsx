@@ -4,6 +4,7 @@ import { Plus, ArrowRight, ArrowLeftRight } from "lucide-react";
 import DataTable from "../../components/shared/DataTable";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
+import ExportMenu from "../../components/shared/ExportMenu";
 import {
   getBankAccounts,
   createBankAccount,
@@ -216,7 +217,7 @@ export default function BankAccounts() {
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden mb-6">
-        <div className="px-4 py-3 border-b border-gray-100">
+        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
           <input
             type="text"
             placeholder="Search bank accounts..."
@@ -224,6 +225,7 @@ export default function BankAccounts() {
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 w-64 focus:outline-none focus:ring-1 focus:ring-primary-500"
           />
+          <ExportMenu baseUrl="/accounts/bank-accounts" filters={{ search: search || undefined }} />
         </div>
         <DataTable columns={columns} data={bankAccounts} loading={isLoading} onEdit={openEdit} />
         <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
@@ -241,6 +243,7 @@ export default function BankAccounts() {
               <button onClick={openTxnModal} className="flex items-center gap-1 bg-primary-500 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-primary-600">
                 <Plus size={12} /> Add Transaction
               </button>
+              <ExportMenu baseUrl={`/accounts/bank-accounts/${selectedAccount.id}/transactions`} filters={{}} />
               <button onClick={() => setSelectedAccount(null)} className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1">Close</button>
             </div>
           </div>

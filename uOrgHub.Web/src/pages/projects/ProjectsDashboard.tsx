@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Search } from "lucide-react";
 import DataTable from "../../components/shared/DataTable";
+import ExportMenu from "../../components/shared/ExportMenu";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
 import {
@@ -213,12 +214,15 @@ export default function ProjectsDashboard() {
               <option value="Cancelled">Cancelled</option>
             </select>
           </div>
-          <button
-            onClick={openAdd}
-            className="flex items-center gap-2 bg-primary-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-primary-600"
-          >
-            <Plus size={15} /> Add Project
-          </button>
+          <div className="ml-auto flex items-center gap-2">
+            <ExportMenu baseUrl="/projects" filters={{ search: search || undefined, status: status || undefined }} />
+            <button
+              onClick={openAdd}
+              className="flex items-center gap-2 bg-primary-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-primary-600"
+            >
+              <Plus size={15} /> Add Project
+            </button>
+          </div>
         </div>
 
         <div

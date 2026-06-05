@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import DataTable from "../../components/shared/DataTable";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
+import ExportMenu from "../../components/shared/ExportMenu";
 import {
   getJobPostings,
   createJobPosting,
@@ -84,10 +85,38 @@ export default function Recruitment() {
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        {activeTab === "postings" && <DataTable columns={postingCols} data={postings} loading={postingsLoading} />}
-        {activeTab === "candidates" && <DataTable columns={candidateCols} data={candidates} loading={candidatesLoading} />}
-        {activeTab === "applications" && <DataTable columns={appCols} data={applications} loading={appsLoading} />}
-        {activeTab === "interviews" && <DataTable columns={interviewCols} data={interviews} loading={interviewsLoading} />}
+        {activeTab === "postings" && (
+          <>
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <ExportMenu baseUrl="recruitment/job-postings" />
+            </div>
+            <DataTable columns={postingCols} data={postings} loading={postingsLoading} />
+          </>
+        )}
+        {activeTab === "candidates" && (
+          <>
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <ExportMenu baseUrl="recruitment/candidates" />
+            </div>
+            <DataTable columns={candidateCols} data={candidates} loading={candidatesLoading} />
+          </>
+        )}
+        {activeTab === "applications" && (
+          <>
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <ExportMenu baseUrl="recruitment/applications" />
+            </div>
+            <DataTable columns={appCols} data={applications} loading={appsLoading} />
+          </>
+        )}
+        {activeTab === "interviews" && (
+          <>
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <ExportMenu baseUrl="recruitment/interviews" />
+            </div>
+            <DataTable columns={interviewCols} data={interviews} loading={interviewsLoading} />
+          </>
+        )}
         <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
       </div>
 

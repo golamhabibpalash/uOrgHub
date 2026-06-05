@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, CheckCircle, XCircle } from "lucide-react";
+import ExportMenu from "../../components/shared/ExportMenu";
 import DataTable from "../../components/shared/DataTable";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
@@ -178,7 +179,7 @@ export default function StockTransactions() {
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 flex gap-3 flex-wrap">
+        <div className="px-4 py-3 border-b border-gray-100 flex gap-3 flex-wrap items-center justify-between">
           <input
             type="text" placeholder="Search TXN#, reference..." value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
@@ -190,6 +191,7 @@ export default function StockTransactions() {
             <option value="Confirmed">Confirmed</option>
             <option value="Cancelled">Cancelled</option>
           </select>
+          <div className="ml-auto"><ExportMenu baseUrl="/stocktransactions" filters={{ search: search || undefined, status: filterStatus || undefined }} /></div>
         </div>
         <DataTable
           columns={columns}

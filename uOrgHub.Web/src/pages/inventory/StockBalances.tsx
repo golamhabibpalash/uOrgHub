@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import ExportMenu from "../../components/shared/ExportMenu";
 import DataTable from "../../components/shared/DataTable";
 import Pagination from "../../components/shared/Pagination";
 import { getStockBalances, getWarehouses, getItemVariants, StockBalance } from "../../api/inventory";
@@ -66,7 +67,7 @@ export default function StockBalances() {
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 flex gap-3 flex-wrap">
+        <div className="px-4 py-3 border-b border-gray-100 flex gap-3 flex-wrap items-center justify-between">
           <input
             type="text" placeholder="Search SKU, item..." value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
@@ -80,6 +81,7 @@ export default function StockBalances() {
             <option value="">All Variants</option>
             {allVariants.map((v) => <option key={v.id} value={v.id}>{v.sku} — {v.variantName}</option>)}
           </select>
+          <div className="ml-auto"><ExportMenu baseUrl="/stockbalances" filters={{ search: search || undefined, warehouseId: filterWarehouseId || undefined, itemVariantId: filterVariantId || undefined }} /></div>
         </div>
         <DataTable columns={columns} data={balances} loading={isLoading} />
         <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />

@@ -4,6 +4,7 @@ import { Plus, Search, CheckCircle } from "lucide-react";
 import DataTable from "../../components/shared/DataTable";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
+import ExportMenu from "../../components/shared/ExportMenu";
 import { getGRNs, createGRN, updateGRN, deleteGRN, confirmGRN, GoodsReceivedNote, GRNStatus } from "../../api/procurement";
 
 export default function GoodsReceivedNotes() {
@@ -132,6 +133,7 @@ export default function GoodsReceivedNotes() {
             <option value="Confirmed">Confirmed</option>
             <option value="Cancelled">Cancelled</option>
           </select>
+          <div className="ml-auto"><ExportMenu baseUrl="goodsreceivednotes" filters={{ search: search || undefined, status: filterStatus || undefined }} /></div>
         </div>
         <DataTable columns={columns} data={items} loading={isLoading} onDelete={(row) => row.status === "Draft" && deleteMutation.mutate(row.id)} />
         <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />

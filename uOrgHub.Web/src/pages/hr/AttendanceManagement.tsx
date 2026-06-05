@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import DataTable from "../../components/shared/DataTable";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
+import ExportMenu from "../../components/shared/ExportMenu";
 import {
   getWorkSchedules,
   createWorkSchedule,
@@ -149,9 +150,30 @@ export default function AttendanceManagement() {
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        {activeTab === "schedules" && <DataTable columns={scheduleCols} data={schedules} loading={schedulesLoading} />}
-        {activeTab === "shifts" && <DataTable columns={shiftCols} data={shifts} loading={shiftsLoading} />}
-        {activeTab === "logs" && <DataTable columns={logCols} data={logs} loading={logsLoading} onEdit={editLog} />}
+        {activeTab === "schedules" && (
+          <>
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <ExportMenu baseUrl="attendance/work-schedules" />
+            </div>
+            <DataTable columns={scheduleCols} data={schedules} loading={schedulesLoading} />
+          </>
+        )}
+        {activeTab === "shifts" && (
+          <>
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <ExportMenu baseUrl="attendance/shifts" />
+            </div>
+            <DataTable columns={shiftCols} data={shifts} loading={shiftsLoading} />
+          </>
+        )}
+        {activeTab === "logs" && (
+          <>
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <ExportMenu baseUrl="attendance/logs" />
+            </div>
+            <DataTable columns={logCols} data={logs} loading={logsLoading} onEdit={editLog} />
+          </>
+        )}
         <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
       </div>
 

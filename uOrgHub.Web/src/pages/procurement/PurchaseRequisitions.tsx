@@ -4,6 +4,7 @@ import { Plus, Search, Send, CheckCircle, XCircle } from "lucide-react";
 import DataTable from "../../components/shared/DataTable";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
+import ExportMenu from "../../components/shared/ExportMenu";
 import { getPurchaseRequisitions, createPurchaseRequisition, updatePurchaseRequisition, deletePurchaseRequisition, submitPR, approvePR, rejectPR, PurchaseRequisition, PRStatus } from "../../api/procurement";
 
 export default function PurchaseRequisitions() {
@@ -177,6 +178,7 @@ export default function PurchaseRequisitions() {
             <option value="Rejected">Rejected</option>
             <option value="Converted">Converted</option>
           </select>
+          <div className="ml-auto"><ExportMenu baseUrl="purchaserequisitions" filters={{ search: search || undefined, status: filterStatus || undefined }} /></div>
         </div>
         <DataTable columns={columns} data={items} loading={isLoading} onDelete={(row) => row.status === "Draft" && deleteMutation.mutate(row.id)} />
         <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />

@@ -7,6 +7,7 @@ import DataTable from "../../components/shared/DataTable";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
 import ConfirmDialog from "../../components/shared/ConfirmDialog";
+import ExportMenu from "../../components/shared/ExportMenu";
 import {
   getDesignations,
   getAllDesignations,
@@ -204,7 +205,8 @@ export default function Designations() {
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 flex gap-3">
+        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+        <div className="flex gap-3">
           <input
             type="text"
             placeholder="Search designations..."
@@ -229,6 +231,8 @@ export default function Designations() {
             ))}
           </select>
         </div>
+        <ExportMenu baseUrl="designations" filters={{ search: search || undefined, departmentId: deptFilter || undefined }} />
+      </div>
         <DataTable
           columns={columns}
           data={designations}

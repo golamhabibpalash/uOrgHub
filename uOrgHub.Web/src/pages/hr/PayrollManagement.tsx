@@ -4,6 +4,7 @@ import { Plus, Check, X } from "lucide-react";
 import DataTable from "../../components/shared/DataTable";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
+import ExportMenu from "../../components/shared/ExportMenu";
 import {
   getSalaryGrades,
   createSalaryGrade,
@@ -83,10 +84,38 @@ export default function PayrollManagement() {
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        {activeTab === "grades" && <DataTable columns={gradeCols} data={grades} loading={gradesLoading} />}
-        {activeTab === "components" && <DataTable columns={compCols} data={components} loading={compsLoading} />}
-        {activeTab === "cycles" && <DataTable columns={cycleCols} data={cycles} loading={cyclesLoading} />}
-        {activeTab === "expenses" && <DataTable columns={expCols} data={expenses} loading={expLoading} />}
+        {activeTab === "grades" && (
+          <>
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <ExportMenu baseUrl="payroll/salary-grades" />
+            </div>
+            <DataTable columns={gradeCols} data={grades} loading={gradesLoading} />
+          </>
+        )}
+        {activeTab === "components" && (
+          <>
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <ExportMenu baseUrl="payroll/salary-components" />
+            </div>
+            <DataTable columns={compCols} data={components} loading={compsLoading} />
+          </>
+        )}
+        {activeTab === "cycles" && (
+          <>
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <ExportMenu baseUrl="payroll/payroll-cycles" />
+            </div>
+            <DataTable columns={cycleCols} data={cycles} loading={cyclesLoading} />
+          </>
+        )}
+        {activeTab === "expenses" && (
+          <>
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <ExportMenu baseUrl="payroll/expenses" />
+            </div>
+            <DataTable columns={expCols} data={expenses} loading={expLoading} />
+          </>
+        )}
         <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
       </div>
 

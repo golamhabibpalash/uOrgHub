@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
+import ExportMenu from "../../components/shared/ExportMenu";
 import DataTable from "../../components/shared/DataTable";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
@@ -83,12 +84,13 @@ export default function UnitsOfMeasure() {
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100">
+        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
           <input
             type="text" placeholder="Search units..." value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 w-64 focus:outline-none focus:ring-1 focus:ring-primary-500"
           />
+          <div className="ml-auto"><ExportMenu baseUrl="/unitsofmeasure" filters={{ search: search || undefined }} /></div>
         </div>
         <DataTable columns={columns} data={units} loading={isLoading} onEdit={openEdit} onDelete={(row) => deleteMutation.mutate(row.id)} />
         <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />

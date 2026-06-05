@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import DataTable from "../../components/shared/DataTable";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
+import ExportMenu from "../../components/shared/ExportMenu";
 import {
   getChartOfAccounts,
   getAccountGroups,
@@ -138,7 +139,7 @@ export default function ChartOfAccounts() {
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100">
+        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
           <input
             type="text"
             placeholder="Search accounts..."
@@ -146,6 +147,7 @@ export default function ChartOfAccounts() {
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 w-64 focus:outline-none focus:ring-1 focus:ring-primary-500"
           />
+          <ExportMenu baseUrl="/accounts/chart-of-accounts" filters={{ search: search || undefined }} />
         </div>
         <DataTable columns={columns} data={accounts} loading={isLoading} onEdit={openEdit} onDelete={(row) => deleteMutation.mutate(row.id)} />
         <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />

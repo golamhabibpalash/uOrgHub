@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Search } from "lucide-react";
 import DataTable from "../../components/shared/DataTable";
+import ExportMenu from "../../components/shared/ExportMenu";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
 import { getClients, createClient, updateClient, deleteClient, Client } from "../../api/projects";
@@ -138,7 +139,7 @@ export default function ClientsPage() {
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100">
+        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
           <div className="relative">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -151,6 +152,9 @@ export default function ClientsPage() {
               }}
               className="text-sm border border-gray-200 rounded-lg pl-9 pr-3 py-1.5 w-64 focus:outline-none focus:ring-1 focus:ring-primary-500"
             />
+          </div>
+          <div className="ml-auto">
+            <ExportMenu baseUrl="/clients" filters={{ search: search || undefined }} />
           </div>
         </div>
 

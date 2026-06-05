@@ -4,6 +4,7 @@ import { Plus, Search } from "lucide-react";
 import DataTable from "../../components/shared/DataTable";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
+import ExportMenu from "../../components/shared/ExportMenu";
 import { getRFQs, createRFQ, updateRFQ, deleteRFQ, RequestForQuotation, RFQStatus } from "../../api/procurement";
 
 export default function RequestForQuotations() {
@@ -143,6 +144,7 @@ export default function RequestForQuotations() {
             <option value="Closed">Closed</option>
             <option value="Cancelled">Cancelled</option>
           </select>
+          <div className="ml-auto"><ExportMenu baseUrl="rfqs" filters={{ search: search || undefined, status: filterStatus || undefined }} /></div>
         </div>
         <DataTable columns={columns} data={items} loading={isLoading} />
         <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, Tag } from "lucide-react";
+import ExportMenu from "../../components/shared/ExportMenu";
 import DataTable from "../../components/shared/DataTable";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
@@ -132,7 +133,7 @@ export default function ItemVariants() {
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 flex gap-3 flex-wrap">
+        <div className="px-4 py-3 border-b border-gray-100 flex gap-3 flex-wrap items-center justify-between">
           <input
             type="text" placeholder="Search variants..." value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
@@ -142,6 +143,7 @@ export default function ItemVariants() {
             <option value="">All Items</option>
             {allItems.map((i) => <option key={i.id} value={i.id}>{i.baseName}</option>)}
           </select>
+          <div className="ml-auto"><ExportMenu baseUrl="/itemvariants" filters={{ search: search || undefined, itemId: filterItemId || undefined }} /></div>
         </div>
         <DataTable columns={columns} data={variants} loading={isLoading} onEdit={openEdit} onDelete={(row) => deleteMutation.mutate(row.id)} />
         <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />

@@ -4,6 +4,7 @@ import { Plus, Search } from "lucide-react";
 import DataTable from "../../components/shared/DataTable";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
+import ExportMenu from "../../components/shared/ExportMenu";
 import { getVendorQuotations, createVendorQuotation, updateVendorQuotation, deleteVendorQuotation, VendorQuotation, QuotationStatus } from "../../api/procurement";
 
 export default function VendorQuotations() {
@@ -127,6 +128,7 @@ export default function VendorQuotations() {
             <option value="Accepted">Accepted</option>
             <option value="Rejected">Rejected</option>
           </select>
+          <div className="ml-auto"><ExportMenu baseUrl="vendorquotations" filters={{ search: search || undefined, status: filterStatus || undefined }} /></div>
         </div>
         <DataTable columns={columns} data={items} loading={isLoading} />
         <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />

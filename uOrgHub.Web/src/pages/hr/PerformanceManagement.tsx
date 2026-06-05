@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import DataTable from "../../components/shared/DataTable";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
+import ExportMenu from "../../components/shared/ExportMenu";
 import {
   getReviewCycles,
   createReviewCycle,
@@ -104,9 +105,30 @@ export default function PerformanceManagement() {
 
       {activeTab !== "training" && (
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-          {activeTab === "cycles" && <DataTable columns={cycleCols} data={cycles} loading={cyclesLoading} />}
-          {activeTab === "goals" && <DataTable columns={goalCols} data={goals} loading={goalsLoading} />}
-          {activeTab === "reviews" && <DataTable columns={reviewCols} data={reviews} loading={reviewsLoading} />}
+          {activeTab === "cycles" && (
+            <>
+              <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                <ExportMenu baseUrl="performance/review-cycles" />
+              </div>
+              <DataTable columns={cycleCols} data={cycles} loading={cyclesLoading} />
+            </>
+          )}
+          {activeTab === "goals" && (
+            <>
+              <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                <ExportMenu baseUrl="performance/goals" />
+              </div>
+              <DataTable columns={goalCols} data={goals} loading={goalsLoading} />
+            </>
+          )}
+          {activeTab === "reviews" && (
+            <>
+              <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                <ExportMenu baseUrl="performance/reviews" />
+              </div>
+              <DataTable columns={reviewCols} data={reviews} loading={reviewsLoading} />
+            </>
+          )}
           <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
         </div>
       )}
@@ -114,17 +136,23 @@ export default function PerformanceManagement() {
       {activeTab === "training" && (
         <div className="space-y-4">
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
               <h3 className="text-sm font-medium">Training Programs</h3>
-              <button onClick={() => openModal("training", "add")} className="text-xs bg-primary-500 text-white px-3 py-1 rounded hover:bg-primary-600">Add Program</button>
+              <div className="flex items-center gap-2">
+                <ExportMenu baseUrl="performance/training-programs" />
+                <button onClick={() => openModal("training", "add")} className="text-xs bg-primary-500 text-white px-3 py-1 rounded hover:bg-primary-600">Add Program</button>
+              </div>
             </div>
             <DataTable columns={programCols} data={programs} loading={programsLoading} />
             <Pagination page={page} totalPages={programsData?.data?.data?.totalPages ?? 1} onPageChange={setPage} />
           </div>
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
               <h3 className="text-sm font-medium">Employee Enrollments</h3>
-              <button onClick={() => openModal("training", "enroll")} className="text-xs bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">Enroll Employee</button>
+              <div className="flex items-center gap-2">
+                <ExportMenu baseUrl="performance/employee-trainings" />
+                <button onClick={() => openModal("training", "enroll")} className="text-xs bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">Enroll Employee</button>
+              </div>
             </div>
             <DataTable columns={[{ key: "employeeName", label: "Employee" }, { key: "trainingTitle", label: "Program" }, { key: "status", label: "Status", render: (r: EmployeeTraining) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.status === "Completed" ? "bg-green-50 text-green-700" : r.status === "InProgress" ? "bg-blue-50 text-blue-700" : "bg-yellow-50 text-yellow-700"}`}>{r.status}</span> }, { key: "completionDate", label: "Completed", render: (r: EmployeeTraining) => r.completionDate ? new Date(r.completionDate).toLocaleDateString() : "-" }]} data={empTrainings} loading={empTrainingsLoading} />
           </div>
