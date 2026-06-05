@@ -75,14 +75,14 @@ export default function AttributeDefinitions() {
   const columns = [
     { key: "name", label: "Attribute Name" },
     {
-      key: "dataType", label: "Data Type",
+      key: "dataType", label: "Data Type", sortable: false,
       render: (row: AttributeDefinition) => (
         <span className={`text-xs px-2 py-0.5 rounded-full ${dataTypeColors[row.dataType]}`}>{row.dataType}</span>
       ),
     },
     { key: "categoryName", label: "Category", render: (row: AttributeDefinition) => <span>{row.categoryName ?? "Global"}</span> },
     {
-      key: "isRequired", label: "Required",
+      key: "isRequired", label: "Required", sortable: false,
       render: (row: AttributeDefinition) => (
         <span className={`text-xs px-2 py-0.5 rounded-full ${row.isRequired ? "bg-amber-50 text-amber-700" : "bg-gray-50 text-gray-500"}`}>
           {row.isRequired ? "Required" : "Optional"}
@@ -96,7 +96,7 @@ export default function AttributeDefinitions() {
         : <span className="text-gray-300">—</span>,
     },
     {
-      key: "isActive", label: "Status",
+      key: "isActive", label: "Status", sortable: false,
       render: (row: AttributeDefinition) => (
         <span className={`text-xs px-2 py-0.5 rounded-full ${row.isActive ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
           {row.isActive ? "Active" : "Inactive"}

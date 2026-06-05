@@ -1,16 +1,15 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, Send, CheckCircle, XCircle } from "lucide-react";
-import DataTable from "../../components/shared/DataTable";
-import Pagination from "../../components/shared/Pagination";
+import { Plus, Send, CheckCircle, XCircle } from "lucide-react";
+import DataGrid from "../../components/shared/DataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
+import { useDataGrid } from "../../hooks/useDataGrid";
 import { getPurchaseOrders, createPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder, sendPO, confirmPO, cancelPO, PurchaseOrder, POStatus } from "../../api/procurement";
 
 export default function PurchaseOrders() {
   const qc = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const dg = useDataGrid({ defaultSortBy: "poDate" });
   const [filterStatus, setFilterStatus] = useState("");
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<PurchaseOrder | null>(null);
@@ -21,13 +20,14 @@ export default function PurchaseOrders() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["purchase-orders", page, search, filterStatus],
-    queryFn: () => getPurchaseOrders({ page, pageSize: 10, search },
+    queryKey: ["purchase-orders", dg.page, dg.search, dg.sortBy, dg.sortDescending, filterStatus],
+    queryFn: () => getPurchaseOrders(dg.queryParams,
       filterStatus ? filterStatus as POStatus : undefined),
   });
 
   const items = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
+  const totalCount = data?.data?.data?.totalCount ?? 0;
 
   const saveMutation = useMutation({
     mutationFn: () => editing
@@ -94,13 +94,14 @@ export default function PurchaseOrders() {
     { key: "vendorName", label: "Vendor" },
     { key: "prNumber", label: "PR Ref", render: (row: PurchaseOrder) => row.prNumber || "—" },
     { key: "totalAmount", label: "Total", render: (row: PurchaseOrder) => <span className="font-medium">${row.totalAmount.toLocaleString()}</span> },
-    { key: "status", label: "Status", render: (row: PurchaseOrder) => <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[row.status]}`}>{row.status}</span> },
-    { key: "actions", label: "Actions", render: (row: PurchaseOrder) => (
+    { key: "status", label: "Status", sortable: false, render: (row: PurchaseOrder) => <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[row.status]}`}>{row.status}</span> },
+    { key: "actions", label: "Actions", sortable: false, render: (row: PurchaseOrder) => (
       <div className="flex items-center gap-1">
         {row.status === "Draft" && (
           <>
             <button onClick={() => sendMutation.mutate(row.id)} title="Send" className="p-1 text-blue-600 hover:bg-blue-50 rounded"><Send size={14} /></button>
             <button onClick={() => openEdit(row)} className="p-1 text-gray-600 hover:bg-gray-50 rounded">✏️</button>
+            <button onClick={() => deleteMutation.mutate(row.id)} className="p-1 text-red-600 hover:bg-red-50 rounded">🗑️</button>
           </>
         )}
         {row.status === "Sent" && (
@@ -126,14 +127,25 @@ export default function PurchaseOrders() {
         </button>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 flex gap-3 flex-wrap">
-          <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input type="text" placeholder="Search POs..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="pl-8 text-sm border border-gray-200 rounded-lg px-3 py-1.5 w-48" />
-          </div>
-          <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
+      <DataGrid
+        columns={columns}
+        data={items}
+        loading={isLoading}
+        sortBy={dg.sortBy}
+        sortDescending={dg.sortDescending}
+        onSort={dg.handleSort}
+        search={dg.search}
+        onSearch={dg.setSearch}
+        searchPlaceholder="Search POs..."
+        page={dg.page}
+        totalPages={totalPages}
+        onPageChange={dg.setPage}
+        pageSize={dg.pageSize}
+        onPageSizeChange={dg.setPageSize}
+        totalCount={totalCount}
+        emptyMessage="No purchase orders found"
+        toolbarPrefix={
+          <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); dg.setPage(1); }}
             className="text-sm border border-gray-200 rounded-lg px-3 py-1.5">
             <option value="">All Status</option>
             <option value="Draft">Draft</option>
@@ -143,11 +155,9 @@ export default function PurchaseOrders() {
             <option value="FullyReceived">Fully Received</option>
             <option value="Cancelled">Cancelled</option>
           </select>
-          <div className="ml-auto"><ExportMenu baseUrl="purchaseorders" filters={{ search: search || undefined, status: filterStatus || undefined }} /></div>
-        </div>
-        <DataTable columns={columns} data={items} loading={isLoading} onDelete={(row) => row.status === "Draft" && deleteMutation.mutate(row.id)} />
-        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-      </div>
+        }
+        actions={<ExportMenu baseUrl="purchaseorders" filters={{ search: dg.search || undefined, status: filterStatus || undefined }} />}
+      />
 
       <Modal title={editing ? "Edit PO" : "Create Purchase Order"} open={modal} onClose={closeModal}>
         <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">

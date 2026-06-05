@@ -1,19 +1,18 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import DataGrid from "../../components/shared/DataGrid";
 import ExportMenu from "../../components/shared/ExportMenu";
-import DataTable from "../../components/shared/DataTable";
-import Pagination from "../../components/shared/Pagination";
+import { useDataGrid } from "../../hooks/useDataGrid";
 import { getStockBalances, getWarehouses, getItemVariants, StockBalance } from "../../api/inventory";
 
 export default function StockBalances() {
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const dg = useDataGrid({ defaultSortBy: "name" });
   const [filterWarehouseId, setFilterWarehouseId] = useState("");
   const [filterVariantId, setFilterVariantId] = useState("");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["stock-balances", page, search, filterWarehouseId, filterVariantId],
-    queryFn: () => getStockBalances({ page, pageSize: 10, search }, filterWarehouseId || undefined, filterVariantId || undefined),
+    queryKey: ["stock-balances", dg.page, dg.search, dg.sortBy, dg.sortDescending, filterWarehouseId, filterVariantId],
+    queryFn: () => getStockBalances(dg.queryParams, filterWarehouseId || undefined, filterVariantId || undefined),
   });
 
   const { data: warehousesData } = useQuery({
@@ -28,6 +27,7 @@ export default function StockBalances() {
 
   const balances = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
+  const totalCount = data?.data?.data?.totalCount ?? 0;
   const allWarehouses = warehousesData?.data?.data?.items ?? [];
   const allVariants = variantsData?.data?.data?.items ?? [];
 
@@ -45,7 +45,7 @@ export default function StockBalances() {
     { key: "quantityOnHand", label: "On Hand", render: (row: StockBalance) => <span className={qtyColor(row.quantityOnHand)}>{row.quantityOnHand}</span> },
     { key: "quantityReserved", label: "Reserved", render: (row: StockBalance) => <span className="text-gray-500">{row.quantityReserved}</span> },
     {
-      key: "quantityAvailable", label: "Available",
+      key: "quantityAvailable", label: "Available", sortable: false,
       render: (row: StockBalance) => {
         const avail = row.quantityOnHand - row.quantityReserved;
         return <span className={`font-semibold ${avail <= 0 ? "text-red-600" : "text-green-600"}`}>{avail}</span>;
@@ -66,26 +66,37 @@ export default function StockBalances() {
         </div>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 flex gap-3 flex-wrap items-center justify-between">
-          <input
-            type="text" placeholder="Search SKU, item..." value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 w-48 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          />
-          <select value={filterWarehouseId} onChange={(e) => { setFilterWarehouseId(e.target.value); setPage(1); }} className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500">
-            <option value="">All Warehouses</option>
-            {allWarehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
-          </select>
-          <select value={filterVariantId} onChange={(e) => { setFilterVariantId(e.target.value); setPage(1); }} className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500">
-            <option value="">All Variants</option>
-            {allVariants.map((v) => <option key={v.id} value={v.id}>{v.sku} — {v.variantName}</option>)}
-          </select>
-          <div className="ml-auto"><ExportMenu baseUrl="/stockbalances" filters={{ search: search || undefined, warehouseId: filterWarehouseId || undefined, itemVariantId: filterVariantId || undefined }} /></div>
-        </div>
-        <DataTable columns={columns} data={balances} loading={isLoading} />
-        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-      </div>
+      <DataGrid
+        columns={columns}
+        data={balances}
+        loading={isLoading}
+        sortBy={dg.sortBy}
+        sortDescending={dg.sortDescending}
+        onSort={dg.handleSort}
+        search={dg.search}
+        onSearch={dg.setSearch}
+        searchPlaceholder="Search SKU, item..."
+        page={dg.page}
+        totalPages={totalPages}
+        onPageChange={dg.setPage}
+        pageSize={dg.pageSize}
+        onPageSizeChange={dg.setPageSize}
+        totalCount={totalCount}
+        emptyMessage="No stock balances found"
+        toolbarPrefix={
+          <>
+            <select value={filterWarehouseId} onChange={(e) => { setFilterWarehouseId(e.target.value); dg.setPage(1); }} className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500">
+              <option value="">All Warehouses</option>
+              {allWarehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+            </select>
+            <select value={filterVariantId} onChange={(e) => { setFilterVariantId(e.target.value); dg.setPage(1); }} className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500">
+              <option value="">All Variants</option>
+              {allVariants.map((v) => <option key={v.id} value={v.id}>{v.sku} — {v.variantName}</option>)}
+            </select>
+          </>
+        }
+        actions={<ExportMenu baseUrl="/stockbalances" filters={{ search: dg.search || undefined, warehouseId: filterWarehouseId || undefined, itemVariantId: filterVariantId || undefined }} />}
+      />
     </div>
   );
 }

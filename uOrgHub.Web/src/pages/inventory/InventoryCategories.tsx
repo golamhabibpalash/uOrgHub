@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
+import DataGrid from "../../components/shared/DataGrid";
 import ExportMenu from "../../components/shared/ExportMenu";
-import DataTable from "../../components/shared/DataTable";
-import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
+import { useDataGrid } from "../../hooks/useDataGrid";
 import {
   getInventoryCategories,
   createInventoryCategory,
@@ -16,16 +16,15 @@ import {
 
 export default function InventoryCategories() {
   const qc = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const dg = useDataGrid({ defaultSortBy: "name" });
   const [filterTypeId, setFilterTypeId] = useState("");
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<InventoryCategory | null>(null);
   const [form, setForm] = useState({ name: "", code: "", typeId: "", parentCategoryId: "", description: "", isActive: true });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["inventory-categories", page, search, filterTypeId],
-    queryFn: () => getInventoryCategories({ page, pageSize: 10, search }, filterTypeId || undefined),
+    queryKey: ["inventory-categories", dg.page, dg.search, dg.sortBy, dg.sortDescending, filterTypeId],
+    queryFn: () => getInventoryCategories(dg.queryParams, filterTypeId || undefined),
   });
 
   const { data: typesData } = useQuery({
@@ -40,6 +39,7 @@ export default function InventoryCategories() {
 
   const categories = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
+  const totalCount = data?.data?.data?.totalCount ?? 0;
   const allTypes = typesData?.data?.data?.items ?? [];
   const allCategories = allCatsData?.data?.data?.items ?? [];
 
@@ -78,7 +78,7 @@ export default function InventoryCategories() {
       render: (row: InventoryCategory) => <span className="text-gray-500">{row.parentCategoryName ?? "—"}</span>,
     },
     {
-      key: "isActive", label: "Status",
+      key: "isActive", label: "Status", sortable: false,
       render: (row: InventoryCategory) => (
         <span className={`text-xs px-2 py-0.5 rounded-full ${row.isActive ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
           {row.isActive ? "Active" : "Inactive"}
@@ -99,26 +99,37 @@ export default function InventoryCategories() {
         </button>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 flex gap-3 flex-wrap items-center justify-between">
-          <input
-            type="text" placeholder="Search categories..." value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 w-56 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          />
+      <DataGrid
+        columns={columns}
+        data={categories}
+        loading={isLoading}
+        sortBy={dg.sortBy}
+        sortDescending={dg.sortDescending}
+        onSort={dg.handleSort}
+        search={dg.search}
+        onSearch={dg.setSearch}
+        searchPlaceholder="Search categories..."
+        page={dg.page}
+        totalPages={totalPages}
+        onPageChange={dg.setPage}
+        pageSize={dg.pageSize}
+        onPageSizeChange={dg.setPageSize}
+        totalCount={totalCount}
+        onEdit={openEdit}
+        onDelete={(row) => deleteMutation.mutate(row.id)}
+        emptyMessage="No categories found"
+        toolbarPrefix={
           <select
             value={filterTypeId}
-            onChange={(e) => { setFilterTypeId(e.target.value); setPage(1); }}
+            onChange={(e) => { setFilterTypeId(e.target.value); dg.setPage(1); }}
             className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500"
           >
             <option value="">All Types</option>
             {allTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
-          <div className="ml-auto"><ExportMenu baseUrl="/inventorycategories" filters={{ search: search || undefined, typeId: filterTypeId || undefined }} /></div>
-        </div>
-        <DataTable columns={columns} data={categories} loading={isLoading} onEdit={openEdit} onDelete={(row) => deleteMutation.mutate(row.id)} />
-        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-      </div>
+        }
+        actions={<ExportMenu baseUrl="/inventorycategories" filters={{ search: dg.search || undefined, typeId: filterTypeId || undefined }} />}
+      />
 
       <Modal title={editing ? "Edit Category" : "Add Category"} open={modal} onClose={closeModal}>
         <div className="space-y-3">

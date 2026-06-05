@@ -1,29 +1,29 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
+import DataGrid from "../../components/shared/DataGrid";
 import ExportMenu from "../../components/shared/ExportMenu";
-import DataTable from "../../components/shared/DataTable";
-import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
+import { useDataGrid } from "../../hooks/useDataGrid";
 import {
   getWarehouses, createWarehouse, updateWarehouse, deleteWarehouse, Warehouse,
 } from "../../api/inventory";
 
 export default function Warehouses() {
   const qc = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const dg = useDataGrid({ defaultSortBy: "name" });
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Warehouse | null>(null);
   const [form, setForm] = useState({ name: "", code: "", location: "", contactPerson: "", contactPhone: "", isActive: true });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["warehouses", page, search],
-    queryFn: () => getWarehouses({ page, pageSize: 10, search }),
+    queryKey: ["warehouses", dg.page, dg.search, dg.sortBy, dg.sortDescending],
+    queryFn: () => getWarehouses(dg.queryParams),
   });
 
   const warehouses = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
+  const totalCount = data?.data?.data?.totalCount ?? 0;
 
   const saveMutation = useMutation({
     mutationFn: () => editing ? updateWarehouse(editing.id, form) : createWarehouse(form),
@@ -56,7 +56,7 @@ export default function Warehouses() {
     { key: "contactPerson", label: "Contact Person", render: (row: Warehouse) => <span>{row.contactPerson ?? "—"}</span> },
     { key: "contactPhone", label: "Phone", render: (row: Warehouse) => <span>{row.contactPhone ?? "—"}</span> },
     {
-      key: "isActive", label: "Status",
+      key: "isActive", label: "Status", sortable: false,
       render: (row: Warehouse) => (
         <span className={`text-xs px-2 py-0.5 rounded-full ${row.isActive ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
           {row.isActive ? "Active" : "Inactive"}
@@ -77,18 +77,27 @@ export default function Warehouses() {
         </button>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-          <input
-            type="text" placeholder="Search warehouses..." value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 w-64 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          />
-          <div className="ml-auto"><ExportMenu baseUrl="/warehouses" filters={{ search: search || undefined }} /></div>
-        </div>
-        <DataTable columns={columns} data={warehouses} loading={isLoading} onEdit={openEdit} onDelete={(row) => deleteMutation.mutate(row.id)} />
-        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-      </div>
+      <DataGrid
+        columns={columns}
+        data={warehouses}
+        loading={isLoading}
+        sortBy={dg.sortBy}
+        sortDescending={dg.sortDescending}
+        onSort={dg.handleSort}
+        search={dg.search}
+        onSearch={dg.setSearch}
+        searchPlaceholder="Search warehouses..."
+        page={dg.page}
+        totalPages={totalPages}
+        onPageChange={dg.setPage}
+        pageSize={dg.pageSize}
+        onPageSizeChange={dg.setPageSize}
+        totalCount={totalCount}
+        onEdit={openEdit}
+        onDelete={(row) => deleteMutation.mutate(row.id)}
+        emptyMessage="No warehouses found"
+        actions={<ExportMenu baseUrl="/warehouses" filters={{ search: dg.search || undefined }} />}
+      />
 
       <Modal title={editing ? "Edit Warehouse" : "Add Warehouse"} open={modal} onClose={closeModal}>
         <div className="space-y-3">

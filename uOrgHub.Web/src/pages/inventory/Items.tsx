@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
-import DataTable from "../../components/shared/DataTable";
-import Pagination from "../../components/shared/Pagination";
+import DataGrid from "../../components/shared/DataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
+import { useDataGrid } from "../../hooks/useDataGrid";
 import {
   getItems, createItem, updateItem, deleteItem,
   getInventoryTypes, getInventoryCategories, getUnitsOfMeasure,
@@ -13,8 +13,7 @@ import {
 
 export default function Items() {
   const qc = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const dg = useDataGrid({ defaultSortBy: "name" });
   const [filterCatId, setFilterCatId] = useState("");
   const [filterTypeId, setFilterTypeId] = useState("");
   const [modal, setModal] = useState(false);
@@ -25,8 +24,8 @@ export default function Items() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["items", page, search, filterCatId, filterTypeId],
-    queryFn: () => getItems({ page, pageSize: 10, search }, filterCatId || undefined, filterTypeId || undefined),
+    queryKey: ["items", dg.page, dg.search, dg.sortBy, dg.sortDescending, filterCatId, filterTypeId],
+    queryFn: () => getItems(dg.queryParams, filterCatId || undefined, filterTypeId || undefined),
   });
 
   const { data: typesData } = useQuery({ queryKey: ["inventory-types", 1, ""], queryFn: () => getInventoryTypes({ page: 1, pageSize: 100 }) });
@@ -35,6 +34,7 @@ export default function Items() {
 
   const items = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
+  const totalCount = data?.data?.data?.totalCount ?? 0;
   const allTypes = typesData?.data?.data?.items ?? [];
   const allCategories = catsData?.data?.data?.items ?? [];
   const allUoMs = uomsData?.data?.data?.items ?? [];
@@ -70,9 +70,9 @@ export default function Items() {
     { key: "categoryName", label: "Category" },
     { key: "unitAbbreviation", label: "UoM", render: (row: Item) => <span className="font-mono text-xs">{row.unitAbbreviation}</span> },
     { key: "standardCost", label: "Std. Cost", render: (row: Item) => <span>${row.standardCost.toFixed(2)}</span> },
-    { key: "variantCount", label: "Variants", render: (row: Item) => <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">{row.variantCount}</span> },
+    { key: "variantCount", label: "Variants", sortable: false, render: (row: Item) => <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">{row.variantCount}</span> },
     {
-      key: "isActive", label: "Status",
+      key: "isActive", label: "Status", sortable: false,
       render: (row: Item) => (
         <span className={`text-xs px-2 py-0.5 rounded-full ${row.isActive ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
           {row.isActive ? "Active" : "Inactive"}
@@ -93,28 +93,39 @@ export default function Items() {
         </button>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 flex gap-3 flex-wrap">
-          <input
-            type="text" placeholder="Search items..." value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 w-48 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          />
-          <select value={filterTypeId} onChange={(e) => { setFilterTypeId(e.target.value); setPage(1); }} className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500">
-            <option value="">All Types</option>
-            {allTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-          </select>
-          <select value={filterCatId} onChange={(e) => { setFilterCatId(e.target.value); setPage(1); }} className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500">
-            <option value="">All Categories</option>
-            {allCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-          <div className="ml-auto">
-            <ExportMenu baseUrl="items" filters={{ search: search || undefined, categoryId: filterCatId || undefined, typeId: filterTypeId || undefined }} />
-          </div>
-        </div>
-        <DataTable columns={columns} data={items} loading={isLoading} onEdit={openEdit} onDelete={(row) => deleteMutation.mutate(row.id)} />
-        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-      </div>
+      <DataGrid
+        columns={columns}
+        data={items}
+        loading={isLoading}
+        sortBy={dg.sortBy}
+        sortDescending={dg.sortDescending}
+        onSort={dg.handleSort}
+        search={dg.search}
+        onSearch={dg.setSearch}
+        searchPlaceholder="Search items..."
+        page={dg.page}
+        totalPages={totalPages}
+        onPageChange={dg.setPage}
+        pageSize={dg.pageSize}
+        onPageSizeChange={dg.setPageSize}
+        totalCount={totalCount}
+        onEdit={openEdit}
+        onDelete={(row) => deleteMutation.mutate(row.id)}
+        emptyMessage="No items found"
+        toolbarPrefix={
+          <>
+            <select value={filterTypeId} onChange={(e) => { setFilterTypeId(e.target.value); dg.setPage(1); }} className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500">
+              <option value="">All Types</option>
+              {allTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+            <select value={filterCatId} onChange={(e) => { setFilterCatId(e.target.value); dg.setPage(1); }} className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500">
+              <option value="">All Categories</option>
+              {allCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </>
+        }
+        actions={<ExportMenu baseUrl="items" filters={{ search: dg.search || undefined, categoryId: filterCatId || undefined, typeId: filterTypeId || undefined }} />}
+      />
 
       <Modal title={editing ? "Edit Item" : "Add Item"} open={modal} onClose={closeModal}>
         <div className="space-y-3">

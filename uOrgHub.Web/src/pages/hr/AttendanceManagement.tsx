@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
-import DataTable from "../../components/shared/DataTable";
-import Pagination from "../../components/shared/Pagination";
+import DataGrid from "../../components/shared/DataGrid";
+import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
 import {
@@ -22,7 +22,7 @@ import {
 export default function AttendanceManagement() {
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<"schedules" | "shifts" | "logs">("schedules");
-  const [page, setPage] = useState(1);
+  const dg = useDataGrid({ defaultSortBy: "name" });
   const [modal, setModal] = useState(false);
   const [modalType, setModalType] = useState<"schedule" | "shift" | "log">("schedule");
   const [form, setForm] = useState({ name: "", description: "" });
@@ -31,18 +31,18 @@ export default function AttendanceManagement() {
   const [editingLog, setEditingLog] = useState<AttendanceLog | null>(null);
 
   const { data: schedulesData, isLoading: schedulesLoading } = useQuery({
-    queryKey: ["work-schedules", page],
-    queryFn: () => getWorkSchedules({ page, pageSize: 10 }),
+    queryKey: ["work-schedules", dg.page, dg.search, dg.sortBy, dg.sortDescending],
+    queryFn: () => getWorkSchedules(dg.queryParams),
   });
 
   const { data: shiftsData, isLoading: shiftsLoading } = useQuery({
-    queryKey: ["shifts", page],
-    queryFn: () => getShifts({ page, pageSize: 10 }),
+    queryKey: ["shifts", dg.page, dg.search, dg.sortBy, dg.sortDescending],
+    queryFn: () => getShifts(dg.queryParams),
   });
 
   const { data: logsData, isLoading: logsLoading } = useQuery({
-    queryKey: ["attendance-logs", page],
-    queryFn: () => getAttendanceLogs({ page, pageSize: 10 }),
+    queryKey: ["attendance-logs", dg.page, dg.search, dg.sortBy, dg.sortDescending],
+    queryFn: () => getAttendanceLogs(dg.queryParams),
   });
 
   const { data: empData } = useQuery({
@@ -60,12 +60,6 @@ export default function AttendanceManagement() {
   const logs = logsData?.data?.data?.items ?? [];
   const employees = empData?.data?.data?.items ?? [];
   const allSchedules = scheduleData?.data?.data?.items ?? [];
-
-  const totalPages = activeTab === "schedules"
-    ? schedulesData?.data?.data?.totalPages ?? 1
-    : activeTab === "shifts"
-    ? shiftsData?.data?.data?.totalPages ?? 1
-    : logsData?.data?.data?.totalPages ?? 1;
 
   const createScheduleMutation = useMutation({
     mutationFn: () => createWorkSchedule(form),
@@ -109,7 +103,7 @@ export default function AttendanceManagement() {
   const scheduleCols = [
     { key: "name", label: "Schedule Name" },
     { key: "description", label: "Description" },
-    { key: "isActive", label: "Status", render: (row: WorkSchedule) => <span className={`text-xs px-2 py-0.5 rounded-full ${row.isActive ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>{row.isActive ? "Active" : "Inactive"}</span> },
+    { key: "isActive", label: "Status", sortable: false, render: (row: WorkSchedule) => <span className={`text-xs px-2 py-0.5 rounded-full ${row.isActive ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>{row.isActive ? "Active" : "Inactive"}</span> },
   ];
 
   const shiftCols = [
@@ -117,16 +111,16 @@ export default function AttendanceManagement() {
     { key: "startTime", label: "Start Time" },
     { key: "endTime", label: "End Time" },
     { key: "workScheduleName", label: "Schedule" },
-    { key: "isActive", label: "Status", render: (row: Shift) => <span className={`text-xs px-2 py-0.5 rounded-full ${row.isActive ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>{row.isActive ? "Active" : "Inactive"}</span> },
+    { key: "isActive", label: "Status", sortable: false, render: (row: Shift) => <span className={`text-xs px-2 py-0.5 rounded-full ${row.isActive ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>{row.isActive ? "Active" : "Inactive"}</span> },
   ];
 
   const logCols = [
     { key: "employeeName", label: "Employee" },
-    { key: "attendanceDate", label: "Date", render: (row: AttendanceLog) => new Date(row.attendanceDate).toLocaleDateString() },
+    { key: "attendanceDate", label: "Date", sortable: false, render: (row: AttendanceLog) => new Date(row.attendanceDate).toLocaleDateString() },
     { key: "checkIn", label: "Check In" },
     { key: "checkOut", label: "Check Out" },
     { key: "workHours", label: "Hours" },
-    { key: "status", label: "Status", render: (row: AttendanceLog) => <span className={`text-xs px-2 py-0.5 rounded-full ${row.status === "Present" ? "bg-green-50 text-green-700" : row.status === "Absent" ? "bg-red-50 text-red-600" : "bg-yellow-50 text-yellow-700"}`}>{row.status}</span> },
+    { key: "status", label: "Status", sortable: false, render: (row: AttendanceLog) => <span className={`text-xs px-2 py-0.5 rounded-full ${row.status === "Present" ? "bg-green-50 text-green-700" : row.status === "Absent" ? "bg-red-50 text-red-600" : "bg-yellow-50 text-yellow-700"}`}>{row.status}</span> },
   ];
 
   return (
@@ -143,39 +137,76 @@ export default function AttendanceManagement() {
 
       <div className="flex gap-4 mb-4">
         {(["schedules", "shifts", "logs"] as const).map(tab => (
-          <button key={tab} onClick={() => { setActiveTab(tab); setPage(1); }} className={`px-4 py-2 rounded text-sm ${activeTab === tab ? "bg-primary-500 text-white" : "bg-gray-200"}`}>
+          <button key={tab} onClick={() => { setActiveTab(tab); dg.setPage(1); }} className={`px-4 py-2 rounded text-sm ${activeTab === tab ? "bg-primary-500 text-white" : "bg-gray-200"}`}>
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
           </button>
         ))}
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        {activeTab === "schedules" && (
-          <>
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <ExportMenu baseUrl="attendance/work-schedules" />
-            </div>
-            <DataTable columns={scheduleCols} data={schedules} loading={schedulesLoading} />
-          </>
-        )}
-        {activeTab === "shifts" && (
-          <>
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <ExportMenu baseUrl="attendance/shifts" />
-            </div>
-            <DataTable columns={shiftCols} data={shifts} loading={shiftsLoading} />
-          </>
-        )}
-        {activeTab === "logs" && (
-          <>
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <ExportMenu baseUrl="attendance/logs" />
-            </div>
-            <DataTable columns={logCols} data={logs} loading={logsLoading} onEdit={editLog} />
-          </>
-        )}
-        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-      </div>
+      {activeTab === "schedules" && (
+        <DataGrid
+          columns={scheduleCols}
+          data={schedules}
+          loading={schedulesLoading}
+          sortBy={dg.sortBy}
+          sortDescending={dg.sortDescending}
+          onSort={dg.handleSort}
+          search={dg.search}
+          onSearch={dg.setSearch}
+          searchPlaceholder="Search schedules..."
+          page={dg.page}
+          totalPages={schedulesData?.data?.data?.totalPages ?? 1}
+          onPageChange={dg.setPage}
+          pageSize={dg.pageSize}
+          onPageSizeChange={dg.setPageSize}
+          totalCount={schedulesData?.data?.data?.totalCount ?? 0}
+          emptyMessage="No schedules found"
+          actions={<ExportMenu baseUrl="attendance/work-schedules" filters={{ search: dg.search || undefined }} />}
+        />
+      )}
+      {activeTab === "shifts" && (
+        <DataGrid
+          columns={shiftCols}
+          data={shifts}
+          loading={shiftsLoading}
+          sortBy={dg.sortBy}
+          sortDescending={dg.sortDescending}
+          onSort={dg.handleSort}
+          search={dg.search}
+          onSearch={dg.setSearch}
+          searchPlaceholder="Search shifts..."
+          page={dg.page}
+          totalPages={shiftsData?.data?.data?.totalPages ?? 1}
+          onPageChange={dg.setPage}
+          pageSize={dg.pageSize}
+          onPageSizeChange={dg.setPageSize}
+          totalCount={shiftsData?.data?.data?.totalCount ?? 0}
+          emptyMessage="No shifts found"
+          actions={<ExportMenu baseUrl="attendance/shifts" filters={{ search: dg.search || undefined }} />}
+        />
+      )}
+      {activeTab === "logs" && (
+        <DataGrid
+          columns={logCols}
+          data={logs}
+          loading={logsLoading}
+          sortBy={dg.sortBy}
+          sortDescending={dg.sortDescending}
+          onSort={dg.handleSort}
+          search={dg.search}
+          onSearch={dg.setSearch}
+          searchPlaceholder="Search logs..."
+          page={dg.page}
+          totalPages={logsData?.data?.data?.totalPages ?? 1}
+          onPageChange={dg.setPage}
+          pageSize={dg.pageSize}
+          onPageSizeChange={dg.setPageSize}
+          totalCount={logsData?.data?.data?.totalCount ?? 0}
+          onEdit={editLog}
+          emptyMessage="No attendance logs found"
+          actions={<ExportMenu baseUrl="attendance/logs" filters={{ search: dg.search || undefined }} />}
+        />
+      )}
 
       <Modal title={modalType === "schedule" ? "Add Schedule" : modalType === "shift" ? "Add Shift" : editingLog ? "Edit Log" : "Add Log"} open={modal} onClose={() => setModal(false)}>
         {modalType === "schedule" && (

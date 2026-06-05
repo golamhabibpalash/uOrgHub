@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
-import DataTable from "../../components/shared/DataTable";
-import Pagination from "../../components/shared/Pagination";
+import DataGrid from "../../components/shared/DataGrid";
+import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
 import {
@@ -25,7 +25,7 @@ import {
 export default function Recruitment() {
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<"postings" | "candidates" | "applications" | "interviews">("postings");
-  const [page, setPage] = useState(1);
+  const dg = useDataGrid({ defaultSortBy: "title" });
   const [modal, setModal] = useState(false);
 
   const [postingForm, setPostingForm] = useState({ title: "", departmentId: "", designationId: "", description: "", requirements: "", location: "", status: "Published", closingDate: "" });
@@ -33,10 +33,10 @@ export default function Recruitment() {
   const [appForm, setAppForm] = useState({ candidateId: "", jobPostingId: "" });
   const [interviewForm, setInterviewForm] = useState({ applicationId: "", scheduledAt: "", location: "" });
 
-  const { data: postingsData, isLoading: postingsLoading } = useQuery({ queryKey: ["job-postings", page], queryFn: () => getJobPostings({ page, pageSize: 10 }) });
-  const { data: candidatesData, isLoading: candidatesLoading } = useQuery({ queryKey: ["candidates", page], queryFn: () => getCandidates({ page, pageSize: 10 }) });
-  const { data: appsData, isLoading: appsLoading } = useQuery({ queryKey: ["applications", page], queryFn: () => getApplications({ page, pageSize: 10 }) });
-  const { data: interviewsData, isLoading: interviewsLoading } = useQuery({ queryKey: ["interviews", page], queryFn: () => getInterviews({ page, pageSize: 10 }) });
+  const { data: postingsData, isLoading: postingsLoading } = useQuery({ queryKey: ["job-postings", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getJobPostings(dg.queryParams) });
+  const { data: candidatesData, isLoading: candidatesLoading } = useQuery({ queryKey: ["candidates", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getCandidates(dg.queryParams) });
+  const { data: appsData, isLoading: appsLoading } = useQuery({ queryKey: ["applications", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getApplications(dg.queryParams) });
+  const { data: interviewsData, isLoading: interviewsLoading } = useQuery({ queryKey: ["interviews", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getInterviews(dg.queryParams) });
   const { data: deptData } = useQuery({ queryKey: ["departments-all"], queryFn: () => getDepartments({ page: 1, pageSize: 100 }) });
   const { data: desigData } = useQuery({ queryKey: ["designations-all"], queryFn: () => getDesignations({ page: 1, pageSize: 100 }) });
 
@@ -46,11 +46,6 @@ export default function Recruitment() {
   const interviews = interviewsData?.data?.data?.items ?? [];
   const departments = deptData?.data?.data?.items ?? [];
   const designations = desigData?.data?.data?.items ?? [];
-
-  const totalPages = activeTab === "postings" ? postingsData?.data?.data?.totalPages ?? 1
-    : activeTab === "candidates" ? candidatesData?.data?.data?.totalPages ?? 1
-    : activeTab === "applications" ? appsData?.data?.data?.totalPages ?? 1
-    : interviewsData?.data?.data?.totalPages ?? 1;
 
   const postingMutation = useMutation({ mutationFn: () => createJobPosting(postingForm), onSuccess: () => { qc.invalidateQueries({ queryKey: ["job-postings"] }); setModal(false); } });
   const candidateMutation = useMutation({ mutationFn: () => createCandidate(candidateForm), onSuccess: () => { qc.invalidateQueries({ queryKey: ["candidates"] }); setModal(false); } });
@@ -66,10 +61,10 @@ export default function Recruitment() {
     if (tab === "interviews") setInterviewForm({ applicationId: "", scheduledAt: "", location: "" });
   }
 
-  const postingCols = [{ key: "jobCode", label: "Code" }, { key: "title", label: "Job Title" }, { key: "departmentName", label: "Department" }, { key: "location", label: "Location" }, { key: "postedDate", label: "Posted", render: (r: JobPosting) => new Date(r.postedDate).toLocaleDateString() }, { key: "status", label: "Status", render: (r: JobPosting) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.status === "Open" ? "bg-green-50 text-green-700" : r.status === "Closed" ? "bg-red-50 text-red-600" : "bg-gray-50 text-gray-600"}`}>{r.status}</span> }];
-  const candidateCols = [{ key: "firstName", label: "Name", render: (r: Candidate) => `${r.firstName} ${r.lastName}` }, { key: "email", label: "Email" }, { key: "phone", label: "Phone" }, { key: "source", label: "Source" }, { key: "status", label: "Status", render: (r: Candidate) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.status === "Active" ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-600"}`}>{r.status}</span> }];
-  const appCols = [{ key: "candidateName", label: "Candidate" }, { key: "jobTitle", label: "Position" }, { key: "appliedAt", label: "Applied", render: (r: JobApplication) => new Date(r.appliedAt).toLocaleDateString() }, { key: "status", label: "Status", render: (r: JobApplication) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.status === "Shortlisted" ? "bg-green-50 text-green-700" : r.status === "Rejected" ? "bg-red-50 text-red-600" : "bg-yellow-50 text-yellow-700"}`}>{r.status}</span> }];
-  const interviewCols = [{ key: "candidateName", label: "Candidate" }, { key: "jobTitle", label: "Position" }, { key: "scheduledAt", label: "Date/Time", render: (r: InterviewSchedule) => new Date(r.scheduledAt).toLocaleString() }, { key: "location", label: "Location" }, { key: "status", label: "Status", render: (r: InterviewSchedule) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.status === "Completed" ? "bg-green-50 text-green-700" : r.status === "Cancelled" ? "bg-red-50 text-red-600" : "bg-blue-50 text-blue-700"}`}>{r.status}</span> }];
+  const postingCols = [{ key: "jobCode", label: "Code" }, { key: "title", label: "Job Title" }, { key: "departmentName", label: "Department" }, { key: "location", label: "Location" }, { key: "postedDate", label: "Posted", sortable: false, render: (r: JobPosting) => new Date(r.postedDate).toLocaleDateString() }, { key: "status", label: "Status", sortable: false, render: (r: JobPosting) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.status === "Open" ? "bg-green-50 text-green-700" : r.status === "Closed" ? "bg-red-50 text-red-600" : "bg-gray-50 text-gray-600"}`}>{r.status}</span> }];
+  const candidateCols = [{ key: "firstName", label: "Name", sortable: false, render: (r: Candidate) => `${r.firstName} ${r.lastName}` }, { key: "email", label: "Email" }, { key: "phone", label: "Phone" }, { key: "source", label: "Source" }, { key: "status", label: "Status", sortable: false, render: (r: Candidate) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.status === "Active" ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-600"}`}>{r.status}</span> }];
+  const appCols = [{ key: "candidateName", label: "Candidate" }, { key: "jobTitle", label: "Position" }, { key: "appliedAt", label: "Applied", sortable: false, render: (r: JobApplication) => new Date(r.appliedAt).toLocaleDateString() }, { key: "status", label: "Status", sortable: false, render: (r: JobApplication) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.status === "Shortlisted" ? "bg-green-50 text-green-700" : r.status === "Rejected" ? "bg-red-50 text-red-600" : "bg-yellow-50 text-yellow-700"}`}>{r.status}</span> }];
+  const interviewCols = [{ key: "candidateName", label: "Candidate" }, { key: "jobTitle", label: "Position" }, { key: "scheduledAt", label: "Date/Time", sortable: false, render: (r: InterviewSchedule) => new Date(r.scheduledAt).toLocaleString() }, { key: "location", label: "Location" }, { key: "status", label: "Status", sortable: false, render: (r: InterviewSchedule) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.status === "Completed" ? "bg-green-50 text-green-700" : r.status === "Cancelled" ? "bg-red-50 text-red-600" : "bg-blue-50 text-blue-700"}`}>{r.status}</span> }];
 
   const tabs = ["postings", "candidates", "applications", "interviews"] as const;
 
@@ -81,44 +76,93 @@ export default function Recruitment() {
       </div>
 
       <div className="flex gap-4 mb-4">
-        {tabs.map(tab => <button key={tab} onClick={() => { setActiveTab(tab); setPage(1); }} className={`px-4 py-2 rounded text-sm ${activeTab === tab ? "bg-primary-500 text-white" : "bg-gray-200"}`}>{tab.charAt(0).toUpperCase() + tab.slice(1)}</button>)}
+        {tabs.map(tab => <button key={tab} onClick={() => { setActiveTab(tab); dg.setPage(1); }} className={`px-4 py-2 rounded text-sm ${activeTab === tab ? "bg-primary-500 text-white" : "bg-gray-200"}`}>{tab.charAt(0).toUpperCase() + tab.slice(1)}</button>)}
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        {activeTab === "postings" && (
-          <>
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <ExportMenu baseUrl="recruitment/job-postings" />
-            </div>
-            <DataTable columns={postingCols} data={postings} loading={postingsLoading} />
-          </>
-        )}
-        {activeTab === "candidates" && (
-          <>
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <ExportMenu baseUrl="recruitment/candidates" />
-            </div>
-            <DataTable columns={candidateCols} data={candidates} loading={candidatesLoading} />
-          </>
-        )}
-        {activeTab === "applications" && (
-          <>
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <ExportMenu baseUrl="recruitment/applications" />
-            </div>
-            <DataTable columns={appCols} data={applications} loading={appsLoading} />
-          </>
-        )}
-        {activeTab === "interviews" && (
-          <>
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <ExportMenu baseUrl="recruitment/interviews" />
-            </div>
-            <DataTable columns={interviewCols} data={interviews} loading={interviewsLoading} />
-          </>
-        )}
-        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-      </div>
+      {activeTab === "postings" && (
+        <DataGrid
+          columns={postingCols}
+          data={postings}
+          loading={postingsLoading}
+          sortBy={dg.sortBy}
+          sortDescending={dg.sortDescending}
+          onSort={dg.handleSort}
+          search={dg.search}
+          onSearch={dg.setSearch}
+          searchPlaceholder="Search job postings..."
+          page={dg.page}
+          totalPages={postingsData?.data?.data?.totalPages ?? 1}
+          onPageChange={dg.setPage}
+          pageSize={dg.pageSize}
+          onPageSizeChange={dg.setPageSize}
+          totalCount={postingsData?.data?.data?.totalCount ?? 0}
+          emptyMessage="No job postings found"
+          actions={<ExportMenu baseUrl="recruitment/job-postings" filters={{ search: dg.search || undefined }} />}
+        />
+      )}
+      {activeTab === "candidates" && (
+        <DataGrid
+          columns={candidateCols}
+          data={candidates}
+          loading={candidatesLoading}
+          sortBy={dg.sortBy}
+          sortDescending={dg.sortDescending}
+          onSort={dg.handleSort}
+          search={dg.search}
+          onSearch={dg.setSearch}
+          searchPlaceholder="Search candidates..."
+          page={dg.page}
+          totalPages={candidatesData?.data?.data?.totalPages ?? 1}
+          onPageChange={dg.setPage}
+          pageSize={dg.pageSize}
+          onPageSizeChange={dg.setPageSize}
+          totalCount={candidatesData?.data?.data?.totalCount ?? 0}
+          emptyMessage="No candidates found"
+          actions={<ExportMenu baseUrl="recruitment/candidates" filters={{ search: dg.search || undefined }} />}
+        />
+      )}
+      {activeTab === "applications" && (
+        <DataGrid
+          columns={appCols}
+          data={applications}
+          loading={appsLoading}
+          sortBy={dg.sortBy}
+          sortDescending={dg.sortDescending}
+          onSort={dg.handleSort}
+          search={dg.search}
+          onSearch={dg.setSearch}
+          searchPlaceholder="Search applications..."
+          page={dg.page}
+          totalPages={appsData?.data?.data?.totalPages ?? 1}
+          onPageChange={dg.setPage}
+          pageSize={dg.pageSize}
+          onPageSizeChange={dg.setPageSize}
+          totalCount={appsData?.data?.data?.totalCount ?? 0}
+          emptyMessage="No applications found"
+          actions={<ExportMenu baseUrl="recruitment/applications" filters={{ search: dg.search || undefined }} />}
+        />
+      )}
+      {activeTab === "interviews" && (
+        <DataGrid
+          columns={interviewCols}
+          data={interviews}
+          loading={interviewsLoading}
+          sortBy={dg.sortBy}
+          sortDescending={dg.sortDescending}
+          onSort={dg.handleSort}
+          search={dg.search}
+          onSearch={dg.setSearch}
+          searchPlaceholder="Search interviews..."
+          page={dg.page}
+          totalPages={interviewsData?.data?.data?.totalPages ?? 1}
+          onPageChange={dg.setPage}
+          pageSize={dg.pageSize}
+          onPageSizeChange={dg.setPageSize}
+          totalCount={interviewsData?.data?.data?.totalCount ?? 0}
+          emptyMessage="No interviews found"
+          actions={<ExportMenu baseUrl="recruitment/interviews" filters={{ search: dg.search || undefined }} />}
+        />
+      )}
 
       <Modal title={activeTab === "postings" ? "Add Job Posting" : activeTab === "candidates" ? "Add Candidate" : activeTab === "applications" ? "Add Application" : "Schedule Interview"} open={modal} onClose={() => setModal(false)}>
         {activeTab === "postings" && (

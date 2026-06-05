@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
+import DataGrid from "../../components/shared/DataGrid";
 import ExportMenu from "../../components/shared/ExportMenu";
-import DataTable from "../../components/shared/DataTable";
-import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
+import { useDataGrid } from "../../hooks/useDataGrid";
 import {
   getInventoryTypes,
   createInventoryType,
@@ -15,19 +15,19 @@ import {
 
 export default function InventoryTypes() {
   const qc = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const dg = useDataGrid({ defaultSortBy: "name" });
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<InventoryType | null>(null);
   const [form, setForm] = useState({ name: "", code: "", description: "", isActive: true });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["inventory-types", page, search],
-    queryFn: () => getInventoryTypes({ page, pageSize: 10, search }),
+    queryKey: ["inventory-types", dg.page, dg.search, dg.sortBy, dg.sortDescending],
+    queryFn: () => getInventoryTypes(dg.queryParams),
   });
 
   const types = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
+  const totalCount = data?.data?.data?.totalCount ?? 0;
 
   const saveMutation = useMutation({
     mutationFn: () => editing ? updateInventoryType(editing.id, form) : createInventoryType(form),
@@ -58,7 +58,7 @@ export default function InventoryTypes() {
     { key: "name", label: "Type Name" },
     { key: "description", label: "Description" },
     {
-      key: "isActive", label: "Status",
+      key: "isActive", label: "Status", sortable: false,
       render: (row: InventoryType) => (
         <span className={`text-xs px-2 py-0.5 rounded-full ${row.isActive ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
           {row.isActive ? "Active" : "Inactive"}
@@ -79,18 +79,27 @@ export default function InventoryTypes() {
         </button>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-          <input
-            type="text" placeholder="Search types..." value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 w-64 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          />
-          <div className="ml-auto"><ExportMenu baseUrl="/inventorytypes" filters={{ search: search || undefined }} /></div>
-        </div>
-        <DataTable columns={columns} data={types} loading={isLoading} onEdit={openEdit} onDelete={(row) => deleteMutation.mutate(row.id)} />
-        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-      </div>
+      <DataGrid
+        columns={columns}
+        data={types}
+        loading={isLoading}
+        sortBy={dg.sortBy}
+        sortDescending={dg.sortDescending}
+        onSort={dg.handleSort}
+        search={dg.search}
+        onSearch={dg.setSearch}
+        searchPlaceholder="Search types..."
+        page={dg.page}
+        totalPages={totalPages}
+        onPageChange={dg.setPage}
+        pageSize={dg.pageSize}
+        onPageSizeChange={dg.setPageSize}
+        totalCount={totalCount}
+        onEdit={openEdit}
+        onDelete={(row) => deleteMutation.mutate(row.id)}
+        emptyMessage="No inventory types found"
+        actions={<ExportMenu baseUrl="/inventorytypes" filters={{ search: dg.search || undefined }} />}
+      />
 
       <Modal title={editing ? "Edit Inventory Type" : "Add Inventory Type"} open={modal} onClose={closeModal}>
         <div className="space-y-3">

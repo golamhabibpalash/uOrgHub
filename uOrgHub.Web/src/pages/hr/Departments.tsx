@@ -183,33 +183,27 @@ export default function Departments() {
         </button>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-          <input
-            type="text"
-            placeholder="Search departments..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 w-64 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          />
-          <ExportMenu baseUrl="departments" />
-        </div>
-        <DataTable
-          columns={columns}
-          data={departments}
-          loading={isLoading}
-          onEdit={openEdit}
-          onDelete={handleDeleteClick}
-        />
-        <Pagination
-          page={page}
-          totalPages={totalPages}
-          onPageChange={setPage}
-        />
-      </div>
+      <DataGrid
+        columns={columns}
+        data={departments}
+        loading={isLoading}
+        sortBy={dg.sortBy}
+        sortDescending={dg.sortDescending}
+        onSort={dg.handleSort}
+        search={dg.search}
+        onSearch={dg.setSearch}
+        searchPlaceholder="Search departments..."
+        page={dg.page}
+        totalPages={totalPages}
+        onPageChange={dg.setPage}
+        pageSize={dg.pageSize}
+        onPageSizeChange={dg.setPageSize}
+        totalCount={totalCount}
+        onEdit={openEdit}
+        onDelete={handleDeleteClick}
+        emptyMessage="No departments found"
+        actions={<ExportMenu baseUrl="departments" filters={{ search: dg.search || undefined }} />}
+      />
 
       <Modal
         title={editing ? "Edit Department" : "Add Department"}

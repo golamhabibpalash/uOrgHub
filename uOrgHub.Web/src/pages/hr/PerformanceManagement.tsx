@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
-import DataTable from "../../components/shared/DataTable";
-import Pagination from "../../components/shared/Pagination";
+import DataGrid from "../../components/shared/DataGrid";
+import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
 import {
@@ -27,7 +27,7 @@ import {
 export default function PerformanceManagement() {
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<"cycles" | "goals" | "reviews" | "training">("cycles");
-  const [page, setPage] = useState(1);
+  const dg = useDataGrid({ defaultSortBy: "name" });
   const [modal, setModal] = useState(false);
   const [trainingMode, setTrainingMode] = useState<"add" | "enroll">("add");
 
@@ -37,11 +37,11 @@ export default function PerformanceManagement() {
   const [trainingForm, setTrainingForm] = useState({ employeeId: "", trainingProgramId: "" });
   const [programForm, setProgramForm] = useState({ title: "", description: "", provider: "", startDate: "", endDate: "", maxParticipants: 0 });
 
-  const { data: cyclesData, isLoading: cyclesLoading } = useQuery({ queryKey: ["review-cycles", page], queryFn: () => getReviewCycles({ page, pageSize: 10 }) });
-  const { data: goalsData, isLoading: goalsLoading } = useQuery({ queryKey: ["goals", page], queryFn: () => getGoals({ page, pageSize: 10 }) });
-  const { data: reviewsData, isLoading: reviewsLoading } = useQuery({ queryKey: ["performance-reviews", page], queryFn: () => getPerformanceReviews({ page, pageSize: 10 }) });
-  const { data: programsData, isLoading: programsLoading } = useQuery({ queryKey: ["training-programs", page], queryFn: () => getTrainingPrograms({ page, pageSize: 10 }) });
-  const { data: empTrainingsData, isLoading: empTrainingsLoading } = useQuery({ queryKey: ["employee-trainings", page], queryFn: () => getEmployeeTrainings({ page, pageSize: 10 }) });
+  const { data: cyclesData, isLoading: cyclesLoading } = useQuery({ queryKey: ["review-cycles", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getReviewCycles(dg.queryParams) });
+  const { data: goalsData, isLoading: goalsLoading } = useQuery({ queryKey: ["goals", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getGoals(dg.queryParams) });
+  const { data: reviewsData, isLoading: reviewsLoading } = useQuery({ queryKey: ["performance-reviews", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getPerformanceReviews(dg.queryParams) });
+  const { data: programsData, isLoading: programsLoading } = useQuery({ queryKey: ["training-programs", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getTrainingPrograms(dg.queryParams) });
+  const { data: empTrainingsData, isLoading: empTrainingsLoading } = useQuery({ queryKey: ["employee-trainings", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getEmployeeTrainings(dg.queryParams) });
   const { data: empData } = useQuery({ queryKey: ["employees-all"], queryFn: () => getEmployees({ page: 1, pageSize: 100 }) });
 
   const cycles = cyclesData?.data?.data?.items ?? [];
@@ -50,12 +50,6 @@ export default function PerformanceManagement() {
   const programs = programsData?.data?.data?.items ?? [];
   const empTrainings = empTrainingsData?.data?.data?.items ?? [];
   const employees = empData?.data?.data?.items ?? [];
-
-  const totalPages = activeTab === "cycles" ? cyclesData?.data?.data?.totalPages ?? 1
-    : activeTab === "goals" ? goalsData?.data?.data?.totalPages ?? 1
-    : activeTab === "reviews" ? reviewsData?.data?.data?.totalPages ?? 1
-    : activeTab === "training" ? programsData?.data?.data?.totalPages ?? 1
-    : 1;
 
   const cycleMutation = useMutation({ mutationFn: () => createReviewCycle(cycleForm), onSuccess: () => { qc.invalidateQueries({ queryKey: ["review-cycles"] }); setModal(false); } });
   const goalMutation = useMutation({ mutationFn: () => createGoal(goalForm), onSuccess: () => { qc.invalidateQueries({ queryKey: ["goals"] }); setModal(false); } });
@@ -85,10 +79,10 @@ export default function PerformanceManagement() {
     }
   }
 
-  const cycleCols = [{ key: "name", label: "Cycle Name" }, { key: "startDate", label: "Start", render: (r: ReviewCycle) => new Date(r.startDate).toLocaleDateString() }, { key: "endDate", label: "End", render: (r: ReviewCycle) => new Date(r.endDate).toLocaleDateString() }, { key: "status", label: "Status", render: (r: ReviewCycle) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.status === "Active" ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-600"}`}>{r.status}</span> }];
-  const goalCols = [{ key: "employeeName", label: "Employee" }, { key: "title", label: "Goal" }, { key: "description", label: "Description" }, { key: "targetDate", label: "Target", render: (r: Goal) => new Date(r.targetDate).toLocaleDateString() }, { key: "progress", label: "Progress", render: (r: Goal) => <div className="w-20 bg-gray-200 rounded-full h-2"><div className="bg-primary-500 h-2 rounded-full" style={{ width: `${r.progress}%` }} /></div> }, { key: "status", label: "Status", render: (r: Goal) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.status === "Completed" ? "bg-green-50 text-green-700" : r.status === "InProgress" ? "bg-blue-50 text-blue-700" : "bg-yellow-50 text-yellow-700"}`}>{r.status}</span> }];
-  const reviewCols = [{ key: "employeeName", label: "Employee" }, { key: "reviewerName", label: "Reviewer" }, { key: "reviewCycleName", label: "Cycle" }, { key: "rating", label: "Rating", render: (r: PerformanceReview) => `${r.rating}/5` }, { key: "status", label: "Status", render: (r: PerformanceReview) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.status === "Submitted" ? "bg-green-50 text-green-700" : "bg-yellow-50 text-yellow-700"}`}>{r.status}</span> }];
-  const programCols = [{ key: "title", label: "Program Name" }, { key: "provider", label: "Trainer" }, { key: "startDate", label: "Start", render: (r: TrainingProgram) => new Date(r.startDate).toLocaleDateString() }, { key: "endDate", label: "End", render: (r: TrainingProgram) => new Date(r.endDate).toLocaleDateString() }, { key: "maxParticipants", label: "Max Participants" }, { key: "isActive", label: "Status", render: (r: TrainingProgram) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.isActive ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>{r.isActive ? "Active" : "Inactive"}</span> }];
+  const cycleCols = [{ key: "name", label: "Cycle Name" }, { key: "startDate", label: "Start", sortable: false, render: (r: ReviewCycle) => new Date(r.startDate).toLocaleDateString() }, { key: "endDate", label: "End", sortable: false, render: (r: ReviewCycle) => new Date(r.endDate).toLocaleDateString() }, { key: "status", label: "Status", sortable: false, render: (r: ReviewCycle) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.status === "Active" ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-600"}`}>{r.status}</span> }];
+  const goalCols = [{ key: "employeeName", label: "Employee" }, { key: "title", label: "Goal" }, { key: "description", label: "Description" }, { key: "targetDate", label: "Target", sortable: false, render: (r: Goal) => new Date(r.targetDate).toLocaleDateString() }, { key: "progress", label: "Progress", sortable: false, render: (r: Goal) => <div className="w-20 bg-gray-200 rounded-full h-2"><div className="bg-primary-500 h-2 rounded-full" style={{ width: `${r.progress}%` }} /></div> }, { key: "status", label: "Status", sortable: false, render: (r: Goal) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.status === "Completed" ? "bg-green-50 text-green-700" : r.status === "InProgress" ? "bg-blue-50 text-blue-700" : "bg-yellow-50 text-yellow-700"}`}>{r.status}</span> }];
+  const reviewCols = [{ key: "employeeName", label: "Employee" }, { key: "reviewerName", label: "Reviewer" }, { key: "reviewCycleName", label: "Cycle" }, { key: "rating", label: "Rating", sortable: false, render: (r: PerformanceReview) => `${r.rating}/5` }, { key: "status", label: "Status", sortable: false, render: (r: PerformanceReview) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.status === "Submitted" ? "bg-green-50 text-green-700" : "bg-yellow-50 text-yellow-700"}`}>{r.status}</span> }];
+  const programCols = [{ key: "title", label: "Program Name" }, { key: "provider", label: "Trainer" }, { key: "startDate", label: "Start", sortable: false, render: (r: TrainingProgram) => new Date(r.startDate).toLocaleDateString() }, { key: "endDate", label: "End", sortable: false, render: (r: TrainingProgram) => new Date(r.endDate).toLocaleDateString() }, { key: "maxParticipants", label: "Max Participants" }, { key: "isActive", label: "Status", sortable: false, render: (r: TrainingProgram) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.isActive ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>{r.isActive ? "Active" : "Inactive"}</span> }];
 
   const tabs = ["cycles", "goals", "reviews", "training"] as const;
 
@@ -100,62 +94,129 @@ export default function PerformanceManagement() {
       </div>
 
       <div className="flex gap-4 mb-4">
-        {tabs.map(tab => <button key={tab} onClick={() => { setActiveTab(tab); setPage(1); }} className={`px-4 py-2 rounded text-sm ${activeTab === tab ? "bg-primary-500 text-white" : "bg-gray-200"}`}>{tab === "cycles" ? "Review Cycles" : tab === "goals" ? "Goals" : tab === "reviews" ? "Reviews" : "Training"}</button>)}
+        {tabs.map(tab => <button key={tab} onClick={() => { setActiveTab(tab); dg.setPage(1); }} className={`px-4 py-2 rounded text-sm ${activeTab === tab ? "bg-primary-500 text-white" : "bg-gray-200"}`}>{tab === "cycles" ? "Review Cycles" : tab === "goals" ? "Goals" : tab === "reviews" ? "Reviews" : "Training"}</button>)}
       </div>
 
-      {activeTab !== "training" && (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-          {activeTab === "cycles" && (
-            <>
-              <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                <ExportMenu baseUrl="performance/review-cycles" />
-              </div>
-              <DataTable columns={cycleCols} data={cycles} loading={cyclesLoading} />
-            </>
-          )}
-          {activeTab === "goals" && (
-            <>
-              <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                <ExportMenu baseUrl="performance/goals" />
-              </div>
-              <DataTable columns={goalCols} data={goals} loading={goalsLoading} />
-            </>
-          )}
-          {activeTab === "reviews" && (
-            <>
-              <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                <ExportMenu baseUrl="performance/reviews" />
-              </div>
-              <DataTable columns={reviewCols} data={reviews} loading={reviewsLoading} />
-            </>
-          )}
-          <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-        </div>
+      {activeTab === "cycles" && (
+        <DataGrid
+          columns={cycleCols}
+          data={cycles}
+          loading={cyclesLoading}
+          sortBy={dg.sortBy}
+          sortDescending={dg.sortDescending}
+          onSort={dg.handleSort}
+          search={dg.search}
+          onSearch={dg.setSearch}
+          searchPlaceholder="Search cycles..."
+          page={dg.page}
+          totalPages={cyclesData?.data?.data?.totalPages ?? 1}
+          onPageChange={dg.setPage}
+          pageSize={dg.pageSize}
+          onPageSizeChange={dg.setPageSize}
+          totalCount={cyclesData?.data?.data?.totalCount ?? 0}
+          emptyMessage="No review cycles found"
+          actions={<ExportMenu baseUrl="performance/review-cycles" filters={{ search: dg.search || undefined }} />}
+        />
       )}
-
+      {activeTab === "goals" && (
+        <DataGrid
+          columns={goalCols}
+          data={goals}
+          loading={goalsLoading}
+          sortBy={dg.sortBy}
+          sortDescending={dg.sortDescending}
+          onSort={dg.handleSort}
+          search={dg.search}
+          onSearch={dg.setSearch}
+          searchPlaceholder="Search goals..."
+          page={dg.page}
+          totalPages={goalsData?.data?.data?.totalPages ?? 1}
+          onPageChange={dg.setPage}
+          pageSize={dg.pageSize}
+          onPageSizeChange={dg.setPageSize}
+          totalCount={goalsData?.data?.data?.totalCount ?? 0}
+          emptyMessage="No goals found"
+          actions={<ExportMenu baseUrl="performance/goals" filters={{ search: dg.search || undefined }} />}
+        />
+      )}
+      {activeTab === "reviews" && (
+        <DataGrid
+          columns={reviewCols}
+          data={reviews}
+          loading={reviewsLoading}
+          sortBy={dg.sortBy}
+          sortDescending={dg.sortDescending}
+          onSort={dg.handleSort}
+          search={dg.search}
+          onSearch={dg.setSearch}
+          searchPlaceholder="Search reviews..."
+          page={dg.page}
+          totalPages={reviewsData?.data?.data?.totalPages ?? 1}
+          onPageChange={dg.setPage}
+          pageSize={dg.pageSize}
+          onPageSizeChange={dg.setPageSize}
+          totalCount={reviewsData?.data?.data?.totalCount ?? 0}
+          emptyMessage="No reviews found"
+          actions={<ExportMenu baseUrl="performance/reviews" filters={{ search: dg.search || undefined }} />}
+        />
+      )}
       {activeTab === "training" && (
         <div className="space-y-4">
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-sm font-medium">Training Programs</h3>
+          <DataGrid
+            columns={programCols}
+            data={programs}
+            loading={programsLoading}
+            sortBy={dg.sortBy}
+            sortDescending={dg.sortDescending}
+            onSort={dg.handleSort}
+            search={dg.search}
+            onSearch={dg.setSearch}
+            searchPlaceholder="Search programs..."
+            page={dg.page}
+            totalPages={programsData?.data?.data?.totalPages ?? 1}
+            onPageChange={dg.setPage}
+            pageSize={dg.pageSize}
+            onPageSizeChange={dg.setPageSize}
+            totalCount={programsData?.data?.data?.totalCount ?? 0}
+            emptyMessage="No training programs found"
+            toolbarPrefix={<h3 className="text-sm font-medium text-gray-700 whitespace-nowrap">Training Programs</h3>}
+            actions={
               <div className="flex items-center gap-2">
-                <ExportMenu baseUrl="performance/training-programs" />
+                <ExportMenu baseUrl="performance/training-programs" filters={{ search: dg.search || undefined }} />
                 <button onClick={() => openModal("training", "add")} className="text-xs bg-primary-500 text-white px-3 py-1 rounded hover:bg-primary-600">Add Program</button>
               </div>
-            </div>
-            <DataTable columns={programCols} data={programs} loading={programsLoading} />
-            <Pagination page={page} totalPages={programsData?.data?.data?.totalPages ?? 1} onPageChange={setPage} />
-          </div>
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-sm font-medium">Employee Enrollments</h3>
+            }
+          />
+          <DataGrid
+            columns={[
+              { key: "employeeName", label: "Employee" },
+              { key: "trainingTitle", label: "Program" },
+              { key: "status", label: "Status", sortable: false, render: (r: EmployeeTraining) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.status === "Completed" ? "bg-green-50 text-green-700" : r.status === "InProgress" ? "bg-blue-50 text-blue-700" : "bg-yellow-50 text-yellow-700"}`}>{r.status}</span> },
+              { key: "completionDate", label: "Completed", sortable: false, render: (r: EmployeeTraining) => r.completionDate ? new Date(r.completionDate).toLocaleDateString() : "-" },
+            ]}
+            data={empTrainings}
+            loading={empTrainingsLoading}
+            sortBy={dg.sortBy}
+            sortDescending={dg.sortDescending}
+            onSort={dg.handleSort}
+            search={dg.search}
+            onSearch={dg.setSearch}
+            searchPlaceholder="Search enrollments..."
+            page={dg.page}
+            totalPages={empTrainingsData?.data?.data?.totalPages ?? 1}
+            onPageChange={dg.setPage}
+            pageSize={dg.pageSize}
+            onPageSizeChange={dg.setPageSize}
+            totalCount={empTrainingsData?.data?.data?.totalCount ?? 0}
+            emptyMessage="No enrollments found"
+            toolbarPrefix={<h3 className="text-sm font-medium text-gray-700 whitespace-nowrap">Employee Enrollments</h3>}
+            actions={
               <div className="flex items-center gap-2">
-                <ExportMenu baseUrl="performance/employee-trainings" />
+                <ExportMenu baseUrl="performance/employee-trainings" filters={{ search: dg.search || undefined }} />
                 <button onClick={() => openModal("training", "enroll")} className="text-xs bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">Enroll Employee</button>
               </div>
-            </div>
-            <DataTable columns={[{ key: "employeeName", label: "Employee" }, { key: "trainingTitle", label: "Program" }, { key: "status", label: "Status", render: (r: EmployeeTraining) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.status === "Completed" ? "bg-green-50 text-green-700" : r.status === "InProgress" ? "bg-blue-50 text-blue-700" : "bg-yellow-50 text-yellow-700"}`}>{r.status}</span> }, { key: "completionDate", label: "Completed", render: (r: EmployeeTraining) => r.completionDate ? new Date(r.completionDate).toLocaleDateString() : "-" }]} data={empTrainings} loading={empTrainingsLoading} />
-          </div>
+            }
+          />
         </div>
       )}
 

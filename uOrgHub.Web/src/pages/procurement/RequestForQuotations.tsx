@@ -1,16 +1,15 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search } from "lucide-react";
-import DataTable from "../../components/shared/DataTable";
-import Pagination from "../../components/shared/Pagination";
+import { Plus } from "lucide-react";
+import DataGrid from "../../components/shared/DataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
+import { useDataGrid } from "../../hooks/useDataGrid";
 import { getRFQs, createRFQ, updateRFQ, deleteRFQ, RequestForQuotation, RFQStatus } from "../../api/procurement";
 
 export default function RequestForQuotations() {
   const qc = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const dg = useDataGrid({ defaultSortBy: "rfqDate" });
   const [filterStatus, setFilterStatus] = useState("");
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<RequestForQuotation | null>(null);
@@ -26,13 +25,14 @@ export default function RequestForQuotations() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["rfqs", page, search, filterStatus],
-    queryFn: () => getRFQs({ page, pageSize: 10, search },
+    queryKey: ["rfqs", dg.page, dg.search, dg.sortBy, dg.sortDescending, filterStatus],
+    queryFn: () => getRFQs(dg.queryParams,
       filterStatus ? filterStatus as RFQStatus : undefined),
   });
 
   const items = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
+  const totalCount = data?.data?.data?.totalCount ?? 0;
 
   const saveMutation = useMutation({
     mutationFn: () => editing
@@ -105,9 +105,9 @@ export default function RequestForQuotations() {
     { key: "closingDate", label: "Closing Date", render: (row: RequestForQuotation) => new Date(row.closingDate).toLocaleDateString() },
     { key: "title", label: "Title" },
     { key: "prNumber", label: "PR Ref", render: (row: RequestForQuotation) => row.prNumber || "—" },
-    { key: "status", label: "Status", render: (row: RequestForQuotation) => <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[row.status]}`}>{row.status}</span> },
+    { key: "status", label: "Status", sortable: false, render: (row: RequestForQuotation) => <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[row.status]}`}>{row.status}</span> },
     {
-      key: "actions", label: "", render: (row: RequestForQuotation) => (
+      key: "actions", label: "", sortable: false, render: (row: RequestForQuotation) => (
         <div className="flex gap-1">
           <button onClick={() => openEdit(row)} className="p-1 text-blue-600 hover:bg-blue-50 rounded">✏️</button>
           {row.status === "Draft" && <button onClick={() => deleteMutation.mutate(row.id)} className="p-1 text-red-600 hover:bg-red-50 rounded">🗑️</button>}
@@ -128,15 +128,25 @@ export default function RequestForQuotations() {
         </button>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 flex gap-3 flex-wrap">
-          <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input type="text" placeholder="Search RFQs..." value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="pl-8 text-sm border border-gray-200 rounded-lg px-3 py-1.5 w-48" />
-          </div>
-          <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
+      <DataGrid
+        columns={columns}
+        data={items}
+        loading={isLoading}
+        sortBy={dg.sortBy}
+        sortDescending={dg.sortDescending}
+        onSort={dg.handleSort}
+        search={dg.search}
+        onSearch={dg.setSearch}
+        searchPlaceholder="Search RFQs..."
+        page={dg.page}
+        totalPages={totalPages}
+        onPageChange={dg.setPage}
+        pageSize={dg.pageSize}
+        onPageSizeChange={dg.setPageSize}
+        totalCount={totalCount}
+        emptyMessage="No RFQs found"
+        toolbarPrefix={
+          <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); dg.setPage(1); }}
             className="text-sm border border-gray-200 rounded-lg px-3 py-1.5">
             <option value="">All Status</option>
             <option value="Draft">Draft</option>
@@ -144,11 +154,9 @@ export default function RequestForQuotations() {
             <option value="Closed">Closed</option>
             <option value="Cancelled">Cancelled</option>
           </select>
-          <div className="ml-auto"><ExportMenu baseUrl="rfqs" filters={{ search: search || undefined, status: filterStatus || undefined }} /></div>
-        </div>
-        <DataTable columns={columns} data={items} loading={isLoading} />
-        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-      </div>
+        }
+        actions={<ExportMenu baseUrl="rfqs" filters={{ search: dg.search || undefined, status: filterStatus || undefined }} />}
+      />
 
       <Modal title={editing ? "Edit RFQ" : "Create RFQ"} open={modal} onClose={closeModal}>
         <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">

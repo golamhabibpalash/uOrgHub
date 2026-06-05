@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Check, X } from "lucide-react";
-import DataTable from "../../components/shared/DataTable";
-import Pagination from "../../components/shared/Pagination";
+import DataGrid from "../../components/shared/DataGrid";
+import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
 import {
@@ -20,7 +20,7 @@ import {
 export default function LeaveManagement() {
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<"types" | "requests">("types");
-  const [page, setPage] = useState(1);
+  const dg = useDataGrid({ defaultSortBy: "name" });
   const [statusFilter, setStatusFilter] = useState("");
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<LeaveType | null>(null);
@@ -52,13 +52,13 @@ export default function LeaveManagement() {
   }, [reqForm.startDate, reqForm.endDate]);
 
   const { data: typesData, isLoading: typesLoading } = useQuery({
-    queryKey: ["leave-types", page],
-    queryFn: () => getLeaveTypes({ page, pageSize: 10 }),
+    queryKey: ["leave-types", dg.page, dg.search, dg.sortBy, dg.sortDescending],
+    queryFn: () => getLeaveTypes(dg.queryParams),
   });
 
   const { data: requestsData, isLoading: requestsLoading } = useQuery({
-    queryKey: ["leave-requests", page, statusFilter],
-    queryFn: () => getLeaveRequests({ page, pageSize: 10 }, undefined, statusFilter || undefined),
+    queryKey: ["leave-requests", dg.page, dg.search, dg.sortBy, dg.sortDescending, statusFilter],
+    queryFn: () => getLeaveRequests(dg.queryParams, undefined, statusFilter || undefined),
   });
 
   const { data: empData } = useQuery({
@@ -68,9 +68,6 @@ export default function LeaveManagement() {
 
   const leaveTypes = typesData?.data?.data?.items ?? [];
   const leaveRequests = requestsData?.data?.data?.items ?? [];
-  const totalPages = activeTab === "types"
-    ? typesData?.data?.data?.totalPages ?? 1
-    : requestsData?.data?.data?.totalPages ?? 1;
   const employees = empData?.data?.data?.items ?? [];
 
   const saveTypeMutation = useMutation({
@@ -105,6 +102,7 @@ export default function LeaveManagement() {
     {
       key: "isPaid",
       label: "Paid",
+      sortable: false,
       render: (row: LeaveType) => (
         <span className={`text-xs px-2 py-0.5 rounded-full ${row.isPaid ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-600"}`}>
           {row.isPaid ? "Yes" : "No"}
@@ -116,12 +114,13 @@ export default function LeaveManagement() {
   const requestColumns = [
     { key: "employeeName", label: "Employee" },
     { key: "leaveTypeName", label: "Leave Type" },
-    { key: "startDate", label: "Start Date", render: (row: LeaveRequest) => new Date(row.startDate).toLocaleDateString() },
-    { key: "endDate", label: "End Date", render: (row: LeaveRequest) => new Date(row.endDate).toLocaleDateString() },
+    { key: "startDate", label: "Start Date", sortable: false, render: (row: LeaveRequest) => new Date(row.startDate).toLocaleDateString() },
+    { key: "endDate", label: "End Date", sortable: false, render: (row: LeaveRequest) => new Date(row.endDate).toLocaleDateString() },
     { key: "totalDays", label: "Days" },
     {
       key: "status",
       label: "Status",
+      sortable: false,
       render: (row: LeaveRequest) => (
         <span className={`text-xs px-2 py-0.5 rounded-full ${
           row.status === "Approved" ? "bg-green-50 text-green-700" :
@@ -135,6 +134,7 @@ export default function LeaveManagement() {
     {
       key: "actions",
       label: "Actions",
+      sortable: false,
       render: (row: LeaveRequest) => row.status === "Pending" ? (
         <div className="flex gap-2">
           <button onClick={() => approveMutation.mutate({ id: row.id, approved: true })} className="text-green-600 hover:text-green-800">
@@ -175,25 +175,63 @@ export default function LeaveManagement() {
 
       <div className="flex gap-4 mb-4">
         <button
-          onClick={() => setActiveTab("types")}
+          onClick={() => { setActiveTab("types"); dg.setPage(1); }}
           className={`px-4 py-2 rounded text-sm ${activeTab === "types" ? "bg-primary-500 text-white" : "bg-gray-200"}`}
         >
           Leave Types
         </button>
         <button
-          onClick={() => setActiveTab("requests")}
+          onClick={() => { setActiveTab("requests"); dg.setPage(1); }}
           className={`px-4 py-2 rounded text-sm ${activeTab === "requests" ? "bg-primary-500 text-white" : "bg-gray-200"}`}
         >
           Leave Requests
         </button>
       </div>
 
+      {activeTab === "types" && (
+        <DataGrid
+          columns={typeColumns}
+          data={leaveTypes}
+          loading={typesLoading}
+          sortBy={dg.sortBy}
+          sortDescending={dg.sortDescending}
+          onSort={dg.handleSort}
+          search={dg.search}
+          onSearch={dg.setSearch}
+          searchPlaceholder="Search leave types..."
+          page={dg.page}
+          totalPages={typesData?.data?.data?.totalPages ?? 1}
+          onPageChange={dg.setPage}
+          pageSize={dg.pageSize}
+          onPageSizeChange={dg.setPageSize}
+          totalCount={typesData?.data?.data?.totalCount ?? 0}
+          onEdit={(row) => { setEditing(row); setForm({ name: row.name, code: row.code, description: row.description, totalDaysPerYear: row.totalDaysPerYear, isPaid: row.isPaid }); setModal(true); }}
+          emptyMessage="No leave types found"
+          actions={<ExportMenu baseUrl="leave/types" filters={{ search: dg.search || undefined }} />}
+        />
+      )}
       {activeTab === "requests" && (
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex gap-3">
+        <DataGrid
+          columns={requestColumns}
+          data={leaveRequests}
+          loading={requestsLoading}
+          sortBy={dg.sortBy}
+          sortDescending={dg.sortDescending}
+          onSort={dg.handleSort}
+          search={dg.search}
+          onSearch={dg.setSearch}
+          searchPlaceholder="Search requests..."
+          page={dg.page}
+          totalPages={requestsData?.data?.data?.totalPages ?? 1}
+          onPageChange={dg.setPage}
+          pageSize={dg.pageSize}
+          onPageSizeChange={dg.setPageSize}
+          totalCount={requestsData?.data?.data?.totalCount ?? 0}
+          emptyMessage="No leave requests found"
+          toolbarPrefix={
             <select
               value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+              onChange={(e) => { setStatusFilter(e.target.value); dg.setPage(1); }}
               className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500"
             >
               <option value="">All Status</option>
@@ -201,27 +239,10 @@ export default function LeaveManagement() {
               <option value="Approved">Approved</option>
               <option value="Rejected">Rejected</option>
             </select>
-          </div>
-          <ExportMenu baseUrl="leave/requests" filters={{ status: statusFilter || undefined }} />
-        </div>
+          }
+          actions={<ExportMenu baseUrl="leave/requests" filters={{ search: dg.search || undefined, status: statusFilter || undefined }} />}
+        />
       )}
-
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        {activeTab === "types" ? (
-          <>
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <ExportMenu baseUrl="leave/types" />
-            </div>
-            <DataTable columns={typeColumns} data={leaveTypes} loading={typesLoading} onEdit={(row) => { setEditing(row); setForm({ name: row.name, code: row.code, description: row.description, totalDaysPerYear: row.totalDaysPerYear, isPaid: row.isPaid }); setModal(true); }} />
-            <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-          </>
-        ) : (
-          <>
-            <DataTable columns={requestColumns} data={leaveRequests} loading={requestsLoading} />
-            <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-          </>
-        )}
-      </div>
 
       <Modal title={editing ? "Edit Leave Type" : "Add Leave Type"} open={modal} onClose={() => setModal(false)}>
         <div className="space-y-3">

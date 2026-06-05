@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
-import DataTable from "../../components/shared/DataTable";
-import Pagination from "../../components/shared/Pagination";
+import DataGrid from "../../components/shared/DataGrid";
+import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
 import {
@@ -15,8 +15,7 @@ import {
 
 export default function CostCenters() {
   const qc = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const dg = useDataGrid({ defaultSortBy: "name" });
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<CostCenter | null>(null);
   const [form, setForm] = useState({
@@ -28,12 +27,13 @@ export default function CostCenters() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["cost-centers", page, search],
-    queryFn: () => getCostCenters({ page, pageSize: 10, search }),
+    queryKey: ["cost-centers", dg.page, dg.search, dg.sortBy, dg.sortDescending],
+    queryFn: () => getCostCenters(dg.queryParams),
   });
 
   const costCenters = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
+  const totalCount = data?.data?.data?.totalCount ?? 0;
   const [saveError, setSaveError] = useState("");
 
   const saveMutation = useMutation({
@@ -83,6 +83,7 @@ export default function CostCenters() {
     {
       key: "isActive",
       label: "Status",
+      sortable: false,
       render: (row: CostCenter) => (
         <span className={`text-xs px-2 py-0.5 rounded-full ${row.isActive ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
           {row.isActive ? "Active" : "Inactive"}
@@ -103,20 +104,27 @@ export default function CostCenters() {
         </button>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-          <input
-            type="text"
-            placeholder="Search cost centers..."
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 w-64 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          />
-          <ExportMenu baseUrl="/accounts/cost-centers" filters={{ search: search || undefined }} />
-        </div>
-        <DataTable columns={columns} data={costCenters} loading={isLoading} onEdit={openEdit} onDelete={(row) => deleteMutation.mutate(row.id)} />
-        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-      </div>
+      <DataGrid
+        columns={columns}
+        data={costCenters}
+        loading={isLoading}
+        sortBy={dg.sortBy}
+        sortDescending={dg.sortDescending}
+        onSort={dg.handleSort}
+        search={dg.search}
+        onSearch={dg.setSearch}
+        searchPlaceholder="Search cost centers..."
+        page={dg.page}
+        totalPages={totalPages}
+        onPageChange={dg.setPage}
+        pageSize={dg.pageSize}
+        onPageSizeChange={dg.setPageSize}
+        totalCount={totalCount}
+        onEdit={openEdit}
+        onDelete={(row) => deleteMutation.mutate(row.id)}
+        emptyMessage="No cost centers found"
+        actions={<ExportMenu baseUrl="/accounts/cost-centers" filters={{ search: dg.search || undefined }} />}
+      />
 
       <Modal title={editing ? "Edit Cost Center" : "Add Cost Center"} open={modal} onClose={closeModal}>
         <div className="space-y-3">

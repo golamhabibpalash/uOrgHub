@@ -3,8 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { Plus, Check, X } from "lucide-react";
 import toast from "react-hot-toast";
-import DataTable from "../../components/shared/DataTable";
-import Pagination from "../../components/shared/Pagination";
+import DataGrid from "../../components/shared/DataGrid";
+import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
 import ConfirmDialog from "../../components/shared/ConfirmDialog";
 import ExportMenu from "../../components/shared/ExportMenu";
@@ -33,7 +33,7 @@ import {
 export default function PayrollManagement() {
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<"grades" | "components" | "cycles" | "expenses">("grades");
-  const [page, setPage] = useState(1);
+  const dg = useDataGrid({ defaultSortBy: "name" });
   const [modal, setModal] = useState(false);
   const [, setEditing] = useState<PayrollCycle | null>(null);
   const [editingGrade, setEditingGrade] = useState<SalaryGrade | null>(null);
@@ -48,10 +48,10 @@ export default function PayrollManagement() {
   const [cycleForm, setCycleForm] = useState({ title: "", startDate: "", endDate: "", paymentDate: "" });
   const [expForm, setExpForm] = useState({ employeeId: "", amount: 0, category: "", description: "" });
 
-  const { data: gradesData, isLoading: gradesLoading } = useQuery({ queryKey: ["salary-grades", page], queryFn: () => getSalaryGrades({ page, pageSize: 10 }) });
-  const { data: compsData, isLoading: compsLoading } = useQuery({ queryKey: ["salary-components", page], queryFn: () => getSalaryComponents({ page, pageSize: 10 }) });
-  const { data: cyclesData, isLoading: cyclesLoading } = useQuery({ queryKey: ["payroll-cycles", page], queryFn: () => getPayrollCycles({ page, pageSize: 10 }) });
-  const { data: expData, isLoading: expLoading } = useQuery({ queryKey: ["expenses", page], queryFn: () => getExpenses({ page, pageSize: 10 }) });
+  const { data: gradesData, isLoading: gradesLoading } = useQuery({ queryKey: ["salary-grades", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getSalaryGrades(dg.queryParams) });
+  const { data: compsData, isLoading: compsLoading } = useQuery({ queryKey: ["salary-components", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getSalaryComponents(dg.queryParams) });
+  const { data: cyclesData, isLoading: cyclesLoading } = useQuery({ queryKey: ["payroll-cycles", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getPayrollCycles(dg.queryParams) });
+  const { data: expData, isLoading: expLoading } = useQuery({ queryKey: ["expenses", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getExpenses(dg.queryParams) });
   const { data: empData } = useQuery({ queryKey: ["employees-all"], queryFn: () => getEmployees({ page: 1, pageSize: 100 }) });
 
   const grades = gradesData?.data?.data?.items ?? [];
@@ -59,11 +59,6 @@ export default function PayrollManagement() {
   const cycles = cyclesData?.data?.data?.items ?? [];
   const expenses = expData?.data?.data?.items ?? [];
   const employees = empData?.data?.data?.items ?? [];
-
-  const totalPages = activeTab === "grades" ? gradesData?.data?.data?.totalPages ?? 1
-    : activeTab === "components" ? compsData?.data?.data?.totalPages ?? 1
-    : activeTab === "cycles" ? cyclesData?.data?.data?.totalPages ?? 1
-    : expData?.data?.data?.totalPages ?? 1;
 
   function extractApiError(err: unknown): string {
     const axiosErr = err as AxiosError<{ message?: string; errors?: string[] | Record<string, string[]> }>;
@@ -157,10 +152,10 @@ export default function PayrollManagement() {
     setModal(true);
   }
 
-  const gradeCols = [{ key: "gradeCode", label: "Code" }, { key: "name", label: "Grade Name" }, { key: "minSalary", label: "Min Salary" }, { key: "maxSalary", label: "Max Salary" }, { key: "isActive", label: "Status", render: (r: SalaryGrade) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.isActive ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-600"}`}>{r.isActive ? "Active" : "Inactive"}</span> }];
-  const compCols = [{ key: "code", label: "Code" }, { key: "name", label: "Component Name" }, { key: "componentType", label: "Type" }, { key: "isTaxable", label: "Taxable", render: (r: SalaryComponent) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.isTaxable ? "bg-yellow-50 text-yellow-700" : "bg-gray-50 text-gray-600"}`}>{r.isTaxable ? "Yes" : "No"}</span> }];
-  const cycleCols = [{ key: "title", label: "Cycle Name" }, { key: "startDate", label: "Start", render: (r: PayrollCycle) => new Date(r.startDate).toLocaleDateString() }, { key: "endDate", label: "End", render: (r: PayrollCycle) => new Date(r.endDate).toLocaleDateString() }, { key: "paymentDate", label: "Payment Date", render: (r: PayrollCycle) => r.paymentDate ? new Date(r.paymentDate).toLocaleDateString() : "-" }, { key: "status", label: "Status", render: (r: PayrollCycle) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.status === "Active" ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-600"}`}>{r.status}</span> }];
-  const expCols = [{ key: "employeeName", label: "Employee" }, { key: "amount", label: "Amount" }, { key: "category", label: "Category" }, { key: "description", label: "Description" }, { key: "status", label: "Status", render: (r: ExpenseRequest) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.status === "Approved" ? "bg-green-50 text-green-700" : r.status === "Pending" ? "bg-yellow-50 text-yellow-700" : "bg-red-50 text-red-600"}`}>{r.status}</span> }, { key: "actions", label: "Actions", render: (r: ExpenseRequest) => r.status === "Pending" ? <div className="flex gap-2"><button onClick={() => approveExpMutation.mutate({ id: r.id, approved: true })} className="text-green-600 hover:text-green-800"><Check size={16} /></button><button onClick={() => approveExpMutation.mutate({ id: r.id, approved: false })} className="text-red-600 hover:text-red-800"><X size={16} /></button></div> : null }];
+  const gradeCols = [{ key: "gradeCode", label: "Code" }, { key: "name", label: "Grade Name" }, { key: "minSalary", label: "Min Salary" }, { key: "maxSalary", label: "Max Salary" }, { key: "isActive", label: "Status", sortable: false, render: (r: SalaryGrade) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.isActive ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-600"}`}>{r.isActive ? "Active" : "Inactive"}</span> }];
+  const compCols = [{ key: "code", label: "Code" }, { key: "name", label: "Component Name" }, { key: "componentType", label: "Type" }, { key: "isTaxable", label: "Taxable", sortable: false, render: (r: SalaryComponent) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.isTaxable ? "bg-yellow-50 text-yellow-700" : "bg-gray-50 text-gray-600"}`}>{r.isTaxable ? "Yes" : "No"}</span> }];
+  const cycleCols = [{ key: "title", label: "Cycle Name" }, { key: "startDate", label: "Start", sortable: false, render: (r: PayrollCycle) => new Date(r.startDate).toLocaleDateString() }, { key: "endDate", label: "End", sortable: false, render: (r: PayrollCycle) => new Date(r.endDate).toLocaleDateString() }, { key: "paymentDate", label: "Payment Date", sortable: false, render: (r: PayrollCycle) => r.paymentDate ? new Date(r.paymentDate).toLocaleDateString() : "-" }, { key: "status", label: "Status", sortable: false, render: (r: PayrollCycle) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.status === "Active" ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-600"}`}>{r.status}</span> }];
+  const expCols = [{ key: "employeeName", label: "Employee" }, { key: "amount", label: "Amount" }, { key: "category", label: "Category" }, { key: "description", label: "Description" }, { key: "status", label: "Status", sortable: false, render: (r: ExpenseRequest) => <span className={`text-xs px-2 py-0.5 rounded-full ${r.status === "Approved" ? "bg-green-50 text-green-700" : r.status === "Pending" ? "bg-yellow-50 text-yellow-700" : "bg-red-50 text-red-600"}`}>{r.status}</span> }, { key: "actions", label: "Actions", sortable: false, render: (r: ExpenseRequest) => r.status === "Pending" ? <div className="flex gap-2"><button onClick={() => approveExpMutation.mutate({ id: r.id, approved: true })} className="text-green-600 hover:text-green-800"><Check size={16} /></button><button onClick={() => approveExpMutation.mutate({ id: r.id, approved: false })} className="text-red-600 hover:text-red-800"><X size={16} /></button></div> : null }];
 
   const tabs = ["grades", "components", "cycles", "expenses"] as const;
 
@@ -172,44 +167,98 @@ export default function PayrollManagement() {
       </div>
 
       <div className="flex gap-4 mb-4">
-        {tabs.map(tab => <button key={tab} onClick={() => { setActiveTab(tab); setPage(1); }} className={`px-4 py-2 rounded text-sm ${activeTab === tab ? "bg-primary-500 text-white" : "bg-gray-200"}`}>{tab.charAt(0).toUpperCase() + tab.slice(1)}</button>)}
+        {tabs.map(tab => <button key={tab} onClick={() => { setActiveTab(tab); dg.setPage(1); }} className={`px-4 py-2 rounded text-sm ${activeTab === tab ? "bg-primary-500 text-white" : "bg-gray-200"}`}>{tab.charAt(0).toUpperCase() + tab.slice(1)}</button>)}
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        {activeTab === "grades" && (
-          <>
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <ExportMenu baseUrl="payroll/salary-grades" />
-            </div>
-            <DataTable columns={gradeCols} data={grades} loading={gradesLoading} onEdit={openEditGrade} onDelete={setGradeDeleteTarget} />
-          </>
-        )}
-        {activeTab === "components" && (
-          <>
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <ExportMenu baseUrl="payroll/salary-components" />
-            </div>
-            <DataTable columns={compCols} data={components} loading={compsLoading} onEdit={openEditComponent} onDelete={setCompDeleteTarget} />
-          </>
-        )}
-        {activeTab === "cycles" && (
-          <>
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <ExportMenu baseUrl="payroll/payroll-cycles" />
-            </div>
-            <DataTable columns={cycleCols} data={cycles} loading={cyclesLoading} onDelete={setCycleDeleteTarget} />
-          </>
-        )}
-        {activeTab === "expenses" && (
-          <>
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <ExportMenu baseUrl="payroll/expenses" />
-            </div>
-            <DataTable columns={expCols} data={expenses} loading={expLoading} />
-          </>
-        )}
-        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-      </div>
+      {activeTab === "grades" && (
+        <DataGrid
+          columns={gradeCols}
+          data={grades}
+          loading={gradesLoading}
+          sortBy={dg.sortBy}
+          sortDescending={dg.sortDescending}
+          onSort={dg.handleSort}
+          search={dg.search}
+          onSearch={dg.setSearch}
+          searchPlaceholder="Search salary grades..."
+          page={dg.page}
+          totalPages={gradesData?.data?.data?.totalPages ?? 1}
+          onPageChange={dg.setPage}
+          pageSize={dg.pageSize}
+          onPageSizeChange={dg.setPageSize}
+          totalCount={gradesData?.data?.data?.totalCount ?? 0}
+          onEdit={openEditGrade}
+          onDelete={(row) => setGradeDeleteTarget(row)}
+          emptyMessage="No salary grades found"
+          actions={<ExportMenu baseUrl="payroll/salary-grades" filters={{ search: dg.search || undefined }} />}
+        />
+      )}
+      {activeTab === "components" && (
+        <DataGrid
+          columns={compCols}
+          data={components}
+          loading={compsLoading}
+          sortBy={dg.sortBy}
+          sortDescending={dg.sortDescending}
+          onSort={dg.handleSort}
+          search={dg.search}
+          onSearch={dg.setSearch}
+          searchPlaceholder="Search salary components..."
+          page={dg.page}
+          totalPages={compsData?.data?.data?.totalPages ?? 1}
+          onPageChange={dg.setPage}
+          pageSize={dg.pageSize}
+          onPageSizeChange={dg.setPageSize}
+          totalCount={compsData?.data?.data?.totalCount ?? 0}
+          onEdit={openEditComponent}
+          onDelete={(row) => setCompDeleteTarget(row)}
+          emptyMessage="No salary components found"
+          actions={<ExportMenu baseUrl="payroll/salary-components" filters={{ search: dg.search || undefined }} />}
+        />
+      )}
+      {activeTab === "cycles" && (
+        <DataGrid
+          columns={cycleCols}
+          data={cycles}
+          loading={cyclesLoading}
+          sortBy={dg.sortBy}
+          sortDescending={dg.sortDescending}
+          onSort={dg.handleSort}
+          search={dg.search}
+          onSearch={dg.setSearch}
+          searchPlaceholder="Search payroll cycles..."
+          page={dg.page}
+          totalPages={cyclesData?.data?.data?.totalPages ?? 1}
+          onPageChange={dg.setPage}
+          pageSize={dg.pageSize}
+          onPageSizeChange={dg.setPageSize}
+          totalCount={cyclesData?.data?.data?.totalCount ?? 0}
+          onDelete={(row) => setCycleDeleteTarget(row)}
+          emptyMessage="No payroll cycles found"
+          actions={<ExportMenu baseUrl="payroll/payroll-cycles" filters={{ search: dg.search || undefined }} />}
+        />
+      )}
+      {activeTab === "expenses" && (
+        <DataGrid
+          columns={expCols}
+          data={expenses}
+          loading={expLoading}
+          sortBy={dg.sortBy}
+          sortDescending={dg.sortDescending}
+          onSort={dg.handleSort}
+          search={dg.search}
+          onSearch={dg.setSearch}
+          searchPlaceholder="Search expenses..."
+          page={dg.page}
+          totalPages={expData?.data?.data?.totalPages ?? 1}
+          onPageChange={dg.setPage}
+          pageSize={dg.pageSize}
+          onPageSizeChange={dg.setPageSize}
+          totalCount={expData?.data?.data?.totalCount ?? 0}
+          emptyMessage="No expenses found"
+          actions={<ExportMenu baseUrl="payroll/expenses" filters={{ search: dg.search || undefined }} />}
+        />
+      )}
 
       <Modal title={activeTab === "grades" ? (editingGrade ? "Edit Salary Grade" : "Add Salary Grade") : activeTab === "components" ? (editingComponent ? "Edit Salary Component" : "Add Salary Component") : activeTab === "cycles" ? "Add Payroll Cycle" : "Submit Expense"} open={modal} onClose={() => { setModal(false); setEditingGrade(null); setEditingComponent(null); setGradeErrors({}); }}>
         {activeTab === "grades" && (

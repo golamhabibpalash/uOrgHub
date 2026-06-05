@@ -3,11 +3,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { Plus, X } from "lucide-react";
 import toast from "react-hot-toast";
-import DataTable from "../../components/shared/DataTable";
-import Pagination from "../../components/shared/Pagination";
+import DataGrid from "../../components/shared/DataGrid";
+import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
 import ConfirmDialog from "../../components/shared/ConfirmDialog";
 import ExportMenu from "../../components/shared/ExportMenu";
+import Avatar from "../../components/shared/Avatar";
+import ProfilePictureUploader from "../../components/shared/ProfilePictureUploader";
+import { profilePictureUrl } from "../../utils/profilePicture";
 import {
   getEmployees,
   getAllEmployees,
@@ -16,6 +19,8 @@ import {
   updateEmployee,
   deleteEmployee,
   getEmployeeDependencies,
+  uploadEmployeeProfilePicture,
+  deleteEmployeeProfilePicture,
   Employee,
   Department,
   Designation,
@@ -28,8 +33,7 @@ import { getRoles } from "../../api/auth";
 
 export default function Employees() {
   const qc = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const dg = useDataGrid({ defaultSortBy: "firstName" });
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Employee | null>(null);
   const [error, setError] = useState("");
@@ -67,8 +71,8 @@ export default function Employees() {
   const [desigInlineError, setDesigInlineError] = useState("");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["employees", page, search],
-    queryFn: () => getEmployees({ page, pageSize: 10, search }),
+    queryKey: ["employees", dg.page, dg.search, dg.sortBy, dg.sortDescending],
+    queryFn: () => getEmployees(dg.queryParams),
   });
 
   const { data: deptData } = useQuery({
@@ -103,6 +107,8 @@ export default function Employees() {
   const managerOptions = editing
     ? allEmployees.filter((e) => e.id !== editing.id)
     : allEmployees;
+
+  const totalCount = data?.data?.data?.totalCount ?? 0;
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -145,6 +151,31 @@ export default function Employees() {
     },
     onError: (err) => {
       toast.error(extractApiError(err));
+    },
+  });
+
+  const uploadPicMutation = useMutation({
+    mutationFn: ({ id, file }: { id: string; file: File }) => uploadEmployeeProfilePicture(id, file),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["employees"] });
+      if (editing) {
+        const fresh = qc.getQueryData<{ data: { data: { items: Employee[] } } }>(["employees", page, search]);
+        const items = fresh?.data?.data?.items ?? [];
+        const found = items.find((e) => e.id === editing.id);
+        if (found) setEditing(found);
+      }
+      toast.success("Profile picture updated.");
+    },
+  });
+
+  const deletePicMutation = useMutation({
+    mutationFn: (id: string) => deleteEmployeeProfilePicture(id),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["employees"] });
+      if (editing) {
+        setEditing({ ...editing, profilePicturePath: undefined, profilePictureUrl: undefined });
+      }
+      toast.success("Profile picture removed.");
     },
   });
 
@@ -290,6 +321,17 @@ export default function Employees() {
   }
 
   const columns = [
+    {
+      key: "avatar",
+      label: "",
+      render: (row: Employee) => (
+        <Avatar
+          src={row.profilePicturePath ? profilePictureUrl(row.profilePicturePath) : undefined}
+          name={`${row.firstName} ${row.lastName}`}
+          size="sm"
+        />
+      ),
+    },
     { key: "employeeCode", label: "Code" },
     {
       key: "name",
@@ -302,6 +344,7 @@ export default function Employees() {
     {
       key: "status",
       label: "Status",
+      sortable: false,
       render: (row: Employee) => (
         <span
           className={`text-xs px-2 py-0.5 rounded-full ${
@@ -339,33 +382,27 @@ export default function Employees() {
         </div>
       )}
 
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-          <input
-            type="text"
-            placeholder="Search employees..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 w-64 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          />
-          <ExportMenu baseUrl="employees" filters={{ search: search || undefined }} />
-        </div>
-        <DataTable
-          columns={columns}
-          data={employees}
-          loading={isLoading}
-          onEdit={openEdit}
-          onDelete={(row) => handleDeleteClick(row)}
-        />
-        <Pagination
-          page={page}
-          totalPages={totalPages}
-          onPageChange={setPage}
-        />
-      </div>
+      <DataGrid
+        columns={columns}
+        data={employees}
+        loading={isLoading}
+        sortBy={dg.sortBy}
+        sortDescending={dg.sortDescending}
+        onSort={dg.handleSort}
+        search={dg.search}
+        onSearch={dg.setSearch}
+        searchPlaceholder="Search employees..."
+        page={dg.page}
+        totalPages={totalPages}
+        onPageChange={dg.setPage}
+        pageSize={dg.pageSize}
+        onPageSizeChange={dg.setPageSize}
+        totalCount={totalCount}
+        onEdit={openEdit}
+        onDelete={(row) => handleDeleteClick(row)}
+        emptyMessage="No employees found"
+        actions={<ExportMenu baseUrl="employees" filters={{ search: dg.search || undefined }} />}
+      />
 
       <ConfirmDialog
         open={!!deleteTarget}
@@ -403,6 +440,18 @@ export default function Employees() {
         onClose={closeModal}
       >
         <div className="space-y-3">
+          {editing && (
+            <div className="bg-gray-50 -mx-5 -mt-3 px-5 py-4 border-b border-gray-100">
+              <ProfilePictureUploader
+                currentPath={editing.profilePicturePath}
+                name={`${editing.firstName} ${editing.lastName}`}
+                uploading={uploadPicMutation.isPending}
+                deleting={deletePicMutation.isPending}
+                onUpload={(file) => uploadPicMutation.mutate({ id: editing.id, file })}
+                onDelete={() => deletePicMutation.mutate(editing.id)}
+              />
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">First Name *</label>

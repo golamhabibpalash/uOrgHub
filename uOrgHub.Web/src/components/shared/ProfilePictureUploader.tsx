@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Camera, Trash2, Upload, X } from "lucide-react";
+import { Trash2, Upload, X } from "lucide-react";
 import Avatar from "./Avatar";
 import { profilePictureUrl } from "../../utils/profilePicture";
 

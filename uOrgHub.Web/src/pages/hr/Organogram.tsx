@@ -283,8 +283,12 @@ export default function Organogram() {
           <div className="space-y-4">
             {/* Header */}
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 overflow-hidden shrink-0">
-                <User size={28} />
+              <div className="shrink-0">
+                <Avatar
+                  src={detailData.profilePicturePath ? profilePictureUrl(detailData.profilePicturePath) : undefined}
+                  name={`${detailData.firstName} ${detailData.lastName}`}
+                  size="xl"
+                />
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">

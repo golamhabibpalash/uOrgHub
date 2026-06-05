@@ -1,16 +1,15 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search } from "lucide-react";
-import DataTable from "../../components/shared/DataTable";
-import Pagination from "../../components/shared/Pagination";
+import { Plus } from "lucide-react";
+import DataGrid from "../../components/shared/DataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
+import { useDataGrid } from "../../hooks/useDataGrid";
 import { getVendors, createVendor, updateVendor, deleteVendor, Vendor, VendorType, VendorStatus } from "../../api/procurement";
 
 export default function Vendors() {
   const qc = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const dg = useDataGrid({ defaultSortBy: "companyName" });
   const [filterStatus, setFilterStatus] = useState("");
   const [filterType, setFilterType] = useState("");
   const [modal, setModal] = useState(false);
@@ -23,14 +22,15 @@ export default function Vendors() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["vendors", page, search, filterStatus, filterType],
-    queryFn: () => getVendors({ page, pageSize: 10, search },
+    queryKey: ["vendors", dg.page, dg.search, dg.sortBy, dg.sortDescending, filterStatus, filterType],
+    queryFn: () => getVendors(dg.queryParams,
       filterStatus ? filterStatus as VendorStatus : undefined,
       filterType ? filterType as VendorType : undefined),
   });
 
   const items = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
+  const totalCount = data?.data?.data?.totalCount ?? 0;
 
   const saveMutation = useMutation({
     mutationFn: () => editing
@@ -95,8 +95,8 @@ export default function Vendors() {
     { key: "companyName", label: "Company Name" },
     { key: "contactPerson", label: "Contact" },
     { key: "email", label: "Email" },
-    { key: "vendorType", label: "Type", render: (row: Vendor) => <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">{typeLabels[row.vendorType]}</span> },
-    { key: "status", label: "Status", render: (row: Vendor) => <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[row.status]}`}>{row.status}</span> },
+    { key: "vendorType", label: "Type", sortable: false, render: (row: Vendor) => <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">{typeLabels[row.vendorType]}</span> },
+    { key: "status", label: "Status", sortable: false, render: (row: Vendor) => <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[row.status]}`}>{row.status}</span> },
     { key: "creditLimit", label: "Credit Limit", render: (row: Vendor) => <span>${row.creditLimit.toLocaleString()}</span> },
   ];
 
@@ -112,36 +112,46 @@ export default function Vendors() {
         </button>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 flex gap-3 flex-wrap">
-          <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input type="text" placeholder="Search vendors..." value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="pl-8 text-sm border border-gray-200 rounded-lg px-3 py-1.5 w-48 focus:outline-none focus:ring-1 focus:ring-primary-500" />
-          </div>
-          <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500">
-            <option value="">All Status</option>
-            <option value="Active">Active</option>
-            <option value="Inactive">Inactive</option>
-            <option value="Blacklisted">Blacklisted</option>
-          </select>
-          <select value={filterType} onChange={(e) => { setFilterType(e.target.value); setPage(1); }}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500">
-            <option value="">All Types</option>
-            <option value="Supplier">Supplier</option>
-            <option value="Contractor">Contractor</option>
-            <option value="Consultant">Consultant</option>
-            <option value="ServiceProvider">Service Provider</option>
-          </select>
-          <div className="ml-auto">
-            <ExportMenu baseUrl="vendors" filters={{ search: search || undefined, status: filterStatus || undefined, type: filterType || undefined }} />
-          </div>
-        </div>
-        <DataTable columns={columns} data={items} loading={isLoading} onEdit={openEdit} onDelete={(row) => deleteMutation.mutate(row.id)} />
-        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-      </div>
+      <DataGrid
+        columns={columns}
+        data={items}
+        loading={isLoading}
+        sortBy={dg.sortBy}
+        sortDescending={dg.sortDescending}
+        onSort={dg.handleSort}
+        search={dg.search}
+        onSearch={dg.setSearch}
+        searchPlaceholder="Search vendors..."
+        page={dg.page}
+        totalPages={totalPages}
+        onPageChange={dg.setPage}
+        pageSize={dg.pageSize}
+        onPageSizeChange={dg.setPageSize}
+        totalCount={totalCount}
+        onEdit={openEdit}
+        onDelete={(row) => deleteMutation.mutate(row.id)}
+        emptyMessage="No vendors found"
+        toolbarPrefix={
+          <>
+            <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); dg.setPage(1); }}
+              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500">
+              <option value="">All Status</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+              <option value="Blacklisted">Blacklisted</option>
+            </select>
+            <select value={filterType} onChange={(e) => { setFilterType(e.target.value); dg.setPage(1); }}
+              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500">
+              <option value="">All Types</option>
+              <option value="Supplier">Supplier</option>
+              <option value="Contractor">Contractor</option>
+              <option value="Consultant">Consultant</option>
+              <option value="ServiceProvider">Service Provider</option>
+            </select>
+          </>
+        }
+        actions={<ExportMenu baseUrl="vendors" filters={{ search: dg.search || undefined, status: filterStatus || undefined, type: filterType || undefined }} />}
+      />
 
       <Modal title={editing ? "Edit Vendor" : "Add Vendor"} open={modal} onClose={closeModal}>
         <div className="space-y-3">

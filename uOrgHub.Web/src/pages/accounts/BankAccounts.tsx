@@ -79,6 +79,7 @@ export default function BankAccounts() {
 
   const bankAccounts = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
+  const totalCount = data?.data?.data?.totalCount ?? 0;
   const coaAccounts = accountsData?.data?.data?.items ?? [];
   const transactions = txnData?.data?.data?.items ?? [];
   const txnTotalPages = txnData?.data?.data?.totalPages ?? 1;
@@ -152,6 +153,7 @@ export default function BankAccounts() {
     {
       key: "isActive",
       label: "Status",
+      sortable: false,
       render: (row: BankAccount) => (
         <span className={`text-xs px-2 py-0.5 rounded-full ${row.isActive ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
           {row.isActive ? "Active" : "Inactive"}
@@ -161,6 +163,7 @@ export default function BankAccounts() {
     {
       key: "txn",
       label: "Transactions",
+      sortable: false,
       render: (row: BankAccount) => (
         <button
           onClick={() => setSelectedAccount(row)}
@@ -216,20 +219,26 @@ export default function BankAccounts() {
         </button>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden mb-6">
-        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-          <input
-            type="text"
-            placeholder="Search bank accounts..."
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 w-64 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          />
-          <ExportMenu baseUrl="/accounts/bank-accounts" filters={{ search: search || undefined }} />
-        </div>
-        <DataTable columns={columns} data={bankAccounts} loading={isLoading} onEdit={openEdit} />
-        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-      </div>
+      <DataGrid
+        columns={columns}
+        data={bankAccounts}
+        loading={isLoading}
+        sortBy={dg.sortBy}
+        sortDescending={dg.sortDescending}
+        onSort={dg.handleSort}
+        search={dg.search}
+        onSearch={dg.setSearch}
+        searchPlaceholder="Search bank accounts..."
+        page={dg.page}
+        totalPages={totalPages}
+        onPageChange={dg.setPage}
+        pageSize={dg.pageSize}
+        onPageSizeChange={dg.setPageSize}
+        totalCount={totalCount}
+        onEdit={openEdit}
+        emptyMessage="No bank accounts found"
+        actions={<ExportMenu baseUrl="/accounts/bank-accounts" filters={{ search: dg.search || undefined }} />}
+      />
 
       {selectedAccount && (
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">

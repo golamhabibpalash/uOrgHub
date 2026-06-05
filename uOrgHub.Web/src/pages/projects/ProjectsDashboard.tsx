@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Plus, Search } from "lucide-react";
-import DataTable from "../../components/shared/DataTable";
+import { Plus } from "lucide-react";
+import DataGrid from "../../components/shared/DataGrid";
 import ExportMenu from "../../components/shared/ExportMenu";
-import Pagination from "../../components/shared/Pagination";
+import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
 import {
   getProjects,
@@ -15,8 +15,7 @@ import ProjectForm from "./ProjectForm";
 
 export default function ProjectsDashboard() {
   const navigate = useNavigate();
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const dg = useDataGrid({ defaultSortBy: "projectName" });
   const [status, setStatus] = useState("");
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Project | null>(null);
@@ -27,12 +26,13 @@ export default function ProjectsDashboard() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["projects", page, search, status],
-    queryFn: () => getProjects({ page, pageSize: 10, search }, status),
+    queryKey: ["projects", dg.page, dg.search, dg.sortBy, dg.sortDescending, status],
+    queryFn: () => getProjects(dg.queryParams, status),
   });
 
   const projects = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
+  const totalCount = data?.data?.data?.totalCount ?? 0;
 
   function openAdd() {
     setEditing(null);
@@ -91,6 +91,7 @@ export default function ProjectsDashboard() {
     {
       key: "progress",
       label: "Progress",
+      sortable: false,
       render: (row: Project) => (
         <div className="flex items-center gap-2 w-24">
           <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -106,6 +107,7 @@ export default function ProjectsDashboard() {
     {
       key: "status",
       label: "Status",
+      sortable: false,
       render: (row: Project) => (
         <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusBadge(row.status)}`}>
           {row.status}
@@ -115,6 +117,7 @@ export default function ProjectsDashboard() {
     {
       key: "priority",
       label: "Priority",
+      sortable: false,
       render: (row: Project) => (
         <span className={`text-xs px-2 py-0.5 rounded-full ${getPriorityBadge(row.priority)}`}>
           {row.priority}
@@ -125,6 +128,7 @@ export default function ProjectsDashboard() {
     {
       key: "actions",
       label: "Actions",
+      sortable: false,
       render: (row: Project) => (
         <div className="flex items-center gap-2">
           <button
@@ -182,40 +186,40 @@ export default function ProjectsDashboard() {
         ))}
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search projects..."
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(1);
-                }}
-                className="text-sm border border-gray-200 rounded-lg pl-9 pr-3 py-1.5 w-64 focus:outline-none focus:ring-1 focus:ring-primary-500"
-              />
-            </div>
-            <select
-              value={status}
-              onChange={(e) => {
-                setStatus(e.target.value);
-                setPage(1);
-              }}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500"
-            >
-              <option value="">All Status</option>
-              <option value="Active">Active</option>
-              <option value="InProgress">In Progress</option>
-              <option value="OnHold">On Hold</option>
-              <option value="Completed">Completed</option>
-              <option value="Cancelled">Cancelled</option>
-            </select>
-          </div>
-          <div className="ml-auto flex items-center gap-2">
-            <ExportMenu baseUrl="/projects" filters={{ search: search || undefined, status: status || undefined }} />
+      <DataGrid
+        columns={columns}
+        data={projects}
+        loading={isLoading}
+        sortBy={dg.sortBy}
+        sortDescending={dg.sortDescending}
+        onSort={dg.handleSort}
+        search={dg.search}
+        onSearch={dg.setSearch}
+        searchPlaceholder="Search projects..."
+        page={dg.page}
+        totalPages={totalPages}
+        onPageChange={dg.setPage}
+        pageSize={dg.pageSize}
+        onPageSizeChange={dg.setPageSize}
+        totalCount={totalCount}
+        emptyMessage="No projects found"
+        toolbarPrefix={
+          <select
+            value={status}
+            onChange={(e) => { setStatus(e.target.value); dg.setPage(1); }}
+            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500"
+          >
+            <option value="">All Status</option>
+            <option value="Active">Active</option>
+            <option value="InProgress">In Progress</option>
+            <option value="OnHold">On Hold</option>
+            <option value="Completed">Completed</option>
+            <option value="Cancelled">Cancelled</option>
+          </select>
+        }
+        actions={
+          <div className="flex items-center gap-2">
+            <ExportMenu baseUrl="/projects" filters={{ search: dg.search || undefined, status: status || undefined }} />
             <button
               onClick={openAdd}
               className="flex items-center gap-2 bg-primary-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-primary-600"
@@ -223,30 +227,8 @@ export default function ProjectsDashboard() {
               <Plus size={15} /> Add Project
             </button>
           </div>
-        </div>
-
-        <div
-          onClick={(e) => {
-            const row = (e.target as HTMLElement).closest("tr");
-            if (row && !((e.target as HTMLElement).closest("button"))) {
-              const project = projects.find((p) => p.id === row.getAttribute("data-id"));
-              if (project) navigate(`/projects/${project.id}`);
-            }
-          }}
-        >
-          <DataTable
-            columns={columns}
-            data={projects}
-            loading={isLoading}
-          />
-        </div>
-
-        <Pagination
-          page={page}
-          totalPages={totalPages}
-          onPageChange={setPage}
-        />
-      </div>
+        }
+      />
 
       <Modal
         title={editing ? "Edit Project" : "Add Project"}

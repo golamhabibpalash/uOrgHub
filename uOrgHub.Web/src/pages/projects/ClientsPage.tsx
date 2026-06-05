@@ -1,16 +1,15 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search } from "lucide-react";
-import DataTable from "../../components/shared/DataTable";
+import { Plus } from "lucide-react";
+import DataGrid from "../../components/shared/DataGrid";
 import ExportMenu from "../../components/shared/ExportMenu";
-import Pagination from "../../components/shared/Pagination";
+import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
 import { getClients, createClient, updateClient, deleteClient, Client } from "../../api/projects";
 
 export default function ClientsPage() {
   const qc = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const dg = useDataGrid({ defaultSortBy: "companyName" });
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Client | null>(null);
   const [form, setForm] = useState({
@@ -25,12 +24,13 @@ export default function ClientsPage() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["clients", page, search],
-    queryFn: () => getClients({ page, pageSize: 10, search }),
+    queryKey: ["clients", dg.page, dg.search, dg.sortBy, dg.sortDescending],
+    queryFn: () => getClients(dg.queryParams),
   });
 
   const clients = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
+  const totalCount = data?.data?.data?.totalCount ?? 0;
 
   const saveMutation = useMutation({
     mutationFn: () =>
@@ -106,6 +106,7 @@ export default function ClientsPage() {
     {
       key: "type",
       label: "Type",
+      sortable: false,
       render: (row: Client) => (
         <span className={`text-xs px-2 py-0.5 rounded-full ${getTypeBadge(row.type)}`}>
           {row.type}
@@ -115,6 +116,7 @@ export default function ClientsPage() {
     {
       key: "status",
       label: "Status",
+      sortable: false,
       render: (row: Client) => (
         <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusBadge(row.status)}`}>
           {row.status}
@@ -138,44 +140,31 @@ export default function ClientsPage() {
         </button>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-          <div className="relative">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search clients..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              className="text-sm border border-gray-200 rounded-lg pl-9 pr-3 py-1.5 w-64 focus:outline-none focus:ring-1 focus:ring-primary-500"
-            />
-          </div>
-          <div className="ml-auto">
-            <ExportMenu baseUrl="/clients" filters={{ search: search || undefined }} />
-          </div>
-        </div>
-
-        <DataTable
-          columns={columns}
-          data={clients}
-          loading={isLoading}
-          onEdit={openEdit}
-          onDelete={(row) => {
-            if (confirm("Delete this client?")) {
-              deleteMutation.mutate(row.id);
-            }
-          }}
-        />
-
-        <Pagination
-          page={page}
-          totalPages={totalPages}
-          onPageChange={setPage}
-        />
-      </div>
+      <DataGrid
+        columns={columns}
+        data={clients}
+        loading={isLoading}
+        sortBy={dg.sortBy}
+        sortDescending={dg.sortDescending}
+        onSort={dg.handleSort}
+        search={dg.search}
+        onSearch={dg.setSearch}
+        searchPlaceholder="Search clients..."
+        page={dg.page}
+        totalPages={totalPages}
+        onPageChange={dg.setPage}
+        pageSize={dg.pageSize}
+        onPageSizeChange={dg.setPageSize}
+        totalCount={totalCount}
+        onEdit={openEdit}
+        onDelete={(row) => {
+          if (confirm("Delete this client?")) {
+            deleteMutation.mutate(row.id);
+          }
+        }}
+        emptyMessage="No clients found"
+        actions={<ExportMenu baseUrl="/clients" filters={{ search: dg.search || undefined }} />}
+      />
 
       <Modal
         title={editing ? "Edit Client" : "Add Client"}

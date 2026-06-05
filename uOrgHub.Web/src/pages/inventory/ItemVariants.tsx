@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, Tag } from "lucide-react";
+import DataGrid from "../../components/shared/DataGrid";
 import ExportMenu from "../../components/shared/ExportMenu";
-import DataTable from "../../components/shared/DataTable";
-import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
+import { useDataGrid } from "../../hooks/useDataGrid";
 import {
   getItemVariants, createItemVariant, updateItemVariant, deleteItemVariant,
   getItems, getAttributeDefinitions,
@@ -15,8 +15,7 @@ interface AttrRow { attributeDefinitionId: string; value: string }
 
 export default function ItemVariants() {
   const qc = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const dg = useDataGrid({ defaultSortBy: "name" });
   const [filterItemId, setFilterItemId] = useState("");
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<ItemVariant | null>(null);
@@ -26,8 +25,8 @@ export default function ItemVariants() {
   const [attrRows, setAttrRows] = useState<AttrRow[]>([]);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["item-variants", page, search, filterItemId],
-    queryFn: () => getItemVariants({ page, pageSize: 10, search }, filterItemId || undefined),
+    queryKey: ["item-variants", dg.page, dg.search, dg.sortBy, dg.sortDescending, filterItemId],
+    queryFn: () => getItemVariants(dg.queryParams, filterItemId || undefined),
   });
 
   const { data: itemsData } = useQuery({
@@ -42,6 +41,7 @@ export default function ItemVariants() {
 
   const variants = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
+  const totalCount = data?.data?.data?.totalCount ?? 0;
   const allItems = itemsData?.data?.data?.items ?? [];
   const allAttrs: AttributeDefinition[] = attrsData?.data?.data?.items ?? [];
 
@@ -90,7 +90,7 @@ export default function ItemVariants() {
     { key: "itemBaseName", label: "Item" },
     { key: "variantName", label: "Variant Name" },
     {
-      key: "attributes", label: "Attributes",
+      key: "attributes", label: "Attributes", sortable: false,
       render: (row: ItemVariant) => (
         <div className="flex flex-wrap gap-1">
           {row.attributes.slice(0, 3).map((a) => (
@@ -105,13 +105,13 @@ export default function ItemVariants() {
     { key: "costPrice", label: "Cost", render: (row: ItemVariant) => <span>${row.costPrice.toFixed(2)}</span> },
     { key: "sellingPrice", label: "Price", render: (row: ItemVariant) => <span>${row.sellingPrice.toFixed(2)}</span> },
     {
-      key: "isDefault", label: "Default",
+      key: "isDefault", label: "Default", sortable: false,
       render: (row: ItemVariant) => row.isDefault
         ? <span className="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full">Default</span>
         : null,
     },
     {
-      key: "isActive", label: "Status",
+      key: "isActive", label: "Status", sortable: false,
       render: (row: ItemVariant) => (
         <span className={`text-xs px-2 py-0.5 rounded-full ${row.isActive ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
           {row.isActive ? "Active" : "Inactive"}
@@ -132,22 +132,33 @@ export default function ItemVariants() {
         </button>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 flex gap-3 flex-wrap items-center justify-between">
-          <input
-            type="text" placeholder="Search variants..." value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 w-48 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          />
-          <select value={filterItemId} onChange={(e) => { setFilterItemId(e.target.value); setPage(1); }} className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500">
+      <DataGrid
+        columns={columns}
+        data={variants}
+        loading={isLoading}
+        sortBy={dg.sortBy}
+        sortDescending={dg.sortDescending}
+        onSort={dg.handleSort}
+        search={dg.search}
+        onSearch={dg.setSearch}
+        searchPlaceholder="Search variants..."
+        page={dg.page}
+        totalPages={totalPages}
+        onPageChange={dg.setPage}
+        pageSize={dg.pageSize}
+        onPageSizeChange={dg.setPageSize}
+        totalCount={totalCount}
+        onEdit={openEdit}
+        onDelete={(row) => deleteMutation.mutate(row.id)}
+        emptyMessage="No item variants found"
+        toolbarPrefix={
+          <select value={filterItemId} onChange={(e) => { setFilterItemId(e.target.value); dg.setPage(1); }} className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500">
             <option value="">All Items</option>
             {allItems.map((i) => <option key={i.id} value={i.id}>{i.baseName}</option>)}
           </select>
-          <div className="ml-auto"><ExportMenu baseUrl="/itemvariants" filters={{ search: search || undefined, itemId: filterItemId || undefined }} /></div>
-        </div>
-        <DataTable columns={columns} data={variants} loading={isLoading} onEdit={openEdit} onDelete={(row) => deleteMutation.mutate(row.id)} />
-        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-      </div>
+        }
+        actions={<ExportMenu baseUrl="/itemvariants" filters={{ search: dg.search || undefined, itemId: filterItemId || undefined }} />}
+      />
 
       <Modal title={editing ? "Edit Variant" : "Add Item Variant"} open={modal} onClose={closeModal}>
         <div className="space-y-3">

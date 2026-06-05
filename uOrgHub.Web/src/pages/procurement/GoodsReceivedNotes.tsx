@@ -1,16 +1,15 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, CheckCircle } from "lucide-react";
-import DataTable from "../../components/shared/DataTable";
-import Pagination from "../../components/shared/Pagination";
+import { Plus, CheckCircle } from "lucide-react";
+import DataGrid from "../../components/shared/DataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
+import { useDataGrid } from "../../hooks/useDataGrid";
 import { getGRNs, createGRN, updateGRN, deleteGRN, confirmGRN, GoodsReceivedNote, GRNStatus } from "../../api/procurement";
 
 export default function GoodsReceivedNotes() {
   const qc = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const dg = useDataGrid({ defaultSortBy: "grnDate" });
   const [filterStatus, setFilterStatus] = useState("");
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<GoodsReceivedNote | null>(null);
@@ -21,13 +20,14 @@ export default function GoodsReceivedNotes() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["grns", page, search, filterStatus],
-    queryFn: () => getGRNs({ page, pageSize: 10, search },
+    queryKey: ["grns", dg.page, dg.search, dg.sortBy, dg.sortDescending, filterStatus],
+    queryFn: () => getGRNs(dg.queryParams,
       filterStatus ? filterStatus as GRNStatus : undefined),
   });
 
   const items = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
+  const totalCount = data?.data?.data?.totalCount ?? 0;
 
   const saveMutation = useMutation({
     mutationFn: () => editing
@@ -93,13 +93,14 @@ export default function GoodsReceivedNotes() {
     { key: "warehouseName", label: "Warehouse" },
     { key: "receivedByName", label: "Received By" },
     { key: "invoiceNumber", label: "Invoice", render: (row: GoodsReceivedNote) => row.invoiceNumber || "—" },
-    { key: "status", label: "Status", render: (row: GoodsReceivedNote) => <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[row.status]}`}>{row.status}</span> },
-    { key: "actions", label: "Actions", render: (row: GoodsReceivedNote) => (
+    { key: "status", label: "Status", sortable: false, render: (row: GoodsReceivedNote) => <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[row.status]}`}>{row.status}</span> },
+    { key: "actions", label: "Actions", sortable: false, render: (row: GoodsReceivedNote) => (
       <div className="flex items-center gap-1">
         {row.status === "Draft" && (
           <>
             <button onClick={() => confirmMutation.mutate(row.id)} title="Confirm" className="p-1 text-green-600 hover:bg-green-50 rounded"><CheckCircle size={14} /></button>
             <button onClick={() => openEdit(row)} className="p-1 text-gray-600 hover:bg-gray-50 rounded">✏️</button>
+            <button onClick={() => deleteMutation.mutate(row.id)} className="p-1 text-red-600 hover:bg-red-50 rounded">🗑️</button>
           </>
         )}
         {row.status !== "Draft" && <span className="text-xs text-gray-400">—</span>}
@@ -119,25 +120,34 @@ export default function GoodsReceivedNotes() {
         </button>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 flex gap-3 flex-wrap">
-          <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input type="text" placeholder="Search GRNs..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="pl-8 text-sm border border-gray-200 rounded-lg px-3 py-1.5 w-48" />
-          </div>
-          <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
+      <DataGrid
+        columns={columns}
+        data={items}
+        loading={isLoading}
+        sortBy={dg.sortBy}
+        sortDescending={dg.sortDescending}
+        onSort={dg.handleSort}
+        search={dg.search}
+        onSearch={dg.setSearch}
+        searchPlaceholder="Search GRNs..."
+        page={dg.page}
+        totalPages={totalPages}
+        onPageChange={dg.setPage}
+        pageSize={dg.pageSize}
+        onPageSizeChange={dg.setPageSize}
+        totalCount={totalCount}
+        emptyMessage="No GRNs found"
+        toolbarPrefix={
+          <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); dg.setPage(1); }}
             className="text-sm border border-gray-200 rounded-lg px-3 py-1.5">
             <option value="">All Status</option>
             <option value="Draft">Draft</option>
             <option value="Confirmed">Confirmed</option>
             <option value="Cancelled">Cancelled</option>
           </select>
-          <div className="ml-auto"><ExportMenu baseUrl="goodsreceivednotes" filters={{ search: search || undefined, status: filterStatus || undefined }} /></div>
-        </div>
-        <DataTable columns={columns} data={items} loading={isLoading} onDelete={(row) => row.status === "Draft" && deleteMutation.mutate(row.id)} />
-        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-      </div>
+        }
+        actions={<ExportMenu baseUrl="goodsreceivednotes" filters={{ search: dg.search || undefined, status: filterStatus || undefined }} />}
+      />
 
       <Modal title={editing ? "Edit GRN" : "Create GRN"} open={modal} onClose={closeModal}>
         <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">

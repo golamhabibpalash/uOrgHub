@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, CheckCircle, XCircle } from "lucide-react";
+import DataGrid from "../../components/shared/DataGrid";
 import ExportMenu from "../../components/shared/ExportMenu";
-import DataTable from "../../components/shared/DataTable";
-import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
+import { useDataGrid } from "../../hooks/useDataGrid";
 import {
   getStockTransactions, createStockTransaction, updateStockTransaction,
   deleteStockTransaction, confirmStockTransaction, cancelStockTransaction,
@@ -30,8 +30,7 @@ const statusColors: Record<StockTransactionStatus, string> = {
 
 export default function StockTransactions() {
   const qc = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const dg = useDataGrid({ defaultSortBy: "transactionDate" });
   const [filterStatus, setFilterStatus] = useState<StockTransactionStatus | "">("");
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<StockTransaction | null>(null);
@@ -43,8 +42,8 @@ export default function StockTransactions() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["stock-transactions", page, search, filterStatus],
-    queryFn: () => getStockTransactions({ page, pageSize: 10, search }, undefined, undefined, filterStatus || undefined),
+    queryKey: ["stock-transactions", dg.page, dg.search, dg.sortBy, dg.sortDescending, filterStatus],
+    queryFn: () => getStockTransactions(dg.queryParams, undefined, undefined, filterStatus || undefined),
   });
 
   const { data: warehousesData } = useQuery({
@@ -59,6 +58,7 @@ export default function StockTransactions() {
 
   const txns = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
+  const totalCount = data?.data?.data?.totalCount ?? 0;
   const allWarehouses = warehousesData?.data?.data?.items ?? [];
   const allVariants = variantsData?.data?.data?.items ?? [];
 
@@ -115,7 +115,7 @@ export default function StockTransactions() {
   const columns = [
     { key: "transactionNumber", label: "TXN#", render: (row: StockTransaction) => <span className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">{row.transactionNumber}</span> },
     {
-      key: "transactionType", label: "Type",
+      key: "transactionType", label: "Type", sortable: false,
       render: (row: StockTransaction) => (
         <span className={`text-xs px-2 py-0.5 rounded-full ${txnTypeColors[row.transactionType]}`}>
           {row.transactionTypeName}
@@ -123,7 +123,7 @@ export default function StockTransactions() {
       ),
     },
     {
-      key: "status", label: "Status",
+      key: "status", label: "Status", sortable: false,
       render: (row: StockTransaction) => (
         <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[row.status]}`}>{row.statusName}</span>
       ),
@@ -132,17 +132,31 @@ export default function StockTransactions() {
     { key: "warehouseName", label: "Warehouse" },
     { key: "quantity", label: "Qty", render: (row: StockTransaction) => <span className="font-medium">{row.quantity}</span> },
     { key: "unitCost", label: "Unit Cost", render: (row: StockTransaction) => <span>${row.unitCost.toFixed(2)}</span> },
-    { key: "totalCost", label: "Total", render: (row: StockTransaction) => <span className="font-medium">${(row.quantity * row.unitCost).toFixed(2)}</span> },
+    { key: "totalCost", label: "Total", sortable: false, render: (row: StockTransaction) => <span className="font-medium">${(row.quantity * row.unitCost).toFixed(2)}</span> },
     {
       key: "transactionDate", label: "Date",
       render: (row: StockTransaction) => <span className="text-gray-500 text-xs">{new Date(row.transactionDate).toLocaleDateString()}</span>,
     },
     {
-      key: "actions-extra", label: "Actions",
+      key: "actions", label: "Actions", sortable: false,
       render: (row: StockTransaction) => (
         <div className="flex gap-2">
           {row.status === "Draft" && (
             <>
+              <button
+                onClick={() => openEdit(row)}
+                className="text-gray-400 hover:text-primary-600"
+                title="Edit"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+              </button>
+              <button
+                onClick={() => deleteMutation.mutate(row.id)}
+                className="text-gray-400 hover:text-red-500"
+                title="Delete"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+              </button>
               <button
                 onClick={() => confirmMutation.mutate(row.id)}
                 disabled={confirmMutation.isPending}
@@ -178,30 +192,33 @@ export default function StockTransactions() {
         </button>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 flex gap-3 flex-wrap items-center justify-between">
-          <input
-            type="text" placeholder="Search TXN#, reference..." value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 w-48 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          />
-          <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value as StockTransactionStatus | ""); setPage(1); }} className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500">
+      <DataGrid
+        columns={columns}
+        data={txns}
+        loading={isLoading}
+        sortBy={dg.sortBy}
+        sortDescending={dg.sortDescending}
+        onSort={dg.handleSort}
+        search={dg.search}
+        onSearch={dg.setSearch}
+        searchPlaceholder="Search TXN#, reference..."
+        page={dg.page}
+        totalPages={totalPages}
+        onPageChange={dg.setPage}
+        pageSize={dg.pageSize}
+        onPageSizeChange={dg.setPageSize}
+        totalCount={totalCount}
+        emptyMessage="No transactions found"
+        toolbarPrefix={
+          <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value as StockTransactionStatus | ""); dg.setPage(1); }} className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500">
             <option value="">All Statuses</option>
             <option value="Draft">Draft</option>
             <option value="Confirmed">Confirmed</option>
             <option value="Cancelled">Cancelled</option>
           </select>
-          <div className="ml-auto"><ExportMenu baseUrl="/stocktransactions" filters={{ search: search || undefined, status: filterStatus || undefined }} /></div>
-        </div>
-        <DataTable
-          columns={columns}
-          data={txns}
-          loading={isLoading}
-          onEdit={(row) => row.status === "Draft" ? openEdit(row) : undefined}
-          onDelete={(row) => row.status === "Draft" ? deleteMutation.mutate(row.id) : undefined}
-        />
-        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-      </div>
+        }
+        actions={<ExportMenu baseUrl="/stocktransactions" filters={{ search: dg.search || undefined, status: filterStatus || undefined }} />}
+      />
 
       <Modal title={editing ? "Edit Transaction" : "New Stock Transaction"} open={modal} onClose={closeModal}>
         <div className="space-y-3">

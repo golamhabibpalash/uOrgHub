@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
-import DataTable from "../../components/shared/DataTable";
-import Pagination from "../../components/shared/Pagination";
+import DataGrid from "../../components/shared/DataGrid";
+import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
 import {
@@ -22,8 +22,7 @@ const statusColors: Record<FiscalYearStatus, string> = {
 
 export default function FiscalYears() {
   const qc = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const dg = useDataGrid({ defaultSortBy: "name" });
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<FiscalYear | null>(null);
   const [form, setForm] = useState({
@@ -36,12 +35,13 @@ export default function FiscalYears() {
   const [saveError, setSaveError] = useState("");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["fiscal-years", page, search],
-    queryFn: () => getFiscalYears({ page, pageSize: 10, search }),
+    queryKey: ["fiscal-years", dg.page, dg.search, dg.sortBy, dg.sortDescending],
+    queryFn: () => getFiscalYears(dg.queryParams),
   });
 
   const fiscalYears = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
+  const totalCount = data?.data?.data?.totalCount ?? 0;
 
   const saveMutation = useMutation({
     mutationFn: () => editing ? updateFiscalYear(editing.id, form) : createFiscalYear(form),
@@ -89,6 +89,7 @@ export default function FiscalYears() {
     {
       key: "status",
       label: "Status",
+      sortable: false,
       render: (row: FiscalYear) => (
         <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[row.status]}`}>{row.status}</span>
       ),
@@ -96,6 +97,7 @@ export default function FiscalYears() {
     {
       key: "isCurrent",
       label: "Current",
+      sortable: false,
       render: (row: FiscalYear) => row.isCurrent ? (
         <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">Current</span>
       ) : null,
@@ -114,20 +116,27 @@ export default function FiscalYears() {
         </button>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-          <input
-            type="text"
-            placeholder="Search fiscal years..."
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 w-64 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          />
-          <ExportMenu baseUrl="/accounts/fiscal-years" filters={{ search: search || undefined }} />
-        </div>
-        <DataTable columns={columns} data={fiscalYears} loading={isLoading} onEdit={openEdit} onDelete={(row) => deleteMutation.mutate(row.id)} />
-        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-      </div>
+      <DataGrid
+        columns={columns}
+        data={fiscalYears}
+        loading={isLoading}
+        sortBy={dg.sortBy}
+        sortDescending={dg.sortDescending}
+        onSort={dg.handleSort}
+        search={dg.search}
+        onSearch={dg.setSearch}
+        searchPlaceholder="Search fiscal years..."
+        page={dg.page}
+        totalPages={totalPages}
+        onPageChange={dg.setPage}
+        pageSize={dg.pageSize}
+        onPageSizeChange={dg.setPageSize}
+        totalCount={totalCount}
+        onEdit={openEdit}
+        onDelete={(row) => deleteMutation.mutate(row.id)}
+        emptyMessage="No fiscal years found"
+        actions={<ExportMenu baseUrl="/accounts/fiscal-years" filters={{ search: dg.search || undefined }} />}
+      />
 
       <Modal title={editing ? "Edit Fiscal Year" : "Add Fiscal Year"} open={modal} onClose={closeModal}>
         <div className="space-y-3">
