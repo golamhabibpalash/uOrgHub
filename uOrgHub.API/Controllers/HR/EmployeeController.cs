@@ -136,4 +136,21 @@ public class EmployeeController : BaseController
         await _pictureService.DeleteForEmployeeAsync(id, ct);
         return Ok(ApiResponse<string>.Ok("Removed", "Profile picture removed successfully."));
     }
+
+    [HttpPost("{id:guid}/nid-photo")]
+    [RequestSizeLimit(8 * 1024 * 1024)]
+    [RequireClaim(Claims.HR.Employees.Edit)]
+    public async Task<IActionResult> UploadNidPhoto(Guid id, IFormFile file, CancellationToken ct)
+    {
+        var url = await _pictureService.UploadNidPhotoForEmployeeAsync(id, file, ct);
+        return Ok(ApiResponse<string>.Ok(url, "NID photo uploaded successfully."));
+    }
+
+    [HttpDelete("{id:guid}/nid-photo")]
+    [RequireClaim(Claims.HR.Employees.Edit)]
+    public async Task<IActionResult> DeleteNidPhoto(Guid id, CancellationToken ct)
+    {
+        await _pictureService.DeleteNidPhotoForEmployeeAsync(id, ct);
+        return Ok(ApiResponse<string>.Ok("Removed", "NID photo removed successfully."));
+    }
 }

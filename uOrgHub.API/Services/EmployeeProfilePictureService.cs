@@ -83,6 +83,36 @@ public class EmployeeProfilePictureService
         await ClearLinkedUserPictureAsync(employeeId);
     }
 
+    public async Task<string> UploadNidPhotoForEmployeeAsync(Guid employeeId, IFormFile file, CancellationToken ct = default)
+    {
+        if (file is null || file.Length == 0)
+            throw new AppException("No file provided.", 400);
+
+        var employee = await _employees.GetByIdAsync(employeeId)
+            ?? throw new NotFoundException(nameof(Employee), employeeId);
+
+        var result = await _storage.SaveAsync(file, $"employees/{employeeId}/nid", employee.NidPhotoPath, ct);
+
+        employee.NidPhotoPath = result.RelativePath;
+        employee.UpdatedAt = DateTime.UtcNow;
+        await _employees.UpdateAsync(employee);
+
+        return result.PublicUrl;
+    }
+
+    public async Task DeleteNidPhotoForEmployeeAsync(Guid employeeId, CancellationToken ct = default)
+    {
+        var employee = await _employees.GetByIdAsync(employeeId)
+            ?? throw new NotFoundException(nameof(Employee), employeeId);
+
+        var old = employee.NidPhotoPath;
+        employee.NidPhotoPath = null;
+        employee.UpdatedAt = DateTime.UtcNow;
+        await _employees.UpdateAsync(employee);
+
+        await _storage.DeleteAsync(old);
+    }
+
     public async Task DeleteForCurrentUserAsync(Guid userId, CancellationToken ct = default)
     {
         var user = await _users.GetByIdAsync(userId)

@@ -37,6 +37,8 @@ export interface Employee {
   managerName?: string;
   profilePicturePath?: string;
   profilePictureUrl?: string;
+  nidPhotoPath?: string;
+  nidPhotoUrl?: string;
   // Extended fields — populated by the detail endpoint (GET /employees/{id})
   middleName?: string;
   fullName?: string;
@@ -380,6 +382,19 @@ export const uploadEmployeeProfilePicture = (id: string, file: File) => {
 
 export const deleteEmployeeProfilePicture = (id: string) =>
   apiClient.delete<ApiResponse<string>>(`employees/${id}/profile-picture`);
+
+export const uploadEmployeeNidPhoto = (id: string, file: File) => {
+  const fd = new FormData();
+  fd.append("file", file);
+  return apiClient
+    .post<ApiResponse<string>>(`employees/${id}/nid-photo`, fd, {
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+    .then((r) => r.data.data ?? "");
+};
+
+export const deleteEmployeeNidPhoto = (id: string) =>
+  apiClient.delete<ApiResponse<string>>(`employees/${id}/nid-photo`);
 
 // Departments
 export const getDepartments = (params: PaginationRequest) =>

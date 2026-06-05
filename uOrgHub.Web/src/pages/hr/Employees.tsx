@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Upload, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import DataGrid from "../../components/shared/DataGrid";
 import { useDataGrid } from "../../hooks/useDataGrid";
@@ -21,6 +21,8 @@ import {
   getEmployeeDependencies,
   uploadEmployeeProfilePicture,
   deleteEmployeeProfilePicture,
+  uploadEmployeeNidPhoto,
+  deleteEmployeeNidPhoto,
   Employee,
   Department,
   Designation,
@@ -46,6 +48,11 @@ export default function Employees() {
     lastName: "",
     email: "",
     phone: "",
+    gender: "Male",
+    bloodGroup: "",
+    nationalId: "",
+    currentAddress: "",
+    permanentAddress: "",
     departmentId: "",
     designationId: "",
     employmentType: "Permanent",
@@ -116,6 +123,7 @@ export default function Employees() {
       const body = { ...form };
       if (!body.joiningDate) delete (body as any).joiningDate;
       if (!body.managerId) delete (body as any).managerId;
+      if (!body.bloodGroup) delete (body as any).bloodGroup;
 
       if (editing) {
         return updateEmployee(editing.id, body);
@@ -184,6 +192,26 @@ export default function Employees() {
       }
       toast.success("Profile picture removed.");
     },
+  });
+
+  const uploadNidMutation = useMutation({
+    mutationFn: ({ id, file }: { id: string; file: File }) => uploadEmployeeNidPhoto(id, file),
+    onSuccess: async (url) => {
+      await qc.invalidateQueries({ queryKey: ["employees"] });
+      if (editing) setEditing({ ...editing, nidPhotoUrl: url });
+      toast.success("NID photo updated.");
+    },
+    onError: (err) => toast.error(extractApiError(err)),
+  });
+
+  const deleteNidMutation = useMutation({
+    mutationFn: (id: string) => deleteEmployeeNidPhoto(id),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["employees"] });
+      if (editing) setEditing({ ...editing, nidPhotoPath: undefined, nidPhotoUrl: undefined });
+      toast.success("NID photo removed.");
+    },
+    onError: (err) => toast.error(extractApiError(err)),
   });
 
   async function handleDeleteClick(emp: Employee) {
@@ -277,6 +305,11 @@ export default function Employees() {
       lastName: "",
       email: "",
       phone: "",
+      gender: "Male",
+      bloodGroup: "",
+      nationalId: "",
+      currentAddress: "",
+      permanentAddress: "",
       departmentId: "",
       designationId: "",
       employmentType: "Permanent",
@@ -297,6 +330,11 @@ export default function Employees() {
       lastName: emp.lastName,
       email: emp.email,
       phone: emp.phone,
+      gender: emp.gender || "Male",
+      bloodGroup: emp.bloodGroup || "",
+      nationalId: emp.nationalId || "",
+      currentAddress: emp.currentAddress || "",
+      permanentAddress: emp.permanentAddress || "",
       departmentId: emp.departmentId,
       designationId: emp.designationId,
       employmentType: emp.employmentType,
@@ -510,6 +548,113 @@ export default function Employees() {
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
                 value={form.joiningDate}
                 onChange={(e) => setForm((f) => ({ ...f, joiningDate: e.target.value }))}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Gender</label>
+              <select
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                value={form.gender}
+                onChange={(e) => setForm((f) => ({ ...f, gender: e.target.value }))}
+              >
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Blood Group</label>
+              <select
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                value={form.bloodGroup}
+                onChange={(e) => setForm((f) => ({ ...f, bloodGroup: e.target.value }))}
+              >
+                <option value="">Select</option>
+                <option value="APositive">A+</option>
+                <option value="ANegative">A-</option>
+                <option value="BPositive">B+</option>
+                <option value="BNegative">B-</option>
+                <option value="ABPositive">AB+</option>
+                <option value="ABNegative">AB-</option>
+                <option value="OPositive">O+</option>
+                <option value="ONegative">O-</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">NID Number</label>
+            <input
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+              value={form.nationalId}
+              onChange={(e) => setForm((f) => ({ ...f, nationalId: e.target.value }))}
+              placeholder="National ID number"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">NID Photo</label>
+            {editing ? (
+              <div className="flex items-center gap-3">
+                {editing.nidPhotoUrl ? (
+                  <img
+                    src={editing.nidPhotoUrl}
+                    alt="NID"
+                    className="h-20 w-32 object-cover rounded-lg border border-gray-200"
+                  />
+                ) : (
+                  <div className="h-20 w-32 flex items-center justify-center rounded-lg border border-dashed border-gray-300 text-[11px] text-gray-400">
+                    No photo
+                  </div>
+                )}
+                <div className="flex flex-col gap-1.5">
+                  <label className="cursor-pointer inline-flex items-center gap-1.5 text-xs border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50">
+                    <Upload size={13} /> {editing.nidPhotoUrl ? "Change" : "Upload"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={uploadNidMutation.isPending}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file && editing) uploadNidMutation.mutate({ id: editing.id, file });
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                  {editing.nidPhotoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => editing && deleteNidMutation.mutate(editing.id)}
+                      disabled={deleteNidMutation.isPending}
+                      className="inline-flex items-center gap-1.5 text-xs text-red-600 border border-red-200 rounded-lg px-3 py-1.5 hover:bg-red-50 disabled:opacity-50"
+                    >
+                      <Trash2 size={13} /> Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400">NID photo can be uploaded after saving the employee.</p>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Present Address</label>
+              <textarea
+                rows={2}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                value={form.currentAddress}
+                onChange={(e) => setForm((f) => ({ ...f, currentAddress: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Permanent Address</label>
+              <textarea
+                rows={2}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                value={form.permanentAddress}
+                onChange={(e) => setForm((f) => ({ ...f, permanentAddress: e.target.value }))}
               />
             </div>
           </div>

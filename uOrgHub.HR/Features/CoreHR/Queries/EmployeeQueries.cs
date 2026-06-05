@@ -164,6 +164,8 @@ public class GetAllEmployeesQueryHandler : IRequestHandler<GetAllEmployeesQuery,
             SalaryGradeId = e.SalaryGradeId, BasicSalary = e.BasicSalary,
             ProfilePicturePath = e.ProfilePicturePath,
             ProfilePictureUrl = EmployeePictureUrl.ToPublicUrl(e.ProfilePicturePath),
+            NidPhotoPath = e.NidPhotoPath,
+            NidPhotoUrl = EmployeePictureUrl.ToPublicUrl(e.NidPhotoPath),
             CreatedAt = e.CreatedAt
         }).ToList();
     }
@@ -220,6 +222,8 @@ public class GetEmployeeByIdQueryHandler : IRequestHandler<GetEmployeeByIdQuery,
             BasicSalary = e.BasicSalary,
             ProfilePicturePath = e.ProfilePicturePath,
             ProfilePictureUrl = EmployeePictureUrl.ToPublicUrl(e.ProfilePicturePath),
+            NidPhotoPath = e.NidPhotoPath,
+            NidPhotoUrl = EmployeePictureUrl.ToPublicUrl(e.NidPhotoPath),
             CreatedAt = e.CreatedAt
         };
     }

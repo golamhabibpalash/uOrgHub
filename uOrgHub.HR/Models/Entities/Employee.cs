@@ -62,6 +62,7 @@ public class Employee : BaseEntity
 
     [Column(TypeName = "decimal(18,2)")] public decimal BasicSalary { get; set; }
     [MaxLength(500)] public string? ProfilePicturePath { get; set; }
+    [MaxLength(500)] public string? NidPhotoPath { get; set; }
 
     // Navigation
     public ICollection<EmergencyContact> EmergencyContacts { get; set; } = new List<EmergencyContact>();

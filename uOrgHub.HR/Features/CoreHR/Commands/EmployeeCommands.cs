@@ -39,6 +39,7 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
         dto.DesignationName = created.Designation?.Name ?? "";
         dto.ManagerName = created.Manager != null ? $"{created.Manager.FirstName} {created.Manager.LastName}" : null;
         dto.ProfilePictureUrl = EmployeePictureUrl.ToPublicUrl(created.ProfilePicturePath);
+        dto.NidPhotoUrl = EmployeePictureUrl.ToPublicUrl(created.NidPhotoPath);
         return dto;
     }
 }
@@ -74,6 +75,7 @@ public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeComman
         dto.DesignationName = updated.Designation?.Name ?? "";
         dto.ManagerName = updated.Manager != null ? $"{updated.Manager.FirstName} {updated.Manager.LastName}" : null;
         dto.ProfilePictureUrl = EmployeePictureUrl.ToPublicUrl(updated.ProfilePicturePath);
+        dto.NidPhotoUrl = EmployeePictureUrl.ToPublicUrl(updated.NidPhotoPath);
         return dto;
     }
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { X, Mail, Briefcase, User, CalendarDays } from "lucide-react";
+import { X, Mail, Briefcase, User, CalendarDays, CreditCard } from "lucide-react";
 import Avatar from "../../components/shared/Avatar";
 import { getEmployeeById } from "../../api/hr";
 
@@ -14,6 +14,15 @@ function fmtDate(value?: string) {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return null;
   return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+}
+
+const BLOOD_GROUP_LABELS: Record<string, string> = {
+  APositive: "A+", ANegative: "A-", BPositive: "B+", BNegative: "B-",
+  ABPositive: "AB+", ABNegative: "AB-", OPositive: "O+", ONegative: "O-",
+};
+function bloodGroupLabel(value?: string) {
+  if (!value) return null;
+  return BLOOD_GROUP_LABELS[value] ?? value;
 }
 
 function money(value?: number) {
@@ -176,13 +185,32 @@ export default function EmployeeDetailsModal({ employeeId, onClose }: Props) {
               <Section icon={<User size={15} />} title="Personal Information">
                 <Field label="Gender" value={emp.gender} />
                 <Field label="Date of Birth" value={fmtDate(emp.dateOfBirth)} />
-                <Field label="Blood Group" value={emp.bloodGroup} />
+                <Field label="Blood Group" value={bloodGroupLabel(emp.bloodGroup)} />
                 <Field label="Marital Status" value={emp.maritalStatus} />
                 <Field label="Religion" value={emp.religion} />
                 <Field label="Nationality" value={emp.nationality} />
                 <Field label="National ID" value={emp.nationalId} />
                 <Field label="Passport No." value={emp.passportNo} />
               </Section>
+
+              {emp.nidPhotoUrl && (
+                <>
+                  <hr className="border-gray-100" />
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-primary-500"><CreditCard size={15} /></span>
+                      <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">NID Photo</h3>
+                    </div>
+                    <a href={emp.nidPhotoUrl} target="_blank" rel="noreferrer" className="inline-block">
+                      <img
+                        src={emp.nidPhotoUrl}
+                        alt="National ID"
+                        className="max-h-56 rounded-lg border border-gray-200 hover:opacity-90 transition"
+                      />
+                    </a>
+                  </div>
+                </>
+              )}
             </>
           )}
         </div>

@@ -44,5 +44,8 @@ public class EmployeeResponseDto
     public string? ProfilePicturePath { get; set; }
     public string? ProfilePictureUrl { get; set; }
 
+    public string? NidPhotoPath { get; set; }
+    public string? NidPhotoUrl { get; set; }
+
     public DateTime CreatedAt { get; set; }
 }
