@@ -29,7 +29,11 @@ public class GetReviewCyclesQueryHandler : IRequestHandler<GetReviewCyclesQuery,
     {
         var query = _context.Set<ReviewCycle>().Where(x => !x.IsDeleted);
         var totalCount = await query.CountAsync(ct);
-        query = query.ApplySorting(request.Request.SortBy ?? "StartDate", request.Request.SortDescending);
+        var sortMappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["name"] = "Name"
+        };
+        query = query.ApplySorting(request.Request.SortBy ?? "StartDate", request.Request.SortDescending, sortMappings);
         var items = await query
             .Skip((request.Request.Page - 1) * request.Request.PageSize)
             .Take(request.Request.PageSize).ToListAsync(ct);
@@ -80,7 +84,13 @@ public class GetGoalsQueryHandler : IRequestHandler<GetGoalsQuery, PagedResult<G
         if (request.ReviewCycleId.HasValue) query = query.Where(x => x.ReviewCycleId == request.ReviewCycleId);
 
         var totalCount = await query.CountAsync(ct);
-        query = query.ApplySorting(request.Request.SortBy ?? "Title", request.Request.SortDescending);
+        var sortMappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["name"] = "Title",
+            ["employeeName"] = "Employee.FirstName",
+            ["reviewCycleName"] = "ReviewCycle.Name"
+        };
+        query = query.ApplySorting(request.Request.SortBy ?? "Title", request.Request.SortDescending, sortMappings);
         var items = await query
             .Skip((request.Request.Page - 1) * request.Request.PageSize)
             .Take(request.Request.PageSize).ToListAsync(ct);
@@ -140,7 +150,13 @@ public class GetPerformanceReviewsQueryHandler : IRequestHandler<GetPerformanceR
         if (request.ReviewCycleId.HasValue) query = query.Where(x => x.ReviewCycleId == request.ReviewCycleId);
 
         var totalCount = await query.CountAsync(ct);
-        query = query.ApplySorting(request.Request.SortBy ?? "DueDate", request.Request.SortDescending);
+        var sortMappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["employeeName"] = "Employee.FirstName",
+            ["reviewerName"] = "Reviewer.FirstName",
+            ["reviewCycleName"] = "ReviewCycle.Name"
+        };
+        query = query.ApplySorting(request.Request.SortBy ?? "DueDate", request.Request.SortDescending, sortMappings);
         var items = await query
             .Skip((request.Request.Page - 1) * request.Request.PageSize)
             .Take(request.Request.PageSize).ToListAsync(ct);
@@ -203,7 +219,11 @@ public class GetTrainingProgramsQueryHandler : IRequestHandler<GetTrainingProgra
             query = query.WhereSearch(request.Request.Search, x => x.Title);
 
         var totalCount = await query.CountAsync(ct);
-        query = query.ApplySorting(request.Request.SortBy ?? "StartDate", request.Request.SortDescending);
+        var sortMappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["name"] = "Title"
+        };
+        query = query.ApplySorting(request.Request.SortBy ?? "StartDate", request.Request.SortDescending, sortMappings);
         var items = await query
             .Skip((request.Request.Page - 1) * request.Request.PageSize)
             .Take(request.Request.PageSize).ToListAsync(ct);
@@ -259,7 +279,12 @@ public class GetEmployeeTrainingsQueryHandler : IRequestHandler<GetEmployeeTrain
         if (request.EmployeeId.HasValue) query = query.Where(x => x.EmployeeId == request.EmployeeId);
 
         var totalCount = await query.CountAsync(ct);
-        query = query.ApplySorting(request.Request.SortBy ?? "EnrollmentDate", request.Request.SortDescending);
+        var sortMappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["employeeName"] = "Employee.FirstName",
+            ["trainingTitle"] = "TrainingProgram.Title"
+        };
+        query = query.ApplySorting(request.Request.SortBy ?? "EnrollmentDate", request.Request.SortDescending, sortMappings);
         var items = await query
             .Skip((request.Request.Page - 1) * request.Request.PageSize)
             .Take(request.Request.PageSize).ToListAsync(ct);
