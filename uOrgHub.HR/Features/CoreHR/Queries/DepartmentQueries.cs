@@ -11,6 +11,7 @@ using uOrgHub.Shared.Models;
 namespace uOrgHub.HR.Features.CoreHR.Queries;
 
 public record GetDepartmentsQuery(PaginationRequest Request) : IQuery<PagedResult<DepartmentResponseDto>>;
+public record GetAllDepartmentsQuery : IQuery<List<DepartmentResponseDto>>;
 public record GetDepartmentByIdQuery(Guid Id) : IQuery<DepartmentResponseDto>;
 public record GetDepartmentDependenciesQuery(Guid Id) : IQuery<DepartmentDependenciesDto>;
 
@@ -65,6 +66,31 @@ public class GetDepartmentsQueryHandler : IRequestHandler<GetDepartmentsQuery, P
             Page = request.Request.Page,
             PageSize = request.Request.PageSize
         };
+    }
+}
+
+public class GetAllDepartmentsQueryHandler : IRequestHandler<GetAllDepartmentsQuery, List<DepartmentResponseDto>>
+{
+    private readonly IDepartmentRepository _repo;
+    private readonly DepartmentMapper _mapper = new();
+
+    public GetAllDepartmentsQueryHandler(IDepartmentRepository repo) => _repo = repo;
+
+    public async Task<List<DepartmentResponseDto>> Handle(GetAllDepartmentsQuery request, CancellationToken ct)
+    {
+        var entities = await _repo.GetAllForDropdownAsync();
+        return entities.Select(e => new DepartmentResponseDto
+        {
+            Id = e.Id,
+            Name = e.Name,
+            Code = e.Code,
+            Description = e.Description,
+            Type = e.Type,
+            IsActive = e.IsActive,
+            ParentDepartmentId = e.ParentDepartmentId,
+            ParentDepartmentName = e.ParentDepartment?.Name,
+            CreatedAt = e.CreatedAt
+        }).ToList();
     }
 }
 

@@ -135,6 +135,8 @@ public class DeleteDepartmentCommandHandlerTests
     {
         var id = Guid.NewGuid();
         _repo.Setup(r => r.ExistsAsync(id)).ReturnsAsync(true);
+        _repo.Setup(r => r.GetDependenciesAsync(id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DepartmentDependenciesDto { CanDelete = true });
         _repo.Setup(r => r.DeleteAsync(id)).Returns(Task.CompletedTask);
 
         var result = await _handler.Handle(new DeleteDepartmentCommand(id), CancellationToken.None);

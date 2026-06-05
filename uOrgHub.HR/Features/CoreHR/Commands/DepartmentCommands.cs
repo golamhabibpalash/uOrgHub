@@ -23,6 +23,9 @@ public class CreateDepartmentCommandHandler : IRequestHandler<CreateDepartmentCo
         if (await _repo.CodeExistsAsync(request.Dto.Code))
             throw new AppException($"Department code '{request.Dto.Code}' already exists.");
 
+        if (request.Dto.ParentDepartmentId.HasValue && !await _repo.ParentExistsAsync(request.Dto.ParentDepartmentId))
+            throw new AppException("Selected parent department does not exist.");
+
         var entity = _mapper.ToEntity(request.Dto);
         entity.CreatedAt = DateTime.UtcNow;
         var created = await _repo.CreateAsync(entity);
@@ -44,6 +47,12 @@ public class UpdateDepartmentCommandHandler : IRequestHandler<UpdateDepartmentCo
 
         if (await _repo.CodeExistsAsync(request.Dto.Code, request.Id))
             throw new AppException($"Department code '{request.Dto.Code}' already exists.");
+
+        if (request.Dto.ParentDepartmentId.HasValue && !await _repo.ParentExistsAsync(request.Dto.ParentDepartmentId))
+            throw new AppException("Selected parent department does not exist.");
+
+        if (await _repo.HasCircularReferenceAsync(request.Id, request.Dto.ParentDepartmentId))
+            throw new AppException("Circular reference detected: a department cannot be its own ancestor.");
 
         _mapper.UpdateEntity(request.Dto, entity);
         entity.UpdatedAt = DateTime.UtcNow;

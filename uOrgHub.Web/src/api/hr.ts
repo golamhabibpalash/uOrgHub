@@ -27,6 +27,7 @@ export interface Department {
   description: string;
   isActive: boolean;
   parentDepartmentId?: string;
+  parentDepartmentName?: string;
 }
 
 export interface Designation {
@@ -324,6 +325,9 @@ export const getDepartments = (params: PaginationRequest) =>
   apiClient.get<ApiResponse<PagedResult<Department>>>("departments", {
     params,
   });
+
+export const getAllDepartments = () =>
+  apiClient.get<ApiResponse<Department[]>>("departments/all");
 
 export const getDepartmentById = (id: string) =>
   apiClient.get<ApiResponse<Department>>(`departments/${id}`);

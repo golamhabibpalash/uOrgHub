@@ -26,6 +26,14 @@ public class DepartmentController : BaseController
         return Ok(ApiResponse<PagedResult<DepartmentResponseDto>>.Ok(result));
     }
 
+    [HttpGet("all")]
+    [RequireClaim(Claims.HR.Departments.View)]
+    public async Task<IActionResult> GetAllForDropdown()
+    {
+        var result = await _mediator.Send(new GetAllDepartmentsQuery());
+        return Ok(ApiResponse<List<DepartmentResponseDto>>.Ok(result));
+    }
+
     [HttpGet("{id:guid}")]
     [RequireClaim(Claims.HR.Departments.View)]
     public async Task<IActionResult> GetById(Guid id)

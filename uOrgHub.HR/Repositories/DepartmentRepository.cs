@@ -64,8 +64,42 @@ public class DepartmentRepository : IDepartmentRepository
     public async Task<bool> ExistsAsync(Guid id)
         => await BaseQuery().AnyAsync(x => x.Id == id);
 
+    public async Task<List<Department>> GetAllForDropdownAsync()
+        => await BaseQuery()
+            .Include(x => x.ParentDepartment)
+            .OrderBy(x => x.Name)
+            .ToListAsync();
+
     public async Task<bool> CodeExistsAsync(string code, Guid? excludeId = null)
         => await BaseQuery().AnyAsync(x => x.Code == code && (excludeId == null || x.Id != excludeId));
+
+    public async Task<bool> ParentExistsAsync(Guid? parentId)
+        => parentId == null || await BaseQuery().AnyAsync(x => x.Id == parentId);
+
+    public async Task<bool> HasCircularReferenceAsync(Guid id, Guid? parentDepartmentId)
+    {
+        if (parentDepartmentId == null) return false;
+        if (id == parentDepartmentId) return true;
+
+        var visited = new HashSet<Guid> { id };
+        var current = parentDepartmentId.Value;
+
+        while (current != Guid.Empty)
+        {
+            if (visited.Contains(current)) return true;
+            visited.Add(current);
+
+            var next = await _context.Set<Department>()
+                .Where(x => x.Id == current && !x.IsDeleted)
+                .Select(x => x.ParentDepartmentId)
+                .FirstOrDefaultAsync();
+
+            if (next == null) break;
+            current = next.Value;
+        }
+
+        return false;
+    }
 
     public async Task<DepartmentDependenciesDto> GetDependenciesAsync(Guid id, CancellationToken ct = default)
     {
