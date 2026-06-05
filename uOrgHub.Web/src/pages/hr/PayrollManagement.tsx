@@ -214,11 +214,22 @@ export default function PayrollManagement() {
       <Modal title={activeTab === "grades" ? (editingGrade ? "Edit Salary Grade" : "Add Salary Grade") : activeTab === "components" ? (editingComponent ? "Edit Salary Component" : "Add Salary Component") : activeTab === "cycles" ? "Add Payroll Cycle" : "Submit Expense"} open={modal} onClose={() => { setModal(false); setEditingGrade(null); setEditingComponent(null); setGradeErrors({}); }}>
         {activeTab === "grades" && (
           <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3"><div><label className="text-xs text-gray-500 mb-1 block">Name</label><input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={gradeForm.name} onChange={e => setGradeForm(f => ({ ...f, name: e.target.value }))} /></div><div><label className="text-xs text-gray-500 mb-1 block">Code</label><input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={gradeForm.gradeCode} onChange={e => setGradeForm(f => ({ ...f, gradeCode: e.target.value }))} /></div></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Name *</label>
+                <input className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500 ${gradeErrors.name ? "border-red-400" : "border-gray-200"}`} value={gradeForm.name} onChange={e => { setGradeForm(f => ({ ...f, name: e.target.value })); setGradeErrors(p => ({ ...p, name: undefined })); }} />
+                {gradeErrors.name && <p className="text-xs text-red-500 mt-1">{gradeErrors.name}</p>}
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Code *</label>
+                <input className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500 ${gradeErrors.gradeCode ? "border-red-400" : "border-gray-200"}`} value={gradeForm.gradeCode} onChange={e => { setGradeForm(f => ({ ...f, gradeCode: e.target.value })); setGradeErrors(p => ({ ...p, gradeCode: undefined })); }} />
+                {gradeErrors.gradeCode && <p className="text-xs text-red-500 mt-1">{gradeErrors.gradeCode}</p>}
+              </div>
+            </div>
             <div><label className="text-xs text-gray-500 mb-1 block">Description</label><input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={gradeForm.description} onChange={e => setGradeForm(f => ({ ...f, description: e.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-3"><div><label className="text-xs text-gray-500 mb-1 block">Min Salary</label><input type="number" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={gradeForm.minSalary} onChange={e => setGradeForm(f => ({ ...f, minSalary: Number(e.target.value) }))} /></div><div><label className="text-xs text-gray-500 mb-1 block">Max Salary</label><input type="number" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={gradeForm.maxSalary} onChange={e => setGradeForm(f => ({ ...f, maxSalary: Number(e.target.value) }))} /></div></div>
             <div><label className="text-xs text-gray-500 mb-1 block">Status</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={String(gradeForm.isActive)} onChange={e => setGradeForm(f => ({ ...f, isActive: e.target.value === "true" }))}><option value="true">Active</option><option value="false">Inactive</option></select></div>
-            <div className="flex justify-end gap-2 pt-2"><button onClick={() => { setModal(false); setEditingGrade(null); }} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button><button onClick={() => gradeMutation.mutate()} disabled={gradeMutation.isPending} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">{gradeMutation.isPending ? "Saving..." : "Save"}</button></div>
+            <div className="flex justify-end gap-2 pt-2"><button onClick={() => { setModal(false); setEditingGrade(null); setGradeErrors({}); }} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button><button onClick={() => gradeMutation.mutate()} disabled={gradeMutation.isPending} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">{gradeMutation.isPending ? "Saving..." : "Save"}</button></div>
           </div>
         )}
         {activeTab === "components" && (
