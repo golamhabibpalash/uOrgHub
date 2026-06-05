@@ -33,6 +33,14 @@ public class PayrollController : BaseController
         return Ok(ApiResponse<PagedResult<SalaryGradeResponseDto>>.Ok(result));
     }
 
+    [HttpGet("salary-grades/all")]
+    [RequireClaim(Claims.HR.SalaryGrades.View)]
+    public async Task<IActionResult> GetAllSalaryGradesForDropdown()
+    {
+        var result = await _mediator.Send(new GetAllSalaryGradesQuery());
+        return Ok(ApiResponse<List<SalaryGradeResponseDto>>.Ok(result));
+    }
+
     [HttpGet("salary-grades/export")]
     [RequireClaim(Claims.HR.SalaryGrades.Export)]
     public async Task<IActionResult> ExportSalaryGrades([FromQuery] string format = "xlsx")

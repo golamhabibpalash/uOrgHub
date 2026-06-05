@@ -450,6 +450,9 @@ export const updateAttendanceLog = (id: string, data: Partial<AttendanceLog>) =>
 export const getSalaryGrades = (params: PaginationRequest) =>
   apiClient.get<ApiResponse<PagedResult<SalaryGrade>>>("payroll/salary-grades", { params });
 
+export const getAllSalaryGrades = () =>
+  apiClient.get<ApiResponse<SalaryGrade[]>>("payroll/salary-grades/all");
+
 export const createSalaryGrade = (data: Partial<SalaryGrade>) =>
   apiClient.post<ApiResponse<SalaryGrade>>("payroll/salary-grades", data);
 

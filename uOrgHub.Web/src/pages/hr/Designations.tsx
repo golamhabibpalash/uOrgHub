@@ -16,7 +16,7 @@ import {
   getDesignationDependencies,
   Designation,
   getDepartments,
-  getSalaryGrades,
+  getAllSalaryGrades,
 } from "../../api/hr";
 
 export default function Designations() {
@@ -46,14 +46,14 @@ export default function Designations() {
 
   const { data: salaryGradeData } = useQuery({
     queryKey: ["salary-grades-all"],
-    queryFn: () => getSalaryGrades({ page: 1, pageSize: 100 }),
+    queryFn: () => getAllSalaryGrades(),
   });
 
   const designations = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
   const departments = deptData?.data?.data?.items ?? [];
   const allDesignations = allDesigData?.data?.data ?? [];
-  const salaryGrades = salaryGradeData?.data?.data?.items ?? [];
+  const salaryGrades = salaryGradeData?.data?.data ?? [];
 
   const parentOptions = allDesignations.filter((d) =>
     editing ? d.id !== editing.id : true
