@@ -71,12 +71,12 @@ export default function Employees() {
 
   const { data: deptData } = useQuery({
     queryKey: ["departments-all"],
-    queryFn: () => getDepartments({ page: 1, pageSize: 100 }),
+    queryFn: getAllDepartments,
   });
 
   const { data: desigData } = useQuery({
     queryKey: ["designations-all"],
-    queryFn: () => getDesignations({ page: 1, pageSize: 100 }),
+    queryFn: getAllDesignations,
   });
 
   const { data: rolesData } = useQuery({
@@ -86,8 +86,8 @@ export default function Employees() {
 
   const employees = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
-  const departments = deptData?.data?.data?.items ?? [];
-  const allDesignations = desigData?.data?.data?.items ?? [];
+  const departments = deptData?.data?.data ?? [];
+  const allDesignations = desigData?.data?.data ?? [];
   const designations = form.departmentId
     ? allDesignations.filter((d) => d.departmentId === form.departmentId)
     : allDesignations;

@@ -48,7 +48,6 @@ public class DesignationController : BaseController
     }
 
     [HttpGet("all")]
-    [RequireClaim(Claims.HR.Designations.View)]
     public async Task<IActionResult> GetAllForDropdown()
     {
         var result = await _mediator.Send(new GetAllDesignationsQuery());

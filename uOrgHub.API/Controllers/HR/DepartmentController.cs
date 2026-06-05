@@ -34,7 +34,6 @@ public class DepartmentController : BaseController
     }
 
     [HttpGet("all")]
-    [RequireClaim(Claims.HR.Departments.View)]
     public async Task<IActionResult> GetAllForDropdown()
     {
         var result = await _mediator.Send(new GetAllDepartmentsQuery());
