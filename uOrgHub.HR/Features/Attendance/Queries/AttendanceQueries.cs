@@ -30,7 +30,15 @@ public class GetAttendanceLogsQueryHandler : IRequestHandler<GetAttendanceLogsQu
         if (request.ToDate.HasValue) query = query.Where(x => x.AttendanceDate <= request.ToDate.Value.Date);
 
         var totalCount = await query.CountAsync(ct);
-        query = query.ApplySorting(request.Request.SortBy ?? "AttendanceDate", request.Request.SortDescending);
+        var logMappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["employeeName"] = "Employee.FirstName",
+            ["attendanceDate"] = "AttendanceDate",
+            ["checkIn"] = "CheckIn",
+            ["checkOut"] = "CheckOut",
+            ["workHours"] = "WorkHours",
+        };
+        query = query.ApplySorting(request.Request.SortBy ?? "AttendanceDate", request.Request.SortDescending, logMappings);
         var items = await query
             .Skip((request.Request.Page - 1) * request.Request.PageSize)
             .Take(request.Request.PageSize).ToListAsync(ct);
@@ -84,7 +92,12 @@ public class GetWorkSchedulesQueryHandler : IRequestHandler<GetWorkSchedulesQuer
             query = query.WhereSearch(request.Request.Search, x => x.Name);
 
         var totalCount = await query.CountAsync(ct);
-        query = query.ApplySorting(request.Request.SortBy ?? "Name", request.Request.SortDescending);
+        var wsMappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["name"] = "Name",
+            ["description"] = "Description",
+        };
+        query = query.ApplySorting(request.Request.SortBy ?? "Name", request.Request.SortDescending, wsMappings);
         var items = await query
             .Skip((request.Request.Page - 1) * request.Request.PageSize)
             .Take(request.Request.PageSize).ToListAsync(ct);
@@ -136,7 +149,14 @@ public class GetShiftsQueryHandler : IRequestHandler<GetShiftsQuery, PagedResult
             query = query.Where(x => x.WorkScheduleId == request.WorkScheduleId);
 
         var totalCount = await query.CountAsync(ct);
-        query = query.ApplySorting(request.Request.SortBy ?? "Name", request.Request.SortDescending);
+        var shiftMappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["name"] = "Name",
+            ["startTime"] = "StartTime",
+            ["endTime"] = "EndTime",
+            ["workScheduleName"] = "WorkSchedule.Name",
+        };
+        query = query.ApplySorting(request.Request.SortBy ?? "Name", request.Request.SortDescending, shiftMappings);
         var items = await query
             .Skip((request.Request.Page - 1) * request.Request.PageSize)
             .Take(request.Request.PageSize).ToListAsync(ct);
