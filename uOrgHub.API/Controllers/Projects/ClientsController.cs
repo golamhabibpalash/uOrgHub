@@ -5,6 +5,8 @@ using uOrgHub.Projects.DTOs;
 using uOrgHub.Projects.Features.Clients.Commands;
 using uOrgHub.Projects.Features.Clients.Queries;
 using uOrgHub.Projects.Models.Enums;
+using uOrgHub.Projects.Reporting.ExportColumns;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
@@ -15,7 +17,12 @@ namespace uOrgHub.API.Controllers.Projects;
 public class ClientsController : BaseController
 {
     private readonly IMediator _mediator;
-    public ClientsController(IMediator mediator) => _mediator = mediator;
+    private readonly IExportService _exportService;
+    public ClientsController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [RequireClaim(Claims.Projects.Clients.View)]
@@ -23,6 +30,20 @@ public class ClientsController : BaseController
     {
         var result = await _mediator.Send(new GetClientsQuery(request, status));
         return Ok(ApiResponse<PagedResult<ClientResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Projects.Clients.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllClientsForExportQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, ClientExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Clients"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]

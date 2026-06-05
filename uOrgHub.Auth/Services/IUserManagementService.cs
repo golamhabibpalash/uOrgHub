@@ -11,6 +11,7 @@ public interface IUserManagementService
     Task UnlockUserAsync(Guid userId);
     Task ForceLogoutUserAsync(Guid userId, string reason);
     Task<PagedResult<UserDto>> GetUsersAsync(PaginationRequest request);
+    Task<List<UserDto>> GetAllUsersExportAsync();
     Task<UserDto> GetUserByIdAsync(Guid id);
     Task UpdateUserAsync(Guid id, UpdateUserDto dto, string updatedBy);
     Task<UserDto> ChangeUsernameAsync(Guid id, string newUsername, string updatedBy);

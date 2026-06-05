@@ -8,6 +8,7 @@ public interface IAccessLogService
 {
     Task LogAsync(UserAccessLog log);
     Task<PagedResult<UserAccessLogDto>> GetLogsAsync(AccessLogFilterRequest request);
+    Task<List<UserAccessLogDto>> GetAllLogsExportAsync(AccessLogFilterRequest? request = null);
     Task<PagedResult<UserAccessLogDto>> GetUserLogsAsync(Guid userId, AccessLogFilterRequest request);
     Task<AccessLogSummaryDto> GetSummaryAsync();
 }

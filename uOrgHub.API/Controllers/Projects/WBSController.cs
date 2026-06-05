@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Projects.DTOs;
 using uOrgHub.Projects.Features.WBS.Commands;
 using uOrgHub.Projects.Features.WBS.Queries;
+using uOrgHub.Projects.Reporting.ExportColumns;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
@@ -14,7 +16,12 @@ namespace uOrgHub.API.Controllers.Projects;
 public class WBSController : BaseController
 {
     private readonly IMediator _mediator;
-    public WBSController(IMediator mediator) => _mediator = mediator;
+    private readonly IExportService _exportService;
+    public WBSController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [RequireClaim(Claims.Projects.WBS.View)]
@@ -22,6 +29,20 @@ public class WBSController : BaseController
     {
         var result = await _mediator.Send(new GetWBSItemsQuery(projectId, request));
         return Ok(ApiResponse<PagedResult<WBSResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Projects.WBS.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllWBSForExportQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, WBSExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "WBS"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]

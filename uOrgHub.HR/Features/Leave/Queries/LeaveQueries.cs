@@ -5,12 +5,15 @@ using uOrgHub.HR.Features._Common;
 using uOrgHub.HR.Models.Entities;
 using uOrgHub.HR.Models.Enums;
 using uOrgHub.Shared.Data;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.HR.Features.Leave.Queries;
 
 public record GetLeaveTypesQuery(PaginationRequest Request) : IQuery<PagedResult<LeaveTypeResponseDto>>;
+public record GetAllLeaveTypesQuery : IQuery<List<LeaveTypeResponseDto>>;
 public record GetLeaveRequestsQuery(PaginationRequest Request, Guid? EmployeeId = null, LeaveStatus? Status = null) : IQuery<PagedResult<LeaveRequestResponseDto>>;
+public record GetAllLeaveRequestsQuery : IQuery<List<LeaveRequestResponseDto>>;
 public record GetLeaveBalancesQuery(Guid EmployeeId, int? Year = null) : IQuery<List<LeaveBalanceResponseDto>>;
 
 public class GetLeaveTypesQueryHandler : IRequestHandler<GetLeaveTypesQuery, PagedResult<LeaveTypeResponseDto>>
@@ -22,7 +25,7 @@ public class GetLeaveTypesQueryHandler : IRequestHandler<GetLeaveTypesQuery, Pag
     {
         var query = _context.Set<LeaveType>().Where(x => !x.IsDeleted);
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.Name.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.Name);
 
         var totalCount = await query.CountAsync(ct);
         var items = await query.OrderBy(x => x.Name)
@@ -42,6 +45,29 @@ public class GetLeaveTypesQueryHandler : IRequestHandler<GetLeaveTypesQuery, Pag
             }).ToList(),
             TotalCount = totalCount, Page = request.Request.Page, PageSize = request.Request.PageSize
         };
+    }
+}
+
+public class GetAllLeaveTypesQueryHandler : IRequestHandler<GetAllLeaveTypesQuery, List<LeaveTypeResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllLeaveTypesQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<LeaveTypeResponseDto>> Handle(GetAllLeaveTypesQuery request, CancellationToken ct)
+    {
+        var items = await _context.Set<LeaveType>()
+            .Where(x => !x.IsDeleted)
+            .OrderBy(x => x.Name)
+            .Select(x => new LeaveTypeResponseDto
+            {
+                Id = x.Id, Name = x.Name, Code = x.Code, Description = x.Description,
+                TotalDaysPerYear = x.TotalDaysPerYear, MaxConsecutiveDays = x.MaxConsecutiveDays,
+                MinDaysNotice = x.MinDaysNotice, ApprovalLevels = x.ApprovalLevels,
+                IsPaidLeave = x.IsPaidLeave, CarryForward = x.CarryForward,
+                MaxCarryForwardDays = x.MaxCarryForwardDays, RequiresDocument = x.RequiresDocument,
+                GenderRestriction = x.GenderRestriction, IsActive = x.IsActive, CreatedAt = x.CreatedAt
+            }).ToListAsync(ct);
+        return items;
     }
 }
 
@@ -77,6 +103,30 @@ public class GetLeaveRequestsQueryHandler : IRequestHandler<GetLeaveRequestsQuer
             }).ToList(),
             TotalCount = totalCount, Page = request.Request.Page, PageSize = request.Request.PageSize
         };
+    }
+}
+
+public class GetAllLeaveRequestsQueryHandler : IRequestHandler<GetAllLeaveRequestsQuery, List<LeaveRequestResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllLeaveRequestsQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<LeaveRequestResponseDto>> Handle(GetAllLeaveRequestsQuery request, CancellationToken ct)
+    {
+        var items = await _context.Set<LeaveRequest>()
+            .Include(x => x.Employee).Include(x => x.LeaveType)
+            .Where(x => !x.IsDeleted)
+            .OrderByDescending(x => x.StartDate)
+            .Select(x => new LeaveRequestResponseDto
+            {
+                Id = x.Id, EmployeeId = x.EmployeeId,
+                EmployeeName = x.Employee != null ? $"{x.Employee.FirstName} {x.Employee.LastName}" : string.Empty,
+                LeaveTypeId = x.LeaveTypeId, LeaveTypeName = x.LeaveType != null ? x.LeaveType.Name : string.Empty,
+                StartDate = x.StartDate, EndDate = x.EndDate, TotalDays = x.TotalDays,
+                Reason = x.Reason, Status = x.Status,
+                CurrentApprovalLevel = x.CurrentApprovalLevel, CreatedAt = x.CreatedAt
+            }).ToListAsync(ct);
+        return items;
     }
 }
 

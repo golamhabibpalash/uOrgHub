@@ -7,6 +7,8 @@ using uOrgHub.Procurement.DTOs;
 using uOrgHub.Procurement.Features.VendorQuotations.Commands;
 using uOrgHub.Procurement.Features.VendorQuotations.Queries;
 using uOrgHub.Procurement.Models.Enums;
+using uOrgHub.Procurement.Reporting.ExportColumns;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Procurement;
@@ -15,7 +17,12 @@ namespace uOrgHub.API.Controllers.Procurement;
 public class VendorQuotationsController : BaseController
 {
     private readonly IMediator _mediator;
-    public VendorQuotationsController(IMediator mediator) => _mediator = mediator;
+    private readonly IExportService _exportService;
+    public VendorQuotationsController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [RequireClaim(Claims.Procurement.Quotations.View)]
@@ -23,6 +30,20 @@ public class VendorQuotationsController : BaseController
     {
         var result = await _mediator.Send(new GetQuotationsQuery(request, status));
         return Ok(ApiResponse<PagedResult<VendorQuotationResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Procurement.Quotations.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx", [FromQuery] QuotationStatus? status = null)
+    {
+        var data = await _mediator.Send(new GetAllQuotationsForExportQuery(status));
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, QuotationExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "VendorQuotations"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]

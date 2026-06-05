@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using uOrgHub.Accounts.Models.Entities;
 using uOrgHub.Shared.Data;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Accounts.Repositories;
@@ -25,10 +26,7 @@ public class JournalEntryRepository : IJournalEntryRepository
         var query = BaseQuery();
 
         if (!string.IsNullOrWhiteSpace(request.Search))
-            query = query.Where(x =>
-                x.EntryNumber.Contains(request.Search) ||
-                x.Description.Contains(request.Search) ||
-                (x.ReferenceNumber != null && x.ReferenceNumber.Contains(request.Search)));
+            query = query.WhereSearch(request.Search, x => x.EntryNumber, x => x.Description, x => x.ReferenceNumber);
 
         query = request.SortDescending
             ? query.OrderByDescending(x => x.EntryDate)

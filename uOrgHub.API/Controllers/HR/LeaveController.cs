@@ -10,7 +10,9 @@ using uOrgHub.HR.Features.Leave.Commands;
 using uOrgHub.HR.Features.Leave.Queries;
 using uOrgHub.HR.Models.Entities;
 using uOrgHub.HR.Models.Enums;
+using uOrgHub.HR.Reporting.ExportColumns;
 using uOrgHub.Shared.Data;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.HR;
@@ -21,11 +23,13 @@ public class LeaveController : BaseController
 {
     private readonly IMediator _mediator;
     private readonly AppDbContext _context;
+    private readonly IExportService _exportService;
 
-    public LeaveController(IMediator mediator, AppDbContext context)
+    public LeaveController(IMediator mediator, AppDbContext context, IExportService exportService)
     {
         _mediator = mediator;
         _context = context;
+        _exportService = exportService;
     }
 
     [HttpGet("types")]
@@ -34,6 +38,20 @@ public class LeaveController : BaseController
     {
         var result = await _mediator.Send(new GetLeaveTypesQuery(request));
         return Ok(ApiResponse<PagedResult<LeaveTypeResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("leave-types/export")]
+    [RequireClaim(Claims.HR.LeaveTypes.Export)]
+    public async Task<IActionResult> ExportLeaveTypes([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllLeaveTypesQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, LeaveTypeExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Leave Types"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpPost("types")]
@@ -58,6 +76,20 @@ public class LeaveController : BaseController
     {
         var result = await _mediator.Send(new GetLeaveRequestsQuery(request, employeeId, status));
         return Ok(ApiResponse<PagedResult<LeaveRequestResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("leave-requests/export")]
+    [RequireClaim(Claims.HR.LeaveRequests.Export)]
+    public async Task<IActionResult> ExportLeaveRequests([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllLeaveRequestsQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, LeaveRequestExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Leave Requests"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpPost("requests")]

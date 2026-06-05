@@ -5,6 +5,7 @@ using uOrgHub.HR.Features._Common;
 using uOrgHub.HR.Repositories;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.HR.Features.CoreHR.Queries;
@@ -35,11 +36,7 @@ public class GetEmployeesQueryHandler : IRequestHandler<GetEmployeesQuery, Paged
             query = query.Where(x => x.DesignationId == request.DesignationId);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x =>
-                x.FirstName.Contains(request.Request.Search) ||
-                x.LastName.Contains(request.Request.Search) ||
-                x.EmployeeCode.Contains(request.Request.Search) ||
-                x.Email.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.FirstName, x => x.LastName, x => x.EmployeeCode, x => x.Email);
 
         query = request.Request.SortDescending
             ? query.OrderByDescending(x => x.EmployeeCode)
@@ -119,11 +116,7 @@ public class GetAllEmployeesQueryHandler : IRequestHandler<GetAllEmployeesQuery,
             query = query.Where(x => x.DesignationId == request.DesignationId);
 
         if (!string.IsNullOrWhiteSpace(request.Search))
-            query = query.Where(x =>
-                x.FirstName.Contains(request.Search) ||
-                x.LastName.Contains(request.Search) ||
-                x.EmployeeCode.Contains(request.Search) ||
-                x.Email.Contains(request.Search));
+            query = query.WhereSearch(request.Search, x => x.FirstName, x => x.LastName, x => x.EmployeeCode, x => x.Email);
 
         query = query.OrderBy(x => x.EmployeeCode);
 

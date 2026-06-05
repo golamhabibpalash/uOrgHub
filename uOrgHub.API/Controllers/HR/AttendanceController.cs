@@ -6,6 +6,8 @@ using uOrgHub.Auth.Authorization;
 using uOrgHub.HR.DTOs.Attendance;
 using uOrgHub.HR.Features.Attendance.Commands;
 using uOrgHub.HR.Features.Attendance.Queries;
+using uOrgHub.HR.Reporting.ExportColumns;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.HR;
@@ -15,8 +17,13 @@ namespace uOrgHub.API.Controllers.HR;
 public class AttendanceController : BaseController
 {
     private readonly IMediator _mediator;
+    private readonly IExportService _exportService;
 
-    public AttendanceController(IMediator mediator) => _mediator = mediator;
+    public AttendanceController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet("work-schedules")]
     [RequireClaim(Claims.HR.WorkSchedules.View)]
@@ -24,6 +31,20 @@ public class AttendanceController : BaseController
     {
         var result = await _mediator.Send(new GetWorkSchedulesQuery(request));
         return Ok(ApiResponse<PagedResult<WorkScheduleResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("work-schedules/export")]
+    [RequireClaim(Claims.HR.WorkSchedules.Export)]
+    public async Task<IActionResult> ExportWorkSchedules([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllWorkSchedulesQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, WorkScheduleExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Work Schedules"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpPost("work-schedules")]
@@ -40,6 +61,20 @@ public class AttendanceController : BaseController
     {
         var result = await _mediator.Send(new GetShiftsQuery(request, workScheduleId));
         return Ok(ApiResponse<PagedResult<ShiftResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("shifts/export")]
+    [RequireClaim(Claims.HR.Shifts.Export)]
+    public async Task<IActionResult> ExportShifts([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllShiftsQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, ShiftExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Shifts"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpPost("shifts")]
@@ -72,6 +107,20 @@ public class AttendanceController : BaseController
     {
         var result = await _mediator.Send(new GetAttendanceLogsQuery(request, employeeId, fromDate, toDate));
         return Ok(ApiResponse<PagedResult<AttendanceLogResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("logs/export")]
+    [RequireClaim(Claims.HR.AttendanceLogs.Export)]
+    public async Task<IActionResult> ExportLogs([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllAttendanceLogsQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, AttendanceLogExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Attendance Logs"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpPost("logs")]

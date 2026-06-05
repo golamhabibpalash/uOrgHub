@@ -2,10 +2,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.Auth.DTOs;
 using uOrgHub.Auth.Models.Entities;
+using uOrgHub.Auth.Reporting.ExportColumns;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Auth;
@@ -16,10 +19,12 @@ namespace uOrgHub.API.Controllers.Auth;
 public class RoleController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly IExportService _exportService;
 
-    public RoleController(AppDbContext db)
+    public RoleController(AppDbContext db, IExportService exportService)
     {
         _db = db;
+        _exportService = exportService;
     }
 
     [HttpGet]
@@ -38,6 +43,30 @@ public class RoleController : ControllerBase
             .ToListAsync();
 
         return Ok(ApiResponse<List<RoleDto>>.Ok(roles));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Admin.Roles.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx")
+    {
+        var roles = await _db.Set<ApplicationRole>()
+            .Include(r => r.UserRoles)
+            .Where(r => !r.IsDeleted)
+            .OrderBy(r => r.Name)
+            .Select(r => new RoleDto(
+                r.Id, r.Name, r.Description, r.IsSystem, r.IsActive,
+                r.UserRoles.Count,
+                null
+            ))
+            .ToListAsync();
+
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(roles, RoleExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Roles"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]

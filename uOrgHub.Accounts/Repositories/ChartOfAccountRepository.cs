@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using uOrgHub.Accounts.Models.Entities;
 using uOrgHub.Shared.Data;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Accounts.Repositories;
@@ -25,9 +26,7 @@ public class ChartOfAccountRepository : IChartOfAccountRepository
         var query = BaseQuery();
 
         if (!string.IsNullOrWhiteSpace(request.Search))
-            query = query.Where(x =>
-                x.AccountName.Contains(request.Search) ||
-                x.AccountCode.Contains(request.Search));
+            query = query.WhereSearch(request.Search, x => x.AccountName, x => x.AccountCode);
 
         query = request.SortDescending
             ? query.OrderByDescending(x => x.AccountCode)

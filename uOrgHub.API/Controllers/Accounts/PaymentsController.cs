@@ -3,8 +3,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Accounts.DTOs.Payment;
 using uOrgHub.Accounts.Features.Payment;
+using uOrgHub.Accounts.Reporting.ExportColumns;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Accounts;
@@ -14,7 +16,12 @@ namespace uOrgHub.API.Controllers.Accounts;
 public class PaymentsController : BaseController
 {
     private readonly IMediator _mediator;
-    public PaymentsController(IMediator mediator) => _mediator = mediator;
+    private readonly IExportService _exportService;
+    public PaymentsController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [RequireClaim(Claims.Accounts.Payments.View)]
@@ -22,6 +29,20 @@ public class PaymentsController : BaseController
     {
         var result = await _mediator.Send(new GetPaymentsQuery(request, customerId, vendorId));
         return Ok(ApiResponse<PagedResult<PaymentResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Accounts.Payments.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllPaymentsForExportQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, PaymentExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Payments"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]

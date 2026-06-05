@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using uOrgHub.Accounts.Models.Entities;
 using uOrgHub.Shared.Data;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Accounts.Repositories;
@@ -22,9 +23,7 @@ public class AccountGroupRepository : IAccountGroupRepository
         var query = BaseQuery();
 
         if (!string.IsNullOrWhiteSpace(request.Search))
-            query = query.Where(x =>
-                x.Name.Contains(request.Search) ||
-                x.Code.Contains(request.Search));
+            query = query.WhereSearch(request.Search, x => x.Name, x => x.Code);
 
         query = request.SortDescending
             ? query.OrderByDescending(x => x.Name)

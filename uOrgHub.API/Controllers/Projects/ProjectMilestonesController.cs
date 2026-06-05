@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Projects.DTOs;
 using uOrgHub.Projects.Features.ProjectMilestones.Commands;
 using uOrgHub.Projects.Features.ProjectMilestones.Queries;
+using uOrgHub.Projects.Reporting.ExportColumns;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
@@ -14,7 +16,12 @@ namespace uOrgHub.API.Controllers.Projects;
 public class ProjectMilestonesController : BaseController
 {
     private readonly IMediator _mediator;
-    public ProjectMilestonesController(IMediator mediator) => _mediator = mediator;
+    private readonly IExportService _exportService;
+    public ProjectMilestonesController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [RequireClaim(Claims.Projects.Milestones.View)]
@@ -22,6 +29,20 @@ public class ProjectMilestonesController : BaseController
     {
         var result = await _mediator.Send(new GetProjectMilestonesListQuery(projectId, request));
         return Ok(ApiResponse<PagedResult<ProjectMilestoneResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Projects.Milestones.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllProjectMilestonesForExportQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, ProjectMilestoneExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Milestones"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]

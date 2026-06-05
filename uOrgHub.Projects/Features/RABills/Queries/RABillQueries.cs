@@ -7,12 +7,14 @@ using uOrgHub.Projects.Models.Entities;
 using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Projects.Features.RABills.Queries;
 
 public record GetRABillsQuery(PaginationRequest Request, Guid? ProjectId = null, RABillStatus? Status = null) : IQuery<PagedResult<RABillResponseDto>>;
 public record GetRABillByIdQuery(Guid Id) : IQuery<RABillResponseDto>;
+public record GetAllRABillsForExportQuery : IQuery<List<RABillResponseDto>>;
 
 public class GetRABillsQueryHandler : IRequestHandler<GetRABillsQuery, PagedResult<RABillResponseDto>>
 {
@@ -33,7 +35,7 @@ public class GetRABillsQueryHandler : IRequestHandler<GetRABillsQuery, PagedResu
             query = query.Where(x => x.Status == request.Status.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.Title.Contains(request.Request.Search) || x.BillNumber.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.Title, x => x.BillNumber);
 
         query = request.Request.SortDescending
             ? query.OrderByDescending(x => x.BillDate)
@@ -68,5 +70,21 @@ public class GetRABillByIdQueryHandler : IRequestHandler<GetRABillByIdQuery, RAB
             ?? throw new NotFoundException(nameof(RABill), request.Id);
 
         return RABillMapper.ToDto(entity);
+    }
+}
+
+public class GetAllRABillsForExportQueryHandler : IRequestHandler<GetAllRABillsForExportQuery, List<RABillResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllRABillsForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<RABillResponseDto>> Handle(GetAllRABillsForExportQuery request, CancellationToken ct)
+    {
+        return await _context.Set<RABill>()
+            .Include(x => x.Items)
+            .Where(x => !x.IsDeleted)
+            .OrderBy(x => x.BillNumber)
+            .Select(x => RABillMapper.ToDto(x))
+            .ToListAsync(ct);
     }
 }

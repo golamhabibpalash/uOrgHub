@@ -5,6 +5,8 @@ using uOrgHub.Projects.DTOs;
 using uOrgHub.Projects.Features.RABills.Commands;
 using uOrgHub.Projects.Features.RABills.Queries;
 using uOrgHub.Projects.Models.Enums;
+using uOrgHub.Projects.Reporting.ExportColumns;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
@@ -15,7 +17,12 @@ namespace uOrgHub.API.Controllers.Projects;
 public class RABillsController : BaseController
 {
     private readonly IMediator _mediator;
-    public RABillsController(IMediator mediator) => _mediator = mediator;
+    private readonly IExportService _exportService;
+    public RABillsController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [RequireClaim(Claims.Projects.RABills.View)]
@@ -24,6 +31,20 @@ public class RABillsController : BaseController
     {
         var result = await _mediator.Send(new GetRABillsQuery(request, projectId, status));
         return Ok(ApiResponse<PagedResult<RABillResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Projects.RABills.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllRABillsForExportQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, RABillExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "RA Bills"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]

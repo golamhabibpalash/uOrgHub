@@ -7,11 +7,13 @@ using uOrgHub.Procurement.Models.Entities;
 using uOrgHub.Procurement.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Procurement.Features.RequestForQuotations.Queries;
 
 public record GetRFQsQuery(PaginationRequest Request, RFQStatus? Status = null) : IQuery<PagedResult<RFQResponseDto>>;
+public record GetAllRFQsForExportQuery(RFQStatus? Status = null) : IQuery<List<RFQResponseDto>>;
 public record GetRFQByIdQuery(Guid Id) : IQuery<RFQResponseDto>;
 public record GetRFQQuotationsQuery(Guid RFQId, PaginationRequest Request) : IQuery<PagedResult<VendorQuotationResponseDto>>;
 
@@ -29,7 +31,7 @@ public class GetRFQsQueryHandler : IRequestHandler<GetRFQsQuery, PagedResult<RFQ
         if (request.Status.HasValue) query = query.Where(x => x.Status == request.Status.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.RFQNumber.Contains(request.Request.Search) || x.Title.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.RFQNumber, x => x.Title);
 
         query = request.Request.SortDescending ? query.OrderByDescending(x => x.RFQDate) : query.OrderBy(x => x.RFQDate);
 
@@ -62,6 +64,33 @@ public class GetRFQsQueryHandler : IRequestHandler<GetRFQsQuery, PagedResult<RFQ
             RequestedQuantity = item.RequestedQuantity, Notes = item.Notes
         }).ToList()
     };
+}
+
+public class GetAllRFQsForExportQueryHandler : IRequestHandler<GetAllRFQsForExportQuery, List<RFQResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllRFQsForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<RFQResponseDto>> Handle(GetAllRFQsForExportQuery request, CancellationToken ct)
+    {
+        var query = _context.Set<RequestForQuotation>()
+            .Include(x => x.Items)
+            .Where(x => !x.IsDeleted);
+
+        if (request.Status.HasValue) query = query.Where(x => x.Status == request.Status.Value);
+
+        query = query.OrderBy(x => x.RFQDate);
+
+        var items = await query.ToListAsync(ct);
+
+        var prIds = items.Where(x => x.PRId.HasValue).Select(x => x.PRId!.Value).Distinct().ToList();
+        var variantIds = items.SelectMany(x => x.Items.Select(i => i.ItemVariantId)).Distinct().ToList();
+
+        var prs = await _context.Set<PurchaseRequisition>().Where(x => prIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id, x => x.PRNumber, ct);
+        var variants = await _context.Set<ItemVariant>().Where(x => variantIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id, x => new VariantInfo(x.SKU, x.VariantName), ct);
+
+        return items.Select(rfq => GetRFQsQueryHandler.BuildDto(rfq, prs, variants)).ToList();
+    }
 }
 
 public class GetRFQByIdQueryHandler : IRequestHandler<GetRFQByIdQuery, RFQResponseDto>

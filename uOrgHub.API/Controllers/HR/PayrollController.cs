@@ -6,6 +6,8 @@ using uOrgHub.Auth.Authorization;
 using uOrgHub.HR.DTOs.Payroll;
 using uOrgHub.HR.Features.Payroll.Commands;
 using uOrgHub.HR.Features.Payroll.Queries;
+using uOrgHub.HR.Reporting.ExportColumns;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.HR;
@@ -15,8 +17,13 @@ namespace uOrgHub.API.Controllers.HR;
 public class PayrollController : BaseController
 {
     private readonly IMediator _mediator;
+    private readonly IExportService _exportService;
 
-    public PayrollController(IMediator mediator) => _mediator = mediator;
+    public PayrollController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet("salary-grades")]
     [RequireClaim(Claims.HR.SalaryGrades.View)]
@@ -24,6 +31,20 @@ public class PayrollController : BaseController
     {
         var result = await _mediator.Send(new GetSalaryGradesQuery(request));
         return Ok(ApiResponse<PagedResult<SalaryGradeResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("salary-grades/export")]
+    [RequireClaim(Claims.HR.SalaryGrades.Export)]
+    public async Task<IActionResult> ExportSalaryGrades([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllSalaryGradesQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, SalaryGradeExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Salary Grades"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpPost("salary-grades")]
@@ -42,6 +63,20 @@ public class PayrollController : BaseController
         return Ok(ApiResponse<PagedResult<SalaryComponentResponseDto>>.Ok(result));
     }
 
+    [HttpGet("salary-components/export")]
+    [RequireClaim(Claims.HR.SalaryComponents.Export)]
+    public async Task<IActionResult> ExportSalaryComponents([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllSalaryComponentsQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, SalaryComponentExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Salary Components"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
+    }
+
     [HttpPost("salary-components")]
     [RequireClaim(Claims.HR.SalaryComponents.Create)]
     public async Task<IActionResult> CreateSalaryComponent([FromBody] CreateSalaryComponentDto dto)
@@ -56,6 +91,20 @@ public class PayrollController : BaseController
     {
         var result = await _mediator.Send(new GetPayrollCyclesQuery(request));
         return Ok(ApiResponse<PagedResult<PayrollCycleResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("cycles/export")]
+    [RequireClaim(Claims.HR.PayrollCycles.Export)]
+    public async Task<IActionResult> ExportCycles([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllPayrollCyclesQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, PayrollCycleExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Payroll Cycles"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpPost("cycles")]
@@ -82,6 +131,20 @@ public class PayrollController : BaseController
         return Ok(ApiResponse<PagedResult<PayrollEntryResponseDto>>.Ok(result));
     }
 
+    [HttpGet("cycles/{cycleId:guid}/entries/export")]
+    [RequireClaim(Claims.HR.PayrollEntries.Export)]
+    public async Task<IActionResult> ExportEntries(Guid cycleId, [FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllPayrollEntriesQuery(cycleId));
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, PayrollEntryExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Payroll Entries"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
+    }
+
     [HttpPost("overtime-rules")]
     [RequireClaim(Claims.HR.PayrollCycles.Edit)]
     public async Task<IActionResult> CreateOvertimeRule([FromBody] CreateOvertimeRuleDto dto)
@@ -96,6 +159,20 @@ public class PayrollController : BaseController
     {
         var result = await _mediator.Send(new GetExpenseRequestsQuery(request, employeeId));
         return Ok(ApiResponse<PagedResult<ExpenseRequestResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("expenses/export")]
+    [RequireClaim(Claims.HR.ExpenseRequests.Export)]
+    public async Task<IActionResult> ExportExpenses([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllExpenseRequestsQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, ExpenseRequestExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Expense Requests"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpPost("expenses")]

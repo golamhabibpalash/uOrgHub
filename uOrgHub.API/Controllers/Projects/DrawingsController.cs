@@ -5,6 +5,8 @@ using uOrgHub.Projects.DTOs;
 using uOrgHub.Projects.Features.Drawings.Commands;
 using uOrgHub.Projects.Features.Drawings.Queries;
 using uOrgHub.Projects.Models.Enums;
+using uOrgHub.Projects.Reporting.ExportColumns;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
@@ -15,7 +17,12 @@ namespace uOrgHub.API.Controllers.Projects;
 public class DrawingsController : BaseController
 {
     private readonly IMediator _mediator;
-    public DrawingsController(IMediator mediator) => _mediator = mediator;
+    private readonly IExportService _exportService;
+    public DrawingsController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [RequireClaim(Claims.Projects.Drawings.View)]
@@ -25,6 +32,20 @@ public class DrawingsController : BaseController
     {
         var result = await _mediator.Send(new GetDrawingsQuery(request, projectId, status, discipline));
         return Ok(ApiResponse<PagedResult<DrawingResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Projects.Drawings.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllDrawingsForExportQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, DrawingExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Drawings"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]

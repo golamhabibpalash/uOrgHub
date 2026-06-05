@@ -4,6 +4,7 @@ using uOrgHub.Inventory.DTOs;
 using uOrgHub.Inventory.Features._Common;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Inventory.Features.Catalog.Queries;
@@ -21,7 +22,7 @@ public class GetUnitsOfMeasureQueryHandler : IRequestHandler<GetUnitsOfMeasureQu
         var query = _context.Set<Models.Entities.UnitOfMeasure>().Where(x => !x.IsDeleted);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.Name.Contains(request.Request.Search) || x.Abbreviation.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.Name, x => x.Abbreviation);
 
         query = request.Request.SortDescending ? query.OrderByDescending(x => x.Name) : query.OrderBy(x => x.Name);
 
@@ -48,5 +49,22 @@ public class GetUnitOfMeasureByIdQueryHandler : IRequestHandler<GetUnitOfMeasure
             ?? throw new NotFoundException(nameof(Models.Entities.UnitOfMeasure), request.Id);
 
         return new UnitOfMeasureResponseDto { Id = e.Id, Name = e.Name, Abbreviation = e.Abbreviation, IsActive = e.IsActive, CreatedAt = e.CreatedAt };
+    }
+}
+
+public record GetAllUnitsOfMeasureForExportQuery : IRequest<List<UnitOfMeasureResponseDto>>;
+
+public class GetAllUnitsOfMeasureForExportQueryHandler : IRequestHandler<GetAllUnitsOfMeasureForExportQuery, List<UnitOfMeasureResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllUnitsOfMeasureForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<UnitOfMeasureResponseDto>> Handle(GetAllUnitsOfMeasureForExportQuery request, CancellationToken ct)
+    {
+        return await _context.Set<Models.Entities.UnitOfMeasure>()
+            .Where(x => !x.IsDeleted)
+            .OrderBy(x => x.Name)
+            .Select(e => new UnitOfMeasureResponseDto { Id = e.Id, Name = e.Name, Abbreviation = e.Abbreviation, IsActive = e.IsActive, CreatedAt = e.CreatedAt })
+            .ToListAsync(ct);
     }
 }

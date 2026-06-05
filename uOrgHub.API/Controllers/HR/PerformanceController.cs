@@ -6,6 +6,8 @@ using uOrgHub.Auth.Authorization;
 using uOrgHub.HR.DTOs.Performance;
 using uOrgHub.HR.Features.Performance.Commands;
 using uOrgHub.HR.Features.Performance.Queries;
+using uOrgHub.HR.Reporting.ExportColumns;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.HR;
@@ -15,8 +17,13 @@ namespace uOrgHub.API.Controllers.HR;
 public class PerformanceController : BaseController
 {
     private readonly IMediator _mediator;
+    private readonly IExportService _exportService;
 
-    public PerformanceController(IMediator mediator) => _mediator = mediator;
+    public PerformanceController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet("review-cycles")]
     [RequireClaim(Claims.HR.ReviewCycles.View)]
@@ -24,6 +31,20 @@ public class PerformanceController : BaseController
     {
         var result = await _mediator.Send(new GetReviewCyclesQuery(request));
         return Ok(ApiResponse<PagedResult<ReviewCycleResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("review-cycles/export")]
+    [RequireClaim(Claims.HR.ReviewCycles.Export)]
+    public async Task<IActionResult> ExportReviewCycles([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllReviewCyclesQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, ReviewCycleExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Review Cycles"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpPost("review-cycles")]
@@ -58,6 +79,20 @@ public class PerformanceController : BaseController
         return Ok(ApiResponse<PagedResult<GoalResponseDto>>.Ok(result));
     }
 
+    [HttpGet("goals/export")]
+    [RequireClaim(Claims.HR.Goals.Export)]
+    public async Task<IActionResult> ExportGoals([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllGoalsQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, GoalExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Goals"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
+    }
+
     [HttpPost("goals")]
     [RequireClaim(Claims.HR.Goals.Create)]
     public async Task<IActionResult> CreateGoal([FromBody] CreateGoalDto dto)
@@ -80,6 +115,20 @@ public class PerformanceController : BaseController
     {
         var result = await _mediator.Send(new GetPerformanceReviewsQuery(request, employeeId, reviewCycleId));
         return Ok(ApiResponse<PagedResult<PerformanceReviewResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("reviews/export")]
+    [RequireClaim(Claims.HR.PerformanceReviews.Export)]
+    public async Task<IActionResult> ExportReviews([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllPerformanceReviewsQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, PerformanceReviewExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Performance Reviews"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpPost("reviews")]
@@ -106,6 +155,20 @@ public class PerformanceController : BaseController
         return Ok(ApiResponse<PagedResult<TrainingProgramResponseDto>>.Ok(result));
     }
 
+    [HttpGet("training-programs/export")]
+    [RequireClaim(Claims.HR.TrainingPrograms.Export)]
+    public async Task<IActionResult> ExportTrainingPrograms([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllTrainingProgramsQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, TrainingProgramExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Training Programs"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
+    }
+
     [HttpPost("training-programs")]
     [RequireClaim(Claims.HR.PerformanceReviews.Edit)]
     public async Task<IActionResult> CreateTrainingProgram([FromBody] CreateTrainingProgramDto dto)
@@ -120,6 +183,20 @@ public class PerformanceController : BaseController
     {
         var result = await _mediator.Send(new GetEmployeeTrainingsQuery(request, employeeId));
         return Ok(ApiResponse<PagedResult<EmployeeTrainingResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("employee-trainings/export")]
+    [RequireClaim(Claims.HR.EmployeeTrainings.Export)]
+    public async Task<IActionResult> ExportEmployeeTrainings([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllEmployeeTrainingsQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, EmployeeTrainingExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Employee Trainings"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpPost("employee-trainings")]

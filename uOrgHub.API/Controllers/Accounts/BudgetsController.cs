@@ -3,8 +3,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Accounts.DTOs.Budget;
 using uOrgHub.Accounts.Features.Budget;
+using uOrgHub.Accounts.Reporting.ExportColumns;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Accounts;
@@ -14,7 +16,12 @@ namespace uOrgHub.API.Controllers.Accounts;
 public class BudgetsController : BaseController
 {
     private readonly IMediator _mediator;
-    public BudgetsController(IMediator mediator) => _mediator = mediator;
+    private readonly IExportService _exportService;
+    public BudgetsController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [RequireClaim(Claims.Accounts.Budgets.View)]
@@ -22,6 +29,20 @@ public class BudgetsController : BaseController
     {
         var result = await _mediator.Send(new GetBudgetsQuery(request, fiscalYearId));
         return Ok(ApiResponse<PagedResult<BudgetResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Accounts.Budgets.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllBudgetsForExportQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, BudgetExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Budgets"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]

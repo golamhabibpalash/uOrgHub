@@ -5,6 +5,7 @@ using uOrgHub.Accounts.Features._Common;
 using uOrgHub.Accounts.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Accounts.Features.AR;
@@ -15,6 +16,7 @@ public record CreateInvoiceCommand(CreateInvoiceDto Dto) : ICommand<InvoiceRespo
 public record UpdateInvoiceCommand(Guid Id, UpdateInvoiceDto Dto) : ICommand<InvoiceResponseDto>;
 public record PostInvoiceCommand(Guid Id) : ICommand<InvoiceResponseDto>;
 public record VoidInvoiceCommand(Guid Id) : ICommand<InvoiceResponseDto>;
+public record GetAllInvoicesForExportQuery : IQuery<List<InvoiceResponseDto>>;
 
 public class GetInvoicesQueryHandler : IRequestHandler<GetInvoicesQuery, PagedResult<InvoiceResponseDto>>
 {
@@ -35,8 +37,7 @@ public class GetInvoicesQueryHandler : IRequestHandler<GetInvoicesQuery, PagedRe
             query = query.Where(x => x.Status == request.Status.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.InvoiceNumber.Contains(request.Request.Search)
-                || x.Customer.Name.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.InvoiceNumber, x => x.Customer.Name);
 
         query = request.Request.SortDescending
             ? query.OrderByDescending(x => x.InvoiceDate)
@@ -241,6 +242,23 @@ public class VoidInvoiceCommandHandler : IRequestHandler<VoidInvoiceCommand, Inv
         entity.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(ct);
         return InvoiceMappingHelper.ToDto(entity);
+    }
+}
+
+public class GetAllInvoicesForExportQueryHandler : IRequestHandler<GetAllInvoicesForExportQuery, List<InvoiceResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllInvoicesForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<InvoiceResponseDto>> Handle(GetAllInvoicesForExportQuery request, CancellationToken ct)
+    {
+        var items = await _context.Set<Models.Entities.Invoice>()
+            .Include(x => x.Customer)
+            .Include(x => x.Lines)
+            .Where(x => !x.IsDeleted)
+            .OrderByDescending(x => x.InvoiceDate)
+            .ToListAsync(ct);
+        return items.Select(InvoiceMappingHelper.ToDto).ToList();
     }
 }
 

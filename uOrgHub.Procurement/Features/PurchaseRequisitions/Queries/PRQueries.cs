@@ -8,11 +8,13 @@ using uOrgHub.Procurement.Models.Entities;
 using uOrgHub.Procurement.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Procurement.Features.PurchaseRequisitions.Queries;
 
 public record GetPRsQuery(PaginationRequest Request, PRStatus? Status = null) : IQuery<PagedResult<PRResponseDto>>;
+public record GetAllPRsForExportQuery(PRStatus? Status = null) : IQuery<List<PRResponseDto>>;
 public record GetPRByIdQuery(Guid Id) : IQuery<PRResponseDto>;
 
 public class GetPRsQueryHandler : IRequestHandler<GetPRsQuery, PagedResult<PRResponseDto>>
@@ -29,8 +31,7 @@ public class GetPRsQueryHandler : IRequestHandler<GetPRsQuery, PagedResult<PRRes
         if (request.Status.HasValue) query = query.Where(x => x.Status == request.Status.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.PRNumber.Contains(request.Request.Search) ||
-                                     (x.Purpose != null && x.Purpose.Contains(request.Request.Search)));
+            query = query.WhereSearch(request.Request.Search, x => x.PRNumber, x => x.Purpose);
 
         query = request.Request.SortDescending ? query.OrderByDescending(x => x.PRDate) : query.OrderBy(x => x.PRDate);
 
@@ -76,6 +77,37 @@ public class GetPRsQueryHandler : IRequestHandler<GetPRsQuery, PagedResult<PRRes
             EstimatedTotalCost = item.EstimatedTotalCost, Notes = item.Notes
         }).ToList()
     };
+}
+
+public class GetAllPRsForExportQueryHandler : IRequestHandler<GetAllPRsForExportQuery, List<PRResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllPRsForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<PRResponseDto>> Handle(GetAllPRsForExportQuery request, CancellationToken ct)
+    {
+        var query = _context.Set<PurchaseRequisition>()
+            .Include(x => x.Items)
+            .Where(x => !x.IsDeleted);
+
+        if (request.Status.HasValue) query = query.Where(x => x.Status == request.Status.Value);
+
+        query = query.OrderBy(x => x.PRDate);
+
+        var items = await query.ToListAsync(ct);
+
+        var deptIds = items.Select(x => x.DepartmentId).Distinct().ToList();
+        var empIds = items.SelectMany(x => new[] { x.RequestedById }.Concat(x.ApprovedById.HasValue ? new[] { x.ApprovedById.Value } : Array.Empty<Guid>())).Distinct().ToList();
+        var variantIds = items.SelectMany(x => x.Items.Select(i => i.ItemVariantId)).Distinct().ToList();
+        var warehouseIds = items.SelectMany(x => x.Items.Select(i => i.WarehouseId)).Distinct().ToList();
+
+        var depts = await _context.Set<Department>().Where(x => deptIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id, x => x.Name, ct);
+        var emps = await _context.Set<Employee>().Where(x => empIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id, x => $"{x.FirstName} {x.LastName}", ct);
+        var variants = await _context.Set<ItemVariant>().Where(x => variantIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id, x => new VariantInfo(x.SKU, x.VariantName), ct);
+        var warehouses = await _context.Set<Warehouse>().Where(x => warehouseIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id, x => x.Name, ct);
+
+        return items.Select(pr => GetPRsQueryHandler.BuildDto(pr, depts, emps, variants, warehouses)).ToList();
+    }
 }
 
 public class GetPRByIdQueryHandler : IRequestHandler<GetPRByIdQuery, PRResponseDto>

@@ -7,12 +7,14 @@ using uOrgHub.Projects.Models.Entities;
 using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Projects.Features.Drawings.Queries;
 
 public record GetDrawingsQuery(PaginationRequest Request, Guid? ProjectId = null, DrawingStatus? Status = null, DrawingDiscipline? Discipline = null) : IQuery<PagedResult<DrawingResponseDto>>;
 public record GetDrawingByIdQuery(Guid Id) : IQuery<DrawingResponseDto>;
+public record GetAllDrawingsForExportQuery : IQuery<List<DrawingResponseDto>>;
 
 public class GetDrawingsQueryHandler : IRequestHandler<GetDrawingsQuery, PagedResult<DrawingResponseDto>>
 {
@@ -35,7 +37,7 @@ public class GetDrawingsQueryHandler : IRequestHandler<GetDrawingsQuery, PagedRe
             query = query.Where(x => x.Discipline == request.Discipline.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.Title.Contains(request.Request.Search) || x.DrawingNumber.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.Title, x => x.DrawingNumber);
 
         query = request.Request.SortDescending
             ? query.OrderByDescending(x => x.CreatedAt)
@@ -69,5 +71,20 @@ public class GetDrawingByIdQueryHandler : IRequestHandler<GetDrawingByIdQuery, D
             ?? throw new NotFoundException(nameof(ProjectDrawing), request.Id);
 
         return DrawingMapper.ToDto(entity);
+    }
+}
+
+public class GetAllDrawingsForExportQueryHandler : IRequestHandler<GetAllDrawingsForExportQuery, List<DrawingResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllDrawingsForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<DrawingResponseDto>> Handle(GetAllDrawingsForExportQuery request, CancellationToken ct)
+    {
+        return await _context.Set<ProjectDrawing>()
+            .Where(x => !x.IsDeleted)
+            .OrderBy(x => x.DrawingNumber)
+            .Select(x => DrawingMapper.ToDto(x))
+            .ToListAsync(ct);
     }
 }

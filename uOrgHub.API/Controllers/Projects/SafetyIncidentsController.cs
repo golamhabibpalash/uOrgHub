@@ -5,6 +5,8 @@ using uOrgHub.Projects.DTOs;
 using uOrgHub.Projects.Features.SafetyIncidents.Commands;
 using uOrgHub.Projects.Features.SafetyIncidents.Queries;
 using uOrgHub.Projects.Models.Enums;
+using uOrgHub.Projects.Reporting.ExportColumns;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
@@ -15,7 +17,12 @@ namespace uOrgHub.API.Controllers.Projects;
 public class SafetyIncidentsController : BaseController
 {
     private readonly IMediator _mediator;
-    public SafetyIncidentsController(IMediator mediator) => _mediator = mediator;
+    private readonly IExportService _exportService;
+    public SafetyIncidentsController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [RequireClaim(Claims.Projects.SafetyIncidents.View)]
@@ -25,6 +32,20 @@ public class SafetyIncidentsController : BaseController
     {
         var result = await _mediator.Send(new GetSafetyIncidentsQuery(request, projectId, severity, status));
         return Ok(ApiResponse<PagedResult<SafetyIncidentResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Projects.SafetyIncidents.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllSafetyIncidentsForExportQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, SafetyIncidentExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Safety Incidents"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]

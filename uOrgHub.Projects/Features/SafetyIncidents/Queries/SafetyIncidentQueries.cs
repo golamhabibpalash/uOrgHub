@@ -7,12 +7,14 @@ using uOrgHub.Projects.Models.Entities;
 using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Projects.Features.SafetyIncidents.Queries;
 
 public record GetSafetyIncidentsQuery(PaginationRequest Request, Guid? ProjectId = null, SafetyIncidentSeverity? Severity = null, SafetyIncidentStatus? Status = null) : IQuery<PagedResult<SafetyIncidentResponseDto>>;
 public record GetSafetyIncidentByIdQuery(Guid Id) : IQuery<SafetyIncidentResponseDto>;
+public record GetAllSafetyIncidentsForExportQuery : IQuery<List<SafetyIncidentResponseDto>>;
 
 public class GetSafetyIncidentsQueryHandler : IRequestHandler<GetSafetyIncidentsQuery, PagedResult<SafetyIncidentResponseDto>>
 {
@@ -35,7 +37,7 @@ public class GetSafetyIncidentsQueryHandler : IRequestHandler<GetSafetyIncidents
             query = query.Where(x => x.Status == request.Status.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.Title.Contains(request.Request.Search) || x.IncidentNumber.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.Title, x => x.IncidentNumber);
 
         query = request.Request.SortDescending
             ? query.OrderByDescending(x => x.IncidentDate)
@@ -69,5 +71,20 @@ public class GetSafetyIncidentByIdQueryHandler : IRequestHandler<GetSafetyIncide
             ?? throw new NotFoundException(nameof(SafetyIncident), request.Id);
 
         return SafetyIncidentMapper.ToDto(entity);
+    }
+}
+
+public class GetAllSafetyIncidentsForExportQueryHandler : IRequestHandler<GetAllSafetyIncidentsForExportQuery, List<SafetyIncidentResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllSafetyIncidentsForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<SafetyIncidentResponseDto>> Handle(GetAllSafetyIncidentsForExportQuery request, CancellationToken ct)
+    {
+        return await _context.Set<SafetyIncident>()
+            .Where(x => !x.IsDeleted)
+            .OrderByDescending(x => x.IncidentDate)
+            .Select(x => SafetyIncidentMapper.ToDto(x))
+            .ToListAsync(ct);
     }
 }

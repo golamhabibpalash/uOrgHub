@@ -1,9 +1,13 @@
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Accounts.DTOs;
+using uOrgHub.Accounts.Features.JournalEntry;
+using uOrgHub.Accounts.Reporting.ExportColumns;
 using uOrgHub.Accounts.Services;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Accounts;
@@ -13,8 +17,15 @@ namespace uOrgHub.API.Controllers.Accounts;
 public class JournalEntriesController : BaseController
 {
     private readonly IJournalEntryService _service;
+    private readonly IMediator _mediator;
+    private readonly IExportService _exportService;
 
-    public JournalEntriesController(IJournalEntryService service) => _service = service;
+    public JournalEntriesController(IJournalEntryService service, IMediator mediator, IExportService exportService)
+    {
+        _service = service;
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [RequireClaim(Claims.Accounts.JournalEntries.View)]
@@ -22,6 +33,20 @@ public class JournalEntriesController : BaseController
     {
         var result = await _service.GetAllAsync(request);
         return Ok(ApiResponse<PagedResult<JournalEntryResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Accounts.JournalEntries.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllJournalEntriesForExportQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, JournalEntryExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "JournalEntries"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]

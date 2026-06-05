@@ -5,6 +5,7 @@ using uOrgHub.Accounts.Features._Common;
 using uOrgHub.Accounts.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Accounts.Features.AP;
@@ -15,6 +16,7 @@ public record CreateBillCommand(CreateBillDto Dto) : ICommand<BillResponseDto>;
 public record UpdateBillCommand(Guid Id, UpdateBillDto Dto) : ICommand<BillResponseDto>;
 public record ApproveBillCommand(Guid Id) : ICommand<BillResponseDto>;
 public record VoidBillCommand(Guid Id) : ICommand<BillResponseDto>;
+public record GetAllBillsForExportQuery : IQuery<List<BillResponseDto>>;
 
 public class GetBillsQueryHandler : IRequestHandler<GetBillsQuery, PagedResult<BillResponseDto>>
 {
@@ -35,8 +37,7 @@ public class GetBillsQueryHandler : IRequestHandler<GetBillsQuery, PagedResult<B
             query = query.Where(x => x.Status == request.Status.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.BillNumber.Contains(request.Request.Search)
-                || x.Vendor.Name.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.BillNumber, x => x.Vendor.Name);
 
         query = request.Request.SortDescending
             ? query.OrderByDescending(x => x.BillDate)
@@ -243,6 +244,23 @@ public class VoidBillCommandHandler : IRequestHandler<VoidBillCommand, BillRespo
         entity.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(ct);
         return BillMappingHelper.ToDto(entity);
+    }
+}
+
+public class GetAllBillsForExportQueryHandler : IRequestHandler<GetAllBillsForExportQuery, List<BillResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllBillsForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<BillResponseDto>> Handle(GetAllBillsForExportQuery request, CancellationToken ct)
+    {
+        var items = await _context.Set<Models.Entities.Bill>()
+            .Include(x => x.Vendor)
+            .Include(x => x.Lines)
+            .Where(x => !x.IsDeleted)
+            .OrderByDescending(x => x.BillDate)
+            .ToListAsync(ct);
+        return items.Select(BillMappingHelper.ToDto).ToList();
     }
 }
 

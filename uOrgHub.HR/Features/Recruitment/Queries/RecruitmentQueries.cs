@@ -5,16 +5,23 @@ using uOrgHub.HR.Features._Common;
 using uOrgHub.HR.Models.Entities;
 using uOrgHub.HR.Models.Enums;
 using uOrgHub.Shared.Data;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.HR.Features.Recruitment.Queries;
 
 public record GetJobPostingsQuery(PaginationRequest Request, JobPostingStatus? Status = null) : IQuery<PagedResult<JobPostingResponseDto>>;
+public record GetAllJobPostingsQuery : IQuery<List<JobPostingResponseDto>>;
 public record GetCandidatesQuery(PaginationRequest Request) : IQuery<PagedResult<CandidateResponseDto>>;
+public record GetAllCandidatesQuery : IQuery<List<CandidateResponseDto>>;
 public record GetJobApplicationsQuery(PaginationRequest Request, Guid? JobPostingId = null) : IQuery<PagedResult<JobApplicationResponseDto>>;
+public record GetAllJobApplicationsQuery : IQuery<List<JobApplicationResponseDto>>;
 public record GetInterviewSchedulesQuery(PaginationRequest Request, Guid? JobApplicationId = null) : IQuery<PagedResult<InterviewScheduleResponseDto>>;
+public record GetAllInterviewSchedulesQuery : IQuery<List<InterviewScheduleResponseDto>>;
 public record GetOnboardingChecklistsQuery(PaginationRequest Request) : IQuery<PagedResult<OnboardingChecklistResponseDto>>;
+public record GetAllOnboardingChecklistsQuery : IQuery<List<OnboardingChecklistResponseDto>>;
 public record GetEmployeeOnboardingsQuery(PaginationRequest Request, Guid? EmployeeId = null) : IQuery<PagedResult<EmployeeOnboardingResponseDto>>;
+public record GetAllEmployeeOnboardingsQuery : IQuery<List<EmployeeOnboardingResponseDto>>;
 
 public class GetJobPostingsQueryHandler : IRequestHandler<GetJobPostingsQuery, PagedResult<JobPostingResponseDto>>
 {
@@ -29,7 +36,7 @@ public class GetJobPostingsQueryHandler : IRequestHandler<GetJobPostingsQuery, P
 
         if (request.Status.HasValue) query = query.Where(x => x.Status == request.Status);
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.Title.Contains(request.Request.Search) || x.JobCode.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.Title, x => x.JobCode);
 
         var totalCount = await query.CountAsync(ct);
         var items = await query.OrderByDescending(x => x.PostedDate).ThenBy(x => x.Title)
@@ -54,6 +61,32 @@ public class GetJobPostingsQueryHandler : IRequestHandler<GetJobPostingsQuery, P
     }
 }
 
+public class GetAllJobPostingsQueryHandler : IRequestHandler<GetAllJobPostingsQuery, List<JobPostingResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllJobPostingsQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<JobPostingResponseDto>> Handle(GetAllJobPostingsQuery request, CancellationToken ct)
+    {
+        var items = await _context.Set<JobPosting>()
+            .Include(x => x.Department).Include(x => x.Designation)
+            .Where(x => !x.IsDeleted)
+            .OrderByDescending(x => x.PostedDate).ThenBy(x => x.Title)
+            .Select(x => new JobPostingResponseDto
+            {
+                Id = x.Id, JobCode = x.JobCode, Title = x.Title, Description = x.Description,
+                Requirements = x.Requirements, RequiredCount = x.RequiredCount,
+                ExperienceYearsMin = x.ExperienceYearsMin, ExperienceYearsMax = x.ExperienceYearsMax,
+                SalaryMin = x.SalaryMin, SalaryMax = x.SalaryMax, Status = x.Status,
+                PostedDate = x.PostedDate, ClosingDate = x.ClosingDate,
+                DepartmentId = x.DepartmentId, DepartmentName = x.Department != null ? x.Department.Name : string.Empty,
+                DesignationId = x.DesignationId, DesignationName = x.Designation != null ? x.Designation.Name : string.Empty,
+                CreatedAt = x.CreatedAt
+            }).ToListAsync(ct);
+        return items;
+    }
+}
+
 public class GetCandidatesQueryHandler : IRequestHandler<GetCandidatesQuery, PagedResult<CandidateResponseDto>>
 {
     private readonly AppDbContext _context;
@@ -64,9 +97,7 @@ public class GetCandidatesQueryHandler : IRequestHandler<GetCandidatesQuery, Pag
         var query = _context.Set<Candidate>().Where(x => !x.IsDeleted);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.FirstName.Contains(request.Request.Search)
-                || x.LastName.Contains(request.Request.Search)
-                || x.Email.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.FirstName, x => x.LastName, x => x.Email);
 
         var totalCount = await query.CountAsync(ct);
         var items = await query.OrderBy(x => x.FirstName).ThenBy(x => x.LastName)
@@ -84,6 +115,27 @@ public class GetCandidatesQueryHandler : IRequestHandler<GetCandidatesQuery, Pag
             }).ToList(),
             TotalCount = totalCount, Page = request.Request.Page, PageSize = request.Request.PageSize
         };
+    }
+}
+
+public class GetAllCandidatesQueryHandler : IRequestHandler<GetAllCandidatesQuery, List<CandidateResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllCandidatesQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<CandidateResponseDto>> Handle(GetAllCandidatesQuery request, CancellationToken ct)
+    {
+        var items = await _context.Set<Candidate>()
+            .Where(x => !x.IsDeleted)
+            .OrderBy(x => x.FirstName).ThenBy(x => x.LastName)
+            .Select(x => new CandidateResponseDto
+            {
+                Id = x.Id, FirstName = x.FirstName, LastName = x.LastName, Email = x.Email,
+                Phone = x.Phone, TotalExperienceYears = x.TotalExperienceYears,
+                ExpectedSalary = x.ExpectedSalary, CurrentCompany = x.CurrentCompany,
+                Skills = x.Skills, Gender = x.Gender, CreatedAt = x.CreatedAt
+            }).ToListAsync(ct);
+        return items;
     }
 }
 
@@ -118,6 +170,30 @@ public class GetJobApplicationsQueryHandler : IRequestHandler<GetJobApplications
             }).ToList(),
             TotalCount = totalCount, Page = request.Request.Page, PageSize = request.Request.PageSize
         };
+    }
+}
+
+public class GetAllJobApplicationsQueryHandler : IRequestHandler<GetAllJobApplicationsQuery, List<JobApplicationResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllJobApplicationsQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<JobApplicationResponseDto>> Handle(GetAllJobApplicationsQuery request, CancellationToken ct)
+    {
+        var items = await _context.Set<JobApplication>()
+            .Include(x => x.Candidate).Include(x => x.JobPosting)
+            .Where(x => !x.IsDeleted)
+            .OrderByDescending(x => x.ApplicationDate)
+            .Select(x => new JobApplicationResponseDto
+            {
+                Id = x.Id, CandidateId = x.CandidateId,
+                CandidateName = x.Candidate != null ? $"{x.Candidate.FirstName} {x.Candidate.LastName}" : string.Empty,
+                CandidateEmail = x.Candidate != null ? x.Candidate.Email : string.Empty,
+                JobPostingId = x.JobPostingId, JobPostingTitle = x.JobPosting != null ? x.JobPosting.Title : string.Empty,
+                ApplicationDate = x.ApplicationDate, Status = x.Status,
+                Notes = x.Notes, HiringScore = x.HiringScore, CreatedAt = x.CreatedAt
+            }).ToListAsync(ct);
+        return items;
     }
 }
 
@@ -157,6 +233,32 @@ public class GetInterviewSchedulesQueryHandler : IRequestHandler<GetInterviewSch
     }
 }
 
+public class GetAllInterviewSchedulesQueryHandler : IRequestHandler<GetAllInterviewSchedulesQuery, List<InterviewScheduleResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllInterviewSchedulesQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<InterviewScheduleResponseDto>> Handle(GetAllInterviewSchedulesQuery request, CancellationToken ct)
+    {
+        var items = await _context.Set<InterviewSchedule>()
+            .Include(x => x.JobApplication).ThenInclude(a => a.Candidate)
+            .Where(x => !x.IsDeleted)
+            .OrderByDescending(x => x.ScheduledAt)
+            .Select(x => new InterviewScheduleResponseDto
+            {
+                Id = x.Id, JobApplicationId = x.JobApplicationId,
+                CandidateName = x.JobApplication != null && x.JobApplication.Candidate != null
+                    ? $"{x.JobApplication.Candidate.FirstName} {x.JobApplication.Candidate.LastName}"
+                    : string.Empty,
+                InterviewType = x.InterviewType, ScheduledAt = x.ScheduledAt,
+                DurationMinutes = x.DurationMinutes, Location = x.Location,
+                MeetingLink = x.MeetingLink, Status = x.Status,
+                Feedback = x.Feedback, Rating = x.Rating, CreatedAt = x.CreatedAt
+            }).ToListAsync(ct);
+        return items;
+    }
+}
+
 public class GetOnboardingChecklistsQueryHandler : IRequestHandler<GetOnboardingChecklistsQuery, PagedResult<OnboardingChecklistResponseDto>>
 {
     private readonly AppDbContext _context;
@@ -169,7 +271,7 @@ public class GetOnboardingChecklistsQueryHandler : IRequestHandler<GetOnboarding
             .Where(x => !x.IsDeleted);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.Name.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.Name);
 
         var totalCount = await query.CountAsync(ct);
         var items = await query.OrderBy(x => x.Name)
@@ -221,5 +323,51 @@ public class GetEmployeeOnboardingsQueryHandler : IRequestHandler<GetEmployeeOnb
             }).ToList(),
             TotalCount = totalCount, Page = request.Request.Page, PageSize = request.Request.PageSize
         };
+    }
+}
+
+public class GetAllOnboardingChecklistsQueryHandler : IRequestHandler<GetAllOnboardingChecklistsQuery, List<OnboardingChecklistResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllOnboardingChecklistsQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<OnboardingChecklistResponseDto>> Handle(GetAllOnboardingChecklistsQuery request, CancellationToken ct)
+    {
+        var items = await _context.Set<OnboardingChecklist>()
+            .Include(x => x.Designation)
+            .Where(x => !x.IsDeleted)
+            .OrderBy(x => x.Name)
+            .Select(x => new OnboardingChecklistResponseDto
+            {
+                Id = x.Id, Name = x.Name, Description = x.Description,
+                IsDefault = x.IsDefault, IsActive = x.IsActive,
+                DesignationId = x.DesignationId, DesignationName = x.Designation != null ? x.Designation.Name : null,
+                CreatedAt = x.CreatedAt
+            }).ToListAsync(ct);
+        return items;
+    }
+}
+
+public class GetAllEmployeeOnboardingsQueryHandler : IRequestHandler<GetAllEmployeeOnboardingsQuery, List<EmployeeOnboardingResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllEmployeeOnboardingsQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<EmployeeOnboardingResponseDto>> Handle(GetAllEmployeeOnboardingsQuery request, CancellationToken ct)
+    {
+        var items = await _context.Set<EmployeeOnboarding>()
+            .Include(x => x.Employee).Include(x => x.OnboardingChecklist)
+            .Where(x => !x.IsDeleted)
+            .OrderByDescending(x => x.StartDate)
+            .Select(x => new EmployeeOnboardingResponseDto
+            {
+                Id = x.Id, EmployeeId = x.EmployeeId,
+                EmployeeName = x.Employee != null ? $"{x.Employee.FirstName} {x.Employee.LastName}" : string.Empty,
+                OnboardingChecklistId = x.OnboardingChecklistId,
+                ChecklistName = x.OnboardingChecklist != null ? x.OnboardingChecklist.Name : string.Empty,
+                StartDate = x.StartDate, CompletionDate = x.CompletionDate,
+                Status = x.Status, CreatedAt = x.CreatedAt
+            }).ToListAsync(ct);
+        return items;
     }
 }

@@ -4,8 +4,10 @@ using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Inventory.DTOs;
 using uOrgHub.Inventory.Features.Catalog.Commands;
 using uOrgHub.Inventory.Features.Catalog.Queries;
+using uOrgHub.Inventory.Reporting.ExportColumns;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Inventory;
@@ -14,7 +16,12 @@ namespace uOrgHub.API.Controllers.Inventory;
 public class AttributeDefinitionsController : BaseController
 {
     private readonly IMediator _mediator;
-    public AttributeDefinitionsController(IMediator mediator) => _mediator = mediator;
+    private readonly IExportService _exportService;
+    public AttributeDefinitionsController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [RequireClaim(Claims.Inventory.Attributes.View)]
@@ -22,6 +29,20 @@ public class AttributeDefinitionsController : BaseController
     {
         var result = await _mediator.Send(new GetAttributeDefinitionsQuery(request, categoryId));
         return Ok(ApiResponse<PagedResult<AttributeDefinitionResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Inventory.Attributes.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx", [FromQuery] Guid? categoryId = null)
+    {
+        var data = await _mediator.Send(new GetAllAttributeDefinitionsForExportQuery(categoryId));
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, AttributeDefinitionExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "AttributeDefinitions"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]

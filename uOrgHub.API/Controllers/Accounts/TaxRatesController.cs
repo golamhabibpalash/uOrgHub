@@ -3,8 +3,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Accounts.DTOs.TaxRate;
 using uOrgHub.Accounts.Features.TaxRate;
+using uOrgHub.Accounts.Reporting.ExportColumns;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Accounts;
@@ -14,7 +16,12 @@ namespace uOrgHub.API.Controllers.Accounts;
 public class TaxRatesController : BaseController
 {
     private readonly IMediator _mediator;
-    public TaxRatesController(IMediator mediator) => _mediator = mediator;
+    private readonly IExportService _exportService;
+    public TaxRatesController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [RequireClaim(Claims.Accounts.TaxRates.View)]
@@ -22,6 +29,20 @@ public class TaxRatesController : BaseController
     {
         var result = await _mediator.Send(new GetTaxRatesQuery(request));
         return Ok(ApiResponse<PagedResult<TaxRateResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Accounts.TaxRates.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllTaxRatesForExportQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, TaxRateExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "TaxRates"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]

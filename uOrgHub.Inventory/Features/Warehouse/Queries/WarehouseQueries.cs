@@ -4,6 +4,7 @@ using uOrgHub.Inventory.DTOs;
 using uOrgHub.Inventory.Features._Common;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Inventory.Features.Warehouse.Queries;
@@ -21,7 +22,7 @@ public class GetWarehousesQueryHandler : IRequestHandler<GetWarehousesQuery, Pag
         var query = _context.Set<Models.Entities.Warehouse>().Where(x => !x.IsDeleted);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.Name.Contains(request.Request.Search) || x.Code.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.Name, x => x.Code);
 
         query = request.Request.SortDescending ? query.OrderByDescending(x => x.Name) : query.OrderBy(x => x.Name);
 
@@ -58,5 +59,27 @@ public class GetWarehouseByIdQueryHandler : IRequestHandler<GetWarehouseByIdQuer
             Location = e.Location, ContactPerson = e.ContactPerson, ContactPhone = e.ContactPhone,
             IsActive = e.IsActive, CreatedAt = e.CreatedAt
         };
+    }
+}
+
+public record GetAllWarehousesForExportQuery : IRequest<List<WarehouseResponseDto>>;
+
+public class GetAllWarehousesForExportQueryHandler : IRequestHandler<GetAllWarehousesForExportQuery, List<WarehouseResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllWarehousesForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<WarehouseResponseDto>> Handle(GetAllWarehousesForExportQuery request, CancellationToken ct)
+    {
+        return await _context.Set<Models.Entities.Warehouse>()
+            .Where(x => !x.IsDeleted)
+            .OrderBy(x => x.Name)
+            .Select(e => new WarehouseResponseDto
+            {
+                Id = e.Id, Name = e.Name, Code = e.Code,
+                Location = e.Location, ContactPerson = e.ContactPerson, ContactPhone = e.ContactPhone,
+                IsActive = e.IsActive, CreatedAt = e.CreatedAt
+            })
+            .ToListAsync(ct);
     }
 }

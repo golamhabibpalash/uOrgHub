@@ -3,12 +3,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using uOrgHub.API.Middleware;
+using uOrgHub.API.Reporting.ExportColumns;
 using uOrgHub.Auth.Authorization;
 using uOrgHub.Auth.DTOs;
 using uOrgHub.Auth.Models.Entities;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Entities;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers;
@@ -18,10 +20,12 @@ namespace uOrgHub.API.Controllers;
 public class CompanyController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly IExportService _exportService;
 
-    public CompanyController(AppDbContext db)
+    public CompanyController(AppDbContext db, IExportService exportService)
     {
         _db = db;
+        _exportService = exportService;
     }
 
     private Guid GetUserId() => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -121,6 +125,27 @@ public class CompanyController : ControllerBase
         {
             Items = dtos, TotalCount = total, Page = request.Page, PageSize = request.PageSize,
         }));
+    }
+
+    [HttpGet("export")]
+    [Authorize]
+    [RequireClaim(Claims.Admin.Company.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx")
+    {
+        var companies = await _db.Set<Company>()
+            .Where(c => !c.IsDeleted)
+            .OrderBy(c => c.Name)
+            .ToListAsync();
+
+        var dtos = companies.Select(MapDto).ToList();
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var columns = CompanyExportColumns.Get();
+        var result = await _exportService.ExportAsync(dtos, columns, new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Companies"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("mine")]

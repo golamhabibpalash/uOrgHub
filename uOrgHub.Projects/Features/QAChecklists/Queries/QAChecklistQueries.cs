@@ -7,12 +7,14 @@ using uOrgHub.Projects.Models.Entities;
 using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Projects.Features.QAChecklists.Queries;
 
 public record GetQAChecklistsQuery(PaginationRequest Request, Guid? ProjectId = null, QAChecklistStatus? Status = null) : IQuery<PagedResult<QAChecklistResponseDto>>;
 public record GetQAChecklistByIdQuery(Guid Id) : IQuery<QAChecklistResponseDto>;
+public record GetAllQAChecklistsForExportQuery : IQuery<List<QAChecklistResponseDto>>;
 
 public class GetQAChecklistsQueryHandler : IRequestHandler<GetQAChecklistsQuery, PagedResult<QAChecklistResponseDto>>
 {
@@ -33,7 +35,7 @@ public class GetQAChecklistsQueryHandler : IRequestHandler<GetQAChecklistsQuery,
             query = query.Where(x => x.Status == request.Status.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.Title.Contains(request.Request.Search) || x.ChecklistNumber.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.Title, x => x.ChecklistNumber);
 
         query = request.Request.SortDescending
             ? query.OrderByDescending(x => x.CreatedAt)
@@ -68,5 +70,21 @@ public class GetQAChecklistByIdQueryHandler : IRequestHandler<GetQAChecklistById
             ?? throw new NotFoundException(nameof(QAChecklist), request.Id);
 
         return QAChecklistMapper.ToDto(entity);
+    }
+}
+
+public class GetAllQAChecklistsForExportQueryHandler : IRequestHandler<GetAllQAChecklistsForExportQuery, List<QAChecklistResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllQAChecklistsForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<QAChecklistResponseDto>> Handle(GetAllQAChecklistsForExportQuery request, CancellationToken ct)
+    {
+        return await _context.Set<QAChecklist>()
+            .Include(x => x.Items)
+            .Where(x => !x.IsDeleted)
+            .OrderBy(x => x.ChecklistNumber)
+            .Select(x => QAChecklistMapper.ToDto(x))
+            .ToListAsync(ct);
     }
 }

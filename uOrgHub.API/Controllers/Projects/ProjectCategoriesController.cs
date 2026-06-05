@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Projects.DTOs;
 using uOrgHub.Projects.Features.ProjectCategories.Commands;
 using uOrgHub.Projects.Features.ProjectCategories.Queries;
+using uOrgHub.Projects.Reporting.ExportColumns;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
@@ -14,7 +16,12 @@ namespace uOrgHub.API.Controllers.Projects;
 public class ProjectCategoriesController : BaseController
 {
     private readonly IMediator _mediator;
-    public ProjectCategoriesController(IMediator mediator) => _mediator = mediator;
+    private readonly IExportService _exportService;
+    public ProjectCategoriesController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [RequireClaim(Claims.Projects.Projects_.View)]
@@ -22,6 +29,20 @@ public class ProjectCategoriesController : BaseController
     {
         var result = await _mediator.Send(new GetProjectCategoriesQuery(request));
         return Ok(ApiResponse<PagedResult<ProjectCategoryResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Projects.ProjectCategories.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllProjectCategoriesForExportQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, ProjectCategoryExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Project Categories"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]

@@ -32,6 +32,12 @@ public class AccessLogService : IAccessLogService
         return Map(paged);
     }
 
+    public async Task<List<UserAccessLogDto>> GetAllLogsExportAsync(AccessLogFilterRequest? request = null)
+    {
+        var logs = await _repo.GetAllAsync(request);
+        return logs.Select(ToDto).ToList();
+    }
+
     public async Task<PagedResult<UserAccessLogDto>> GetUserLogsAsync(Guid userId, AccessLogFilterRequest request)
     {
         var req = request with { UserId = userId };

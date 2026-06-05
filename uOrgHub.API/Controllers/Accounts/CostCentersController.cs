@@ -3,8 +3,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Accounts.DTOs.CostCenter;
 using uOrgHub.Accounts.Features.CostCenter;
+using uOrgHub.Accounts.Reporting.ExportColumns;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Accounts;
@@ -14,7 +16,12 @@ namespace uOrgHub.API.Controllers.Accounts;
 public class CostCentersController : BaseController
 {
     private readonly IMediator _mediator;
-    public CostCentersController(IMediator mediator) => _mediator = mediator;
+    private readonly IExportService _exportService;
+    public CostCentersController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [RequireClaim(Claims.Accounts.CostCenters.View)]
@@ -22,6 +29,20 @@ public class CostCentersController : BaseController
     {
         var result = await _mediator.Send(new GetCostCentersQuery(request));
         return Ok(ApiResponse<PagedResult<CostCenterResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Accounts.CostCenters.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllCostCentersForExportQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, CostCenterExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "CostCenters"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]

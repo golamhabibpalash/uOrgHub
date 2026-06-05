@@ -4,6 +4,7 @@ using uOrgHub.Inventory.DTOs;
 using uOrgHub.Inventory.Features._Common;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Inventory.Features.Catalog.Queries;
@@ -26,7 +27,7 @@ public class GetAttributeDefinitionsQueryHandler : IRequestHandler<GetAttributeD
             query = query.Where(x => x.CategoryId == request.CategoryId.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.Name.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.Name);
 
         query = request.Request.SortDescending ? query.OrderByDescending(x => x.Name) : query.OrderBy(x => x.Name);
 
@@ -67,5 +68,33 @@ public class GetAttributeDefinitionByIdQueryHandler : IRequestHandler<GetAttribu
             IsRequired = e.IsRequired, PredefinedValues = e.PredefinedValues,
             IsActive = e.IsActive, CreatedAt = e.CreatedAt
         };
+    }
+}
+
+public record GetAllAttributeDefinitionsForExportQuery(Guid? CategoryId = null) : IRequest<List<AttributeDefinitionResponseDto>>;
+
+public class GetAllAttributeDefinitionsForExportQueryHandler : IRequestHandler<GetAllAttributeDefinitionsForExportQuery, List<AttributeDefinitionResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllAttributeDefinitionsForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<AttributeDefinitionResponseDto>> Handle(GetAllAttributeDefinitionsForExportQuery request, CancellationToken ct)
+    {
+        var query = _context.Set<Models.Entities.AttributeDefinition>()
+            .Include(x => x.Category)
+            .Where(x => !x.IsDeleted);
+
+        if (request.CategoryId.HasValue)
+            query = query.Where(x => x.CategoryId == request.CategoryId.Value);
+
+        return await query.OrderBy(x => x.Name)
+            .Select(e => new AttributeDefinitionResponseDto
+            {
+                Id = e.Id, Name = e.Name, DataType = e.DataType,
+                CategoryId = e.CategoryId, CategoryName = e.Category!.Name,
+                IsRequired = e.IsRequired, PredefinedValues = e.PredefinedValues,
+                IsActive = e.IsActive, CreatedAt = e.CreatedAt
+            })
+            .ToListAsync(ct);
     }
 }

@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Projects.DTOs;
 using uOrgHub.Projects.Features.DPR.Commands;
 using uOrgHub.Projects.Features.DPR.Queries;
+using uOrgHub.Projects.Reporting.ExportColumns;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
@@ -14,7 +16,12 @@ namespace uOrgHub.API.Controllers.Projects;
 public class DailyProgressReportsController : BaseController
 {
     private readonly IMediator _mediator;
-    public DailyProgressReportsController(IMediator mediator) => _mediator = mediator;
+    private readonly IExportService _exportService;
+    public DailyProgressReportsController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [RequireClaim(Claims.Projects.DPRs.View)]
@@ -22,6 +29,20 @@ public class DailyProgressReportsController : BaseController
     {
         var result = await _mediator.Send(new GetDPRsQuery(request, projectId));
         return Ok(ApiResponse<PagedResult<DPRResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Projects.DPRs.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllDPRsForExportQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, DPRExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "DPRs"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]

@@ -5,6 +5,7 @@ using uOrgHub.Accounts.Features._Common;
 using uOrgHub.Accounts.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Accounts.Features.Payment;
@@ -12,6 +13,7 @@ namespace uOrgHub.Accounts.Features.Payment;
 public record GetPaymentsQuery(PaginationRequest Request, Guid? CustomerId = null, Guid? VendorId = null) : IQuery<PagedResult<PaymentResponseDto>>;
 public record GetPaymentByIdQuery(Guid Id) : IQuery<PaymentResponseDto>;
 public record CreatePaymentCommand(CreatePaymentDto Dto) : ICommand<PaymentResponseDto>;
+public record GetAllPaymentsForExportQuery : IQuery<List<PaymentResponseDto>>;
 
 public class GetPaymentsQueryHandler : IRequestHandler<GetPaymentsQuery, PagedResult<PaymentResponseDto>>
 {
@@ -33,8 +35,7 @@ public class GetPaymentsQueryHandler : IRequestHandler<GetPaymentsQuery, PagedRe
             query = query.Where(x => x.VendorId == request.VendorId.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.PaymentNumber.Contains(request.Request.Search)
-                || (x.ReferenceNumber != null && x.ReferenceNumber.Contains(request.Request.Search)));
+            query = query.WhereSearch(request.Request.Search, x => x.PaymentNumber, x => x.ReferenceNumber);
 
         query = request.Request.SortDescending
             ? query.OrderByDescending(x => x.PaymentDate)
@@ -149,6 +150,24 @@ public class CreatePaymentCommandHandler : IRequestHandler<CreatePaymentCommand,
         await _context.Entry(entity).Reference(x => x.Customer).LoadAsync(ct);
         await _context.Entry(entity).Reference(x => x.Vendor).LoadAsync(ct);
         return PaymentMappingHelper.ToDto(entity);
+    }
+}
+
+public class GetAllPaymentsForExportQueryHandler : IRequestHandler<GetAllPaymentsForExportQuery, List<PaymentResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllPaymentsForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<PaymentResponseDto>> Handle(GetAllPaymentsForExportQuery request, CancellationToken ct)
+    {
+        var items = await _context.Set<Models.Entities.Payment>()
+            .Include(x => x.Customer)
+            .Include(x => x.Vendor)
+            .Include(x => x.Allocations)
+            .Where(x => !x.IsDeleted)
+            .OrderByDescending(x => x.PaymentDate)
+            .ToListAsync(ct);
+        return items.Select(PaymentMappingHelper.ToDto).ToList();
     }
 }
 

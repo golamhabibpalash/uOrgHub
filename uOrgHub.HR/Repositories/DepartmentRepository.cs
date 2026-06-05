@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using uOrgHub.HR.DTOs;
 using uOrgHub.HR.Models.Entities;
 using uOrgHub.Shared.Data;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.HR.Repositories;
@@ -23,7 +24,7 @@ public class DepartmentRepository : IDepartmentRepository
         var query = BaseQuery();
 
         if (!string.IsNullOrWhiteSpace(request.Search))
-            query = query.Where(x => x.Name.Contains(request.Search) || x.Code.Contains(request.Search));
+            query = query.WhereSearch(request.Search, x => x.Name, x => x.Code);
 
         query = request.SortDescending
             ? query.OrderByDescending(x => x.Name)

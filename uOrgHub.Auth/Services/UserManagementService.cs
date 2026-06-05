@@ -124,6 +124,28 @@ public class UserManagementService : IUserManagementService
         await _db.SaveChangesAsync();
     }
 
+    public async Task<List<UserDto>> GetAllUsersExportAsync()
+    {
+        var users = await _db.Set<ApplicationUser>()
+            .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
+            .Where(u => !u.IsDeleted)
+            .OrderBy(u => u.FirstName)
+            .ToListAsync();
+
+        return users.Select(u =>
+        {
+            var roles = u.UserRoles.Where(ur => !ur.Role.IsDeleted).Select(ur => ur.Role.Name).ToList();
+            return new UserDto(
+                u.Id, u.Username, u.Email, u.PhoneNumber,
+                u.FirstName, u.LastName, $"{u.FirstName} {u.LastName}",
+                u.EmployeeId, u.IsActive, u.IsTwoFactorEnabled, u.TwoFactorMethod,
+                u.FailedLoginAttempts, u.IsLockedOut, u.LastLoginAt,
+                u.ProfilePicture, roles, new List<string>(),
+                u.CreatedAt, u.UpdatedAt
+            );
+        }).ToList();
+    }
+
     public async Task<PagedResult<UserDto>> GetUsersAsync(PaginationRequest request)
     {
         var query = _db.Set<ApplicationUser>()

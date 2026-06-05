@@ -4,6 +4,7 @@ using uOrgHub.Inventory.DTOs;
 using uOrgHub.Inventory.Features._Common;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Inventory.Features.Items.Queries;
@@ -29,7 +30,7 @@ public class GetItemsQueryHandler : IRequestHandler<GetItemsQuery, PagedResult<I
         if (request.TypeId.HasValue) query = query.Where(x => x.TypeId == request.TypeId.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.BaseName.Contains(request.Request.Search) || (x.ItemCode != null && x.ItemCode.Contains(request.Request.Search)));
+            query = query.WhereSearch(request.Request.Search, x => x.BaseName, x => x.ItemCode);
 
         query = request.Request.SortDescending ? query.OrderByDescending(x => x.BaseName) : query.OrderBy(x => x.BaseName);
 
@@ -76,7 +77,7 @@ public class GetAllItemsQueryHandler : IRequestHandler<GetAllItemsQuery, List<It
         if (request.TypeId.HasValue) query = query.Where(x => x.TypeId == request.TypeId.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Search))
-            query = query.Where(x => x.BaseName.Contains(request.Search) || (x.ItemCode != null && x.ItemCode.Contains(request.Search)));
+            query = query.WhereSearch(request.Search, x => x.BaseName, x => x.ItemCode);
 
         query = query.OrderBy(x => x.BaseName);
         var items = await query.ToListAsync(ct);

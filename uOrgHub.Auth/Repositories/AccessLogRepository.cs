@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using uOrgHub.Auth.DTOs;
 using uOrgHub.Auth.Models.Entities;
 using uOrgHub.Shared.Data;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Auth.Repositories;
@@ -32,6 +33,31 @@ public class AccessLogRepository : IAccessLogRepository
         var page = Math.Max(1, request.Page);
         var pageSize = Math.Clamp(request.PageSize, 1, MaxPageSize);
 
+        var query = BuildFilteredQuery(request);
+
+        var total = await query.CountAsync();
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return new PagedResult<UserAccessLog>
+        {
+            Items = items,
+            TotalCount = total,
+            Page = page,
+            PageSize = pageSize
+        };
+    }
+
+    public async Task<List<UserAccessLog>> GetAllAsync(AccessLogFilterRequest? filter = null)
+    {
+        var query = filter != null ? BuildFilteredQuery(filter) : _db.Set<UserAccessLog>().AsQueryable();
+        return await query.OrderByDescending(l => l.CreatedAt).ToListAsync();
+    }
+
+    private IQueryable<UserAccessLog> BuildFilteredQuery(AccessLogFilterRequest request)
+    {
         var query = _db.Set<UserAccessLog>().AsQueryable();
 
         if (request.UserId.HasValue)
@@ -77,12 +103,7 @@ public class AccessLogRepository : IAccessLogRepository
             query = query.Where(l => l.CreatedAt <= request.DateTo.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Search))
-            query = query.Where(l =>
-                (l.Username != null && l.Username.Contains(request.Search)) ||
-                (l.Action.Contains(request.Search)) ||
-                (l.Module != null && l.Module.Contains(request.Search)) ||
-                (l.Endpoint != null && l.Endpoint.Contains(request.Search)) ||
-                (l.IpAddress != null && l.IpAddress.Contains(request.Search)));
+            query = query.WhereSearch(request.Search, l => l.Username, l => l.Action, l => l.Module, l => l.Endpoint, l => l.IpAddress);
 
         query = (request.SortBy?.ToLowerInvariant()) switch
         {
@@ -104,19 +125,7 @@ public class AccessLogRepository : IAccessLogRepository
                 ? query.OrderByDescending(l => l.CreatedAt) : query.OrderBy(l => l.CreatedAt),
         };
 
-        var total = await query.CountAsync();
-        var items = await query
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
-
-        return new PagedResult<UserAccessLog>
-        {
-            Items = items,
-            TotalCount = total,
-            Page = page,
-            PageSize = pageSize
-        };
+        return query;
     }
 
     public async Task<AccessLogSummaryDto> GetSummaryAsync(DateTime fromUtc, CancellationToken ct = default)

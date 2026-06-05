@@ -13,6 +13,7 @@ using uOrgHub.Projects.Models.Entities;
 using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Projects.Features.Projects.Queries;
@@ -27,6 +28,7 @@ public record GetProjectMilestonesQuery(Guid ProjectId) : IQuery<List<ProjectMil
 public record GetProjectDPRsQuery(Guid ProjectId, PaginationRequest Request) : IQuery<PagedResult<DPRResponseDto>>;
 public record GetProjectExpensesQuery(Guid ProjectId, PaginationRequest Request) : IQuery<PagedResult<ProjectExpenseResponseDto>>;
 public record GetProjectWBSTreeQuery(Guid ProjectId) : IQuery<List<WBSResponseDto>>;
+public record GetAllProjectsForExportQuery : IQuery<List<ProjectResponseDto>>;
 
 public class GetProjectsQueryHandler : IRequestHandler<GetProjectsQuery, PagedResult<ProjectResponseDto>>
 {
@@ -48,8 +50,7 @@ public class GetProjectsQueryHandler : IRequestHandler<GetProjectsQuery, PagedRe
             query = query.Where(x => x.ClientId == request.ClientId.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.ProjectName.Contains(request.Request.Search)
-                || x.ProjectCode.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.ProjectName, x => x.ProjectCode);
 
         query = request.Request.SortDescending
             ? query.OrderByDescending(x => x.CreatedAt)
@@ -369,5 +370,22 @@ public class GetProjectWBSTreeQueryHandler : IRequestHandler<GetProjectWBSTreeQu
                 return dto;
             })
             .ToList();
+    }
+}
+
+public class GetAllProjectsForExportQueryHandler : IRequestHandler<GetAllProjectsForExportQuery, List<ProjectResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllProjectsForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<ProjectResponseDto>> Handle(GetAllProjectsForExportQuery request, CancellationToken ct)
+    {
+        return await _context.Set<Project>()
+            .Include(x => x.Client)
+            .Include(x => x.Category)
+            .Where(x => !x.IsDeleted)
+            .OrderBy(x => x.ProjectName)
+            .Select(x => ProjectMapper.ToDto(x, x.Client.CompanyName, x.Category.Name))
+            .ToListAsync(ct);
     }
 }

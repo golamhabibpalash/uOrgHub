@@ -6,6 +6,8 @@ using uOrgHub.Auth.Authorization;
 using uOrgHub.HR.DTOs;
 using uOrgHub.HR.Features.CoreHR.Commands;
 using uOrgHub.HR.Features.CoreHR.Queries;
+using uOrgHub.HR.Reporting.ExportColumns;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.HR;
@@ -15,8 +17,13 @@ namespace uOrgHub.API.Controllers.HR;
 public class DesignationController : BaseController
 {
     private readonly IMediator _mediator;
+    private readonly IExportService _exportService;
 
-    public DesignationController(IMediator mediator) => _mediator = mediator;
+    public DesignationController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [RequireClaim(Claims.HR.Designations.View)]
@@ -24,6 +31,20 @@ public class DesignationController : BaseController
     {
         var result = await _mediator.Send(new GetDesignationsQuery(request, departmentId));
         return Ok(ApiResponse<PagedResult<DesignationResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.HR.Designations.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllDesignationsQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, DesignationExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Designations"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("all")]

@@ -4,6 +4,7 @@ using uOrgHub.Accounts.DTOs.CostCenter;
 using uOrgHub.Accounts.Features._Common;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Accounts.Features.CostCenter;
@@ -13,6 +14,7 @@ public record GetCostCenterByIdQuery(Guid Id) : IQuery<CostCenterResponseDto>;
 public record CreateCostCenterCommand(CreateCostCenterDto Dto) : ICommand<CostCenterResponseDto>;
 public record UpdateCostCenterCommand(Guid Id, UpdateCostCenterDto Dto) : ICommand<CostCenterResponseDto>;
 public record DeleteCostCenterCommand(Guid Id) : ICommand<Unit>;
+public record GetAllCostCentersForExportQuery : IQuery<List<CostCenterResponseDto>>;
 
 public class GetCostCentersQueryHandler : IRequestHandler<GetCostCentersQuery, PagedResult<CostCenterResponseDto>>
 {
@@ -26,7 +28,7 @@ public class GetCostCentersQueryHandler : IRequestHandler<GetCostCentersQuery, P
             .Where(x => !x.IsDeleted);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.Name.Contains(request.Request.Search) || x.Code.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.Name, x => x.Code);
 
         query = request.Request.SortDescending
             ? query.OrderByDescending(x => x.Name)
@@ -135,6 +137,22 @@ public class DeleteCostCenterCommandHandler : IRequestHandler<DeleteCostCenterCo
         entity.DeletedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(ct);
         return Unit.Value;
+    }
+}
+
+public class GetAllCostCentersForExportQueryHandler : IRequestHandler<GetAllCostCentersForExportQuery, List<CostCenterResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllCostCentersForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<CostCenterResponseDto>> Handle(GetAllCostCentersForExportQuery request, CancellationToken ct)
+    {
+        var items = await _context.Set<Models.Entities.CostCenter>()
+            .Include(x => x.ParentCostCenter)
+            .Where(x => !x.IsDeleted)
+            .OrderBy(x => x.Name)
+            .ToListAsync(ct);
+        return items.Select(CostCenterMappingHelper.ToDto).ToList();
     }
 }
 

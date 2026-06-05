@@ -7,12 +7,14 @@ using uOrgHub.Projects.Models.Entities;
 using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Projects.Features.ProjectMilestones.Queries;
 
 public record GetProjectMilestonesListQuery(Guid ProjectId, PaginationRequest Request, MilestoneStatus? Status = null) : IQuery<PagedResult<ProjectMilestoneResponseDto>>;
 public record GetProjectMilestoneByIdQuery(Guid Id) : IQuery<ProjectMilestoneResponseDto>;
+public record GetAllProjectMilestonesForExportQuery : IQuery<List<ProjectMilestoneResponseDto>>;
 
 public class GetProjectMilestonesListQueryHandler : IRequestHandler<GetProjectMilestonesListQuery, PagedResult<ProjectMilestoneResponseDto>>
 {
@@ -29,7 +31,7 @@ public class GetProjectMilestonesListQueryHandler : IRequestHandler<GetProjectMi
             query = query.Where(x => x.Status == request.Status.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.Title.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.Title);
 
         query = request.Request.SortDescending
             ? query.OrderByDescending(x => x.PlannedDate)
@@ -63,5 +65,20 @@ public class GetProjectMilestoneByIdQueryHandler : IRequestHandler<GetProjectMil
             ?? throw new NotFoundException(nameof(ProjectMilestone), request.Id);
 
         return MilestoneMapper.ToDto(entity);
+    }
+}
+
+public class GetAllProjectMilestonesForExportQueryHandler : IRequestHandler<GetAllProjectMilestonesForExportQuery, List<ProjectMilestoneResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllProjectMilestonesForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<ProjectMilestoneResponseDto>> Handle(GetAllProjectMilestonesForExportQuery request, CancellationToken ct)
+    {
+        return await _context.Set<ProjectMilestone>()
+            .Where(x => !x.IsDeleted)
+            .OrderBy(x => x.Title)
+            .Select(x => MilestoneMapper.ToDto(x))
+            .ToListAsync(ct);
     }
 }

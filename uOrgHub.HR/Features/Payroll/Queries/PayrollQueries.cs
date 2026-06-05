@@ -4,15 +4,21 @@ using uOrgHub.HR.DTOs.Payroll;
 using uOrgHub.HR.Features._Common;
 using uOrgHub.HR.Models.Entities;
 using uOrgHub.Shared.Data;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.HR.Features.Payroll.Queries;
 
 public record GetSalaryGradesQuery(PaginationRequest Request) : IQuery<PagedResult<SalaryGradeResponseDto>>;
+public record GetAllSalaryGradesQuery : IQuery<List<SalaryGradeResponseDto>>;
 public record GetSalaryComponentsQuery(PaginationRequest Request) : IQuery<PagedResult<SalaryComponentResponseDto>>;
+public record GetAllSalaryComponentsQuery : IQuery<List<SalaryComponentResponseDto>>;
 public record GetPayrollCyclesQuery(PaginationRequest Request) : IQuery<PagedResult<PayrollCycleResponseDto>>;
+public record GetAllPayrollCyclesQuery : IQuery<List<PayrollCycleResponseDto>>;
 public record GetPayrollEntriesQuery(Guid PayrollCycleId, PaginationRequest Request) : IQuery<PagedResult<PayrollEntryResponseDto>>;
+public record GetAllPayrollEntriesQuery(Guid PayrollCycleId) : IQuery<List<PayrollEntryResponseDto>>;
 public record GetExpenseRequestsQuery(PaginationRequest Request, Guid? EmployeeId = null) : IQuery<PagedResult<ExpenseRequestResponseDto>>;
+public record GetAllExpenseRequestsQuery : IQuery<List<ExpenseRequestResponseDto>>;
 
 public class GetSalaryGradesQueryHandler : IRequestHandler<GetSalaryGradesQuery, PagedResult<SalaryGradeResponseDto>>
 {
@@ -23,7 +29,7 @@ public class GetSalaryGradesQueryHandler : IRequestHandler<GetSalaryGradesQuery,
     {
         var query = _context.Set<SalaryGrade>().Where(x => !x.IsDeleted);
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.Name.Contains(request.Request.Search) || x.GradeCode.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.Name, x => x.GradeCode);
 
         var totalCount = await query.CountAsync(ct);
         var items = await query.OrderBy(x => x.GradeCode)
@@ -40,6 +46,26 @@ public class GetSalaryGradesQueryHandler : IRequestHandler<GetSalaryGradesQuery,
             }).ToList(),
             TotalCount = totalCount, Page = request.Request.Page, PageSize = request.Request.PageSize
         };
+    }
+}
+
+public class GetAllSalaryGradesQueryHandler : IRequestHandler<GetAllSalaryGradesQuery, List<SalaryGradeResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllSalaryGradesQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<SalaryGradeResponseDto>> Handle(GetAllSalaryGradesQuery request, CancellationToken ct)
+    {
+        var items = await _context.Set<SalaryGrade>()
+            .Where(x => !x.IsDeleted)
+            .OrderBy(x => x.GradeCode)
+            .Select(x => new SalaryGradeResponseDto
+            {
+                Id = x.Id, GradeCode = x.GradeCode, Name = x.Name,
+                MinSalary = x.MinSalary, MaxSalary = x.MaxSalary,
+                Description = x.Description, IsActive = x.IsActive, CreatedAt = x.CreatedAt
+            }).ToListAsync(ct);
+        return items;
     }
 }
 
@@ -70,6 +96,27 @@ public class GetSalaryComponentsQueryHandler : IRequestHandler<GetSalaryComponen
     }
 }
 
+public class GetAllSalaryComponentsQueryHandler : IRequestHandler<GetAllSalaryComponentsQuery, List<SalaryComponentResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllSalaryComponentsQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<SalaryComponentResponseDto>> Handle(GetAllSalaryComponentsQuery request, CancellationToken ct)
+    {
+        var items = await _context.Set<SalaryComponent>()
+            .Where(x => !x.IsDeleted)
+            .OrderBy(x => x.SortOrder).ThenBy(x => x.Name)
+            .Select(x => new SalaryComponentResponseDto
+            {
+                Id = x.Id, Name = x.Name, Code = x.Code, ComponentType = x.ComponentType,
+                CalculationType = x.CalculationType, DefaultValue = x.DefaultValue,
+                IsTaxable = x.IsTaxable, IsFixed = x.IsFixed, IsActive = x.IsActive,
+                SortOrder = x.SortOrder, Description = x.Description, CreatedAt = x.CreatedAt
+            }).ToListAsync(ct);
+        return items;
+    }
+}
+
 public class GetPayrollCyclesQueryHandler : IRequestHandler<GetPayrollCyclesQuery, PagedResult<PayrollCycleResponseDto>>
 {
     private readonly AppDbContext _context;
@@ -95,6 +142,28 @@ public class GetPayrollCyclesQueryHandler : IRequestHandler<GetPayrollCyclesQuer
             }).ToList(),
             TotalCount = totalCount, Page = request.Request.Page, PageSize = request.Request.PageSize
         };
+    }
+}
+
+public class GetAllPayrollCyclesQueryHandler : IRequestHandler<GetAllPayrollCyclesQuery, List<PayrollCycleResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllPayrollCyclesQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<PayrollCycleResponseDto>> Handle(GetAllPayrollCyclesQuery request, CancellationToken ct)
+    {
+        var items = await _context.Set<PayrollCycle>()
+            .Where(x => !x.IsDeleted)
+            .OrderByDescending(x => x.Year).ThenByDescending(x => x.Month)
+            .Select(x => new PayrollCycleResponseDto
+            {
+                Id = x.Id, Year = x.Year, Month = x.Month, Title = x.Title,
+                StartDate = x.StartDate, EndDate = x.EndDate, ProcessedDate = x.ProcessedDate,
+                Status = x.Status, TotalBasic = x.TotalBasic, TotalAllowances = x.TotalAllowances,
+                TotalDeductions = x.TotalDeductions, TotalNetPay = x.TotalNetPay,
+                TotalEmployees = x.TotalEmployees, Remarks = x.Remarks, CreatedAt = x.CreatedAt
+            }).ToListAsync(ct);
+        return items;
     }
 }
 
@@ -134,6 +203,34 @@ public class GetPayrollEntriesQueryHandler : IRequestHandler<GetPayrollEntriesQu
     }
 }
 
+public class GetAllPayrollEntriesQueryHandler : IRequestHandler<GetAllPayrollEntriesQuery, List<PayrollEntryResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllPayrollEntriesQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<PayrollEntryResponseDto>> Handle(GetAllPayrollEntriesQuery request, CancellationToken ct)
+    {
+        var items = await _context.Set<PayrollEntry>()
+            .Include(x => x.Employee)
+            .Where(x => !x.IsDeleted && x.PayrollCycleId == request.PayrollCycleId)
+            .OrderBy(x => x.Employee.EmployeeCode)
+            .Select(x => new PayrollEntryResponseDto
+            {
+                Id = x.Id, PayrollCycleId = x.PayrollCycleId, EmployeeId = x.EmployeeId,
+                EmployeeName = x.Employee != null ? $"{x.Employee.FirstName} {x.Employee.LastName}" : string.Empty,
+                EmployeeCode = x.Employee != null ? x.Employee.EmployeeCode : string.Empty,
+                GrossSalary = x.GrossSalary, BasicSalary = x.BasicSalary,
+                TotalAllowances = x.TotalAllowances, TotalDeductions = x.TotalDeductions,
+                TaxAmount = x.TaxAmount, NetSalary = x.NetSalary,
+                OvertimePay = x.OvertimePay, BonusAmount = x.BonusAmount,
+                TotalWorkingDays = x.TotalWorkingDays, PresentDays = x.PresentDays,
+                AbsentDays = x.AbsentDays, LeaveDays = x.LeaveDays,
+                OvertimeHours = x.OvertimeHours, Status = x.Status, PayslipPath = x.PayslipPath
+            }).ToListAsync(ct);
+        return items;
+    }
+}
+
 public class GetExpenseRequestsQueryHandler : IRequestHandler<GetExpenseRequestsQuery, PagedResult<ExpenseRequestResponseDto>>
 {
     private readonly AppDbContext _context;
@@ -167,5 +264,31 @@ public class GetExpenseRequestsQueryHandler : IRequestHandler<GetExpenseRequests
             }).ToList(),
             TotalCount = totalCount, Page = request.Request.Page, PageSize = request.Request.PageSize
         };
+    }
+}
+
+public class GetAllExpenseRequestsQueryHandler : IRequestHandler<GetAllExpenseRequestsQuery, List<ExpenseRequestResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllExpenseRequestsQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<ExpenseRequestResponseDto>> Handle(GetAllExpenseRequestsQuery request, CancellationToken ct)
+    {
+        var items = await _context.Set<ExpenseRequest>()
+            .Include(x => x.Employee).Include(x => x.Approver)
+            .Where(x => !x.IsDeleted)
+            .OrderByDescending(x => x.ExpenseDate)
+            .Select(x => new ExpenseRequestResponseDto
+            {
+                Id = x.Id, EmployeeId = x.EmployeeId,
+                EmployeeName = x.Employee != null ? $"{x.Employee.FirstName} {x.Employee.LastName}" : string.Empty,
+                Category = x.Category, Amount = x.Amount, ExpenseDate = x.ExpenseDate,
+                Description = x.Description, ReceiptFilePath = x.ReceiptFilePath, Status = x.Status,
+                ApproverId = x.ApproverId,
+                ApproverName = x.Approver != null ? $"{x.Approver.FirstName} {x.Approver.LastName}" : null,
+                ApprovedAt = x.ApprovedAt, PaidAt = x.PaidAt, RejectionReason = x.RejectionReason,
+                CreatedAt = x.CreatedAt
+            }).ToListAsync(ct);
+        return items;
     }
 }

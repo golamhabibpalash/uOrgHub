@@ -7,11 +7,13 @@ using uOrgHub.Procurement.Models.Entities;
 using uOrgHub.Procurement.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Procurement.Features.VendorQuotations.Queries;
 
 public record GetQuotationsQuery(PaginationRequest Request, QuotationStatus? Status = null) : IQuery<PagedResult<VendorQuotationResponseDto>>;
+public record GetAllQuotationsForExportQuery(QuotationStatus? Status = null) : IQuery<List<VendorQuotationResponseDto>>;
 public record GetQuotationByIdQuery(Guid Id) : IQuery<VendorQuotationResponseDto>;
 
 public class GetQuotationsQueryHandler : IRequestHandler<GetQuotationsQuery, PagedResult<VendorQuotationResponseDto>>
@@ -30,7 +32,7 @@ public class GetQuotationsQueryHandler : IRequestHandler<GetQuotationsQuery, Pag
         if (request.Status.HasValue) query = query.Where(x => x.Status == request.Status.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.QuotationNumber.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.QuotationNumber);
 
         query = request.Request.SortDescending ? query.OrderByDescending(x => x.QuotationDate) : query.OrderBy(x => x.QuotationDate);
 
@@ -65,6 +67,33 @@ public class GetQuotationsQueryHandler : IRequestHandler<GetQuotationsQuery, Pag
             QuotedQuantity = item.QuotedQuantity, UnitPrice = item.UnitPrice, TotalPrice = item.TotalPrice, Notes = item.Notes
         }).ToList()
     };
+}
+
+public class GetAllQuotationsForExportQueryHandler : IRequestHandler<GetAllQuotationsForExportQuery, List<VendorQuotationResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllQuotationsForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<VendorQuotationResponseDto>> Handle(GetAllQuotationsForExportQuery request, CancellationToken ct)
+    {
+        var query = _context.Set<VendorQuotation>()
+            .Include(x => x.Items)
+            .Include(x => x.Vendor)
+            .Include(x => x.RequestForQuotation)
+            .Where(x => !x.IsDeleted);
+
+        if (request.Status.HasValue) query = query.Where(x => x.Status == request.Status.Value);
+
+        query = query.OrderBy(x => x.QuotationDate);
+
+        var items = await query.ToListAsync(ct);
+
+        var variantIds = items.SelectMany(x => x.Items.Select(i => i.ItemVariantId)).Distinct().ToList();
+        var variantsList = await _context.Set<ItemVariant>().Where(x => variantIds.Contains(x.Id)).ToListAsync(ct);
+        var variants = variantsList.ToDictionary(x => x.Id, x => (dynamic)new VariantInfo(x.SKU, x.VariantName));
+
+        return items.Select(q => GetQuotationsQueryHandler.BuildDto(q, variants)).ToList();
+    }
 }
 
 public class GetQuotationByIdQueryHandler : IRequestHandler<GetQuotationByIdQuery, VendorQuotationResponseDto>

@@ -5,6 +5,8 @@ using uOrgHub.Projects.DTOs;
 using uOrgHub.Projects.Features.NCRs.Commands;
 using uOrgHub.Projects.Features.NCRs.Queries;
 using uOrgHub.Projects.Models.Enums;
+using uOrgHub.Projects.Reporting.ExportColumns;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
@@ -15,7 +17,12 @@ namespace uOrgHub.API.Controllers.Projects;
 public class NCRsController : BaseController
 {
     private readonly IMediator _mediator;
-    public NCRsController(IMediator mediator) => _mediator = mediator;
+    private readonly IExportService _exportService;
+    public NCRsController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [RequireClaim(Claims.Projects.NCRs.View)]
@@ -25,6 +32,20 @@ public class NCRsController : BaseController
     {
         var result = await _mediator.Send(new GetNCRsQuery(request, projectId, status, severity));
         return Ok(ApiResponse<PagedResult<NCRResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Projects.NCRs.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllNCRsForExportQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, NCRExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "NCRs"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]

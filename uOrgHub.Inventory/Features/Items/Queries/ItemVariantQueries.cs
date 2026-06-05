@@ -4,6 +4,7 @@ using uOrgHub.Inventory.DTOs;
 using uOrgHub.Inventory.Features._Common;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Inventory.Features.Items.Queries;
@@ -26,7 +27,7 @@ public class GetItemVariantsQueryHandler : IRequestHandler<GetItemVariantsQuery,
         if (request.ItemId.HasValue) query = query.Where(x => x.ItemId == request.ItemId.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.SKU.Contains(request.Request.Search) || x.VariantName.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.SKU, x => x.VariantName);
 
         query = request.Request.SortDescending ? query.OrderByDescending(x => x.SKU) : query.OrderBy(x => x.SKU);
 
@@ -82,4 +83,40 @@ public class GetItemVariantByIdQueryHandler : IRequestHandler<GetItemVariantById
             CreatedAt = e.CreatedAt
         };
     }
+}
+
+public record GetAllItemVariantsForExportQuery(Guid? ItemId = null) : IRequest<List<ItemVariantResponseDto>>;
+
+public class GetAllItemVariantsForExportQueryHandler : IRequestHandler<GetAllItemVariantsForExportQuery, List<ItemVariantResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllItemVariantsForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<ItemVariantResponseDto>> Handle(GetAllItemVariantsForExportQuery request, CancellationToken ct)
+    {
+        var query = _context.Set<Models.Entities.ItemVariant>()
+            .Include(x => x.Item)
+            .Include(x => x.Attributes).ThenInclude(x => x.AttributeDefinition)
+            .Where(x => !x.IsDeleted);
+
+        if (request.ItemId.HasValue) query = query.Where(x => x.ItemId == request.ItemId.Value);
+
+        var items = await query.OrderBy(x => x.SKU).ToListAsync(ct);
+
+        return items.Select(MapToDto).ToList();
+    }
+
+    private static ItemVariantResponseDto MapToDto(Models.Entities.ItemVariant e) => new()
+    {
+        Id = e.Id, ItemId = e.ItemId, ItemBaseName = e.Item?.BaseName ?? string.Empty,
+        SKU = e.SKU, VariantName = e.VariantName, Barcode = e.Barcode,
+        CostPrice = e.CostPrice, SellingPrice = e.SellingPrice,
+        IsDefault = e.IsDefault, IsActive = e.IsActive, AttributeHash = e.AttributeHash,
+        Attributes = e.Attributes.Where(a => !a.IsDeleted).Select(a => new VariantAttributeResponseDto
+        {
+            Id = a.Id, AttributeDefinitionId = a.AttributeDefinitionId,
+            AttributeName = a.AttributeDefinition?.Name ?? string.Empty, Value = a.Value
+        }).ToList(),
+        CreatedAt = e.CreatedAt
+    };
 }

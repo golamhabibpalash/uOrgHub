@@ -4,8 +4,10 @@ using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Accounts.DTOs.AP;
 using uOrgHub.Accounts.Features.AP;
 using uOrgHub.Accounts.Models.Enums;
+using uOrgHub.Accounts.Reporting.ExportColumns;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Accounts;
@@ -15,7 +17,12 @@ namespace uOrgHub.API.Controllers.Accounts;
 public class BillsController : BaseController
 {
     private readonly IMediator _mediator;
-    public BillsController(IMediator mediator) => _mediator = mediator;
+    private readonly IExportService _exportService;
+    public BillsController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [RequireClaim(Claims.Accounts.Bills.View)]
@@ -23,6 +30,20 @@ public class BillsController : BaseController
     {
         var result = await _mediator.Send(new GetBillsQuery(request, vendorId, status));
         return Ok(ApiResponse<PagedResult<BillResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Accounts.Bills.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllBillsForExportQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, BillExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Bills"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]

@@ -5,6 +5,8 @@ using uOrgHub.Projects.DTOs;
 using uOrgHub.Projects.Features.ResourceAllocations.Commands;
 using uOrgHub.Projects.Features.ResourceAllocations.Queries;
 using uOrgHub.Projects.Models.Enums;
+using uOrgHub.Projects.Reporting.ExportColumns;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
@@ -15,7 +17,12 @@ namespace uOrgHub.API.Controllers.Projects;
 public class ResourceAllocationsController : BaseController
 {
     private readonly IMediator _mediator;
-    public ResourceAllocationsController(IMediator mediator) => _mediator = mediator;
+    private readonly IExportService _exportService;
+    public ResourceAllocationsController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [RequireClaim(Claims.Projects.ResourceAllocations.View)]
@@ -25,6 +32,20 @@ public class ResourceAllocationsController : BaseController
     {
         var result = await _mediator.Send(new GetResourceAllocationsQuery(request, projectId, resourceType, status));
         return Ok(ApiResponse<PagedResult<ResourceAllocationResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Projects.ResourceAllocations.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllResourceAllocationsForExportQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, ResourceAllocationExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Resource Allocations"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]

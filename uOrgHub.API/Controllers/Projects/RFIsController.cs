@@ -5,6 +5,8 @@ using uOrgHub.Projects.DTOs;
 using uOrgHub.Projects.Features.RFIs.Commands;
 using uOrgHub.Projects.Features.RFIs.Queries;
 using uOrgHub.Projects.Models.Enums;
+using uOrgHub.Projects.Reporting.ExportColumns;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
@@ -15,7 +17,12 @@ namespace uOrgHub.API.Controllers.Projects;
 public class RFIsController : BaseController
 {
     private readonly IMediator _mediator;
-    public RFIsController(IMediator mediator) => _mediator = mediator;
+    private readonly IExportService _exportService;
+    public RFIsController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [RequireClaim(Claims.Projects.RFIs.View)]
@@ -24,6 +31,20 @@ public class RFIsController : BaseController
     {
         var result = await _mediator.Send(new GetRFIsQuery(request, projectId, status));
         return Ok(ApiResponse<PagedResult<RFIResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Projects.RFIs.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllRFIsForExportQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, RFIExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "RFIs"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]

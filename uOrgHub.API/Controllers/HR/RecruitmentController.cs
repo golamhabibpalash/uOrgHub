@@ -7,6 +7,8 @@ using uOrgHub.HR.DTOs.Recruitment;
 using uOrgHub.HR.Features.Recruitment.Commands;
 using uOrgHub.HR.Features.Recruitment.Queries;
 using uOrgHub.HR.Models.Enums;
+using uOrgHub.HR.Reporting.ExportColumns;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.HR;
@@ -16,8 +18,13 @@ namespace uOrgHub.API.Controllers.HR;
 public class RecruitmentController : BaseController
 {
     private readonly IMediator _mediator;
+    private readonly IExportService _exportService;
 
-    public RecruitmentController(IMediator mediator) => _mediator = mediator;
+    public RecruitmentController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet("job-postings")]
     [RequireClaim(Claims.HR.JobPostings.View)]
@@ -25,6 +32,20 @@ public class RecruitmentController : BaseController
     {
         var result = await _mediator.Send(new GetJobPostingsQuery(request, status));
         return Ok(ApiResponse<PagedResult<JobPostingResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("job-postings/export")]
+    [RequireClaim(Claims.HR.JobPostings.Export)]
+    public async Task<IActionResult> ExportJobPostings([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllJobPostingsQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, JobPostingExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Job Postings"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpPost("job-postings")]
@@ -51,6 +72,20 @@ public class RecruitmentController : BaseController
         return Ok(ApiResponse<PagedResult<CandidateResponseDto>>.Ok(result));
     }
 
+    [HttpGet("candidates/export")]
+    [RequireClaim(Claims.HR.Candidates.Export)]
+    public async Task<IActionResult> ExportCandidates([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllCandidatesQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, CandidateExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Candidates"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
+    }
+
     [HttpPost("candidates")]
     [RequireClaim(Claims.HR.Candidates.Create)]
     public async Task<IActionResult> CreateCandidate([FromBody] CreateCandidateDto dto)
@@ -65,6 +100,20 @@ public class RecruitmentController : BaseController
     {
         var result = await _mediator.Send(new GetJobApplicationsQuery(request, jobPostingId));
         return Ok(ApiResponse<PagedResult<JobApplicationResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("applications/export")]
+    [RequireClaim(Claims.HR.Applications.Export)]
+    public async Task<IActionResult> ExportApplications([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllJobApplicationsQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, JobApplicationExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Applications"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpPost("applications")]
@@ -91,6 +140,20 @@ public class RecruitmentController : BaseController
         return Ok(ApiResponse<PagedResult<InterviewScheduleResponseDto>>.Ok(result));
     }
 
+    [HttpGet("interviews/export")]
+    [RequireClaim(Claims.HR.Interviews.Export)]
+    public async Task<IActionResult> ExportInterviews([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllInterviewSchedulesQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, InterviewScheduleExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Interviews"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
+    }
+
     [HttpPost("interviews")]
     [RequireClaim(Claims.HR.Interviews.Create)]
     public async Task<IActionResult> ScheduleInterview([FromBody] CreateInterviewScheduleDto dto)
@@ -107,6 +170,20 @@ public class RecruitmentController : BaseController
         return Ok(ApiResponse<PagedResult<OnboardingChecklistResponseDto>>.Ok(result));
     }
 
+    [HttpGet("onboarding-checklists/export")]
+    [RequireClaim(Claims.HR.OnboardingChecklists.Export)]
+    public async Task<IActionResult> ExportChecklists([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllOnboardingChecklistsQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, OnboardingChecklistExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Onboarding Checklists"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
+    }
+
     [HttpPost("onboarding-checklists")]
     [RequireClaim(Claims.HR.Applications.Edit)]
     public async Task<IActionResult> CreateChecklist([FromBody] CreateOnboardingChecklistDto dto)
@@ -121,6 +198,20 @@ public class RecruitmentController : BaseController
     {
         var result = await _mediator.Send(new GetEmployeeOnboardingsQuery(request, employeeId));
         return Ok(ApiResponse<PagedResult<EmployeeOnboardingResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("employee-onboardings/export")]
+    [RequireClaim(Claims.HR.EmployeeOnboardings.Export)]
+    public async Task<IActionResult> ExportEmployeeOnboardings([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllEmployeeOnboardingsQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, EmployeeOnboardingExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Employee Onboardings"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpPost("employee-onboardings")]

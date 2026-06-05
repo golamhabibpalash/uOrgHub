@@ -7,6 +7,8 @@ using uOrgHub.Procurement.DTOs;
 using uOrgHub.Procurement.Features.RequestForQuotations.Commands;
 using uOrgHub.Procurement.Features.RequestForQuotations.Queries;
 using uOrgHub.Procurement.Models.Enums;
+using uOrgHub.Procurement.Reporting.ExportColumns;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Procurement;
@@ -15,7 +17,12 @@ namespace uOrgHub.API.Controllers.Procurement;
 public class RFQsController : BaseController
 {
     private readonly IMediator _mediator;
-    public RFQsController(IMediator mediator) => _mediator = mediator;
+    private readonly IExportService _exportService;
+    public RFQsController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [RequireClaim(Claims.Procurement.RFQs.View)]
@@ -23,6 +30,20 @@ public class RFQsController : BaseController
     {
         var result = await _mediator.Send(new GetRFQsQuery(request, status));
         return Ok(ApiResponse<PagedResult<RFQResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Procurement.RFQs.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx", [FromQuery] RFQStatus? status = null)
+    {
+        var data = await _mediator.Send(new GetAllRFQsForExportQuery(status));
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, RFQExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "RFQs"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]

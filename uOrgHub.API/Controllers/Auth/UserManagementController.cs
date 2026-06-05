@@ -2,8 +2,11 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using uOrgHub.API.Middleware;
+using uOrgHub.Auth.Authorization;
 using uOrgHub.Auth.DTOs;
+using uOrgHub.Auth.Reporting.ExportColumns;
 using uOrgHub.Auth.Services;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Auth;
@@ -16,12 +19,14 @@ public class UserManagementController : ControllerBase
     private readonly IUserManagementService _userManagement;
     private readonly IAuthService _authService;
     private readonly IAccessLogService _accessLogService;
+    private readonly IExportService _exportService;
 
-    public UserManagementController(IUserManagementService userManagement, IAuthService authService, IAccessLogService accessLogService)
+    public UserManagementController(IUserManagementService userManagement, IAuthService authService, IAccessLogService accessLogService, IExportService exportService)
     {
         _userManagement = userManagement;
         _authService = authService;
         _accessLogService = accessLogService;
+        _exportService = exportService;
     }
 
     private string GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
@@ -33,6 +38,20 @@ public class UserManagementController : ControllerBase
     {
         var result = await _userManagement.GetUsersAsync(request);
         return Ok(ApiResponse<PagedResult<UserDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Admin.Users.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx")
+    {
+        var data = await _userManagement.GetAllUsersExportAsync();
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, UserExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Users"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]

@@ -4,8 +4,10 @@ using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Inventory.DTOs;
 using uOrgHub.Inventory.Features.Catalog.Commands;
 using uOrgHub.Inventory.Features.Catalog.Queries;
+using uOrgHub.Inventory.Reporting.ExportColumns;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Inventory;
@@ -14,7 +16,12 @@ namespace uOrgHub.API.Controllers.Inventory;
 public class UnitsOfMeasureController : BaseController
 {
     private readonly IMediator _mediator;
-    public UnitsOfMeasureController(IMediator mediator) => _mediator = mediator;
+    private readonly IExportService _exportService;
+    public UnitsOfMeasureController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [RequireClaim(Claims.Inventory.UnitsOfMeasure.View)]
@@ -22,6 +29,20 @@ public class UnitsOfMeasureController : BaseController
     {
         var result = await _mediator.Send(new GetUnitsOfMeasureQuery(request));
         return Ok(ApiResponse<PagedResult<UnitOfMeasureResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Inventory.UnitsOfMeasure.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllUnitsOfMeasureForExportQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, UnitOfMeasureExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "UnitsOfMeasure"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]

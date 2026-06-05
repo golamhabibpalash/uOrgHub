@@ -7,12 +7,14 @@ using uOrgHub.Projects.Models.Entities;
 using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Projects.Features.BOQ.Queries;
 
 public record GetBOQsQuery(PaginationRequest Request, Guid? ProjectId = null, BOQStatus? Status = null) : IQuery<PagedResult<BOQResponseDto>>;
 public record GetBOQByIdQuery(Guid Id) : IQuery<BOQResponseDto>;
+public record GetAllBOQsForExportQuery : IQuery<List<BOQResponseDto>>;
 
 public class GetBOQsQueryHandler : IRequestHandler<GetBOQsQuery, PagedResult<BOQResponseDto>>
 {
@@ -33,7 +35,7 @@ public class GetBOQsQueryHandler : IRequestHandler<GetBOQsQuery, PagedResult<BOQ
             query = query.Where(x => x.Status == request.Status.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.Title.Contains(request.Request.Search) || x.BOQNumber.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.Title, x => x.BOQNumber);
 
         query = request.Request.SortDescending
             ? query.OrderByDescending(x => x.CreatedAt)
@@ -68,5 +70,21 @@ public class GetBOQByIdQueryHandler : IRequestHandler<GetBOQByIdQuery, BOQRespon
             ?? throw new NotFoundException(nameof(BillOfQuantity), request.Id);
 
         return BOQMapper.ToDto(entity);
+    }
+}
+
+public class GetAllBOQsForExportQueryHandler : IRequestHandler<GetAllBOQsForExportQuery, List<BOQResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllBOQsForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<BOQResponseDto>> Handle(GetAllBOQsForExportQuery request, CancellationToken ct)
+    {
+        return await _context.Set<BillOfQuantity>()
+            .Include(x => x.Items)
+            .Where(x => !x.IsDeleted)
+            .OrderBy(x => x.BOQNumber)
+            .Select(x => BOQMapper.ToDto(x))
+            .ToListAsync(ct);
     }
 }

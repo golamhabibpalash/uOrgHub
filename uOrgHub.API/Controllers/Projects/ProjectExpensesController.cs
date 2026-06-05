@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Projects.DTOs;
 using uOrgHub.Projects.Features.ProjectExpenses.Commands;
 using uOrgHub.Projects.Features.ProjectExpenses.Queries;
+using uOrgHub.Projects.Reporting.ExportColumns;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
@@ -14,7 +16,12 @@ namespace uOrgHub.API.Controllers.Projects;
 public class ProjectExpensesController : BaseController
 {
     private readonly IMediator _mediator;
-    public ProjectExpensesController(IMediator mediator) => _mediator = mediator;
+    private readonly IExportService _exportService;
+    public ProjectExpensesController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [RequireClaim(Claims.Projects.Expenses.View)]
@@ -22,6 +29,20 @@ public class ProjectExpensesController : BaseController
     {
         var result = await _mediator.Send(new GetProjectExpensesListQuery(request, projectId));
         return Ok(ApiResponse<PagedResult<ProjectExpenseResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Projects.Expenses.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllProjectExpensesForExportQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, ProjectExpenseExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Expenses"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]

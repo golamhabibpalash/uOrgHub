@@ -4,15 +4,21 @@ using uOrgHub.HR.DTOs.Performance;
 using uOrgHub.HR.Features._Common;
 using uOrgHub.HR.Models.Entities;
 using uOrgHub.Shared.Data;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.HR.Features.Performance.Queries;
 
 public record GetReviewCyclesQuery(PaginationRequest Request) : IQuery<PagedResult<ReviewCycleResponseDto>>;
+public record GetAllReviewCyclesQuery : IQuery<List<ReviewCycleResponseDto>>;
 public record GetGoalsQuery(PaginationRequest Request, Guid? EmployeeId = null, Guid? ReviewCycleId = null) : IQuery<PagedResult<GoalResponseDto>>;
+public record GetAllGoalsQuery : IQuery<List<GoalResponseDto>>;
 public record GetPerformanceReviewsQuery(PaginationRequest Request, Guid? EmployeeId = null, Guid? ReviewCycleId = null) : IQuery<PagedResult<PerformanceReviewResponseDto>>;
+public record GetAllPerformanceReviewsQuery : IQuery<List<PerformanceReviewResponseDto>>;
 public record GetTrainingProgramsQuery(PaginationRequest Request) : IQuery<PagedResult<TrainingProgramResponseDto>>;
+public record GetAllTrainingProgramsQuery : IQuery<List<TrainingProgramResponseDto>>;
 public record GetEmployeeTrainingsQuery(PaginationRequest Request, Guid? EmployeeId = null) : IQuery<PagedResult<EmployeeTrainingResponseDto>>;
+public record GetAllEmployeeTrainingsQuery : IQuery<List<EmployeeTrainingResponseDto>>;
 
 public class GetReviewCyclesQueryHandler : IRequestHandler<GetReviewCyclesQuery, PagedResult<ReviewCycleResponseDto>>
 {
@@ -36,6 +42,25 @@ public class GetReviewCyclesQueryHandler : IRequestHandler<GetReviewCyclesQuery,
             }).ToList(),
             TotalCount = totalCount, Page = request.Request.Page, PageSize = request.Request.PageSize
         };
+    }
+}
+
+public class GetAllReviewCyclesQueryHandler : IRequestHandler<GetAllReviewCyclesQuery, List<ReviewCycleResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllReviewCyclesQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<ReviewCycleResponseDto>> Handle(GetAllReviewCyclesQuery request, CancellationToken ct)
+    {
+        var items = await _context.Set<ReviewCycle>()
+            .Where(x => !x.IsDeleted)
+            .OrderByDescending(x => x.StartDate)
+            .Select(x => new ReviewCycleResponseDto
+            {
+                Id = x.Id, Name = x.Name, Type = x.Type, StartDate = x.StartDate,
+                EndDate = x.EndDate, Status = x.Status, Description = x.Description, CreatedAt = x.CreatedAt
+            }).ToListAsync(ct);
+        return items;
     }
 }
 
@@ -71,6 +96,30 @@ public class GetGoalsQueryHandler : IRequestHandler<GetGoalsQuery, PagedResult<G
             }).ToList(),
             TotalCount = totalCount, Page = request.Request.Page, PageSize = request.Request.PageSize
         };
+    }
+}
+
+public class GetAllGoalsQueryHandler : IRequestHandler<GetAllGoalsQuery, List<GoalResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllGoalsQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<GoalResponseDto>> Handle(GetAllGoalsQuery request, CancellationToken ct)
+    {
+        var items = await _context.Set<Goal>()
+            .Include(x => x.Employee).Include(x => x.ReviewCycle).Include(x => x.KPI)
+            .Where(x => !x.IsDeleted)
+            .OrderBy(x => x.Title)
+            .Select(x => new GoalResponseDto
+            {
+                Id = x.Id, EmployeeId = x.EmployeeId,
+                EmployeeName = x.Employee != null ? $"{x.Employee.FirstName} {x.Employee.LastName}" : string.Empty,
+                ReviewCycleId = x.ReviewCycleId, ReviewCycleName = x.ReviewCycle != null ? x.ReviewCycle.Name : string.Empty,
+                KPIId = x.KPIId, KPIName = x.KPI != null ? x.KPI.Name : null, Title = x.Title, Description = x.Description,
+                TargetValue = x.TargetValue, AchievedValue = x.AchievedValue, Weight = x.Weight,
+                Status = x.Status, DueDate = x.DueDate, Remarks = x.Remarks, CreatedAt = x.CreatedAt
+            }).ToListAsync(ct);
+        return items;
     }
 }
 
@@ -112,6 +161,33 @@ public class GetPerformanceReviewsQueryHandler : IRequestHandler<GetPerformanceR
     }
 }
 
+public class GetAllPerformanceReviewsQueryHandler : IRequestHandler<GetAllPerformanceReviewsQuery, List<PerformanceReviewResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllPerformanceReviewsQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<PerformanceReviewResponseDto>> Handle(GetAllPerformanceReviewsQuery request, CancellationToken ct)
+    {
+        var items = await _context.Set<PerformanceReview>()
+            .Include(x => x.Employee).Include(x => x.Reviewer).Include(x => x.ReviewCycle)
+            .Where(x => !x.IsDeleted)
+            .OrderByDescending(x => x.DueDate)
+            .Select(x => new PerformanceReviewResponseDto
+            {
+                Id = x.Id, ReviewCycleId = x.ReviewCycleId,
+                ReviewCycleName = x.ReviewCycle != null ? x.ReviewCycle.Name : string.Empty,
+                EmployeeId = x.EmployeeId,
+                EmployeeName = x.Employee != null ? $"{x.Employee.FirstName} {x.Employee.LastName}" : string.Empty,
+                ReviewerId = x.ReviewerId,
+                ReviewerName = x.Reviewer != null ? $"{x.Reviewer.FirstName} {x.Reviewer.LastName}" : string.Empty,
+                ReviewType = x.ReviewType, OverallRating = x.OverallRating, Comments = x.Comments,
+                Strengths = x.Strengths, AreasForImprovement = x.AreasForImprovement,
+                Status = x.Status, DueDate = x.DueDate, SubmittedDate = x.SubmittedDate, CreatedAt = x.CreatedAt
+            }).ToListAsync(ct);
+        return items;
+    }
+}
+
 public class GetTrainingProgramsQueryHandler : IRequestHandler<GetTrainingProgramsQuery, PagedResult<TrainingProgramResponseDto>>
 {
     private readonly AppDbContext _context;
@@ -121,7 +197,7 @@ public class GetTrainingProgramsQueryHandler : IRequestHandler<GetTrainingProgra
     {
         var query = _context.Set<TrainingProgram>().Where(x => !x.IsDeleted);
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.Title.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.Title);
 
         var totalCount = await query.CountAsync(ct);
         var items = await query.OrderByDescending(x => x.StartDate)
@@ -140,6 +216,28 @@ public class GetTrainingProgramsQueryHandler : IRequestHandler<GetTrainingProgra
             }).ToList(),
             TotalCount = totalCount, Page = request.Request.Page, PageSize = request.Request.PageSize
         };
+    }
+}
+
+public class GetAllTrainingProgramsQueryHandler : IRequestHandler<GetAllTrainingProgramsQuery, List<TrainingProgramResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllTrainingProgramsQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<TrainingProgramResponseDto>> Handle(GetAllTrainingProgramsQuery request, CancellationToken ct)
+    {
+        var items = await _context.Set<TrainingProgram>()
+            .Where(x => !x.IsDeleted)
+            .OrderByDescending(x => x.StartDate)
+            .Select(x => new TrainingProgramResponseDto
+            {
+                Id = x.Id, Title = x.Title, Description = x.Description, Category = x.Category,
+                Mode = x.Mode, DurationHours = x.DurationHours, Provider = x.Provider,
+                Location = x.Location, MaxParticipants = x.MaxParticipants, Cost = x.Cost,
+                StartDate = x.StartDate, EndDate = x.EndDate, Status = x.Status,
+                HasCertificate = x.HasCertificate, CreatedAt = x.CreatedAt
+            }).ToListAsync(ct);
+        return items;
     }
 }
 
@@ -174,5 +272,29 @@ public class GetEmployeeTrainingsQueryHandler : IRequestHandler<GetEmployeeTrain
             }).ToList(),
             TotalCount = totalCount, Page = request.Request.Page, PageSize = request.Request.PageSize
         };
+    }
+}
+
+public class GetAllEmployeeTrainingsQueryHandler : IRequestHandler<GetAllEmployeeTrainingsQuery, List<EmployeeTrainingResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllEmployeeTrainingsQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<EmployeeTrainingResponseDto>> Handle(GetAllEmployeeTrainingsQuery request, CancellationToken ct)
+    {
+        var items = await _context.Set<EmployeeTraining>()
+            .Include(x => x.Employee).Include(x => x.TrainingProgram)
+            .Where(x => !x.IsDeleted)
+            .OrderByDescending(x => x.EnrollmentDate)
+            .Select(x => new EmployeeTrainingResponseDto
+            {
+                Id = x.Id, EmployeeId = x.EmployeeId,
+                EmployeeName = x.Employee != null ? $"{x.Employee.FirstName} {x.Employee.LastName}" : string.Empty,
+                TrainingProgramId = x.TrainingProgramId, TrainingTitle = x.TrainingProgram != null ? x.TrainingProgram.Title : string.Empty,
+                EnrollmentDate = x.EnrollmentDate, CompletionDate = x.CompletionDate,
+                Status = x.Status, Score = x.Score, CertificatePath = x.CertificatePath,
+                Remarks = x.Remarks, CreatedAt = x.CreatedAt
+            }).ToListAsync(ct);
+        return items;
     }
 }

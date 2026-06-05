@@ -4,6 +4,7 @@ using uOrgHub.Accounts.DTOs.AP;
 using uOrgHub.Accounts.Features._Common;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Accounts.Features.AP;
@@ -25,9 +26,7 @@ public class GetVendorsQueryHandler : IRequestHandler<GetVendorsQuery, PagedResu
             .Where(x => !x.IsDeleted);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.Name.Contains(request.Request.Search)
-                || x.VendorCode.Contains(request.Request.Search)
-                || (x.Email != null && x.Email.Contains(request.Request.Search)));
+            query = query.WhereSearch(request.Request.Search, x => x.Name, x => x.VendorCode, x => x.Email);
 
         query = request.Request.SortDescending
             ? query.OrderByDescending(x => x.Name)

@@ -9,11 +9,13 @@ using uOrgHub.Procurement.Models.Entities;
 using uOrgHub.Procurement.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Procurement.Features.GoodsReceivedNotes.Queries;
 
 public record GetGRNsQuery(PaginationRequest Request, GRNStatus? Status = null) : IQuery<PagedResult<GRNResponseDto>>;
+public record GetAllGRNsForExportQuery(GRNStatus? Status = null) : IQuery<List<GRNResponseDto>>;
 public record GetGRNByIdQuery(Guid Id) : IQuery<GRNResponseDto>;
 
 public class GetGRNsQueryHandler : IRequestHandler<GetGRNsQuery, PagedResult<GRNResponseDto>>
@@ -31,8 +33,7 @@ public class GetGRNsQueryHandler : IRequestHandler<GetGRNsQuery, PagedResult<GRN
         if (request.Status.HasValue) query = query.Where(x => x.Status == request.Status.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.GRNNumber.Contains(request.Request.Search) ||
-                                     (x.InvoiceNumber != null && x.InvoiceNumber.Contains(request.Request.Search)));
+            query = query.WhereSearch(request.Request.Search, x => x.GRNNumber, x => x.InvoiceNumber);
 
         query = request.Request.SortDescending ? query.OrderByDescending(x => x.GRNDate) : query.OrderBy(x => x.GRNDate);
 
@@ -53,6 +54,37 @@ public class GetGRNsQueryHandler : IRequestHandler<GetGRNsQuery, PagedResult<GRN
             Items = items.Select(grn => GRNQueryHelper.BuildDto(grn, warehouses, receivers, variants)).ToList(),
             TotalCount = totalCount, Page = request.Request.Page, PageSize = request.Request.PageSize
         };
+    }
+}
+
+public class GetAllGRNsForExportQueryHandler : IRequestHandler<GetAllGRNsForExportQuery, List<GRNResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllGRNsForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<GRNResponseDto>> Handle(GetAllGRNsForExportQuery request, CancellationToken ct)
+    {
+        var query = _context.Set<GoodsReceivedNote>()
+            .Include(x => x.Items)
+            .Include(x => x.PurchaseOrder)
+            .Where(x => !x.IsDeleted);
+
+        if (request.Status.HasValue) query = query.Where(x => x.Status == request.Status.Value);
+
+        query = query.OrderBy(x => x.GRNDate);
+
+        var items = await query.ToListAsync(ct);
+
+        var warehouseIds = items.Select(x => x.WarehouseId).Distinct().ToList();
+        var receiverIds = items.Select(x => x.ReceivedById).Distinct().ToList();
+        var variantIds = items.SelectMany(x => x.Items.Select(i => i.ItemVariantId)).Distinct().ToList();
+
+        var warehouses = await _context.Set<Warehouse>().Where(x => warehouseIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id, x => x.Name, ct);
+        var receivers = await _context.Set<Employee>().Where(x => receiverIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id, x => $"{x.FirstName} {x.LastName}", ct);
+        var variantsList = await _context.Set<ItemVariant>().Where(x => variantIds.Contains(x.Id)).ToListAsync(ct);
+        var variants = variantsList.ToDictionary(x => x.Id, x => (dynamic)new VariantInfo(x.SKU, x.VariantName));
+
+        return items.Select(grn => GRNQueryHelper.BuildDto(grn, warehouses, receivers, variants)).ToList();
     }
 }
 

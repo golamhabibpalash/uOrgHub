@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Projects.DTOs;
 using uOrgHub.Projects.Features.MaterialRequests.Commands;
 using uOrgHub.Projects.Features.MaterialRequests.Queries;
+using uOrgHub.Projects.Reporting.ExportColumns;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
@@ -14,7 +16,12 @@ namespace uOrgHub.API.Controllers.Projects;
 public class ProjectMaterialRequestsController : BaseController
 {
     private readonly IMediator _mediator;
-    public ProjectMaterialRequestsController(IMediator mediator) => _mediator = mediator;
+    private readonly IExportService _exportService;
+    public ProjectMaterialRequestsController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [RequireClaim(Claims.Projects.MaterialRequests.View)]
@@ -22,6 +29,20 @@ public class ProjectMaterialRequestsController : BaseController
     {
         var result = await _mediator.Send(new GetMaterialRequestsQuery(request, projectId));
         return Ok(ApiResponse<PagedResult<MaterialRequestResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Projects.MaterialRequests.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllMaterialRequestsForExportQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, MaterialRequestExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Material Requests"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]

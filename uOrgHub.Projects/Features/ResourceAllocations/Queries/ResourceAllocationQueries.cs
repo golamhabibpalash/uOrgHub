@@ -7,12 +7,14 @@ using uOrgHub.Projects.Models.Entities;
 using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Projects.Features.ResourceAllocations.Queries;
 
 public record GetResourceAllocationsQuery(PaginationRequest Request, Guid? ProjectId = null, ResourceType? ResourceType = null, ResourceAllocationStatus? Status = null) : IQuery<PagedResult<ResourceAllocationResponseDto>>;
 public record GetResourceAllocationByIdQuery(Guid Id) : IQuery<ResourceAllocationResponseDto>;
+public record GetAllResourceAllocationsForExportQuery : IQuery<List<ResourceAllocationResponseDto>>;
 
 public class GetResourceAllocationsQueryHandler : IRequestHandler<GetResourceAllocationsQuery, PagedResult<ResourceAllocationResponseDto>>
 {
@@ -35,7 +37,7 @@ public class GetResourceAllocationsQueryHandler : IRequestHandler<GetResourceAll
             query = query.Where(x => x.Status == request.Status.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.Description.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.Description);
 
         query = request.Request.SortDescending
             ? query.OrderByDescending(x => x.PlannedStartDate)
@@ -69,5 +71,20 @@ public class GetResourceAllocationByIdQueryHandler : IRequestHandler<GetResource
             ?? throw new NotFoundException(nameof(SiteResourceAllocation), request.Id);
 
         return ResourceAllocationMapper.ToDto(entity);
+    }
+}
+
+public class GetAllResourceAllocationsForExportQueryHandler : IRequestHandler<GetAllResourceAllocationsForExportQuery, List<ResourceAllocationResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllResourceAllocationsForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<ResourceAllocationResponseDto>> Handle(GetAllResourceAllocationsForExportQuery request, CancellationToken ct)
+    {
+        return await _context.Set<SiteResourceAllocation>()
+            .Where(x => !x.IsDeleted)
+            .OrderBy(x => x.PlannedStartDate)
+            .Select(x => ResourceAllocationMapper.ToDto(x))
+            .ToListAsync(ct);
     }
 }

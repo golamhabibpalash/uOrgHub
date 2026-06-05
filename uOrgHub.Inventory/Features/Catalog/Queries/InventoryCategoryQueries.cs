@@ -4,6 +4,7 @@ using uOrgHub.Inventory.DTOs;
 using uOrgHub.Inventory.Features._Common;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Inventory.Features.Catalog.Queries;
@@ -27,7 +28,7 @@ public class GetInventoryCategoriesQueryHandler : IRequestHandler<GetInventoryCa
             query = query.Where(x => x.TypeId == request.TypeId.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.Name.Contains(request.Request.Search) || x.Code.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.Name, x => x.Code);
 
         query = request.Request.SortDescending ? query.OrderByDescending(x => x.Name) : query.OrderBy(x => x.Name);
 
@@ -69,5 +70,34 @@ public class GetInventoryCategoryByIdQueryHandler : IRequestHandler<GetInventory
             ParentCategoryId = e.ParentCategoryId, ParentCategoryName = e.ParentCategory?.Name,
             Description = e.Description, IsActive = e.IsActive, CreatedAt = e.CreatedAt
         };
+    }
+}
+
+public record GetAllInventoryCategoriesForExportQuery(Guid? TypeId = null) : IRequest<List<InventoryCategoryResponseDto>>;
+
+public class GetAllInventoryCategoriesForExportQueryHandler : IRequestHandler<GetAllInventoryCategoriesForExportQuery, List<InventoryCategoryResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllInventoryCategoriesForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<InventoryCategoryResponseDto>> Handle(GetAllInventoryCategoriesForExportQuery request, CancellationToken ct)
+    {
+        var query = _context.Set<Models.Entities.InventoryCategory>()
+            .Include(x => x.Type)
+            .Include(x => x.ParentCategory)
+            .Where(x => !x.IsDeleted);
+
+        if (request.TypeId.HasValue)
+            query = query.Where(x => x.TypeId == request.TypeId.Value);
+
+        return await query.OrderBy(x => x.Name)
+            .Select(e => new InventoryCategoryResponseDto
+            {
+                Id = e.Id, Name = e.Name, Code = e.Code,
+                TypeId = e.TypeId, TypeName = e.Type!.Name,
+                ParentCategoryId = e.ParentCategoryId, ParentCategoryName = e.ParentCategory!.Name,
+                Description = e.Description, IsActive = e.IsActive, CreatedAt = e.CreatedAt
+            })
+            .ToListAsync(ct);
     }
 }

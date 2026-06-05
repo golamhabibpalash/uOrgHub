@@ -8,11 +8,13 @@ using uOrgHub.Procurement.Models.Entities;
 using uOrgHub.Procurement.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Procurement.Features.PurchaseOrders.Queries;
 
 public record GetPOsQuery(PaginationRequest Request, POStatus? Status = null) : IQuery<PagedResult<POResponseDto>>;
+public record GetAllPOsForExportQuery(POStatus? Status = null) : IQuery<List<POResponseDto>>;
 public record GetPOByIdQuery(Guid Id) : IQuery<POResponseDto>;
 public record GetPOGRNsQuery(Guid POId, PaginationRequest Request) : IQuery<PagedResult<GRNResponseDto>>;
 
@@ -31,7 +33,7 @@ public class GetPOsQueryHandler : IRequestHandler<GetPOsQuery, PagedResult<PORes
         if (request.Status.HasValue) query = query.Where(x => x.Status == request.Status.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.PONumber.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.PONumber);
 
         query = request.Request.SortDescending ? query.OrderByDescending(x => x.PODate) : query.OrderBy(x => x.PODate);
 
@@ -80,6 +82,39 @@ public class GetPOsQueryHandler : IRequestHandler<GetPOsQuery, PagedResult<PORes
             TotalPrice = item.TotalPrice, Notes = item.Notes
         }).ToList()
     };
+}
+
+public class GetAllPOsForExportQueryHandler : IRequestHandler<GetAllPOsForExportQuery, List<POResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllPOsForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<POResponseDto>> Handle(GetAllPOsForExportQuery request, CancellationToken ct)
+    {
+        var query = _context.Set<PurchaseOrder>()
+            .Include(x => x.Items)
+            .Include(x => x.Vendor)
+            .Where(x => !x.IsDeleted);
+
+        if (request.Status.HasValue) query = query.Where(x => x.Status == request.Status.Value);
+
+        query = query.OrderBy(x => x.PODate);
+
+        var items = await query.ToListAsync(ct);
+
+        var quotationIds = items.Where(x => x.QuotationId.HasValue).Select(x => x.QuotationId!.Value).Distinct().ToList();
+        var prIds = items.Where(x => x.PRId.HasValue).Select(x => x.PRId!.Value).Distinct().ToList();
+        var approverIds = items.Where(x => x.ApprovedById.HasValue).Select(x => x.ApprovedById!.Value).Distinct().ToList();
+        var variantIds = items.SelectMany(x => x.Items.Select(i => i.ItemVariantId)).Distinct().ToList();
+
+        var quotations = await _context.Set<VendorQuotation>().Where(x => quotationIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id, x => x.QuotationNumber, ct);
+        var prs = await _context.Set<PurchaseRequisition>().Where(x => prIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id, x => x.PRNumber, ct);
+        var approvers = await _context.Set<Employee>().Where(x => approverIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id, x => $"{x.FirstName} {x.LastName}", ct);
+        var variantsList = await _context.Set<ItemVariant>().Where(x => variantIds.Contains(x.Id)).ToListAsync(ct);
+        var variants = variantsList.ToDictionary(x => x.Id, x => (dynamic)new VariantInfo(x.SKU, x.VariantName));
+
+        return items.Select(po => GetPOsQueryHandler.BuildDto(po, quotations, prs, approvers, variants)).ToList();
+    }
 }
 
 public class GetPOByIdQueryHandler : IRequestHandler<GetPOByIdQuery, POResponseDto>

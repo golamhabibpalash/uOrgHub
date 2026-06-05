@@ -6,12 +6,14 @@ using uOrgHub.Projects.Features.ProjectCategories.Commands;
 using uOrgHub.Projects.Models.Entities;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Projects.Features.ProjectCategories.Queries;
 
 public record GetProjectCategoriesQuery(PaginationRequest Request) : IQuery<PagedResult<ProjectCategoryResponseDto>>;
 public record GetProjectCategoryByIdQuery(Guid Id) : IQuery<ProjectCategoryResponseDto>;
+public record GetAllProjectCategoriesForExportQuery : IQuery<List<ProjectCategoryResponseDto>>;
 
 public class GetProjectCategoriesQueryHandler : IRequestHandler<GetProjectCategoriesQuery, PagedResult<ProjectCategoryResponseDto>>
 {
@@ -23,7 +25,7 @@ public class GetProjectCategoriesQueryHandler : IRequestHandler<GetProjectCatego
         var query = _context.Set<ProjectCategory>().Where(x => !x.IsDeleted).AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.Name.Contains(request.Request.Search) || x.Code.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.Name, x => x.Code);
 
         query = request.Request.SortDescending
             ? query.OrderByDescending(x => x.Name)
@@ -57,5 +59,20 @@ public class GetProjectCategoryByIdQueryHandler : IRequestHandler<GetProjectCate
             ?? throw new NotFoundException(nameof(ProjectCategory), request.Id);
 
         return ProjectCategoryMapper.ToDto(entity);
+    }
+}
+
+public class GetAllProjectCategoriesForExportQueryHandler : IRequestHandler<GetAllProjectCategoriesForExportQuery, List<ProjectCategoryResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllProjectCategoriesForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<ProjectCategoryResponseDto>> Handle(GetAllProjectCategoriesForExportQuery request, CancellationToken ct)
+    {
+        return await _context.Set<ProjectCategory>()
+            .Where(x => !x.IsDeleted)
+            .OrderBy(x => x.Name)
+            .Select(x => ProjectCategoryMapper.ToDto(x))
+            .ToListAsync(ct);
     }
 }

@@ -4,6 +4,7 @@ using uOrgHub.Accounts.DTOs.AR;
 using uOrgHub.Accounts.Features._Common;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Accounts.Features.AR;
@@ -26,9 +27,7 @@ public class GetCustomersQueryHandler : IRequestHandler<GetCustomersQuery, Paged
             .Where(x => !x.IsDeleted);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.Name.Contains(request.Request.Search)
-                || x.CustomerCode.Contains(request.Request.Search)
-                || (x.Email != null && x.Email.Contains(request.Request.Search)));
+            query = query.WhereSearch(request.Request.Search, x => x.Name, x => x.CustomerCode, x => x.Email);
 
         query = request.Request.SortDescending
             ? query.OrderByDescending(x => x.Name)
@@ -60,9 +59,7 @@ public class GetAllCustomersQueryHandler : IRequestHandler<GetAllCustomersQuery,
         var query = _context.Set<Models.Entities.Customer>().Where(x => !x.IsDeleted);
 
         if (!string.IsNullOrWhiteSpace(request.Search))
-            query = query.Where(x => x.Name.Contains(request.Search)
-                || x.CustomerCode.Contains(request.Search)
-                || (x.Email != null && x.Email.Contains(request.Search)));
+            query = query.WhereSearch(request.Search, x => x.Name, x => x.CustomerCode, x => x.Email);
 
         query = query.OrderBy(x => x.Name);
         var items = await query.ToListAsync(ct);

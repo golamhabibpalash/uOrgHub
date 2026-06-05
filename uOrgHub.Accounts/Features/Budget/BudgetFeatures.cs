@@ -5,6 +5,7 @@ using uOrgHub.Accounts.Features._Common;
 using uOrgHub.Accounts.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Accounts.Features.Budget;
@@ -15,6 +16,7 @@ public record CreateBudgetCommand(CreateBudgetDto Dto) : ICommand<BudgetResponse
 public record UpdateBudgetCommand(Guid Id, UpdateBudgetDto Dto) : ICommand<BudgetResponseDto>;
 public record ApproveBudgetCommand(Guid Id) : ICommand<BudgetResponseDto>;
 public record DeleteBudgetCommand(Guid Id) : ICommand<Unit>;
+public record GetAllBudgetsForExportQuery : IQuery<List<BudgetResponseDto>>;
 
 public class GetBudgetsQueryHandler : IRequestHandler<GetBudgetsQuery, PagedResult<BudgetResponseDto>>
 {
@@ -32,7 +34,7 @@ public class GetBudgetsQueryHandler : IRequestHandler<GetBudgetsQuery, PagedResu
             query = query.Where(x => x.FiscalYearId == request.FiscalYearId.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.Name.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.Name);
 
         query = request.Request.SortDescending
             ? query.OrderByDescending(x => x.Name)
@@ -184,6 +186,23 @@ public class DeleteBudgetCommandHandler : IRequestHandler<DeleteBudgetCommand, U
         entity.DeletedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(ct);
         return Unit.Value;
+    }
+}
+
+public class GetAllBudgetsForExportQueryHandler : IRequestHandler<GetAllBudgetsForExportQuery, List<BudgetResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllBudgetsForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<BudgetResponseDto>> Handle(GetAllBudgetsForExportQuery request, CancellationToken ct)
+    {
+        var items = await _context.Set<Models.Entities.Budget>()
+            .Include(x => x.Lines)
+                .ThenInclude(l => l.Account)
+            .Where(x => !x.IsDeleted)
+            .OrderBy(x => x.Name)
+            .ToListAsync(ct);
+        return items.Select(BudgetMappingHelper.ToDto).ToList();
     }
 }
 

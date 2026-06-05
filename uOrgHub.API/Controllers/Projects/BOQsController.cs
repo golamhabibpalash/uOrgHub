@@ -5,6 +5,8 @@ using uOrgHub.Projects.DTOs;
 using uOrgHub.Projects.Features.BOQ.Commands;
 using uOrgHub.Projects.Features.BOQ.Queries;
 using uOrgHub.Projects.Models.Enums;
+using uOrgHub.Projects.Reporting.ExportColumns;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
@@ -15,7 +17,12 @@ namespace uOrgHub.API.Controllers.Projects;
 public class BOQsController : BaseController
 {
     private readonly IMediator _mediator;
-    public BOQsController(IMediator mediator) => _mediator = mediator;
+    private readonly IExportService _exportService;
+    public BOQsController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [RequireClaim(Claims.Projects.BOQs.View)]
@@ -24,6 +31,20 @@ public class BOQsController : BaseController
     {
         var result = await _mediator.Send(new GetBOQsQuery(request, projectId, status));
         return Ok(ApiResponse<PagedResult<BOQResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Projects.BOQs.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllBOQsForExportQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, BOQExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "BOQs"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]

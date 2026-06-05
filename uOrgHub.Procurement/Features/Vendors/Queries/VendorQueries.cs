@@ -6,6 +6,7 @@ using uOrgHub.Procurement.Models.Entities;
 using uOrgHub.Procurement.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Procurement.Features.Vendors.Queries;
@@ -29,9 +30,7 @@ public class GetVendorsQueryHandler : IRequestHandler<GetVendorsQuery, PagedResu
         if (request.VendorType.HasValue) query = query.Where(x => x.VendorType == request.VendorType.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.CompanyName.Contains(request.Request.Search) ||
-                                     x.VendorCode.Contains(request.Request.Search) ||
-                                     (x.Email != null && x.Email.Contains(request.Request.Search)));
+            query = query.WhereSearch(request.Request.Search, x => x.CompanyName, x => x.VendorCode, x => x.Email);
 
         query = request.Request.SortDescending ? query.OrderByDescending(x => x.CompanyName) : query.OrderBy(x => x.CompanyName);
 
@@ -69,9 +68,7 @@ public class GetAllVendorsQueryHandler : IRequestHandler<GetAllVendorsQuery, Lis
         if (request.VendorType.HasValue) query = query.Where(x => x.VendorType == request.VendorType.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Search))
-            query = query.Where(x => x.CompanyName.Contains(request.Search) ||
-                                     x.VendorCode.Contains(request.Search) ||
-                                     (x.Email != null && x.Email.Contains(request.Search)));
+            query = query.WhereSearch(request.Search, x => x.CompanyName, x => x.VendorCode, x => x.Email);
 
         query = query.OrderBy(x => x.CompanyName);
         var items = await query.ToListAsync(ct);

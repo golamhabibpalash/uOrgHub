@@ -4,6 +4,7 @@ using uOrgHub.Inventory.DTOs;
 using uOrgHub.Inventory.Features._Common;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Inventory.Features.Stock.Queries;
@@ -27,7 +28,7 @@ public class GetStockBalancesQueryHandler : IRequestHandler<GetStockBalancesQuer
         if (request.ItemVariantId.HasValue) query = query.Where(x => x.ItemVariantId == request.ItemVariantId.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.ItemVariant.SKU.Contains(request.Request.Search) || x.Warehouse.Name.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.ItemVariant.SKU, x => x.Warehouse.Name);
 
         query = query.OrderBy(x => x.ItemVariant.SKU);
 
@@ -72,5 +73,36 @@ public class GetStockBalanceByIdQueryHandler : IRequestHandler<GetStockBalanceBy
             WarehouseCode = e.Warehouse?.Code ?? string.Empty,
             QuantityOnHand = e.QuantityOnHand, QuantityReserved = e.QuantityReserved, LastUpdated = e.LastUpdated
         };
+    }
+}
+
+public record GetAllStockBalancesForExportQuery(Guid? WarehouseId = null, Guid? ItemVariantId = null) : IRequest<List<StockBalanceResponseDto>>;
+
+public class GetAllStockBalancesForExportQueryHandler : IRequestHandler<GetAllStockBalancesForExportQuery, List<StockBalanceResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllStockBalancesForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<StockBalanceResponseDto>> Handle(GetAllStockBalancesForExportQuery request, CancellationToken ct)
+    {
+        var query = _context.Set<Models.Entities.StockBalance>()
+            .Include(x => x.ItemVariant).ThenInclude(x => x.Item)
+            .Include(x => x.Warehouse)
+            .Where(x => !x.IsDeleted);
+
+        if (request.WarehouseId.HasValue) query = query.Where(x => x.WarehouseId == request.WarehouseId.Value);
+        if (request.ItemVariantId.HasValue) query = query.Where(x => x.ItemVariantId == request.ItemVariantId.Value);
+
+        return await query.OrderBy(x => x.ItemVariant.SKU)
+            .Select(e => new StockBalanceResponseDto
+            {
+                Id = e.Id, ItemVariantId = e.ItemVariantId,
+                VariantSKU = e.ItemVariant!.SKU, VariantName = e.ItemVariant.VariantName,
+                ItemBaseName = e.ItemVariant.Item!.BaseName,
+                WarehouseId = e.WarehouseId, WarehouseName = e.Warehouse!.Name,
+                WarehouseCode = e.Warehouse.Code,
+                QuantityOnHand = e.QuantityOnHand, QuantityReserved = e.QuantityReserved, LastUpdated = e.LastUpdated
+            })
+            .ToListAsync(ct);
     }
 }

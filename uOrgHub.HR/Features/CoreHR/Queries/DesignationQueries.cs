@@ -5,6 +5,7 @@ using uOrgHub.HR.Features._Common;
 using uOrgHub.HR.Repositories;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.HR.Features.CoreHR.Queries;
@@ -31,7 +32,7 @@ public class GetDesignationsQueryHandler : IRequestHandler<GetDesignationsQuery,
             query = query.Where(x => x.DepartmentId == request.DepartmentId);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.Name.Contains(request.Request.Search) || x.Code.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.Name, x => x.Code);
 
         query = request.Request.SortDescending
             ? query.OrderByDescending(x => x.Name)

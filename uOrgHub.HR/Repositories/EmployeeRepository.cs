@@ -3,6 +3,7 @@ using uOrgHub.Auth.Models.Entities;
 using uOrgHub.HR.DTOs;
 using uOrgHub.HR.Models.Entities;
 using uOrgHub.Shared.Data;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.HR.Repositories;
@@ -27,11 +28,7 @@ public class EmployeeRepository : IEmployeeRepository
         var query = BaseQuery();
 
         if (!string.IsNullOrWhiteSpace(request.Search))
-            query = query.Where(x =>
-                x.FirstName.Contains(request.Search) ||
-                x.LastName.Contains(request.Search) ||
-                x.EmployeeCode.Contains(request.Search) ||
-                x.Email.Contains(request.Search));
+            query = query.WhereSearch(request.Search, x => x.FirstName, x => x.LastName, x => x.EmployeeCode, x => x.Email);
 
         query = request.SortDescending
             ? query.OrderByDescending(x => x.FirstName)

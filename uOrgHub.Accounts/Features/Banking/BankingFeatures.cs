@@ -4,6 +4,7 @@ using uOrgHub.Accounts.DTOs.Banking;
 using uOrgHub.Accounts.Features._Common;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Accounts.Features.Banking;
@@ -14,6 +15,7 @@ public record CreateBankAccountCommand(CreateBankAccountDto Dto) : ICommand<Bank
 public record UpdateBankAccountCommand(Guid Id, UpdateBankAccountDto Dto) : ICommand<BankAccountResponseDto>;
 public record GetBankTransactionsQuery(Guid BankAccountId, PaginationRequest Request) : IQuery<PagedResult<BankTransactionResponseDto>>;
 public record CreateBankTransactionCommand(CreateBankTransactionDto Dto) : ICommand<BankTransactionResponseDto>;
+public record GetAllBankAccountsForExportQuery : IQuery<List<BankAccountResponseDto>>;
 
 public class GetBankAccountsQueryHandler : IRequestHandler<GetBankAccountsQuery, PagedResult<BankAccountResponseDto>>
 {
@@ -26,9 +28,7 @@ public class GetBankAccountsQueryHandler : IRequestHandler<GetBankAccountsQuery,
             .Where(x => !x.IsDeleted);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.AccountName.Contains(request.Request.Search)
-                || x.AccountNumber.Contains(request.Request.Search)
-                || x.BankName.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.AccountName, x => x.AccountNumber, x => x.BankName);
 
         query = request.Request.SortDescending
             ? query.OrderByDescending(x => x.AccountName)
@@ -183,6 +183,21 @@ public class CreateBankTransactionCommandHandler : IRequestHandler<CreateBankTra
 
         entity.BankAccount = bankAccount;
         return BankingMappingHelper.ToBankTransactionDto(entity);
+    }
+}
+
+public class GetAllBankAccountsForExportQueryHandler : IRequestHandler<GetAllBankAccountsForExportQuery, List<BankAccountResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllBankAccountsForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<BankAccountResponseDto>> Handle(GetAllBankAccountsForExportQuery request, CancellationToken ct)
+    {
+        var items = await _context.Set<Models.Entities.BankAccount>()
+            .Where(x => !x.IsDeleted)
+            .OrderBy(x => x.AccountName)
+            .ToListAsync(ct);
+        return items.Select(BankingMappingHelper.ToBankAccountDto).ToList();
     }
 }
 

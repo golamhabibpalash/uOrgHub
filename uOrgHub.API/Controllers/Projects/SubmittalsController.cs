@@ -5,6 +5,8 @@ using uOrgHub.Projects.DTOs;
 using uOrgHub.Projects.Features.Submittals.Commands;
 using uOrgHub.Projects.Features.Submittals.Queries;
 using uOrgHub.Projects.Models.Enums;
+using uOrgHub.Projects.Reporting.ExportColumns;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
@@ -15,7 +17,12 @@ namespace uOrgHub.API.Controllers.Projects;
 public class SubmittalsController : BaseController
 {
     private readonly IMediator _mediator;
-    public SubmittalsController(IMediator mediator) => _mediator = mediator;
+    private readonly IExportService _exportService;
+    public SubmittalsController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [RequireClaim(Claims.Projects.Submittals.View)]
@@ -24,6 +31,20 @@ public class SubmittalsController : BaseController
     {
         var result = await _mediator.Send(new GetSubmittalsQuery(request, projectId, status));
         return Ok(ApiResponse<PagedResult<SubmittalResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Projects.Submittals.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllSubmittalsForExportQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, SubmittalExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Submittals"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]

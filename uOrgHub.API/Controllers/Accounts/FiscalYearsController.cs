@@ -1,9 +1,13 @@
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Accounts.DTOs;
+using uOrgHub.Accounts.Features.FiscalYear;
+using uOrgHub.Accounts.Reporting.ExportColumns;
 using uOrgHub.Accounts.Services;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Accounts;
@@ -13,8 +17,15 @@ namespace uOrgHub.API.Controllers.Accounts;
 public class FiscalYearsController : BaseController
 {
     private readonly IFiscalYearService _service;
+    private readonly IMediator _mediator;
+    private readonly IExportService _exportService;
 
-    public FiscalYearsController(IFiscalYearService service) => _service = service;
+    public FiscalYearsController(IFiscalYearService service, IMediator mediator, IExportService exportService)
+    {
+        _service = service;
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [RequireClaim(Claims.Accounts.FiscalYears.View)]
@@ -22,6 +33,20 @@ public class FiscalYearsController : BaseController
     {
         var result = await _service.GetAllAsync(request);
         return Ok(ApiResponse<PagedResult<FiscalYearResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Accounts.FiscalYears.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllFiscalYearsForExportQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, FiscalYearExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "FiscalYears"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("current")]

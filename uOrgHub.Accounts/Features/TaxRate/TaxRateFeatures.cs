@@ -4,6 +4,7 @@ using uOrgHub.Accounts.DTOs.TaxRate;
 using uOrgHub.Accounts.Features._Common;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Accounts.Features.TaxRate;
@@ -13,6 +14,7 @@ public record GetTaxRateByIdQuery(Guid Id) : IQuery<TaxRateResponseDto>;
 public record CreateTaxRateCommand(CreateTaxRateDto Dto) : ICommand<TaxRateResponseDto>;
 public record UpdateTaxRateCommand(Guid Id, UpdateTaxRateDto Dto) : ICommand<TaxRateResponseDto>;
 public record DeleteTaxRateCommand(Guid Id) : ICommand<Unit>;
+public record GetAllTaxRatesForExportQuery : IQuery<List<TaxRateResponseDto>>;
 
 public class GetTaxRatesQueryHandler : IRequestHandler<GetTaxRatesQuery, PagedResult<TaxRateResponseDto>>
 {
@@ -25,7 +27,7 @@ public class GetTaxRatesQueryHandler : IRequestHandler<GetTaxRatesQuery, PagedRe
             .Where(x => !x.IsDeleted);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.Name.Contains(request.Request.Search) || x.Code.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.Name, x => x.Code);
 
         query = request.Request.SortDescending
             ? query.OrderByDescending(x => x.Name)
@@ -132,6 +134,21 @@ public class DeleteTaxRateCommandHandler : IRequestHandler<DeleteTaxRateCommand,
         entity.DeletedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(ct);
         return Unit.Value;
+    }
+}
+
+public class GetAllTaxRatesForExportQueryHandler : IRequestHandler<GetAllTaxRatesForExportQuery, List<TaxRateResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllTaxRatesForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<TaxRateResponseDto>> Handle(GetAllTaxRatesForExportQuery request, CancellationToken ct)
+    {
+        var items = await _context.Set<Models.Entities.TaxRate>()
+            .Where(x => !x.IsDeleted)
+            .OrderBy(x => x.Name)
+            .ToListAsync(ct);
+        return items.Select(TaxRateMappingHelper.ToDto).ToList();
     }
 }
 

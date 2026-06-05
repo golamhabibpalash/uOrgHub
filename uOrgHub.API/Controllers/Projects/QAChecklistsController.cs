@@ -5,6 +5,8 @@ using uOrgHub.Projects.DTOs;
 using uOrgHub.Projects.Features.QAChecklists.Commands;
 using uOrgHub.Projects.Features.QAChecklists.Queries;
 using uOrgHub.Projects.Models.Enums;
+using uOrgHub.Projects.Reporting.ExportColumns;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
@@ -15,7 +17,12 @@ namespace uOrgHub.API.Controllers.Projects;
 public class QAChecklistsController : BaseController
 {
     private readonly IMediator _mediator;
-    public QAChecklistsController(IMediator mediator) => _mediator = mediator;
+    private readonly IExportService _exportService;
+    public QAChecklistsController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [RequireClaim(Claims.Projects.QAChecklists.View)]
@@ -24,6 +31,20 @@ public class QAChecklistsController : BaseController
     {
         var result = await _mediator.Send(new GetQAChecklistsQuery(request, projectId, status));
         return Ok(ApiResponse<PagedResult<QAChecklistResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Projects.QAChecklists.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx")
+    {
+        var data = await _mediator.Send(new GetAllQAChecklistsForExportQuery());
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, QAChecklistExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "QA Checklists"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]

@@ -7,12 +7,14 @@ using uOrgHub.Projects.Models.Entities;
 using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Projects.Features.NCRs.Queries;
 
 public record GetNCRsQuery(PaginationRequest Request, Guid? ProjectId = null, NCRStatus? Status = null, NCRSeverity? Severity = null) : IQuery<PagedResult<NCRResponseDto>>;
 public record GetNCRByIdQuery(Guid Id) : IQuery<NCRResponseDto>;
+public record GetAllNCRsForExportQuery : IQuery<List<NCRResponseDto>>;
 
 public class GetNCRsQueryHandler : IRequestHandler<GetNCRsQuery, PagedResult<NCRResponseDto>>
 {
@@ -35,7 +37,7 @@ public class GetNCRsQueryHandler : IRequestHandler<GetNCRsQuery, PagedResult<NCR
             query = query.Where(x => x.Severity == request.Severity.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.Title.Contains(request.Request.Search) || x.NCRNumber.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.Title, x => x.NCRNumber);
 
         query = request.Request.SortDescending
             ? query.OrderByDescending(x => x.RaisedDate)
@@ -69,5 +71,20 @@ public class GetNCRByIdQueryHandler : IRequestHandler<GetNCRByIdQuery, NCRRespon
             ?? throw new NotFoundException(nameof(NonConformanceReport), request.Id);
 
         return NCRMapper.ToDto(entity);
+    }
+}
+
+public class GetAllNCRsForExportQueryHandler : IRequestHandler<GetAllNCRsForExportQuery, List<NCRResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllNCRsForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<NCRResponseDto>> Handle(GetAllNCRsForExportQuery request, CancellationToken ct)
+    {
+        return await _context.Set<NonConformanceReport>()
+            .Where(x => !x.IsDeleted)
+            .OrderBy(x => x.NCRNumber)
+            .Select(x => NCRMapper.ToDto(x))
+            .ToListAsync(ct);
     }
 }

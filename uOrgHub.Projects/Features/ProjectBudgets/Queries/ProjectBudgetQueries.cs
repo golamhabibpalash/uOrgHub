@@ -12,6 +12,7 @@ namespace uOrgHub.Projects.Features.ProjectBudgets.Queries;
 
 public record GetProjectBudgetsQuery(Guid ProjectId, PaginationRequest Request) : IQuery<PagedResult<ProjectBudgetResponseDto>>;
 public record GetProjectBudgetByIdQuery(Guid Id) : IQuery<ProjectBudgetResponseDto>;
+public record GetAllProjectBudgetsForExportQuery : IQuery<List<ProjectBudgetResponseDto>>;
 
 public class GetProjectBudgetsQueryHandler : IRequestHandler<GetProjectBudgetsQuery, PagedResult<ProjectBudgetResponseDto>>
 {
@@ -56,5 +57,20 @@ public class GetProjectBudgetByIdQueryHandler : IRequestHandler<GetProjectBudget
             ?? throw new NotFoundException(nameof(ProjectBudget), request.Id);
 
         return BudgetMapper.ToDto(entity);
+    }
+}
+
+public class GetAllProjectBudgetsForExportQueryHandler : IRequestHandler<GetAllProjectBudgetsForExportQuery, List<ProjectBudgetResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllProjectBudgetsForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<ProjectBudgetResponseDto>> Handle(GetAllProjectBudgetsForExportQuery request, CancellationToken ct)
+    {
+        return await _context.Set<ProjectBudget>()
+            .Where(x => !x.IsDeleted)
+            .OrderBy(x => x.BudgetType)
+            .Select(x => BudgetMapper.ToDto(x))
+            .ToListAsync(ct);
     }
 }

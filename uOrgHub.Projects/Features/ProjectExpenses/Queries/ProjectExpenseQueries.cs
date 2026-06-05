@@ -7,12 +7,14 @@ using uOrgHub.Projects.Models.Entities;
 using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Projects.Features.ProjectExpenses.Queries;
 
 public record GetProjectExpensesListQuery(PaginationRequest Request, Guid? ProjectId = null, ExpenseStatus? Status = null) : IQuery<PagedResult<ProjectExpenseResponseDto>>;
 public record GetProjectExpenseByIdQuery(Guid Id) : IQuery<ProjectExpenseResponseDto>;
+public record GetAllProjectExpensesForExportQuery : IQuery<List<ProjectExpenseResponseDto>>;
 
 public class GetProjectExpensesListQueryHandler : IRequestHandler<GetProjectExpensesListQuery, PagedResult<ProjectExpenseResponseDto>>
 {
@@ -32,8 +34,7 @@ public class GetProjectExpensesListQueryHandler : IRequestHandler<GetProjectExpe
             query = query.Where(x => x.Status == request.Status.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.ExpenseNumber.Contains(request.Request.Search)
-                || x.Description.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.ExpenseNumber, x => x.Description);
 
         query = request.Request.SortDescending
             ? query.OrderByDescending(x => x.ExpenseDate)
@@ -67,5 +68,20 @@ public class GetProjectExpenseByIdQueryHandler : IRequestHandler<GetProjectExpen
             ?? throw new NotFoundException(nameof(ProjectExpense), request.Id);
 
         return ExpenseMapper.ToDto(entity);
+    }
+}
+
+public class GetAllProjectExpensesForExportQueryHandler : IRequestHandler<GetAllProjectExpensesForExportQuery, List<ProjectExpenseResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllProjectExpensesForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<ProjectExpenseResponseDto>> Handle(GetAllProjectExpensesForExportQuery request, CancellationToken ct)
+    {
+        return await _context.Set<ProjectExpense>()
+            .Where(x => !x.IsDeleted)
+            .OrderByDescending(x => x.ExpenseDate)
+            .Select(x => ExpenseMapper.ToDto(x))
+            .ToListAsync(ct);
     }
 }

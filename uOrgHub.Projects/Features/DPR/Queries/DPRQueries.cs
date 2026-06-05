@@ -7,12 +7,14 @@ using uOrgHub.Projects.Models.Entities;
 using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Projects.Features.DPR.Queries;
 
 public record GetDPRsQuery(PaginationRequest Request, Guid? ProjectId = null, DPRStatus? Status = null) : IQuery<PagedResult<DPRResponseDto>>;
 public record GetDPRByIdQuery(Guid Id) : IQuery<DPRResponseDto>;
+public record GetAllDPRsForExportQuery : IQuery<List<DPRResponseDto>>;
 
 public class GetDPRsQueryHandler : IRequestHandler<GetDPRsQuery, PagedResult<DPRResponseDto>>
 {
@@ -32,7 +34,7 @@ public class GetDPRsQueryHandler : IRequestHandler<GetDPRsQuery, PagedResult<DPR
             query = query.Where(x => x.Status == request.Status.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.WorkDone.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.WorkDone);
 
         query = request.Request.SortDescending
             ? query.OrderByDescending(x => x.ReportDate)
@@ -66,5 +68,20 @@ public class GetDPRByIdQueryHandler : IRequestHandler<GetDPRByIdQuery, DPRRespon
             ?? throw new NotFoundException(nameof(DailyProgressReport), request.Id);
 
         return DPRMapper.ToDto(entity);
+    }
+}
+
+public class GetAllDPRsForExportQueryHandler : IRequestHandler<GetAllDPRsForExportQuery, List<DPRResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllDPRsForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<DPRResponseDto>> Handle(GetAllDPRsForExportQuery request, CancellationToken ct)
+    {
+        return await _context.Set<DailyProgressReport>()
+            .Where(x => !x.IsDeleted)
+            .OrderByDescending(x => x.ReportDate)
+            .Select(x => DPRMapper.ToDto(x))
+            .ToListAsync(ct);
     }
 }

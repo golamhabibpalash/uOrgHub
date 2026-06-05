@@ -4,14 +4,18 @@ using uOrgHub.HR.DTOs.Attendance;
 using uOrgHub.HR.Features._Common;
 using uOrgHub.HR.Models.Entities;
 using uOrgHub.Shared.Data;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.HR.Features.Attendance.Queries;
 
 public record GetAttendanceLogsQuery(PaginationRequest Request, Guid? EmployeeId = null, DateTime? FromDate = null, DateTime? ToDate = null)
     : IQuery<PagedResult<AttendanceLogResponseDto>>;
+public record GetAllAttendanceLogsQuery : IQuery<List<AttendanceLogResponseDto>>;
 public record GetWorkSchedulesQuery(PaginationRequest Request) : IQuery<PagedResult<WorkScheduleResponseDto>>;
+public record GetAllWorkSchedulesQuery : IQuery<List<WorkScheduleResponseDto>>;
 public record GetShiftsQuery(PaginationRequest Request, Guid? WorkScheduleId = null) : IQuery<PagedResult<ShiftResponseDto>>;
+public record GetAllShiftsQuery : IQuery<List<ShiftResponseDto>>;
 
 public class GetAttendanceLogsQueryHandler : IRequestHandler<GetAttendanceLogsQuery, PagedResult<AttendanceLogResponseDto>>
 {
@@ -45,6 +49,28 @@ public class GetAttendanceLogsQueryHandler : IRequestHandler<GetAttendanceLogsQu
     }
 }
 
+public class GetAllAttendanceLogsQueryHandler : IRequestHandler<GetAllAttendanceLogsQuery, List<AttendanceLogResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllAttendanceLogsQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<AttendanceLogResponseDto>> Handle(GetAllAttendanceLogsQuery request, CancellationToken ct)
+    {
+        var items = await _context.Set<AttendanceLog>().Include(x => x.Employee)
+            .Where(x => !x.IsDeleted)
+            .OrderByDescending(x => x.AttendanceDate)
+            .Select(x => new AttendanceLogResponseDto
+            {
+                Id = x.Id, EmployeeId = x.EmployeeId,
+                EmployeeName = x.Employee != null ? $"{x.Employee.FirstName} {x.Employee.LastName}" : string.Empty,
+                AttendanceDate = x.AttendanceDate, CheckIn = x.CheckIn, CheckOut = x.CheckOut,
+                WorkHours = x.WorkHours, OvertimeHours = x.OvertimeHours,
+                Source = x.Source, Status = x.Status, Remarks = x.Remarks, CreatedAt = x.CreatedAt
+            }).ToListAsync(ct);
+        return items;
+    }
+}
+
 public class GetWorkSchedulesQueryHandler : IRequestHandler<GetWorkSchedulesQuery, PagedResult<WorkScheduleResponseDto>>
 {
     private readonly AppDbContext _context;
@@ -54,7 +80,7 @@ public class GetWorkSchedulesQueryHandler : IRequestHandler<GetWorkSchedulesQuer
     {
         var query = _context.Set<WorkSchedule>().Where(x => !x.IsDeleted);
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.Name.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.Name);
 
         var totalCount = await query.CountAsync(ct);
         var items = await query.OrderBy(x => x.Name)
@@ -72,6 +98,27 @@ public class GetWorkSchedulesQueryHandler : IRequestHandler<GetWorkSchedulesQuer
             }).ToList(),
             TotalCount = totalCount, Page = request.Request.Page, PageSize = request.Request.PageSize
         };
+    }
+}
+
+public class GetAllWorkSchedulesQueryHandler : IRequestHandler<GetAllWorkSchedulesQuery, List<WorkScheduleResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllWorkSchedulesQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<WorkScheduleResponseDto>> Handle(GetAllWorkSchedulesQuery request, CancellationToken ct)
+    {
+        var items = await _context.Set<WorkSchedule>()
+            .Where(x => !x.IsDeleted)
+            .OrderBy(x => x.Name)
+            .Select(x => new WorkScheduleResponseDto
+            {
+                Id = x.Id, Name = x.Name, Description = x.Description,
+                StartTime = x.StartTime, EndTime = x.EndTime, TotalHours = x.TotalHours,
+                IsFlexible = x.IsFlexible, GracePeriodMinutes = x.GracePeriodMinutes,
+                WorkingDaysPerWeek = x.WorkingDaysPerWeek, IsActive = x.IsActive, CreatedAt = x.CreatedAt
+            }).ToListAsync(ct);
+        return items;
     }
 }
 
@@ -102,5 +149,26 @@ public class GetShiftsQueryHandler : IRequestHandler<GetShiftsQuery, PagedResult
             }).ToList(),
             TotalCount = totalCount, Page = request.Request.Page, PageSize = request.Request.PageSize
         };
+    }
+}
+
+public class GetAllShiftsQueryHandler : IRequestHandler<GetAllShiftsQuery, List<ShiftResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllShiftsQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<ShiftResponseDto>> Handle(GetAllShiftsQuery request, CancellationToken ct)
+    {
+        var items = await _context.Set<Shift>().Include(x => x.WorkSchedule)
+            .Where(x => !x.IsDeleted)
+            .OrderBy(x => x.Name)
+            .Select(x => new ShiftResponseDto
+            {
+                Id = x.Id, Name = x.Name, Code = x.Code,
+                WorkScheduleId = x.WorkScheduleId, WorkScheduleName = x.WorkSchedule != null ? x.WorkSchedule.Name : string.Empty,
+                StartTime = x.StartTime, EndTime = x.EndTime,
+                IsNightShift = x.IsNightShift, IsActive = x.IsActive, CreatedAt = x.CreatedAt
+            }).ToListAsync(ct);
+        return items;
     }
 }

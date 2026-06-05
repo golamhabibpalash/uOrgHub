@@ -7,12 +7,14 @@ using uOrgHub.Projects.Models.Entities;
 using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Projects.Features.Clients.Queries;
 
 public record GetClientsQuery(PaginationRequest Request, ClientStatus? Status = null) : IQuery<PagedResult<ClientResponseDto>>;
 public record GetClientByIdQuery(Guid Id) : IQuery<ClientResponseDto>;
+public record GetAllClientsForExportQuery : IQuery<List<ClientResponseDto>>;
 
 public class GetClientsQueryHandler : IRequestHandler<GetClientsQuery, PagedResult<ClientResponseDto>>
 {
@@ -27,9 +29,7 @@ public class GetClientsQueryHandler : IRequestHandler<GetClientsQuery, PagedResu
             query = query.Where(x => x.Status == request.Status.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.CompanyName.Contains(request.Request.Search)
-                || x.ClientCode.Contains(request.Request.Search)
-                || (x.ContactPerson != null && x.ContactPerson.Contains(request.Request.Search)));
+            query = query.WhereSearch(request.Request.Search, x => x.CompanyName, x => x.ClientCode);
 
         query = request.Request.SortDescending
             ? query.OrderByDescending(x => x.CompanyName)
@@ -63,5 +63,20 @@ public class GetClientByIdQueryHandler : IRequestHandler<GetClientByIdQuery, Cli
             ?? throw new NotFoundException(nameof(Client), request.Id);
 
         return ClientMapper.ToDto(entity);
+    }
+}
+
+public class GetAllClientsForExportQueryHandler : IRequestHandler<GetAllClientsForExportQuery, List<ClientResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllClientsForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<ClientResponseDto>> Handle(GetAllClientsForExportQuery request, CancellationToken ct)
+    {
+        return await _context.Set<Client>()
+            .Where(x => !x.IsDeleted)
+            .OrderBy(x => x.CompanyName)
+            .Select(x => ClientMapper.ToDto(x))
+            .ToListAsync(ct);
     }
 }

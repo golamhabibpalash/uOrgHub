@@ -7,12 +7,14 @@ using uOrgHub.Projects.Models.Entities;
 using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Projects.Features.RFIs.Queries;
 
 public record GetRFIsQuery(PaginationRequest Request, Guid? ProjectId = null, RFIStatus? Status = null) : IQuery<PagedResult<RFIResponseDto>>;
 public record GetRFIByIdQuery(Guid Id) : IQuery<RFIResponseDto>;
+public record GetAllRFIsForExportQuery : IQuery<List<RFIResponseDto>>;
 
 public class GetRFIsQueryHandler : IRequestHandler<GetRFIsQuery, PagedResult<RFIResponseDto>>
 {
@@ -32,7 +34,7 @@ public class GetRFIsQueryHandler : IRequestHandler<GetRFIsQuery, PagedResult<RFI
             query = query.Where(x => x.Status == request.Status.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.Subject.Contains(request.Request.Search) || x.RFINumber.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.Subject, x => x.RFINumber);
 
         query = request.Request.SortDescending
             ? query.OrderByDescending(x => x.RaisedDate)
@@ -66,5 +68,20 @@ public class GetRFIByIdQueryHandler : IRequestHandler<GetRFIByIdQuery, RFIRespon
             ?? throw new NotFoundException(nameof(ProjectRFI), request.Id);
 
         return RFIMapper.ToDto(entity);
+    }
+}
+
+public class GetAllRFIsForExportQueryHandler : IRequestHandler<GetAllRFIsForExportQuery, List<RFIResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllRFIsForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<RFIResponseDto>> Handle(GetAllRFIsForExportQuery request, CancellationToken ct)
+    {
+        return await _context.Set<ProjectRFI>()
+            .Where(x => !x.IsDeleted)
+            .OrderBy(x => x.RFINumber)
+            .Select(x => RFIMapper.ToDto(x))
+            .ToListAsync(ct);
     }
 }

@@ -7,12 +7,14 @@ using uOrgHub.Projects.Models.Entities;
 using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Projects.Features.Submittals.Queries;
 
 public record GetSubmittalsQuery(PaginationRequest Request, Guid? ProjectId = null, SubmittalStatus? Status = null) : IQuery<PagedResult<SubmittalResponseDto>>;
 public record GetSubmittalByIdQuery(Guid Id) : IQuery<SubmittalResponseDto>;
+public record GetAllSubmittalsForExportQuery : IQuery<List<SubmittalResponseDto>>;
 
 public class GetSubmittalsQueryHandler : IRequestHandler<GetSubmittalsQuery, PagedResult<SubmittalResponseDto>>
 {
@@ -32,7 +34,7 @@ public class GetSubmittalsQueryHandler : IRequestHandler<GetSubmittalsQuery, Pag
             query = query.Where(x => x.Status == request.Status.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.Title.Contains(request.Request.Search) || x.SubmittalNumber.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.Title, x => x.SubmittalNumber);
 
         query = request.Request.SortDescending
             ? query.OrderByDescending(x => x.CreatedAt)
@@ -66,5 +68,20 @@ public class GetSubmittalByIdQueryHandler : IRequestHandler<GetSubmittalByIdQuer
             ?? throw new NotFoundException(nameof(ProjectSubmittal), request.Id);
 
         return SubmittalMapper.ToDto(entity);
+    }
+}
+
+public class GetAllSubmittalsForExportQueryHandler : IRequestHandler<GetAllSubmittalsForExportQuery, List<SubmittalResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllSubmittalsForExportQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<SubmittalResponseDto>> Handle(GetAllSubmittalsForExportQuery request, CancellationToken ct)
+    {
+        return await _context.Set<ProjectSubmittal>()
+            .Where(x => !x.IsDeleted)
+            .OrderBy(x => x.SubmittalNumber)
+            .Select(x => SubmittalMapper.ToDto(x))
+            .ToListAsync(ct);
     }
 }

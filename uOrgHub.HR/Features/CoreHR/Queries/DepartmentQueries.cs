@@ -6,6 +6,7 @@ using uOrgHub.HR.Mappings;
 using uOrgHub.HR.Repositories;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.HR.Features.CoreHR.Queries;
@@ -30,7 +31,7 @@ public class GetDepartmentsQueryHandler : IRequestHandler<GetDepartmentsQuery, P
             .Where(x => !x.IsDeleted);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.Where(x => x.Name.Contains(request.Request.Search) || x.Code.Contains(request.Request.Search));
+            query = query.WhereSearch(request.Request.Search, x => x.Name, x => x.Code);
 
         query = request.Request.SortDescending
             ? query.OrderByDescending(x => x.Name)

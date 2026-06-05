@@ -7,6 +7,8 @@ using uOrgHub.Procurement.DTOs;
 using uOrgHub.Procurement.Features.PurchaseRequisitions.Commands;
 using uOrgHub.Procurement.Features.PurchaseRequisitions.Queries;
 using uOrgHub.Procurement.Models.Enums;
+using uOrgHub.Procurement.Reporting.ExportColumns;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Procurement;
@@ -15,7 +17,12 @@ namespace uOrgHub.API.Controllers.Procurement;
 public class PurchaseRequisitionsController : BaseController
 {
     private readonly IMediator _mediator;
-    public PurchaseRequisitionsController(IMediator mediator) => _mediator = mediator;
+    private readonly IExportService _exportService;
+    public PurchaseRequisitionsController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [RequireClaim(Claims.Procurement.PurchaseRequisitions.View)]
@@ -23,6 +30,20 @@ public class PurchaseRequisitionsController : BaseController
     {
         var result = await _mediator.Send(new GetPRsQuery(request, status));
         return Ok(ApiResponse<PagedResult<PRResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Procurement.PurchaseRequisitions.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx", [FromQuery] PRStatus? status = null)
+    {
+        var data = await _mediator.Send(new GetAllPRsForExportQuery(status));
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, PRExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "PurchaseRequisitions"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]
