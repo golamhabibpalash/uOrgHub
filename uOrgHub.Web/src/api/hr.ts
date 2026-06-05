@@ -11,6 +11,8 @@ export interface OrganogramNode {
   designationName: string;
   departmentName: string;
   profilePicturePath?: string;
+  status: string;
+  managerName?: string;
   depth: number;
   hasChildren: boolean;
   children: OrganogramNode[];
@@ -299,6 +301,9 @@ export const getEmployees = (params: PaginationRequest) =>
 
 export const getEmployeeById = (id: string) =>
   apiClient.get<ApiResponse<Employee>>(`employees/${id}`);
+
+export const getAllEmployees = () =>
+  apiClient.get<ApiResponse<Employee[]>>("employees/all");
 
 export const getOrganogram = (params?: { departmentId?: string; designationId?: string }) =>
   apiClient.get<ApiResponse<OrganogramNode[]>>("employees/organogram", { params });

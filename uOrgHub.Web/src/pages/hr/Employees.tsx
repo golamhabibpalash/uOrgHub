@@ -10,6 +10,7 @@ import ConfirmDialog from "../../components/shared/ConfirmDialog";
 import ExportMenu from "../../components/shared/ExportMenu";
 import {
   getEmployees,
+  getAllEmployees,
   createEmployee,
   createEmployeeWithUser,
   updateEmployee,
@@ -45,6 +46,7 @@ export default function Employees() {
     employmentType: "Permanent",
     basicSalary: 0,
     joiningDate: "",
+    managerId: "",
   });
   const [createUser, setCreateUser] = useState(false);
   const [userForm, setUserForm] = useState({
@@ -84,6 +86,11 @@ export default function Employees() {
     queryFn: () => getRoles(),
   });
 
+  const { data: allEmployeesData } = useQuery({
+    queryKey: ["employees-all"],
+    queryFn: getAllEmployees,
+  });
+
   const employees = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
   const departments = deptData?.data?.data ?? [];
@@ -92,11 +99,16 @@ export default function Employees() {
     ? allDesignations.filter((d) => d.departmentId === form.departmentId)
     : allDesignations;
   const roles = rolesData ?? [];
+  const allEmployees = allEmployeesData?.data?.data ?? [];
+  const managerOptions = editing
+    ? allEmployees.filter((e) => e.id !== editing.id)
+    : allEmployees;
 
   const saveMutation = useMutation({
     mutationFn: async () => {
       const body = { ...form };
       if (!body.joiningDate) delete (body as any).joiningDate;
+      if (!body.managerId) delete (body as any).managerId;
 
       if (editing) {
         return updateEmployee(editing.id, body);
@@ -232,6 +244,7 @@ export default function Employees() {
       employmentType: "Permanent",
       basicSalary: 0,
       joiningDate: "",
+      managerId: "",
     });
     setCreateUser(false);
     setUserForm({ username: "", email: "", password: "", autoGeneratePassword: false, isActive: true, roleIds: [] });
@@ -251,6 +264,7 @@ export default function Employees() {
       employmentType: emp.employmentType,
       basicSalary: emp.basicSalary,
       joiningDate: emp.joiningDate.split("T")[0],
+      managerId: emp.managerId || "",
     });
     setCreateUser(false);
     setError("");
@@ -496,6 +510,23 @@ export default function Employees() {
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* Manager */}
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Reports To (Manager)</label>
+            <select
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+              value={form.managerId}
+              onChange={(e) => setForm((f) => ({ ...f, managerId: e.target.value }))}
+            >
+              <option value="">No Manager (Top Level)</option>
+              {managerOptions.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.firstName} {e.lastName} ({e.employeeCode}) — {e.designationName}
+                </option>
+              ))}
+            </select>
           </div>
 
           {deptInlineOpen && (

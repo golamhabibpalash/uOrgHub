@@ -1,8 +1,10 @@
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using uOrgHub.HR.DTOs;
 using uOrgHub.HR.Features._Common;
 using uOrgHub.HR.Mappings;
 using uOrgHub.HR.Repositories;
+using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
 
 namespace uOrgHub.HR.Features.CoreHR.Commands;
@@ -42,9 +44,14 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
 public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeCommand, EmployeeResponseDto>
 {
     private readonly IEmployeeRepository _repo;
+    private readonly AppDbContext _context;
     private readonly EmployeeMapper _mapper = new();
 
-    public UpdateEmployeeCommandHandler(IEmployeeRepository repo) => _repo = repo;
+    public UpdateEmployeeCommandHandler(IEmployeeRepository repo, AppDbContext context)
+    {
+        _repo = repo;
+        _context = context;
+    }
 
     public async Task<EmployeeResponseDto> Handle(UpdateEmployeeCommand request, CancellationToken ct)
     {
@@ -54,6 +61,9 @@ public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeComman
         if (await _repo.EmailExistsAsync(request.Dto.Email, request.Id))
             throw new AppException($"Email '{request.Dto.Email}' already in use.");
 
+        if (request.Dto.ManagerId.HasValue)
+            await EnsureNoCircularReference(request.Id, request.Dto.ManagerId.Value, ct);
+
         _mapper.UpdateEntity(request.Dto, entity);
         entity.UpdatedAt = DateTime.UtcNow;
         var updated = await _repo.UpdateAsync(entity);
@@ -62,6 +72,28 @@ public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeComman
         dto.DesignationName = updated.Designation?.Name ?? "";
         dto.ManagerName = updated.Manager != null ? $"{updated.Manager.FirstName} {updated.Manager.LastName}" : null;
         return dto;
+    }
+
+    private async Task EnsureNoCircularReference(Guid employeeId, Guid proposedManagerId, CancellationToken ct)
+    {
+        if (proposedManagerId == employeeId)
+            throw new AppException("An employee cannot be their own manager.");
+
+        var visited = new HashSet<Guid> { employeeId };
+        var currentId = proposedManagerId;
+
+        while (currentId != Guid.Empty)
+        {
+            if (!visited.Add(currentId))
+                throw new AppException("Circular reporting relationship detected.");
+
+            var managerId = await _context.Set<Models.Entities.Employee>()
+                .Where(e => e.Id == currentId && !e.IsDeleted)
+                .Select(e => e.ManagerId)
+                .FirstOrDefaultAsync(ct);
+
+            currentId = managerId ?? Guid.Empty;
+        }
     }
 }
 

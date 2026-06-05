@@ -37,6 +37,13 @@ public class EmployeeController : BaseController
         return Ok(ApiResponse<PagedResult<EmployeeResponseDto>>.Ok(result));
     }
 
+    [HttpGet("all")]
+    public async Task<IActionResult> GetAllForDropdown()
+    {
+        var result = await _mediator.Send(new GetAllEmployeesQuery());
+        return Ok(ApiResponse<List<EmployeeResponseDto>>.Ok(result));
+    }
+
     [HttpGet("organogram")]
     [RequireClaim(Claims.HR.Employees.View)]
     public async Task<IActionResult> GetOrganogram([FromQuery] Guid? departmentId = null, [FromQuery] Guid? designationId = null)

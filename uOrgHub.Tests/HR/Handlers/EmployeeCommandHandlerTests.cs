@@ -1,11 +1,13 @@
 using FluentAssertions;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Moq;
 using uOrgHub.HR.DTOs;
 using uOrgHub.HR.Features.CoreHR.Commands;
 using uOrgHub.HR.Models.Entities;
 using uOrgHub.HR.Models.Enums;
 using uOrgHub.HR.Repositories;
+using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
 
 namespace uOrgHub.Tests.HR.Handlers;
@@ -99,7 +101,11 @@ public class UpdateEmployeeCommandHandlerTests
 
     public UpdateEmployeeCommandHandlerTests()
     {
-        _handler = new UpdateEmployeeCommandHandler(_repo.Object);
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase("TestDb_UpdateEmployee_" + Guid.NewGuid())
+            .Options;
+        var ctx = new AppDbContext(options);
+        _handler = new UpdateEmployeeCommandHandler(_repo.Object, ctx);
     }
 
     private Employee ExistingEmployee(Guid id)

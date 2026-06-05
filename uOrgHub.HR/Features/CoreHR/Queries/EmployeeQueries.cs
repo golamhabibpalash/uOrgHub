@@ -249,18 +249,31 @@ public class GetOrganogramQueryHandler : IRequestHandler<GetOrganogramQuery, Lis
             .Where(e => !e.ManagerId.HasValue || !employeeIds.Contains(e.ManagerId.Value))
             .ToList();
 
-        return roots.Select(e => BuildNode(e, childrenLookup, 0)).ToList();
+        var visited = new HashSet<Guid>();
+        return roots.Select(e => BuildNode(e, childrenLookup, 0, visited)).ToList();
     }
 
     private static OrganogramNodeDto BuildNode(
         Models.Entities.Employee employee,
         Dictionary<Guid, List<Models.Entities.Employee>> childrenLookup,
-        int depth)
+        int depth,
+        HashSet<Guid> visited)
     {
+        if (!visited.Add(employee.Id))
+            return CreateNode(employee, [], depth);
+
         var children = childrenLookup.TryGetValue(employee.Id, out var directReports)
-            ? directReports.Select(c => BuildNode(c, childrenLookup, depth + 1)).ToList()
+            ? directReports.Select(c => BuildNode(c, childrenLookup, depth + 1, visited)).ToList()
             : [];
 
+        var node = CreateNode(employee, children, depth);
+        node.HasChildren = children.Count > 0;
+        node.Children = children;
+        return node;
+    }
+
+    private static OrganogramNodeDto CreateNode(Models.Entities.Employee employee, List<OrganogramNodeDto> children, int depth)
+    {
         return new OrganogramNodeDto
         {
             Id = employee.Id,
@@ -271,6 +284,10 @@ public class GetOrganogramQueryHandler : IRequestHandler<GetOrganogramQuery, Lis
             DesignationName = employee.Designation?.Name ?? string.Empty,
             DepartmentName = employee.Department?.Name ?? string.Empty,
             ProfilePicturePath = employee.ProfilePicturePath,
+            Status = employee.Status.ToString(),
+            ManagerName = employee.Manager != null
+                ? $"{employee.Manager.FirstName} {employee.Manager.LastName}".Trim()
+                : null,
             Depth = depth,
             HasChildren = children.Count > 0,
             Children = children
