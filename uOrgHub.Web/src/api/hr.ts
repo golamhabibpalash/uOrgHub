@@ -37,6 +37,24 @@ export interface Employee {
   managerName?: string;
   profilePicturePath?: string;
   profilePictureUrl?: string;
+  // Extended fields — populated by the detail endpoint (GET /employees/{id})
+  middleName?: string;
+  fullName?: string;
+  gender?: string;
+  religion?: string;
+  maritalStatus?: string;
+  bloodGroup?: string;
+  dateOfBirth?: string;
+  nationalId?: string;
+  passportNo?: string;
+  nationality?: string;
+  permanentAddress?: string;
+  currentAddress?: string;
+  district?: string;
+  division?: string;
+  confirmationDate?: string;
+  salaryGradeId?: string;
+  createdAt?: string;
 }
 
 export interface Department {

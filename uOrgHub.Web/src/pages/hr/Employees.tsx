@@ -10,6 +10,7 @@ import ConfirmDialog from "../../components/shared/ConfirmDialog";
 import ExportMenu from "../../components/shared/ExportMenu";
 import Avatar from "../../components/shared/Avatar";
 import ProfilePictureUploader from "../../components/shared/ProfilePictureUploader";
+import EmployeeDetailsModal from "./EmployeeDetailsModal";
 import {
   getEmployees,
   getAllEmployees,
@@ -38,6 +39,7 @@ export default function Employees() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
+  const [detailsId, setDetailsId] = useState<string | null>(null);
   const [checkingDeps, setCheckingDeps] = useState(false);
   const [form, setForm] = useState({
     firstName: "",
@@ -404,6 +406,7 @@ export default function Employees() {
         pageSize={dg.pageSize}
         onPageSizeChange={dg.setPageSize}
         totalCount={totalCount}
+        onView={(row) => setDetailsId(row.id)}
         onEdit={openEdit}
         onDelete={(row) => handleDeleteClick(row)}
         emptyMessage="No employees found"
@@ -431,6 +434,8 @@ export default function Employees() {
         }}
         onCancel={() => setDeleteTarget(null)}
       />
+
+      <EmployeeDetailsModal employeeId={detailsId} onClose={() => setDetailsId(null)} />
 
       {checkingDeps && (
         <div className="fixed inset-0 z-[55] flex items-center justify-center bg-black/20 pointer-events-none">

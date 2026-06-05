@@ -1,4 +1,4 @@
-import { ArrowUpDown, ArrowUp, ArrowDown, Search, ChevronLeft, ChevronRight, List } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, Search, ChevronLeft, ChevronRight, List, Eye } from "lucide-react";
 
 export interface DataGridColumn<T> {
   key: string;
@@ -26,6 +26,7 @@ interface DataGridProps<T> {
   pageSize: number;
   onPageSizeChange?: (size: number) => void;
   totalCount: number;
+  onView?: (row: T) => void;
   onEdit?: (row: T) => void;
   onDelete?: (row: T) => void;
   actions?: React.ReactNode;
@@ -57,6 +58,7 @@ export default function DataGrid<T extends { id: string }>({
   pageSize,
   onPageSizeChange,
   totalCount,
+  onView,
   onEdit,
   onDelete,
   actions,
@@ -125,7 +127,7 @@ export default function DataGrid<T extends { id: string }>({
                     )}
                   </th>
                 ))}
-                {(onEdit || onDelete) && (
+                {(onView || onEdit || onDelete) && (
                   <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 border-b border-gray-200">
                     Actions
                   </th>
@@ -136,7 +138,7 @@ export default function DataGrid<T extends { id: string }>({
               {data.length === 0 && !loading ? (
                 <tr>
                   <td
-                    colSpan={columns.length + (onEdit || onDelete ? 1 : 0)}
+                    colSpan={columns.length + (onView || onEdit || onDelete ? 1 : 0)}
                     className="text-center py-16 text-gray-400 text-sm"
                   >
                     <div className="flex flex-col items-center gap-2">
@@ -159,9 +161,18 @@ export default function DataGrid<T extends { id: string }>({
                         {col.render ? col.render(row) : String((row as Record<string, unknown>)[col.key] ?? "")}
                       </td>
                     ))}
-                    {(onEdit || onDelete) && (
+                    {(onView || onEdit || onDelete) && (
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-3">
+                          {onView && (
+                            <button
+                              onClick={() => onView(row)}
+                              className="text-gray-400 hover:text-primary-600"
+                              title="View details"
+                            >
+                              <Eye size={15} />
+                            </button>
+                          )}
                           {onEdit && (
                             <button
                               onClick={() => onEdit(row)}
