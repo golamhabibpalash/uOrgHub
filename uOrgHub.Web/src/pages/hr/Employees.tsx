@@ -18,8 +18,8 @@ import {
   Employee,
   Department,
   Designation,
-  getDepartments,
-  getDesignations,
+  getAllDepartments,
+  getAllDesignations,
   createDepartment,
   createDesignation,
 } from "../../api/hr";
