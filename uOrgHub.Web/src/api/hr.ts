@@ -34,9 +34,13 @@ export interface Designation {
   id: string;
   name: string;
   code: string;
+  level: number;
+  isActive: boolean;
   departmentId: string;
   departmentName: string;
-  isActive: boolean;
+  parentDesignationId?: string;
+  parentDesignationName?: string;
+  salaryGradeId?: string;
 }
 
 export interface LeaveType {
@@ -371,6 +375,9 @@ export const getDesignations = (params: PaginationRequest, departmentId?: string
   apiClient.get<ApiResponse<PagedResult<Designation>>>("designations", {
     params: { ...params, departmentId },
   });
+
+export const getAllDesignations = () =>
+  apiClient.get<ApiResponse<Designation[]>>("designations/all");
 
 export const getDesignationById = (id: string) =>
   apiClient.get<ApiResponse<Designation>>(`designations/${id}`);

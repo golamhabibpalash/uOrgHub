@@ -10,6 +10,7 @@ using uOrgHub.Shared.Models;
 namespace uOrgHub.HR.Features.CoreHR.Queries;
 
 public record GetDesignationsQuery(PaginationRequest Request, Guid? DepartmentId = null) : IQuery<PagedResult<DesignationResponseDto>>;
+public record GetAllDesignationsQuery : IQuery<List<DesignationResponseDto>>;
 public record GetDesignationByIdQuery(Guid Id) : IQuery<DesignationResponseDto>;
 public record GetDesignationDependenciesQuery(Guid Id) : IQuery<DesignationDependenciesDto>;
 
@@ -96,6 +97,32 @@ public class GetDesignationByIdQueryHandler : IRequestHandler<GetDesignationById
             SalaryGradeId = e.SalaryGradeId,
             CreatedAt = e.CreatedAt
         };
+    }
+}
+
+public class GetAllDesignationsQueryHandler : IRequestHandler<GetAllDesignationsQuery, List<DesignationResponseDto>>
+{
+    private readonly IDesignationRepository _repo;
+
+    public GetAllDesignationsQueryHandler(IDesignationRepository repo) => _repo = repo;
+
+    public async Task<List<DesignationResponseDto>> Handle(GetAllDesignationsQuery request, CancellationToken ct)
+    {
+        var entities = await _repo.GetAllForDropdownAsync();
+        return entities.Select(e => new DesignationResponseDto
+        {
+            Id = e.Id,
+            Name = e.Name,
+            Code = e.Code,
+            Level = e.Level,
+            IsActive = e.IsActive,
+            DepartmentId = e.DepartmentId,
+            DepartmentName = e.Department?.Name ?? string.Empty,
+            ParentDesignationId = e.ParentDesignationId,
+            ParentDesignationName = e.ParentDesignation?.Name,
+            SalaryGradeId = e.SalaryGradeId,
+            CreatedAt = e.CreatedAt
+        }).ToList();
     }
 }
 

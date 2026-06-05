@@ -26,6 +26,14 @@ public class DesignationController : BaseController
         return Ok(ApiResponse<PagedResult<DesignationResponseDto>>.Ok(result));
     }
 
+    [HttpGet("all")]
+    [RequireClaim(Claims.HR.Designations.View)]
+    public async Task<IActionResult> GetAllForDropdown()
+    {
+        var result = await _mediator.Send(new GetAllDesignationsQuery());
+        return Ok(ApiResponse<List<DesignationResponseDto>>.Ok(result));
+    }
+
     [HttpGet("{id:guid}")]
     [RequireClaim(Claims.HR.Designations.View)]
     public async Task<IActionResult> GetById(Guid id)

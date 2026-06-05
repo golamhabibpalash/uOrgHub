@@ -23,6 +23,9 @@ public class CreateDesignationCommandHandler : IRequestHandler<CreateDesignation
         if (await _repo.CodeExistsAsync(request.Dto.Code))
             throw new AppException($"Designation code '{request.Dto.Code}' already exists.");
 
+        if (request.Dto.ParentDesignationId.HasValue && !await _repo.ParentExistsAsync(request.Dto.ParentDesignationId))
+            throw new AppException("Selected parent designation does not exist.");
+
         var entity = _mapper.ToEntity(request.Dto);
         entity.CreatedAt = DateTime.UtcNow;
         var created = await _repo.CreateAsync(entity);
@@ -44,6 +47,12 @@ public class UpdateDesignationCommandHandler : IRequestHandler<UpdateDesignation
 
         if (await _repo.CodeExistsAsync(request.Dto.Code, request.Id))
             throw new AppException($"Designation code '{request.Dto.Code}' already exists.");
+
+        if (request.Dto.ParentDesignationId.HasValue && !await _repo.ParentExistsAsync(request.Dto.ParentDesignationId))
+            throw new AppException("Selected parent designation does not exist.");
+
+        if (await _repo.HasCircularReferenceAsync(request.Id, request.Dto.ParentDesignationId))
+            throw new AppException("Circular reference detected: a designation cannot be its own ancestor.");
 
         _mapper.UpdateEntity(request.Dto, entity);
         entity.UpdatedAt = DateTime.UtcNow;

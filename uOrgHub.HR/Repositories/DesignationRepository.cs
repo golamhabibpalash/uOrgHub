@@ -94,4 +94,38 @@ public class DesignationRepository : IDesignationRepository
             BlockingReason = reason,
         };
     }
+
+    public async Task<List<Designation>> GetAllForDropdownAsync()
+        => await BaseQuery()
+            .Include(x => x.ParentDesignation)
+            .OrderBy(x => x.Name)
+            .ToListAsync();
+
+    public async Task<bool> ParentExistsAsync(Guid? parentId)
+        => parentId == null || await BaseQuery().AnyAsync(x => x.Id == parentId);
+
+    public async Task<bool> HasCircularReferenceAsync(Guid id, Guid? parentDesignationId)
+    {
+        if (parentDesignationId == null) return false;
+        if (id == parentDesignationId) return true;
+
+        var visited = new HashSet<Guid> { id };
+        var current = parentDesignationId.Value;
+
+        while (current != Guid.Empty)
+        {
+            if (visited.Contains(current)) return true;
+            visited.Add(current);
+
+            var next = await _context.Set<Designation>()
+                .Where(x => x.Id == current && !x.IsDeleted)
+                .Select(x => x.ParentDesignationId)
+                .FirstOrDefaultAsync();
+
+            if (next == null) break;
+            current = next.Value;
+        }
+
+        return false;
+    }
 }
