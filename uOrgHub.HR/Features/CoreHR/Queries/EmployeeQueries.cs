@@ -211,3 +211,69 @@ public class GetEmployeeDependenciesQueryHandler : IRequestHandler<GetEmployeeDe
         return await _repo.GetDependenciesAsync(request.Id, ct);
     }
 }
+
+public record GetOrganogramQuery(Guid? DepartmentId = null, Guid? DesignationId = null) : IQuery<List<OrganogramNodeDto>>;
+
+public class GetOrganogramQueryHandler : IRequestHandler<GetOrganogramQuery, List<OrganogramNodeDto>>
+{
+    private readonly AppDbContext _context;
+
+    public GetOrganogramQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<OrganogramNodeDto>> Handle(GetOrganogramQuery request, CancellationToken ct)
+    {
+        var query = _context.Set<Models.Entities.Employee>()
+            .Include(x => x.Department)
+            .Include(x => x.Designation)
+            .Include(x => x.Manager)
+            .Where(x => !x.IsDeleted);
+
+        if (request.DepartmentId.HasValue)
+            query = query.Where(x => x.DepartmentId == request.DepartmentId.Value);
+
+        if (request.DesignationId.HasValue)
+            query = query.Where(x => x.DesignationId == request.DesignationId.Value);
+
+        var employees = await query
+            .OrderBy(x => x.EmployeeCode)
+            .ToListAsync(ct);
+
+        var employeeIds = employees.Select(e => e.Id).ToHashSet();
+
+        var childrenLookup = employees
+            .Where(e => e.ManagerId.HasValue && employeeIds.Contains(e.ManagerId.Value))
+            .GroupBy(e => e.ManagerId!.Value)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        var roots = employees
+            .Where(e => !e.ManagerId.HasValue || !employeeIds.Contains(e.ManagerId.Value))
+            .ToList();
+
+        return roots.Select(e => BuildNode(e, childrenLookup, 0)).ToList();
+    }
+
+    private static OrganogramNodeDto BuildNode(
+        Models.Entities.Employee employee,
+        Dictionary<Guid, List<Models.Entities.Employee>> childrenLookup,
+        int depth)
+    {
+        var children = childrenLookup.TryGetValue(employee.Id, out var directReports)
+            ? directReports.Select(c => BuildNode(c, childrenLookup, depth + 1)).ToList()
+            : [];
+
+        return new OrganogramNodeDto
+        {
+            Id = employee.Id,
+            EmployeeCode = employee.EmployeeCode,
+            FirstName = employee.FirstName,
+            MiddleName = employee.MiddleName,
+            LastName = employee.LastName,
+            DesignationName = employee.Designation?.Name ?? string.Empty,
+            DepartmentName = employee.Department?.Name ?? string.Empty,
+            ProfilePicturePath = employee.ProfilePicturePath,
+            Depth = depth,
+            HasChildren = children.Count > 0,
+            Children = children
+        };
+    }
+}

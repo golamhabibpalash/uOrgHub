@@ -27,6 +27,7 @@ import AttendanceManagement from "./pages/hr/AttendanceManagement";
 import PayrollManagement from "./pages/hr/PayrollManagement";
 import Recruitment from "./pages/hr/Recruitment";
 import PerformanceManagement from "./pages/hr/PerformanceManagement";
+import Organogram from "./pages/hr/Organogram";
 import AccountsDashboard from "./pages/accounts/AccountsDashboard";
 import AccountGroups from "./pages/accounts/AccountGroups";
 import FiscalYears from "./pages/accounts/FiscalYears";
@@ -144,6 +145,7 @@ export default function App() {
             <Route path="hr/payroll" element={<PayrollManagement />} />
             <Route path="hr/recruitment" element={<Recruitment />} />
             <Route path="hr/performance" element={<PerformanceManagement />} />
+            <Route path="hr/organogram" element={<Organogram />} />
             <Route path="accounts" element={<AccountsDashboard />} />
             <Route path="accounts/account-groups" element={<AccountGroups />} />
             <Route path="accounts/fiscal-years" element={<FiscalYears />} />

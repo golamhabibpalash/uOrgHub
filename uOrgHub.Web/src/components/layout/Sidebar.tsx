@@ -40,6 +40,7 @@ import {
   ShieldCheck,
   ScrollText,
   Palette,
+  GitBranch,
 } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 import { getMenuItems, type MenuItemDto } from "../../api/auth";
@@ -50,7 +51,7 @@ const iconMap: Record<string, React.ComponentType<{ size?: number; className?: s
   UserCheck, Target, ShieldCheck, ScrollText, Palette, Settings,
   BookOpen, Calendar, Layers, MapPin, Percent, Landmark, FileText,
   CreditCard, PiggyBank, FileSpreadsheet, ShoppingBag, Tag, Ruler,
-  Package, Warehouse, ArrowDownToLine, ArrowUpFromLine,
+  Package, Warehouse, ArrowDownToLine, ArrowUpFromLine, GitBranch,
 };
 
 interface NavItem {

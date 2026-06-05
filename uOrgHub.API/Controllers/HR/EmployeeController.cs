@@ -37,6 +37,14 @@ public class EmployeeController : BaseController
         return Ok(ApiResponse<PagedResult<EmployeeResponseDto>>.Ok(result));
     }
 
+    [HttpGet("organogram")]
+    [RequireClaim(Claims.HR.Employees.View)]
+    public async Task<IActionResult> GetOrganogram([FromQuery] Guid? departmentId = null, [FromQuery] Guid? designationId = null)
+    {
+        var result = await _mediator.Send(new GetOrganogramQuery(departmentId, designationId));
+        return Ok(ApiResponse<List<OrganogramNodeDto>>.Ok(result));
+    }
+
     [HttpGet("export")]
     [RequireClaim(Claims.HR.Employees.Export)]
     public async Task<IActionResult> Export([FromQuery] string format = "xlsx", [FromQuery] Guid? departmentId = null, [FromQuery] Guid? designationId = null, [FromQuery] string? search = null)

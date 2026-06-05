@@ -15,6 +15,7 @@ public class MenuService : IMenuService
             new("hr-departments", "Departments", "Building2", "/hr/departments", Claims.HR.Departments.View, null, null, null),
             new("hr-employees", "Employees", "UserCircle", "/hr/employees", Claims.HR.Employees.View, null, null, null),
             new("hr-designations", "Designations", "Briefcase", "/hr/designations", Claims.HR.Designations.View, null, null, null),
+            new("hr-organogram", "Organogram", "GitBranch", "/hr/organogram", Claims.HR.Employees.View, null, null, null),
             new("hr-leave", "Leave", "CalendarClock", "/hr/leave", Claims.HR.LeaveRequests.View, null, null, null),
             new("hr-attendance", "Attendance", "Clock", "/hr/attendance", Claims.HR.AttendanceLogs.View, null, null, null),
             new("hr-payroll", "Payroll", "Wallet", "/hr/payroll", Claims.HR.SalaryGrades.View, null, null, null),

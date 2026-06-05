@@ -1,6 +1,21 @@
 import apiClient from "./client";
 import { ApiResponse, PagedResult, PaginationRequest } from "../types/api";
 
+export interface OrganogramNode {
+  id: string;
+  employeeCode: string;
+  firstName: string;
+  middleName?: string;
+  lastName: string;
+  fullName: string;
+  designationName: string;
+  departmentName: string;
+  profilePicturePath?: string;
+  depth: number;
+  hasChildren: boolean;
+  children: OrganogramNode[];
+}
+
 export interface Employee {
   id: string;
   employeeCode: string;
@@ -284,6 +299,9 @@ export const getEmployees = (params: PaginationRequest) =>
 
 export const getEmployeeById = (id: string) =>
   apiClient.get<ApiResponse<Employee>>(`employees/${id}`);
+
+export const getOrganogram = (params?: { departmentId?: string; designationId?: string }) =>
+  apiClient.get<ApiResponse<OrganogramNode[]>>("employees/organogram", { params });
 
 export const createEmployee = (data: Partial<Employee>) =>
   apiClient.post<ApiResponse<Employee>>("employees", data);
