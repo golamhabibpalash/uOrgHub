@@ -4,8 +4,10 @@ using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Inventory.DTOs;
 using uOrgHub.Inventory.Features.Items.Commands;
 using uOrgHub.Inventory.Features.Items.Queries;
+using uOrgHub.Inventory.Reporting.ExportColumns;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.Inventory;
@@ -14,7 +16,12 @@ namespace uOrgHub.API.Controllers.Inventory;
 public class ItemsController : BaseController
 {
     private readonly IMediator _mediator;
-    public ItemsController(IMediator mediator) => _mediator = mediator;
+    private readonly IExportService _exportService;
+    public ItemsController(IMediator mediator, IExportService exportService)
+    {
+        _mediator = mediator;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [RequireClaim(Claims.Inventory.Items.View)]
@@ -22,6 +29,20 @@ public class ItemsController : BaseController
     {
         var result = await _mediator.Send(new GetItemsQuery(request, categoryId, typeId));
         return Ok(ApiResponse<PagedResult<ItemResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.Inventory.Items.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx", [FromQuery] Guid? categoryId = null, [FromQuery] Guid? typeId = null, [FromQuery] string? search = null)
+    {
+        var data = await _mediator.Send(new GetAllItemsQuery(categoryId, typeId, search));
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, ItemExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Items"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]

@@ -9,6 +9,7 @@ using uOrgHub.Shared.Models;
 namespace uOrgHub.Accounts.Features.AR;
 
 public record GetCustomersQuery(PaginationRequest Request) : IQuery<PagedResult<CustomerResponseDto>>;
+public record GetAllCustomersQuery(string? Search = null) : IQuery<List<CustomerResponseDto>>;
 public record GetCustomerByIdQuery(Guid Id) : IQuery<CustomerResponseDto>;
 public record CreateCustomerCommand(CreateCustomerDto Dto) : ICommand<CustomerResponseDto>;
 public record UpdateCustomerCommand(Guid Id, UpdateCustomerDto Dto) : ICommand<CustomerResponseDto>;
@@ -46,6 +47,26 @@ public class GetCustomersQueryHandler : IRequestHandler<GetCustomersQuery, Paged
             Page = request.Request.Page,
             PageSize = request.Request.PageSize
         };
+    }
+}
+
+public class GetAllCustomersQueryHandler : IRequestHandler<GetAllCustomersQuery, List<CustomerResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllCustomersQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<CustomerResponseDto>> Handle(GetAllCustomersQuery request, CancellationToken ct)
+    {
+        var query = _context.Set<Models.Entities.Customer>().Where(x => !x.IsDeleted);
+
+        if (!string.IsNullOrWhiteSpace(request.Search))
+            query = query.Where(x => x.Name.Contains(request.Search)
+                || x.CustomerCode.Contains(request.Search)
+                || (x.Email != null && x.Email.Contains(request.Search)));
+
+        query = query.OrderBy(x => x.Name);
+        var items = await query.ToListAsync(ct);
+        return items.Select(CustomerMappingHelper.ToDto).ToList();
     }
 }
 

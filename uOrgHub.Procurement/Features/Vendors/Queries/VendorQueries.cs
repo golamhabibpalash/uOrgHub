@@ -11,6 +11,7 @@ using uOrgHub.Shared.Models;
 namespace uOrgHub.Procurement.Features.Vendors.Queries;
 
 public record GetVendorsQuery(PaginationRequest Request, VendorStatus? Status = null, VendorType? VendorType = null) : IQuery<PagedResult<VendorResponseDto>>;
+public record GetAllVendorsQuery(VendorStatus? Status = null, VendorType? VendorType = null, string? Search = null) : IQuery<List<VendorResponseDto>>;
 public record GetVendorByIdQuery(Guid Id) : IQuery<VendorResponseDto>;
 public record GetVendorQuotationsQuery(Guid VendorId, PaginationRequest Request) : IQuery<PagedResult<VendorQuotationResponseDto>>;
 public record GetVendorOrdersQuery(Guid VendorId, PaginationRequest Request) : IQuery<PagedResult<POResponseDto>>;
@@ -44,7 +45,7 @@ public class GetVendorsQueryHandler : IRequestHandler<GetVendorsQuery, PagedResu
         };
     }
 
-    private static VendorResponseDto MapToDto(Vendor v) => new()
+    internal static VendorResponseDto MapToDto(Vendor v) => new()
     {
         Id = v.Id, VendorCode = v.VendorCode, CompanyName = v.CompanyName,
         ContactPerson = v.ContactPerson, Email = v.Email, Phone = v.Phone,
@@ -53,6 +54,29 @@ public class GetVendorsQueryHandler : IRequestHandler<GetVendorsQuery, PagedResu
         CreditLimit = v.CreditLimit, PaymentTermDays = v.PaymentTermDays,
         Notes = v.Notes, CreatedAt = v.CreatedAt
     };
+}
+
+public class GetAllVendorsQueryHandler : IRequestHandler<GetAllVendorsQuery, List<VendorResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetAllVendorsQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<VendorResponseDto>> Handle(GetAllVendorsQuery request, CancellationToken ct)
+    {
+        var query = _context.Set<Vendor>().Where(x => !x.IsDeleted);
+
+        if (request.Status.HasValue) query = query.Where(x => x.Status == request.Status.Value);
+        if (request.VendorType.HasValue) query = query.Where(x => x.VendorType == request.VendorType.Value);
+
+        if (!string.IsNullOrWhiteSpace(request.Search))
+            query = query.Where(x => x.CompanyName.Contains(request.Search) ||
+                                     x.VendorCode.Contains(request.Search) ||
+                                     (x.Email != null && x.Email.Contains(request.Search)));
+
+        query = query.OrderBy(x => x.CompanyName);
+        var items = await query.ToListAsync(ct);
+        return items.Select(GetVendorsQueryHandler.MapToDto).ToList();
+    }
 }
 
 public class GetVendorByIdQueryHandler : IRequestHandler<GetVendorByIdQuery, VendorResponseDto>

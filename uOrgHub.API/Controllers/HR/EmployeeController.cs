@@ -8,6 +8,8 @@ using uOrgHub.Auth.Authorization;
 using uOrgHub.HR.DTOs;
 using uOrgHub.HR.Features.CoreHR.Commands;
 using uOrgHub.HR.Features.CoreHR.Queries;
+using uOrgHub.HR.Reporting.ExportColumns;
+using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.API.Controllers.HR;
@@ -18,11 +20,13 @@ public class EmployeeController : BaseController
 {
     private readonly IMediator _mediator;
     private readonly IEmployeeWithUserService _employeeWithUserService;
+    private readonly IExportService _exportService;
 
-    public EmployeeController(IMediator mediator, IEmployeeWithUserService employeeWithUserService)
+    public EmployeeController(IMediator mediator, IEmployeeWithUserService employeeWithUserService, IExportService exportService)
     {
         _mediator = mediator;
         _employeeWithUserService = employeeWithUserService;
+        _exportService = exportService;
     }
 
     [HttpGet]
@@ -31,6 +35,20 @@ public class EmployeeController : BaseController
     {
         var result = await _mediator.Send(new GetEmployeesQuery(request, departmentId, designationId));
         return Ok(ApiResponse<PagedResult<EmployeeResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("export")]
+    [RequireClaim(Claims.HR.Employees.Export)]
+    public async Task<IActionResult> Export([FromQuery] string format = "xlsx", [FromQuery] Guid? departmentId = null, [FromQuery] Guid? designationId = null, [FromQuery] string? search = null)
+    {
+        var data = await _mediator.Send(new GetAllEmployeesQuery(departmentId, designationId, search));
+        var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
+        var result = await _exportService.ExportAsync(data, EmployeeExportColumns.Get(), new ExportOptions
+        {
+            Format = fmt,
+            EntityName = "Employees"
+        });
+        return File(result.Content, result.MimeType, result.FileName);
     }
 
     [HttpGet("{id:guid}")]
