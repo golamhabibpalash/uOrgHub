@@ -4,7 +4,9 @@ export function profilePictureUrl(path: string | null | undefined): string {
   if (!path) return DEFAULT_AVATAR;
   if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:")) return path;
   const normalized = path.replace(/\\/g, "/").replace(/^\/+/, "");
-  return `/uploads/${normalized}`;
+  // Add cache busting timestamp
+  const ts = new Date().getTime();
+  return `/uploads/${normalized}?t=${ts}`;
 }
 
 export function getInitials(firstName?: string | null, lastName?: string | null): string {

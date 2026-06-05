@@ -113,7 +113,7 @@ export default function EmployeeDetailsModal({ employeeId, onClose }: Props) {
           </button>
           <div className="px-6 pb-4 -mt-10 flex items-end gap-4">
             <div className="ring-4 ring-white rounded-full">
-              <Avatar src={emp?.profilePicturePath} firstName={emp?.firstName} lastName={emp?.lastName} size="xl" />
+              <Avatar src={emp?.profilePictureUrl} firstName={emp?.firstName} lastName={emp?.lastName} size="xl" />
             </div>
             <div className="pb-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">

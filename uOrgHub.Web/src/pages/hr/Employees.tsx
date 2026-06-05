@@ -333,7 +333,7 @@ export default function Employees() {
       label: "",
       render: (row: Employee) => (
         <Avatar
-          src={row.profilePicturePath}
+          src={row.profilePictureUrl}
           firstName={row.firstName}
           lastName={row.lastName}
           size="sm"
