@@ -29,7 +29,7 @@ public class GetItemVariantsQueryHandler : IRequestHandler<GetItemVariantsQuery,
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
             query = query.WhereSearch(request.Request.Search, x => x.SKU, x => x.VariantName);
 
-        query = request.Request.SortDescending ? query.OrderByDescending(x => x.SKU) : query.OrderBy(x => x.SKU);
+        query = query.ApplySorting(request.Request.SortBy ?? "SKU", request.Request.SortDescending);
 
         var totalCount = await query.CountAsync(ct);
         var items = await query.Skip((request.Request.Page - 1) * request.Request.PageSize).Take(request.Request.PageSize).ToListAsync(ct);

@@ -33,9 +33,7 @@ public class GetProjectMilestonesListQueryHandler : IRequestHandler<GetProjectMi
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
             query = query.WhereSearch(request.Request.Search, x => x.Title);
 
-        query = request.Request.SortDescending
-            ? query.OrderByDescending(x => x.PlannedDate)
-            : query.OrderBy(x => x.PlannedDate);
+        query = query.ApplySorting(request.Request.SortBy ?? "PlannedDate", request.Request.SortDescending);
 
         var total = await query.CountAsync(ct);
         var items = await query

@@ -32,7 +32,8 @@ public class GetSalaryGradesQueryHandler : IRequestHandler<GetSalaryGradesQuery,
             query = query.WhereSearch(request.Request.Search, x => x.Name, x => x.GradeCode);
 
         var totalCount = await query.CountAsync(ct);
-        var items = await query.OrderBy(x => x.GradeCode)
+        query = query.ApplySorting(request.Request.SortBy ?? "GradeCode", request.Request.SortDescending);
+        var items = await query
             .Skip((request.Request.Page - 1) * request.Request.PageSize)
             .Take(request.Request.PageSize).ToListAsync(ct);
 
@@ -179,7 +180,8 @@ public class GetPayrollEntriesQueryHandler : IRequestHandler<GetPayrollEntriesQu
             .Where(x => !x.IsDeleted && x.PayrollCycleId == request.PayrollCycleId);
 
         var totalCount = await query.CountAsync(ct);
-        var items = await query.OrderBy(x => x.Employee.EmployeeCode)
+        query = query.ApplySorting(request.Request.SortBy ?? "Employee.EmployeeCode", request.Request.SortDescending);
+        var items = await query
             .Skip((request.Request.Page - 1) * request.Request.PageSize)
             .Take(request.Request.PageSize).ToListAsync(ct);
 
@@ -245,7 +247,8 @@ public class GetExpenseRequestsQueryHandler : IRequestHandler<GetExpenseRequests
         if (request.EmployeeId.HasValue) query = query.Where(x => x.EmployeeId == request.EmployeeId);
 
         var totalCount = await query.CountAsync(ct);
-        var items = await query.OrderByDescending(x => x.ExpenseDate)
+        query = query.ApplySorting(request.Request.SortBy ?? "ExpenseDate", request.Request.SortDescending);
+        var items = await query
             .Skip((request.Request.Page - 1) * request.Request.PageSize)
             .Take(request.Request.PageSize).ToListAsync(ct);
 

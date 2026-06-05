@@ -299,3 +299,114 @@ Use [Table("prefix_tablename")] attribute on every entity class.
 Example:
 [Table("hr_employees")]
 public class Employee : BaseEntity { ... }
+
+---
+
+## 18. DataGrid / List Page Convention
+
+All list pages MUST use the `DataGrid` component + `useDataGrid` hook. Do NOT use the old `DataTable` or `Pagination` components.
+
+### Backend — Query Handler Sorting
+
+Every paginated query handler or repository `GetAllAsync` MUST use `ApplySorting()` instead of hardcoded `OrderBy`:
+
+```csharp
+// CORRECT — dynamic sorting
+query = query.ApplySorting(request.Request.SortBy ?? "Name", request.Request.SortDescending);
+
+// WRONG — hardcoded column
+query = request.Request.SortDescending
+    ? query.OrderByDescending(x => x.Name)
+    : query.OrderBy(x => x.Name);
+```
+
+### Frontend — Page Structure
+
+Every list page MUST follow this exact pattern:
+
+```tsx
+import DataGrid from "../../components/shared/DataGrid";
+import ExportMenu from "../../components/shared/ExportMenu";
+import { useDataGrid } from "../../hooks/useDataGrid";
+
+export default function SomeList() {
+  const dg = useDataGrid({ defaultSortBy: "name" });
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["entity", dg.page, dg.search, dg.sortBy, dg.sortDescending /*, extra filters */],
+    queryFn: () => getEntities(dg.queryParams /*, extra filters */),
+  });
+
+  const items = data?.data?.data?.items ?? [];
+  const totalPages = data?.data?.data?.totalPages ?? 1;
+  const totalCount = data?.data?.data?.totalCount ?? 0;
+
+  const columns: DataGridColumn<EntityType>[] = [
+    { key: "name", label: "Name" },                              // sortable by default
+    { key: "code", label: "Code" },
+    { key: "status", label: "Status", sortable: false,           // opt out of sorting
+      render: (row) => <StatusBadge active={row.isActive} /> },
+  ];
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-base font-medium text-gray-900">Title</h2>
+        <button onClick={openAdd} className="...">+ Add</button>
+      </div>
+      <DataGrid
+        columns={columns}
+        data={items}
+        loading={isLoading}
+        sortBy={dg.sortBy}
+        sortDescending={dg.sortDescending}
+        onSort={dg.handleSort}
+        search={dg.search}
+        onSearch={dg.setSearch}
+        searchPlaceholder="Search..."
+        page={dg.page}
+        totalPages={totalPages}
+        onPageChange={dg.setPage}
+        pageSize={dg.pageSize}
+        onPageSizeChange={dg.setPageSize}
+        totalCount={totalCount}
+        onEdit={openEdit}
+        onDelete={handleDelete}
+        emptyMessage="No records found"
+        toolbarPrefix={/* optional filter dropdowns */}
+        actions={<ExportMenu baseUrl="..." filters={...} />}
+      />
+      <Modal ... />
+      <ConfirmDialog ... />
+    </div>
+  );
+}
+```
+
+### DataGridColumn Properties
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `key` | `string` | required | Maps to `SortBy` value on backend |
+| `label` | `string` | required | Column header text |
+| `sortable` | `boolean` | `true` | Show sort arrows in header |
+| `render` | `(row: T) => ReactNode` | — | Custom cell renderer |
+| `className` | `string` | — | Cell-level CSS class |
+| `headerClassName` | `string` | — | Header cell CSS class |
+| `width` | `string` | — | Column width (e.g. `"120px"`) |
+
+### useDataGrid Hook API
+
+```typescript
+const dg = useDataGrid({ defaultSortBy?: string, defaultSortDescending?: boolean, defaultPageSize?: number });
+
+// State
+dg.page / dg.setPage(n)
+dg.pageSize / dg.setPageSize(n)
+dg.search / dg.setSearch(val)        // auto-resets page to 1
+dg.sortBy / dg.sortDescending
+dg.handleSort(columnKey)             // cycles none → asc → desc
+dg.filters / dg.setFilter(key, val)  // column-specific filters
+dg.resetFilters()
+dg.queryParams                       // ready-to-pass PaginationRequest object
+```

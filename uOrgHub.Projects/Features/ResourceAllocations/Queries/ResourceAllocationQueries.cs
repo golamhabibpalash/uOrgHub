@@ -39,9 +39,7 @@ public class GetResourceAllocationsQueryHandler : IRequestHandler<GetResourceAll
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
             query = query.WhereSearch(request.Request.Search, x => x.Description);
 
-        query = request.Request.SortDescending
-            ? query.OrderByDescending(x => x.PlannedStartDate)
-            : query.OrderBy(x => x.PlannedStartDate);
+        query = query.ApplySorting(request.Request.SortBy ?? "PlannedStartDate", request.Request.SortDescending);
 
         var total = await query.CountAsync(ct);
         var items = await query

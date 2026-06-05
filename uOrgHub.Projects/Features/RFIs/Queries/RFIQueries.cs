@@ -36,9 +36,7 @@ public class GetRFIsQueryHandler : IRequestHandler<GetRFIsQuery, PagedResult<RFI
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
             query = query.WhereSearch(request.Request.Search, x => x.Subject, x => x.RFINumber);
 
-        query = request.Request.SortDescending
-            ? query.OrderByDescending(x => x.RaisedDate)
-            : query.OrderBy(x => x.RFINumber);
+        query = query.ApplySorting(request.Request.SortBy ?? "RFINumber", request.Request.SortDescending);
 
         var total = await query.CountAsync(ct);
         var items = await query

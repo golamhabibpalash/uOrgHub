@@ -37,9 +37,7 @@ public class GetRABillsQueryHandler : IRequestHandler<GetRABillsQuery, PagedResu
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
             query = query.WhereSearch(request.Request.Search, x => x.Title, x => x.BillNumber);
 
-        query = request.Request.SortDescending
-            ? query.OrderByDescending(x => x.BillDate)
-            : query.OrderBy(x => x.BillSequence);
+        query = query.ApplySorting(request.Request.SortBy ?? "BillSequence", request.Request.SortDescending);
 
         var total = await query.CountAsync(ct);
         var items = await query

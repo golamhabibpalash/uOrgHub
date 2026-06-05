@@ -37,9 +37,7 @@ public class GetQAChecklistsQueryHandler : IRequestHandler<GetQAChecklistsQuery,
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
             query = query.WhereSearch(request.Request.Search, x => x.Title, x => x.ChecklistNumber);
 
-        query = request.Request.SortDescending
-            ? query.OrderByDescending(x => x.CreatedAt)
-            : query.OrderBy(x => x.ChecklistNumber);
+        query = query.ApplySorting(request.Request.SortBy ?? "ChecklistNumber", request.Request.SortDescending);
 
         var total = await query.CountAsync(ct);
         var items = await query

@@ -33,7 +33,7 @@ public class GetRFQsQueryHandler : IRequestHandler<GetRFQsQuery, PagedResult<RFQ
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
             query = query.WhereSearch(request.Request.Search, x => x.RFQNumber, x => x.Title);
 
-        query = request.Request.SortDescending ? query.OrderByDescending(x => x.RFQDate) : query.OrderBy(x => x.RFQDate);
+        query = query.ApplySorting(request.Request.SortBy ?? "RFQDate", request.Request.SortDescending);
 
         var totalCount = await query.CountAsync(ct);
         var items = await query.Skip((request.Request.Page - 1) * request.Request.PageSize).Take(request.Request.PageSize).ToListAsync(ct);
@@ -125,8 +125,9 @@ public class GetRFQQuotationsQueryHandler : IRequestHandler<GetRFQQuotationsQuer
         var query = _context.Set<VendorQuotation>()
             .Include(x => x.Vendor)
             .Include(x => x.RequestForQuotation)
-            .Where(x => !x.IsDeleted && x.RFQId == request.RFQId)
-            .OrderByDescending(x => x.QuotationDate);
+            .Where(x => !x.IsDeleted && x.RFQId == request.RFQId);
+
+        query = query.ApplySorting(request.Request.SortBy ?? "QuotationDate", request.Request.SortDescending);
 
         var totalCount = await query.CountAsync(ct);
         var items = await query.Skip((request.Request.Page - 1) * request.Request.PageSize).Take(request.Request.PageSize).ToListAsync(ct);

@@ -39,9 +39,7 @@ public class GetDrawingsQueryHandler : IRequestHandler<GetDrawingsQuery, PagedRe
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
             query = query.WhereSearch(request.Request.Search, x => x.Title, x => x.DrawingNumber);
 
-        query = request.Request.SortDescending
-            ? query.OrderByDescending(x => x.CreatedAt)
-            : query.OrderBy(x => x.DrawingNumber);
+        query = query.ApplySorting(request.Request.SortBy ?? "DrawingNumber", request.Request.SortDescending);
 
         var total = await query.CountAsync(ct);
         var items = await query

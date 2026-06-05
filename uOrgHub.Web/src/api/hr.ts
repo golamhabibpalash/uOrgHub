@@ -35,6 +35,8 @@ export interface Employee {
   basicSalary: number;
   managerId?: string;
   managerName?: string;
+  profilePicturePath?: string;
+  profilePictureUrl?: string;
 }
 
 export interface Department {
@@ -168,6 +170,7 @@ export interface ExpenseRequest {
 
 export interface JobPosting {
   id: string;
+  jobCode: string;
   title: string;
   departmentId: string;
   departmentName: string;
@@ -346,6 +349,19 @@ export interface EmployeeDependencies {
 
 export const getEmployeeDependencies = (id: string) =>
   apiClient.get<ApiResponse<EmployeeDependencies>>(`employees/${id}/dependencies`);
+
+export const uploadEmployeeProfilePicture = (id: string, file: File) => {
+  const fd = new FormData();
+  fd.append("file", file);
+  return apiClient
+    .post<ApiResponse<string>>(`employees/${id}/profile-picture`, fd, {
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+    .then((r) => r.data.data ?? "");
+};
+
+export const deleteEmployeeProfilePicture = (id: string) =>
+  apiClient.delete<ApiResponse<string>>(`employees/${id}/profile-picture`);
 
 // Departments
 export const getDepartments = (params: PaginationRequest) =>

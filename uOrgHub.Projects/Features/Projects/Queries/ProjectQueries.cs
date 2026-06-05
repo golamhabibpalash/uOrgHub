@@ -52,9 +52,7 @@ public class GetProjectsQueryHandler : IRequestHandler<GetProjectsQuery, PagedRe
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
             query = query.WhereSearch(request.Request.Search, x => x.ProjectName, x => x.ProjectCode);
 
-        query = request.Request.SortDescending
-            ? query.OrderByDescending(x => x.CreatedAt)
-            : query.OrderBy(x => x.ProjectName);
+        query = query.ApplySorting(request.Request.SortBy ?? "ProjectName", request.Request.SortDescending);
 
         var total = await query.CountAsync(ct);
         var items = await query
@@ -288,8 +286,9 @@ public class GetProjectDPRsQueryHandler : IRequestHandler<GetProjectDPRsQuery, P
 
         var query = _context.Set<DailyProgressReport>()
             .Where(x => !x.IsDeleted && x.ProjectId == request.ProjectId)
-            .OrderByDescending(x => x.ReportDate)
             .AsQueryable();
+
+        query = query.ApplySorting(request.Request.SortBy ?? "ReportDate", request.Request.SortDescending);
 
         var total = await query.CountAsync(ct);
         var items = await query
@@ -320,8 +319,9 @@ public class GetProjectExpensesQueryHandler : IRequestHandler<GetProjectExpenses
 
         var query = _context.Set<ProjectExpense>()
             .Where(x => !x.IsDeleted && x.ProjectId == request.ProjectId)
-            .OrderByDescending(x => x.ExpenseDate)
             .AsQueryable();
+
+        query = query.ApplySorting(request.Request.SortBy ?? "ExpenseDate", request.Request.SortDescending);
 
         var total = await query.CountAsync(ct);
         var items = await query

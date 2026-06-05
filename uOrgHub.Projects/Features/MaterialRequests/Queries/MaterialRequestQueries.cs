@@ -37,9 +37,7 @@ public class GetMaterialRequestsQueryHandler : IRequestHandler<GetMaterialReques
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
             query = query.WhereSearch(request.Request.Search, x => x.RequestNumber);
 
-        query = request.Request.SortDescending
-            ? query.OrderByDescending(x => x.RequestDate)
-            : query.OrderBy(x => x.RequestDate);
+        query = query.ApplySorting(request.Request.SortBy ?? "RequestDate", request.Request.SortDescending);
 
         var total = await query.CountAsync(ct);
         var items = await query

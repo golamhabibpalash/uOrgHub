@@ -31,9 +31,7 @@ public class GetClientsQueryHandler : IRequestHandler<GetClientsQuery, PagedResu
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
             query = query.WhereSearch(request.Request.Search, x => x.CompanyName, x => x.ClientCode);
 
-        query = request.Request.SortDescending
-            ? query.OrderByDescending(x => x.CompanyName)
-            : query.OrderBy(x => x.CompanyName);
+        query = query.ApplySorting(request.Request.SortBy ?? "CompanyName", request.Request.SortDescending);
 
         var total = await query.CountAsync(ct);
         var items = await query

@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import { User, Lock, Shield, Eye, EyeOff } from 'lucide-react';
-import { updateProfile, changePassword, toggle2FA } from '../../api/auth';
+import toast from 'react-hot-toast';
+import { updateProfile, changePassword, toggle2FA, uploadMyProfilePicture, deleteMyProfilePicture } from '../../api/auth';
 import { useAuthStore } from '../../store/authStore';
+import ProfilePictureUploader from '../../components/shared/ProfilePictureUploader';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 export default function MyProfilePage() {
   const { user, setUser } = useAuthStore();
-  const [tab, setTab] = useState<'info' | 'password' | 'security'>('info');
+  const qc = useQueryClient();
+  const [tab, setTab] = useState<'info' | 'password' | 'security' | 'photo'>('info');
   const [form, setForm] = useState({ firstName: user?.firstName ?? '', lastName: user?.lastName ?? '', email: user?.email ?? '', phoneNumber: user?.phoneNumber ?? '' });
   const [pw, setPw] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [showPw, setShowPw] = useState(false);
@@ -40,13 +44,40 @@ export default function MyProfilePage() {
     setLoading(true);
     try {
       await toggle2FA(!user.isTwoFactorEnabled, user.isTwoFactorEnabled ? undefined : 'Email');
+      await qc.invalidateQueries({ queryKey: ['auth', 'me'] });
     } catch {
       // handled by axios interceptor
     }
     finally { setLoading(false); }
   };
 
+  const uploadPicMutation = useMutation({
+    mutationFn: (file: File) => uploadMyProfilePicture(file),
+    onSuccess: async (url) => {
+      const updated = { ...(user as NonNullable<typeof user>), profilePicture: url };
+      setUser(updated as typeof user extends null ? never : NonNullable<typeof user>);
+      toast.success('Profile picture updated.');
+    },
+  });
+
+  const deletePicMutation = useMutation({
+    mutationFn: () => deleteMyProfilePicture(),
+    onSuccess: () => {
+      const updated = { ...(user as NonNullable<typeof user>), profilePicture: undefined };
+      setUser(updated as typeof user extends null ? never : NonNullable<typeof user>);
+      toast.success('Profile picture removed.');
+    },
+  });
+
   if (!user) return null;
+
+  const fullName = `${user.firstName} ${user.lastName}`.trim();
+  const TABS = [
+    ['info', 'Profile', User],
+    ['photo', 'Photo', User],
+    ['password', 'Password', Lock],
+    ['security', 'Security', Shield],
+  ] as const;
 
   const Field = ({ label, value, onChange, type = 'text' }: { label: string; value: string; onChange: (v: string) => void; type?: string }) => (
     <div>
@@ -68,10 +99,12 @@ export default function MyProfilePage() {
         </div>
       </div>
 
-      <div className="flex gap-1 mb-6 border-b border-slate-700">
-        {([['info', 'Profile', User], ['password', 'Password', Lock], ['security', 'Security', Shield]] as const).map(([key, label, Icon]) => (
+      <div className="flex gap-1 mb-6 border-b border-slate-700 overflow-x-auto">
+        {TABS.map(([key, label, Icon]) => (
           <button key={key} onClick={() => setTab(key)}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${tab === key ? 'border-primary-500 text-primary-400' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+              tab === key ? 'border-primary-500 text-primary-400' : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}>
             <Icon size={14} /> {label}
           </button>
         ))}
@@ -90,6 +123,25 @@ export default function MyProfilePage() {
             {loading ? 'Saving...' : 'Save Changes'}
           </button>
         </form>
+      )}
+
+      {tab === 'photo' && (
+        <div className="space-y-4">
+          <div className="bg-slate-800 border border-slate-700 rounded-lg p-5">
+            <h2 className="text-white font-medium text-sm mb-4">Profile Picture</h2>
+            <ProfilePictureUploader
+              currentPath={user.profilePicture}
+              name={fullName}
+              uploading={uploadPicMutation.isPending}
+              deleting={deletePicMutation.isPending}
+              onUpload={(file) => uploadPicMutation.mutate(file)}
+              onDelete={() => deletePicMutation.mutate()}
+            />
+          </div>
+          <div className="bg-slate-800 border border-slate-700 rounded-lg p-5 text-xs text-slate-400 leading-relaxed">
+            Your profile picture is shown across the application — in the sidebar, on your profile, and in employee records if you're linked to one.
+          </div>
+        </div>
       )}
 
       {tab === 'password' && (

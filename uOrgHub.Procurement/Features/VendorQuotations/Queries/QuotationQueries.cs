@@ -34,7 +34,7 @@ public class GetQuotationsQueryHandler : IRequestHandler<GetQuotationsQuery, Pag
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
             query = query.WhereSearch(request.Request.Search, x => x.QuotationNumber);
 
-        query = request.Request.SortDescending ? query.OrderByDescending(x => x.QuotationDate) : query.OrderBy(x => x.QuotationDate);
+        query = query.ApplySorting(request.Request.SortBy ?? "QuotationDate", request.Request.SortDescending);
 
         var totalCount = await query.CountAsync(ct);
         var items = await query.Skip((request.Request.Page - 1) * request.Request.PageSize).Take(request.Request.PageSize).ToListAsync(ct);

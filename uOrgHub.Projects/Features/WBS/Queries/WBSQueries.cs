@@ -29,9 +29,7 @@ public class GetWBSItemsQueryHandler : IRequestHandler<GetWBSItemsQuery, PagedRe
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
             query = query.WhereSearch(request.Request.Search, x => x.Title, x => x.WBSCode);
 
-        query = request.Request.SortDescending
-            ? query.OrderByDescending(x => x.Sequence)
-            : query.OrderBy(x => x.Sequence);
+        query = query.ApplySorting(request.Request.SortBy ?? "Sequence", request.Request.SortDescending);
 
         var total = await query.CountAsync(ct);
         var items = await query

@@ -7,7 +7,8 @@ public class CreateJobPostingDtoValidator : AbstractValidator<CreateJobPostingDt
 {
     public CreateJobPostingDtoValidator()
     {
-        RuleFor(x => x.JobCode).NotEmpty().MaximumLength(30);
+        // JobCode is optional: auto-generated server-side when left blank.
+        RuleFor(x => x.JobCode).MaximumLength(30);
         RuleFor(x => x.Title).NotEmpty().MaximumLength(200);
         RuleFor(x => x.DepartmentId).NotEmpty();
         RuleFor(x => x.DesignationId).NotEmpty();

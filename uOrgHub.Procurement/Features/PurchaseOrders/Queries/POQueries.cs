@@ -35,7 +35,7 @@ public class GetPOsQueryHandler : IRequestHandler<GetPOsQuery, PagedResult<PORes
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
             query = query.WhereSearch(request.Request.Search, x => x.PONumber);
 
-        query = request.Request.SortDescending ? query.OrderByDescending(x => x.PODate) : query.OrderBy(x => x.PODate);
+        query = query.ApplySorting(request.Request.SortBy ?? "PODate", request.Request.SortDescending);
 
         var totalCount = await query.CountAsync(ct);
         var items = await query.Skip((request.Request.Page - 1) * request.Request.PageSize).Take(request.Request.PageSize).ToListAsync(ct);
@@ -155,8 +155,9 @@ public class GetPOGRNsQueryHandler : IRequestHandler<GetPOGRNsQuery, PagedResult
         var query = _context.Set<GoodsReceivedNote>()
             .Include(x => x.Items)
             .Include(x => x.PurchaseOrder)
-            .Where(x => !x.IsDeleted && x.POId == request.POId)
-            .OrderByDescending(x => x.GRNDate);
+            .Where(x => !x.IsDeleted && x.POId == request.POId);
+
+        query = query.ApplySorting(request.Request.SortBy ?? "GRNDate", request.Request.SortDescending);
 
         var totalCount = await query.CountAsync(ct);
         var items = await query.Skip((request.Request.Page - 1) * request.Request.PageSize).Take(request.Request.PageSize).ToListAsync(ct);

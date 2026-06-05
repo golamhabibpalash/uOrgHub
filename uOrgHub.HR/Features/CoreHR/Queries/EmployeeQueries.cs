@@ -38,9 +38,7 @@ public class GetEmployeesQueryHandler : IRequestHandler<GetEmployeesQuery, Paged
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
             query = query.WhereSearch(request.Request.Search, x => x.FirstName, x => x.LastName, x => x.EmployeeCode, x => x.Email);
 
-        query = request.Request.SortDescending
-            ? query.OrderByDescending(x => x.EmployeeCode)
-            : query.OrderBy(x => x.EmployeeCode);
+        query = query.ApplySorting(request.Request.SortBy ?? "EmployeeCode", request.Request.SortDescending);
 
         var totalCount = await query.CountAsync(ct);
         var items = await query

@@ -28,9 +28,7 @@ public class JournalEntryRepository : IJournalEntryRepository
         if (!string.IsNullOrWhiteSpace(request.Search))
             query = query.WhereSearch(request.Search, x => x.EntryNumber, x => x.Description, x => x.ReferenceNumber);
 
-        query = request.SortDescending
-            ? query.OrderByDescending(x => x.EntryDate)
-            : query.OrderBy(x => x.EntryDate);
+        query = query.ApplySorting(request.SortBy ?? "EntryDate", request.SortDescending);
 
         var totalCount = await query.CountAsync();
         var items = await query

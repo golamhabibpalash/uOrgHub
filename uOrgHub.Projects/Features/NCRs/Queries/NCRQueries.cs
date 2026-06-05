@@ -39,9 +39,7 @@ public class GetNCRsQueryHandler : IRequestHandler<GetNCRsQuery, PagedResult<NCR
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
             query = query.WhereSearch(request.Request.Search, x => x.Title, x => x.NCRNumber);
 
-        query = request.Request.SortDescending
-            ? query.OrderByDescending(x => x.RaisedDate)
-            : query.OrderBy(x => x.NCRNumber);
+        query = query.ApplySorting(request.Request.SortBy ?? "NCRNumber", request.Request.SortDescending);
 
         var total = await query.CountAsync(ct);
         var items = await query

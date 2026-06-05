@@ -25,9 +25,7 @@ public class FiscalYearRepository : IFiscalYearRepository
         if (!string.IsNullOrWhiteSpace(request.Search))
             query = query.WhereSearch(request.Search, x => x.Name);
 
-        query = request.SortDescending
-            ? query.OrderByDescending(x => x.StartDate)
-            : query.OrderBy(x => x.StartDate);
+        query = query.ApplySorting(request.SortBy ?? "StartDate", request.SortDescending);
 
         var totalCount = await query.CountAsync();
         var items = await query

@@ -30,7 +30,8 @@ public class GetAttendanceLogsQueryHandler : IRequestHandler<GetAttendanceLogsQu
         if (request.ToDate.HasValue) query = query.Where(x => x.AttendanceDate <= request.ToDate.Value.Date);
 
         var totalCount = await query.CountAsync(ct);
-        var items = await query.OrderByDescending(x => x.AttendanceDate)
+        query = query.ApplySorting(request.Request.SortBy ?? "AttendanceDate", request.Request.SortDescending);
+        var items = await query
             .Skip((request.Request.Page - 1) * request.Request.PageSize)
             .Take(request.Request.PageSize).ToListAsync(ct);
 
@@ -83,7 +84,8 @@ public class GetWorkSchedulesQueryHandler : IRequestHandler<GetWorkSchedulesQuer
             query = query.WhereSearch(request.Request.Search, x => x.Name);
 
         var totalCount = await query.CountAsync(ct);
-        var items = await query.OrderBy(x => x.Name)
+        query = query.ApplySorting(request.Request.SortBy ?? "Name", request.Request.SortDescending);
+        var items = await query
             .Skip((request.Request.Page - 1) * request.Request.PageSize)
             .Take(request.Request.PageSize).ToListAsync(ct);
 
@@ -134,7 +136,8 @@ public class GetShiftsQueryHandler : IRequestHandler<GetShiftsQuery, PagedResult
             query = query.Where(x => x.WorkScheduleId == request.WorkScheduleId);
 
         var totalCount = await query.CountAsync(ct);
-        var items = await query.OrderBy(x => x.Name)
+        query = query.ApplySorting(request.Request.SortBy ?? "Name", request.Request.SortDescending);
+        var items = await query
             .Skip((request.Request.Page - 1) * request.Request.PageSize)
             .Take(request.Request.PageSize).ToListAsync(ct);
 

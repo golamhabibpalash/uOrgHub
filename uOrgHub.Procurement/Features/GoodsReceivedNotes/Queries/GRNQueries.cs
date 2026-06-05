@@ -35,7 +35,7 @@ public class GetGRNsQueryHandler : IRequestHandler<GetGRNsQuery, PagedResult<GRN
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
             query = query.WhereSearch(request.Request.Search, x => x.GRNNumber, x => x.InvoiceNumber);
 
-        query = request.Request.SortDescending ? query.OrderByDescending(x => x.GRNDate) : query.OrderBy(x => x.GRNDate);
+        query = query.ApplySorting(request.Request.SortBy ?? "GRNDate", request.Request.SortDescending);
 
         var totalCount = await query.CountAsync(ct);
         var items = await query.Skip((request.Request.Page - 1) * request.Request.PageSize).Take(request.Request.PageSize).ToListAsync(ct);

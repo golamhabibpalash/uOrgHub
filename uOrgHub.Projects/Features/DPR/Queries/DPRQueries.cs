@@ -36,9 +36,7 @@ public class GetDPRsQueryHandler : IRequestHandler<GetDPRsQuery, PagedResult<DPR
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
             query = query.WhereSearch(request.Request.Search, x => x.WorkDone);
 
-        query = request.Request.SortDescending
-            ? query.OrderByDescending(x => x.ReportDate)
-            : query.OrderBy(x => x.ReportDate);
+        query = query.ApplySorting(request.Request.SortBy ?? "ReportDate", request.Request.SortDescending);
 
         var total = await query.CountAsync(ct);
         var items = await query

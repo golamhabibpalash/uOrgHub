@@ -29,7 +29,8 @@ public class GetReviewCyclesQueryHandler : IRequestHandler<GetReviewCyclesQuery,
     {
         var query = _context.Set<ReviewCycle>().Where(x => !x.IsDeleted);
         var totalCount = await query.CountAsync(ct);
-        var items = await query.OrderByDescending(x => x.StartDate)
+        query = query.ApplySorting(request.Request.SortBy ?? "StartDate", request.Request.SortDescending);
+        var items = await query
             .Skip((request.Request.Page - 1) * request.Request.PageSize)
             .Take(request.Request.PageSize).ToListAsync(ct);
 
@@ -79,7 +80,8 @@ public class GetGoalsQueryHandler : IRequestHandler<GetGoalsQuery, PagedResult<G
         if (request.ReviewCycleId.HasValue) query = query.Where(x => x.ReviewCycleId == request.ReviewCycleId);
 
         var totalCount = await query.CountAsync(ct);
-        var items = await query.OrderBy(x => x.Title)
+        query = query.ApplySorting(request.Request.SortBy ?? "Title", request.Request.SortDescending);
+        var items = await query
             .Skip((request.Request.Page - 1) * request.Request.PageSize)
             .Take(request.Request.PageSize).ToListAsync(ct);
 
@@ -138,7 +140,8 @@ public class GetPerformanceReviewsQueryHandler : IRequestHandler<GetPerformanceR
         if (request.ReviewCycleId.HasValue) query = query.Where(x => x.ReviewCycleId == request.ReviewCycleId);
 
         var totalCount = await query.CountAsync(ct);
-        var items = await query.OrderByDescending(x => x.DueDate)
+        query = query.ApplySorting(request.Request.SortBy ?? "DueDate", request.Request.SortDescending);
+        var items = await query
             .Skip((request.Request.Page - 1) * request.Request.PageSize)
             .Take(request.Request.PageSize).ToListAsync(ct);
 
@@ -200,7 +203,8 @@ public class GetTrainingProgramsQueryHandler : IRequestHandler<GetTrainingProgra
             query = query.WhereSearch(request.Request.Search, x => x.Title);
 
         var totalCount = await query.CountAsync(ct);
-        var items = await query.OrderByDescending(x => x.StartDate)
+        query = query.ApplySorting(request.Request.SortBy ?? "StartDate", request.Request.SortDescending);
+        var items = await query
             .Skip((request.Request.Page - 1) * request.Request.PageSize)
             .Take(request.Request.PageSize).ToListAsync(ct);
 
@@ -255,7 +259,8 @@ public class GetEmployeeTrainingsQueryHandler : IRequestHandler<GetEmployeeTrain
         if (request.EmployeeId.HasValue) query = query.Where(x => x.EmployeeId == request.EmployeeId);
 
         var totalCount = await query.CountAsync(ct);
-        var items = await query.OrderByDescending(x => x.EnrollmentDate)
+        query = query.ApplySorting(request.Request.SortBy ?? "EnrollmentDate", request.Request.SortDescending);
+        var items = await query
             .Skip((request.Request.Page - 1) * request.Request.PageSize)
             .Take(request.Request.PageSize).ToListAsync(ct);
 

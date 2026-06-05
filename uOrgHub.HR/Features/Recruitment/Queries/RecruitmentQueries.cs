@@ -153,7 +153,8 @@ public class GetJobApplicationsQueryHandler : IRequestHandler<GetJobApplications
         if (request.JobPostingId.HasValue) query = query.Where(x => x.JobPostingId == request.JobPostingId);
 
         var totalCount = await query.CountAsync(ct);
-        var items = await query.OrderByDescending(x => x.ApplicationDate)
+        query = query.ApplySorting(request.Request.SortBy ?? "ApplicationDate", request.Request.SortDescending);
+        var items = await query
             .Skip((request.Request.Page - 1) * request.Request.PageSize)
             .Take(request.Request.PageSize).ToListAsync(ct);
 
@@ -211,7 +212,8 @@ public class GetInterviewSchedulesQueryHandler : IRequestHandler<GetInterviewSch
         if (request.JobApplicationId.HasValue) query = query.Where(x => x.JobApplicationId == request.JobApplicationId);
 
         var totalCount = await query.CountAsync(ct);
-        var items = await query.OrderByDescending(x => x.ScheduledAt)
+        query = query.ApplySorting(request.Request.SortBy ?? "ScheduledAt", request.Request.SortDescending);
+        var items = await query
             .Skip((request.Request.Page - 1) * request.Request.PageSize)
             .Take(request.Request.PageSize).ToListAsync(ct);
 
@@ -274,7 +276,8 @@ public class GetOnboardingChecklistsQueryHandler : IRequestHandler<GetOnboarding
             query = query.WhereSearch(request.Request.Search, x => x.Name);
 
         var totalCount = await query.CountAsync(ct);
-        var items = await query.OrderBy(x => x.Name)
+        query = query.ApplySorting(request.Request.SortBy ?? "Name", request.Request.SortDescending);
+        var items = await query
             .Skip((request.Request.Page - 1) * request.Request.PageSize)
             .Take(request.Request.PageSize).ToListAsync(ct);
 
@@ -306,7 +309,8 @@ public class GetEmployeeOnboardingsQueryHandler : IRequestHandler<GetEmployeeOnb
         if (request.EmployeeId.HasValue) query = query.Where(x => x.EmployeeId == request.EmployeeId);
 
         var totalCount = await query.CountAsync(ct);
-        var items = await query.OrderByDescending(x => x.StartDate)
+        query = query.ApplySorting(request.Request.SortBy ?? "StartDate", request.Request.SortDescending);
+        var items = await query
             .Skip((request.Request.Page - 1) * request.Request.PageSize)
             .Take(request.Request.PageSize).ToListAsync(ct);
 

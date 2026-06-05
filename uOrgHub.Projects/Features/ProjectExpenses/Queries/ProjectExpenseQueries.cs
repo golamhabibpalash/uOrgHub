@@ -36,9 +36,7 @@ public class GetProjectExpensesListQueryHandler : IRequestHandler<GetProjectExpe
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
             query = query.WhereSearch(request.Request.Search, x => x.ExpenseNumber, x => x.Description);
 
-        query = request.Request.SortDescending
-            ? query.OrderByDescending(x => x.ExpenseDate)
-            : query.OrderBy(x => x.ExpenseDate);
+        query = query.ApplySorting(request.Request.SortBy ?? "ExpenseDate", request.Request.SortDescending);
 
         var total = await query.CountAsync(ct);
         var items = await query

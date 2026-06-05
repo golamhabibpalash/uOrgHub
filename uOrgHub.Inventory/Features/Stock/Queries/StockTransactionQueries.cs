@@ -33,7 +33,7 @@ public class GetStockTransactionsQueryHandler : IRequestHandler<GetStockTransact
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
             query = query.WhereSearch(request.Request.Search, x => x.TransactionNumber, x => x.ReferenceNumber);
 
-        query = request.Request.SortDescending ? query.OrderByDescending(x => x.TransactionDate) : query.OrderBy(x => x.TransactionDate);
+        query = query.ApplySorting(request.Request.SortBy ?? "TransactionDate", request.Request.SortDescending);
 
         var totalCount = await query.CountAsync(ct);
         var items = await query.Skip((request.Request.Page - 1) * request.Request.PageSize).Take(request.Request.PageSize).ToListAsync(ct);

@@ -92,6 +92,19 @@ export const sendOTP = (otpType: string, channel: string) =>
 export const toggle2FA = (enabled: boolean, method?: string) =>
   apiClient.put('auth/me/2fa', { enabled, twoFactorMethod: method });
 
+export const uploadMyProfilePicture = (file: File) => {
+  const fd = new FormData();
+  fd.append("file", file);
+  return apiClient
+    .post<{ data: string }>('auth/me/profile-picture', fd, {
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+    .then(unwrap);
+};
+
+export const deleteMyProfilePicture = () =>
+  apiClient.delete<{ data: string }>('auth/me/profile-picture').then(unwrap);
+
 // Users
 export const getUsers = (params: { page?: number; pageSize?: number; search?: string }) =>
   apiClient.get<{ data: PagedResult<UserDto> }>('users', { params }).then(unwrap);

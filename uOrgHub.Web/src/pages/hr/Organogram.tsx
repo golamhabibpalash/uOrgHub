@@ -18,6 +18,8 @@ import clsx from "clsx";
 import { getOrganogram, getAllDepartments, getAllDesignations, getEmployeeById } from "../../api/hr";
 import OrganogramTree from "../../components/shared/OrganogramTree";
 import Modal from "../../components/shared/Modal";
+import Avatar from "../../components/shared/Avatar";
+import { profilePictureUrl } from "../../utils/profilePicture";
 import type { OrganogramNode, Employee } from "../../api/hr";
 
 export default function Organogram() {

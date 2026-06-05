@@ -28,7 +28,8 @@ public class GetLeaveTypesQueryHandler : IRequestHandler<GetLeaveTypesQuery, Pag
             query = query.WhereSearch(request.Request.Search, x => x.Name);
 
         var totalCount = await query.CountAsync(ct);
-        var items = await query.OrderBy(x => x.Name)
+        query = query.ApplySorting(request.Request.SortBy ?? "Name", request.Request.SortDescending);
+        var items = await query
             .Skip((request.Request.Page - 1) * request.Request.PageSize)
             .Take(request.Request.PageSize).ToListAsync(ct);
 
@@ -86,7 +87,8 @@ public class GetLeaveRequestsQueryHandler : IRequestHandler<GetLeaveRequestsQuer
         if (request.Status.HasValue) query = query.Where(x => x.Status == request.Status);
 
         var totalCount = await query.CountAsync(ct);
-        var items = await query.OrderByDescending(x => x.StartDate)
+        query = query.ApplySorting(request.Request.SortBy ?? "StartDate", request.Request.SortDescending);
+        var items = await query
             .Skip((request.Request.Page - 1) * request.Request.PageSize)
             .Take(request.Request.PageSize).ToListAsync(ct);
 

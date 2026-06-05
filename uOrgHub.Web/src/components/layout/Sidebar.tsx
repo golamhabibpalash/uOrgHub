@@ -44,6 +44,8 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 import { getMenuItems, type MenuItemDto } from "../../api/auth";
+import Avatar from "../shared/Avatar";
+import { profilePictureUrl } from "../../utils/profilePicture";
 
 const iconMap: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
   LayoutDashboard, Users, Receipt, Box, ShoppingCart, HardHat,
@@ -112,8 +114,8 @@ export default function Sidebar() {
   const authUser = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const displayName = authUser ? `${authUser.firstName} ${authUser.lastName}`.trim() : "Admin";
-  const initials = displayName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
   const roleLabel = authUser?.roles?.[0] ?? "User";
+  const avatarUrl = authUser?.profilePicture ? profilePictureUrl(authUser.profilePicture) : undefined;
 
   const [menuItems, setMenuItems] = useState<MenuItemDto[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -376,8 +378,8 @@ export default function Sidebar() {
       </nav>
 
       <div className={`px-3 py-3 border-t border-white/10 flex items-center gap-3 ${isCollapsed ? "justify-center" : ""}`}>
-        <div className="w-8 h-8 rounded-full bg-primary-700 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
-          {initials}
+        <div className="cursor-pointer" onClick={() => { window.location.href = "/profile"; }} title="View profile">
+          <Avatar src={avatarUrl} name={displayName} size="sm" />
         </div>
         {!isCollapsed && (
           <>
@@ -394,8 +396,8 @@ export default function Sidebar() {
         )}
         {isCollapsed && (
           <div className="relative">
-            <div className="w-8 h-8 rounded-full bg-primary-700 flex items-center justify-center text-white text-xs font-medium cursor-pointer" onClick={logout}>
-              {initials}
+            <div className="cursor-pointer" onClick={logout}>
+              <Avatar src={avatarUrl} name={displayName} size="sm" />
             </div>
             <div className="absolute left-full ml-2 top-0 bg-slate-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity">
               {displayName} ({roleLabel})

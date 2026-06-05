@@ -37,9 +37,7 @@ public class GetBOQsQueryHandler : IRequestHandler<GetBOQsQuery, PagedResult<BOQ
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
             query = query.WhereSearch(request.Request.Search, x => x.Title, x => x.BOQNumber);
 
-        query = request.Request.SortDescending
-            ? query.OrderByDescending(x => x.CreatedAt)
-            : query.OrderBy(x => x.BOQNumber);
+        query = query.ApplySorting(request.Request.SortBy ?? "BOQNumber", request.Request.SortDescending);
 
         var total = await query.CountAsync(ct);
         var items = await query

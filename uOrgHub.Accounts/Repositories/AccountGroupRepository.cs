@@ -25,9 +25,7 @@ public class AccountGroupRepository : IAccountGroupRepository
         if (!string.IsNullOrWhiteSpace(request.Search))
             query = query.WhereSearch(request.Search, x => x.Name, x => x.Code);
 
-        query = request.SortDescending
-            ? query.OrderByDescending(x => x.Name)
-            : query.OrderBy(x => x.Name);
+        query = query.ApplySorting(request.SortBy ?? "Name", request.SortDescending);
 
         var totalCount = await query.CountAsync();
         var items = await query

@@ -32,7 +32,7 @@ public class GetItemsQueryHandler : IRequestHandler<GetItemsQuery, PagedResult<I
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
             query = query.WhereSearch(request.Request.Search, x => x.BaseName, x => x.ItemCode);
 
-        query = request.Request.SortDescending ? query.OrderByDescending(x => x.BaseName) : query.OrderBy(x => x.BaseName);
+        query = query.ApplySorting(request.Request.SortBy ?? "BaseName", request.Request.SortDescending);
 
         var totalCount = await query.CountAsync(ct);
         var items = await query.Skip((request.Request.Page - 1) * request.Request.PageSize).Take(request.Request.PageSize).ToListAsync(ct);

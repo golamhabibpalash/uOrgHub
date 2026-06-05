@@ -28,9 +28,7 @@ public class ChartOfAccountRepository : IChartOfAccountRepository
         if (!string.IsNullOrWhiteSpace(request.Search))
             query = query.WhereSearch(request.Search, x => x.AccountName, x => x.AccountCode);
 
-        query = request.SortDescending
-            ? query.OrderByDescending(x => x.AccountCode)
-            : query.OrderBy(x => x.AccountCode);
+        query = query.ApplySorting(request.SortBy ?? "AccountCode", request.SortDescending);
 
         var totalCount = await query.CountAsync();
         var items = await query

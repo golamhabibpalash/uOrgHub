@@ -32,7 +32,7 @@ public class GetVendorsQueryHandler : IRequestHandler<GetVendorsQuery, PagedResu
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
             query = query.WhereSearch(request.Request.Search, x => x.CompanyName, x => x.VendorCode, x => x.Email);
 
-        query = request.Request.SortDescending ? query.OrderByDescending(x => x.CompanyName) : query.OrderBy(x => x.CompanyName);
+        query = query.ApplySorting(request.Request.SortBy ?? "CompanyName", request.Request.SortDescending);
 
         var totalCount = await query.CountAsync(ct);
         var items = await query.Skip((request.Request.Page - 1) * request.Request.PageSize).Take(request.Request.PageSize).ToListAsync(ct);
@@ -108,8 +108,9 @@ public class GetVendorQuotationsQueryHandler : IRequestHandler<GetVendorQuotatio
         var query = _context.Set<VendorQuotation>()
             .Include(x => x.RequestForQuotation)
             .Include(x => x.Vendor)
-            .Where(x => !x.IsDeleted && x.VendorId == request.VendorId)
-            .OrderByDescending(x => x.QuotationDate);
+            .Where(x => !x.IsDeleted && x.VendorId == request.VendorId);
+
+        query = query.ApplySorting(request.Request.SortBy ?? "QuotationDate", request.Request.SortDescending);
 
         var totalCount = await query.CountAsync(ct);
         var items = await query.Skip((request.Request.Page - 1) * request.Request.PageSize).Take(request.Request.PageSize).ToListAsync(ct);
@@ -140,8 +141,9 @@ public class GetVendorOrdersQueryHandler : IRequestHandler<GetVendorOrdersQuery,
     {
         var query = _context.Set<PurchaseOrder>()
             .Include(x => x.Vendor)
-            .Where(x => !x.IsDeleted && x.VendorId == request.VendorId)
-            .OrderByDescending(x => x.PODate);
+            .Where(x => !x.IsDeleted && x.VendorId == request.VendorId);
+
+        query = query.ApplySorting(request.Request.SortBy ?? "PODate", request.Request.SortDescending);
 
         var totalCount = await query.CountAsync(ct);
         var items = await query.Skip((request.Request.Page - 1) * request.Request.PageSize).Take(request.Request.PageSize).ToListAsync(ct);

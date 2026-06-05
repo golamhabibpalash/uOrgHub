@@ -36,9 +36,7 @@ public class GetSubmittalsQueryHandler : IRequestHandler<GetSubmittalsQuery, Pag
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
             query = query.WhereSearch(request.Request.Search, x => x.Title, x => x.SubmittalNumber);
 
-        query = request.Request.SortDescending
-            ? query.OrderByDescending(x => x.CreatedAt)
-            : query.OrderBy(x => x.SubmittalNumber);
+        query = query.ApplySorting(request.Request.SortBy ?? "SubmittalNumber", request.Request.SortDescending);
 
         var total = await query.CountAsync(ct);
         var items = await query

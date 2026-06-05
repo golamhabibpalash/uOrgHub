@@ -39,9 +39,7 @@ public class GetSafetyIncidentsQueryHandler : IRequestHandler<GetSafetyIncidents
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
             query = query.WhereSearch(request.Request.Search, x => x.Title, x => x.IncidentNumber);
 
-        query = request.Request.SortDescending
-            ? query.OrderByDescending(x => x.IncidentDate)
-            : query.OrderBy(x => x.IncidentDate);
+        query = query.ApplySorting(request.Request.SortBy ?? "IncidentDate", request.Request.SortDescending);
 
         var total = await query.CountAsync(ct);
         var items = await query

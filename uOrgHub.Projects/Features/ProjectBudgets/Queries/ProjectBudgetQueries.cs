@@ -6,6 +6,7 @@ using uOrgHub.Projects.Features.ProjectBudgets.Commands;
 using uOrgHub.Projects.Models.Entities;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Projects.Features.ProjectBudgets.Queries;
@@ -25,9 +26,7 @@ public class GetProjectBudgetsQueryHandler : IRequestHandler<GetProjectBudgetsQu
             .Where(x => !x.IsDeleted && x.ProjectId == request.ProjectId)
             .AsQueryable();
 
-        query = request.Request.SortDescending
-            ? query.OrderByDescending(x => x.CreatedAt)
-            : query.OrderBy(x => x.BudgetType);
+        query = query.ApplySorting(request.Request.SortBy ?? "BudgetType", request.Request.SortDescending);
 
         var total = await query.CountAsync(ct);
         var items = await query

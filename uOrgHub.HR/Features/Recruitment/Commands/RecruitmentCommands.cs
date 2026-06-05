@@ -25,12 +25,22 @@ public class CreateJobPostingCommandHandler : IRequestHandler<CreateJobPostingCo
 
     public async Task<JobPostingResponseDto> Handle(CreateJobPostingCommand request, CancellationToken ct)
     {
-        var exists = await _context.Set<JobPosting>().AnyAsync(x => !x.IsDeleted && x.JobCode == request.Dto.JobCode, ct);
-        if (exists) throw new AppException($"Job code '{request.Dto.JobCode}' already exists.");
+        var jobCode = request.Dto.JobCode?.Trim();
+        if (string.IsNullOrWhiteSpace(jobCode))
+        {
+            // No code supplied — auto-generate a guaranteed-unique one.
+            jobCode = await GenerateUniqueJobCodeAsync(ct);
+        }
+        else
+        {
+            // User-supplied code — uniqueness is enforced against the global index (incl. soft-deleted rows).
+            var exists = await _context.Set<JobPosting>().AnyAsync(x => x.JobCode == jobCode, ct);
+            if (exists) throw new AppException($"Job code '{jobCode}' already exists.");
+        }
 
         var entity = new JobPosting
         {
-            JobCode = request.Dto.JobCode, Title = request.Dto.Title,
+            JobCode = jobCode, Title = request.Dto.Title,
             Description = request.Dto.Description, Requirements = request.Dto.Requirements,
             RequiredCount = request.Dto.RequiredCount,
             ExperienceYearsMin = request.Dto.ExperienceYearsMin,
@@ -47,6 +57,33 @@ public class CreateJobPostingCommandHandler : IRequestHandler<CreateJobPostingCo
         var dept = await _context.Set<Department>().FindAsync(entity.DepartmentId);
         var desig = await _context.Set<Designation>().FindAsync(entity.DesignationId);
         return RecruitmentMappingHelper.MapJobPostingToDto(entity, dept?.Name ?? string.Empty, desig?.Name ?? string.Empty);
+    }
+
+    private async Task<string> GenerateUniqueJobCodeAsync(CancellationToken ct)
+    {
+        var prefix = $"JOB-{DateTime.UtcNow.Year}-";
+
+        // Seed the next sequence from the highest existing code for this year's prefix.
+        var lastCode = await _context.Set<JobPosting>()
+            .Where(x => x.JobCode.StartsWith(prefix))
+            .OrderByDescending(x => x.JobCode)
+            .Select(x => x.JobCode)
+            .FirstOrDefaultAsync(ct);
+
+        var next = 1;
+        if (!string.IsNullOrEmpty(lastCode) && int.TryParse(lastCode[prefix.Length..], out var n))
+            next = n + 1;
+
+        // Guard against gaps/races: keep incrementing until the code is free against the global index.
+        string code;
+        do
+        {
+            code = $"{prefix}{next:D4}";
+            next++;
+        }
+        while (await _context.Set<JobPosting>().AnyAsync(x => x.JobCode == code, ct));
+
+        return code;
     }
 }
 
