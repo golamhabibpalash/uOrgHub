@@ -4,10 +4,13 @@ namespace uOrgHub.Shared.Extensions;
 
 public static class QueryableSortingExtensions
 {
-    public static IQueryable<T> ApplySorting<T>(this IQueryable<T> query, string? sortBy, bool descending)
+    public static IQueryable<T> ApplySorting<T>(this IQueryable<T> query, string? sortBy, bool descending, Dictionary<string, string>? propertyMappings = null)
     {
         if (string.IsNullOrWhiteSpace(sortBy))
             return query;
+
+        if (propertyMappings?.TryGetValue(sortBy, out var mapped) == true)
+            sortBy = mapped;
 
         var parameter = Expression.Parameter(typeof(T), "e");
         Expression property = sortBy.Split('.').Aggregate((Expression)parameter, Expression.Property);

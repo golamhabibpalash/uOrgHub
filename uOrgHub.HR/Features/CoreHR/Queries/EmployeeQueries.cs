@@ -50,7 +50,19 @@ public class GetEmployeesQueryHandler : IRequestHandler<GetEmployeesQuery, Paged
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
             query = query.WhereSearch(request.Request.Search, x => x.FirstName, x => x.LastName, x => x.EmployeeCode, x => x.Email);
 
-        query = query.ApplySorting(request.Request.SortBy ?? "EmployeeCode", request.Request.SortDescending);
+        var sortMappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["name"] = "FirstName",
+            ["firstName"] = "FirstName",
+            ["middleName"] = "MiddleName",
+            ["lastName"] = "LastName",
+            ["employeeCode"] = "EmployeeCode",
+            ["email"] = "Email",
+            ["departmentName"] = "Department.Name",
+            ["designationName"] = "Designation.Name",
+            ["employmentType"] = "EmploymentType",
+        };
+        query = query.ApplySorting(request.Request.SortBy ?? "FirstName", request.Request.SortDescending, sortMappings);
 
         var totalCount = await query.CountAsync(ct);
         var items = await query
