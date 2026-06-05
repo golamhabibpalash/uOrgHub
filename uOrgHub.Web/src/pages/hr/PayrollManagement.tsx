@@ -43,6 +43,7 @@ export default function PayrollManagement() {
   const [cycleDeleteTarget, setCycleDeleteTarget] = useState<PayrollCycle | null>(null);
 
   const [gradeForm, setGradeForm] = useState({ name: "", gradeCode: "", description: "", minSalary: 0, maxSalary: 0, isActive: true });
+  const [gradeErrors, setGradeErrors] = useState<{ name?: string; gradeCode?: string }>({});
   const [compForm, setCompForm] = useState({ name: "", code: "", componentType: "Allowance", isTaxable: true, isActive: true });
   const [cycleForm, setCycleForm] = useState({ title: "", startDate: "", endDate: "", paymentDate: "" });
   const [expForm, setExpForm] = useState({ employeeId: "", amount: 0, category: "", description: "" });
@@ -76,10 +77,24 @@ export default function PayrollManagement() {
     return (err as Error)?.message ?? "An error occurred";
   }
 
+  function validateGrade(): boolean {
+    const errs: typeof gradeErrors = {};
+    if (!gradeForm.name.trim()) errs.name = "Grade name is required";
+    if (!gradeForm.gradeCode.trim()) errs.gradeCode = "Grade code is required";
+    setGradeErrors(errs);
+    return Object.keys(errs).length === 0;
+  }
+
   const gradeMutation = useMutation({
-    mutationFn: () => (editingGrade ? updateSalaryGrade(editingGrade.id, gradeForm) : createSalaryGrade(gradeForm)),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["salary-grades"] }); setModal(false); setEditingGrade(null); },
-    onError: (err) => toast.error(extractApiError(err)),
+    mutationFn: () => {
+      if (!validateGrade()) throw new Error("validation");
+      return editingGrade ? updateSalaryGrade(editingGrade.id, gradeForm) : createSalaryGrade(gradeForm);
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["salary-grades"] }); setModal(false); setEditingGrade(null); setGradeErrors({}); },
+    onError: (err) => {
+      if ((err as Error).message === "validation") return;
+      toast.error(extractApiError(err));
+    },
   });
   const gradeDeleteMutation = useMutation({
     mutationFn: (id: string) => deleteSalaryGrade(id),
@@ -108,6 +123,7 @@ export default function PayrollManagement() {
   function openModal(tab: typeof activeTab) {
     setActiveTab(tab);
     setModal(true);
+    setGradeErrors({});
     if (tab === "grades") { setGradeForm({ name: "", gradeCode: "", description: "", minSalary: 0, maxSalary: 0, isActive: true }); setEditingGrade(null); }
     if (tab === "components") { setCompForm({ name: "", code: "", componentType: "Allowance", isTaxable: true, isActive: true }); setEditingComponent(null); }
     if (tab === "cycles") { setCycleForm({ title: "", startDate: "", endDate: "", paymentDate: "" }); setEditing(null); }
@@ -195,7 +211,7 @@ export default function PayrollManagement() {
         <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
       </div>
 
-      <Modal title={activeTab === "grades" ? (editingGrade ? "Edit Salary Grade" : "Add Salary Grade") : activeTab === "components" ? (editingComponent ? "Edit Salary Component" : "Add Salary Component") : activeTab === "cycles" ? "Add Payroll Cycle" : "Submit Expense"} open={modal} onClose={() => { setModal(false); setEditingGrade(null); setEditingComponent(null); }}>
+      <Modal title={activeTab === "grades" ? (editingGrade ? "Edit Salary Grade" : "Add Salary Grade") : activeTab === "components" ? (editingComponent ? "Edit Salary Component" : "Add Salary Component") : activeTab === "cycles" ? "Add Payroll Cycle" : "Submit Expense"} open={modal} onClose={() => { setModal(false); setEditingGrade(null); setEditingComponent(null); setGradeErrors({}); }}>
         {activeTab === "grades" && (
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3"><div><label className="text-xs text-gray-500 mb-1 block">Name</label><input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={gradeForm.name} onChange={e => setGradeForm(f => ({ ...f, name: e.target.value }))} /></div><div><label className="text-xs text-gray-500 mb-1 block">Code</label><input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={gradeForm.gradeCode} onChange={e => setGradeForm(f => ({ ...f, gradeCode: e.target.value }))} /></div></div>
