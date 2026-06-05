@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { ChevronDown, ChevronRight, User } from "lucide-react";
 import clsx from "clsx";
 import type { OrganogramNode } from "../../api/hr";
@@ -16,7 +15,7 @@ export default function OrganogramTree({ nodes, expandedIds, toggleExpand, highl
 
   return (
     <ul className={clsx("flex justify-center", depth > 0 && "pt-8")}>
-      {nodes.map((node, i) => (
+      {nodes.map((node) => (
         <li key={node.id} className="relative flex flex-col items-center px-3">
           <div className="relative before:absolute before:top-0 before:left-1/2 before:w-0 before:h-4 before:border-l-2 before:border-gray-300">
             <div
