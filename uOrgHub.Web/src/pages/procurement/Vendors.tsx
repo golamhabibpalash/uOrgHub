@@ -4,6 +4,7 @@ import { Plus, Search } from "lucide-react";
 import DataTable from "../../components/shared/DataTable";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
+import ExportMenu from "../../components/shared/ExportMenu";
 import { getVendors, createVendor, updateVendor, deleteVendor, Vendor, VendorType, VendorStatus } from "../../api/procurement";
 
 export default function Vendors() {
@@ -134,6 +135,9 @@ export default function Vendors() {
             <option value="Consultant">Consultant</option>
             <option value="ServiceProvider">Service Provider</option>
           </select>
+          <div className="ml-auto">
+            <ExportMenu baseUrl="vendors" filters={{ search: search || undefined, status: filterStatus || undefined, type: filterType || undefined }} />
+          </div>
         </div>
         <DataTable columns={columns} data={items} loading={isLoading} onEdit={openEdit} onDelete={(row) => deleteMutation.mutate(row.id)} />
         <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />

@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import DataTable from "../../components/shared/DataTable";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
+import ExportMenu from "../../components/shared/ExportMenu";
 import {
   getItems, createItem, updateItem, deleteItem,
   getInventoryTypes, getInventoryCategories, getUnitsOfMeasure,
@@ -107,6 +108,9 @@ export default function Items() {
             <option value="">All Categories</option>
             {allCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
+          <div className="ml-auto">
+            <ExportMenu baseUrl="items" filters={{ search: search || undefined, categoryId: filterCatId || undefined, typeId: filterTypeId || undefined }} />
+          </div>
         </div>
         <DataTable columns={columns} data={items} loading={isLoading} onEdit={openEdit} onDelete={(row) => deleteMutation.mutate(row.id)} />
         <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />

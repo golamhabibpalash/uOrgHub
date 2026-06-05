@@ -10,6 +10,7 @@ interface DataTableProps<T> {
   loading?: boolean;
   onEdit?: (row: T) => void;
   onDelete?: (row: T) => void;
+  actions?: React.ReactNode;
 }
 
 import { Pencil, Trash2 } from "lucide-react";
@@ -20,6 +21,7 @@ export default function DataTable<T extends { id: string }>({
   loading,
   onEdit,
   onDelete,
+  actions,
 }: DataTableProps<T>) {
   if (loading)
     return (
@@ -30,6 +32,11 @@ export default function DataTable<T extends { id: string }>({
 
   return (
     <div className="overflow-x-auto">
+      {actions && (
+        <div className="px-4 py-2 border-b border-gray-100 flex items-center justify-end">
+          {actions}
+        </div>
+      )}
       <table className="w-full text-sm border-collapse">
         <thead>
           <tr className="bg-gray-50">

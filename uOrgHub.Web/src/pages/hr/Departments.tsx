@@ -7,6 +7,7 @@ import DataTable from "../../components/shared/DataTable";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
 import ConfirmDialog from "../../components/shared/ConfirmDialog";
+import ExportMenu from "../../components/shared/ExportMenu";
 import {
   getDepartments,
   getAllDepartments,
@@ -183,7 +184,7 @@ export default function Departments() {
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100">
+        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
           <input
             type="text"
             placeholder="Search departments..."
@@ -194,6 +195,7 @@ export default function Departments() {
             }}
             className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 w-64 focus:outline-none focus:ring-1 focus:ring-primary-500"
           />
+          <ExportMenu baseUrl="departments" />
         </div>
         <DataTable
           columns={columns}
