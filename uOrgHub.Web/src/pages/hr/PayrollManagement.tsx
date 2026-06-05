@@ -35,7 +35,7 @@ export default function PayrollManagement() {
   const [activeTab, setActiveTab] = useState<"grades" | "components" | "cycles" | "expenses">("grades");
   const [page, setPage] = useState(1);
   const [modal, setModal] = useState(false);
-  const [editing, setEditing] = useState<PayrollCycle | null>(null);
+  const [, setEditing] = useState<PayrollCycle | null>(null);
   const [editingGrade, setEditingGrade] = useState<SalaryGrade | null>(null);
   const [editingComponent, setEditingComponent] = useState<SalaryComponent | null>(null);
   const [gradeDeleteTarget, setGradeDeleteTarget] = useState<SalaryGrade | null>(null);
