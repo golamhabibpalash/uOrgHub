@@ -13,6 +13,7 @@ using uOrgHub.Inventory;
 using uOrgHub.Procurement;
 using uOrgHub.Projects;
 using uOrgHub.Shared.Data;
+using uOrgHub.Shared.Export;
 
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
@@ -44,6 +45,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 // Memory cache for permission caching
 builder.Services.AddMemoryCache();
+
+// Export Service
+builder.Services.AddScoped<IExportService, ExportService>();
 
 // Dashboard
 builder.Services.AddScoped<IDashboardService, DashboardService>();
