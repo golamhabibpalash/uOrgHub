@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using uOrgHub.HR.DTOs;
 using uOrgHub.HR.Features._Common;
+using uOrgHub.HR.Features.CoreHR.Queries;
 using uOrgHub.HR.Mappings;
 using uOrgHub.HR.Repositories;
 using uOrgHub.Shared.Data;
@@ -37,6 +38,7 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
         dto.DepartmentName = created.Department?.Name ?? "";
         dto.DesignationName = created.Designation?.Name ?? "";
         dto.ManagerName = created.Manager != null ? $"{created.Manager.FirstName} {created.Manager.LastName}" : null;
+        dto.ProfilePictureUrl = EmployeePictureUrl.ToPublicUrl(created.ProfilePicturePath);
         return dto;
     }
 }
@@ -71,6 +73,7 @@ public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeComman
         dto.DepartmentName = updated.Department?.Name ?? "";
         dto.DesignationName = updated.Designation?.Name ?? "";
         dto.ManagerName = updated.Manager != null ? $"{updated.Manager.FirstName} {updated.Manager.LastName}" : null;
+        dto.ProfilePictureUrl = EmployeePictureUrl.ToPublicUrl(updated.ProfilePicturePath);
         return dto;
     }
 

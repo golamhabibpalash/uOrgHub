@@ -21,12 +21,18 @@ public class EmployeeController : BaseController
     private readonly IMediator _mediator;
     private readonly IEmployeeWithUserService _employeeWithUserService;
     private readonly IExportService _exportService;
+    private readonly EmployeeProfilePictureService _pictureService;
 
-    public EmployeeController(IMediator mediator, IEmployeeWithUserService employeeWithUserService, IExportService exportService)
+    public EmployeeController(
+        IMediator mediator,
+        IEmployeeWithUserService employeeWithUserService,
+        IExportService exportService,
+        EmployeeProfilePictureService pictureService)
     {
         _mediator = mediator;
         _employeeWithUserService = employeeWithUserService;
         _exportService = exportService;
+        _pictureService = pictureService;
     }
 
     [HttpGet]
@@ -112,5 +118,22 @@ public class EmployeeController : BaseController
     {
         await _mediator.Send(new DeleteEmployeeCommand(id));
         return Ok(ApiResponse<string>.Ok("Deleted", "Employee deleted successfully."));
+    }
+
+    [HttpPost("{id:guid}/profile-picture")]
+    [RequestSizeLimit(8 * 1024 * 1024)]
+    [RequireClaim(Claims.HR.Employees.Edit)]
+    public async Task<IActionResult> UploadProfilePicture(Guid id, IFormFile file, CancellationToken ct)
+    {
+        var url = await _pictureService.UploadForEmployeeAsync(id, file, ct);
+        return Ok(ApiResponse<string>.Ok(url, "Profile picture uploaded successfully."));
+    }
+
+    [HttpDelete("{id:guid}/profile-picture")]
+    [RequireClaim(Claims.HR.Employees.Edit)]
+    public async Task<IActionResult> DeleteProfilePicture(Guid id, CancellationToken ct)
+    {
+        await _pictureService.DeleteForEmployeeAsync(id, ct);
+        return Ok(ApiResponse<string>.Ok("Removed", "Profile picture removed successfully."));
     }
 }

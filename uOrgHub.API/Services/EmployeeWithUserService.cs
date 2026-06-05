@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using uOrgHub.API.DTOs;
 using uOrgHub.Auth.Models.Entities;
 using uOrgHub.HR.DTOs;
+using uOrgHub.HR.Features.CoreHR.Queries;
 using uOrgHub.HR.Mappings;
 using uOrgHub.HR.Repositories;
 using uOrgHub.Shared.Data;
@@ -92,7 +93,9 @@ public class EmployeeWithUserService : IEmployeeWithUserService
             await _db.Entry(employee).Reference(x => x.Department).LoadAsync();
             await _db.Entry(employee).Reference(x => x.Designation).LoadAsync();
 
-            return _mapper.ToDto(employee);
+            var result = _mapper.ToDto(employee);
+            result.ProfilePictureUrl = EmployeePictureUrl.ToPublicUrl(employee.ProfilePicturePath);
+            return result;
         }
         catch
         {

@@ -8,6 +8,7 @@ public interface IUserRepository
     Task<ApplicationUser?> GetByUsernameAsync(string username);
     Task<ApplicationUser?> GetByEmailAsync(string email);
     Task<ApplicationUser?> GetByIdAsync(Guid id);
+    Task<ApplicationUser?> GetByEmployeeIdAsync(Guid employeeId);
     Task<ApplicationUser?> GetByIdWithDetailsAsync(Guid id);
     Task<PagedResult<ApplicationUser>> GetPagedAsync(int page, int pageSize, string? search);
     Task<ApplicationUser> AddAsync(ApplicationUser user);

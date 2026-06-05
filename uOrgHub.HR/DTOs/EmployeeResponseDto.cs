@@ -41,5 +41,8 @@ public class EmployeeResponseDto
     public Guid? SalaryGradeId { get; set; }
     public decimal BasicSalary { get; set; }
 
+    public string? ProfilePicturePath { get; set; }
+    public string? ProfilePictureUrl { get; set; }
+
     public DateTime CreatedAt { get; set; }
 }

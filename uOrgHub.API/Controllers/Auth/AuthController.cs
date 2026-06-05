@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using uOrgHub.API.Middleware;
+using uOrgHub.API.Services;
 using uOrgHub.Auth.Authorization;
 using uOrgHub.Auth.DTOs;
 using uOrgHub.Auth.Services;
@@ -14,10 +15,12 @@ namespace uOrgHub.API.Controllers.Auth;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly EmployeeProfilePictureService _pictureService;
 
-    public AuthController(IAuthService authService)
+    public AuthController(IAuthService authService, EmployeeProfilePictureService pictureService)
     {
         _authService = authService;
+        _pictureService = pictureService;
     }
 
     private Guid GetUserId() => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -114,6 +117,25 @@ public class AuthController : ControllerBase
     {
         await _authService.Toggle2FAAsync(GetUserId(), dto);
         return Ok(ApiResponse<string>.Ok(dto.Enabled ? "2FA enabled" : "2FA disabled"));
+    }
+
+    [HttpPost("me/profile-picture")]
+    [Authorize]
+    [RequestSizeLimit(8 * 1024 * 1024)]
+    [RequireClaim(Claims.Self.EditProfile)]
+    public async Task<IActionResult> UploadMyProfilePicture(IFormFile file, CancellationToken ct)
+    {
+        var url = await _pictureService.UploadForCurrentUserAsync(GetUserId(), file, ct);
+        return Ok(ApiResponse<string>.Ok(url, "Profile picture uploaded successfully."));
+    }
+
+    [HttpDelete("me/profile-picture")]
+    [Authorize]
+    [RequireClaim(Claims.Self.EditProfile)]
+    public async Task<IActionResult> DeleteMyProfilePicture(CancellationToken ct)
+    {
+        await _pictureService.DeleteForCurrentUserAsync(GetUserId(), ct);
+        return Ok(ApiResponse<string>.Ok("Removed", "Profile picture removed successfully."));
     }
 }
 

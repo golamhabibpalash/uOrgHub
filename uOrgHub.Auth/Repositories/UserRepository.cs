@@ -23,6 +23,9 @@ public class UserRepository : IUserRepository
     public async Task<ApplicationUser?> GetByIdAsync(Guid id) =>
         await BaseQuery().FirstOrDefaultAsync(u => u.Id == id);
 
+    public async Task<ApplicationUser?> GetByEmployeeIdAsync(Guid employeeId) =>
+        await BaseQuery().FirstOrDefaultAsync(u => u.EmployeeId == employeeId);
+
     public async Task<ApplicationUser?> GetByIdWithDetailsAsync(Guid id) =>
         await BaseQuery()
             .Include(u => u.UserRoles.Where(ur => !ur.IsDeleted)).ThenInclude(ur => ur.Role)

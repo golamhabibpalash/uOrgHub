@@ -10,6 +10,18 @@ using uOrgHub.Shared.Models;
 
 namespace uOrgHub.HR.Features.CoreHR.Queries;
 
+public static class EmployeePictureUrl
+{
+    public const string UrlPrefix = "/uploads";
+
+    public static string? ToPublicUrl(string? relativePath)
+    {
+        if (string.IsNullOrWhiteSpace(relativePath)) return null;
+        var normalized = relativePath.Replace('\\', '/').TrimStart('/');
+        return $"{UrlPrefix}/{normalized}";
+    }
+}
+
 public record GetEmployeesQuery(PaginationRequest Request, Guid? DepartmentId = null, Guid? DesignationId = null) : IQuery<PagedResult<EmployeeResponseDto>>;
 public record GetAllEmployeesQuery(Guid? DepartmentId = null, Guid? DesignationId = null, string? Search = null) : IQuery<List<EmployeeResponseDto>>;
 public record GetEmployeeByIdQuery(Guid Id) : IQuery<EmployeeResponseDto>;
@@ -89,6 +101,8 @@ public class GetEmployeesQueryHandler : IRequestHandler<GetEmployeesQuery, Paged
         ManagerName = e.Manager != null ? $"{e.Manager.FirstName} {e.Manager.LastName}" : null,
         SalaryGradeId = e.SalaryGradeId,
         BasicSalary = e.BasicSalary,
+        ProfilePicturePath = e.ProfilePicturePath,
+        ProfilePictureUrl = EmployeePictureUrl.ToPublicUrl(e.ProfilePicturePath),
         CreatedAt = e.CreatedAt
     };
 }
@@ -136,6 +150,8 @@ public class GetAllEmployeesQueryHandler : IRequestHandler<GetAllEmployeesQuery,
             DepartmentId = e.DepartmentId, DepartmentName = e.Department?.Name ?? string.Empty,
             ManagerId = e.ManagerId, ManagerName = e.Manager != null ? $"{e.Manager.FirstName} {e.Manager.LastName}" : null,
             SalaryGradeId = e.SalaryGradeId, BasicSalary = e.BasicSalary,
+            ProfilePicturePath = e.ProfilePicturePath,
+            ProfilePictureUrl = EmployeePictureUrl.ToPublicUrl(e.ProfilePicturePath),
             CreatedAt = e.CreatedAt
         }).ToList();
     }
@@ -190,6 +206,8 @@ public class GetEmployeeByIdQueryHandler : IRequestHandler<GetEmployeeByIdQuery,
             ManagerName = e.Manager != null ? $"{e.Manager.FirstName} {e.Manager.LastName}" : null,
             SalaryGradeId = e.SalaryGradeId,
             BasicSalary = e.BasicSalary,
+            ProfilePicturePath = e.ProfilePicturePath,
+            ProfilePictureUrl = EmployeePictureUrl.ToPublicUrl(e.ProfilePicturePath),
             CreatedAt = e.CreatedAt
         };
     }

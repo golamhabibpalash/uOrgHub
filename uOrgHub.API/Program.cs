@@ -14,6 +14,7 @@ using uOrgHub.Procurement;
 using uOrgHub.Projects;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Export;
+using uOrgHub.API.Services.Storage;
 
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
@@ -49,11 +50,22 @@ builder.Services.AddMemoryCache();
 // Export Service
 builder.Services.AddScoped<IExportService, ExportService>();
 
+// File storage (local)
+builder.Services.AddLocalFileStorage(opts =>
+{
+    opts.RootFolder = "uploads";
+    opts.UrlPrefix = "/uploads";
+    opts.ThumbnailMaxEdge = 256;
+    opts.DisplayMaxEdge = 800;
+    opts.JpegQuality = 85;
+});
+
 // Dashboard
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 // Cross-module services
 builder.Services.AddScoped<IEmployeeWithUserService, EmployeeWithUserService>();
+builder.Services.AddScoped<EmployeeProfilePictureService>();
 
 // HR Module
 builder.Services.AddHRModule();
