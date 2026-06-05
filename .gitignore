@@ -54,6 +54,9 @@ coverage/
 # Docker
 .docker/
 
+# Uploaded user files
+wwwroot/uploads/
+
 # OS
 .DS_Store
 Thumbs.db
