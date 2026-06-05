@@ -13,11 +13,6 @@ import {
   Minimize2,
   X,
   User,
-  Calendar,
-  BadgeCheck,
-  ChevronRight,
-  Mail,
-  Phone,
 } from "lucide-react";
 import clsx from "clsx";
 import { getOrganogram, getAllDepartments, getAllDesignations, getEmployeeById } from "../../api/hr";
