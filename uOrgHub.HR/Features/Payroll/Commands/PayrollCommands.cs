@@ -10,6 +10,8 @@ using uOrgHub.Shared.Exceptions;
 namespace uOrgHub.HR.Features.Payroll.Commands;
 
 public record CreateSalaryGradeCommand(CreateSalaryGradeDto Dto) : ICommand<SalaryGradeResponseDto>;
+public record UpdateSalaryGradeCommand(Guid Id, UpdateSalaryGradeDto Dto) : ICommand<SalaryGradeResponseDto>;
+public record DeleteSalaryGradeCommand(Guid Id) : ICommand<Unit>;
 public record CreateSalaryComponentCommand(CreateSalaryComponentDto Dto) : ICommand<SalaryComponentResponseDto>;
 public record CreatePayrollCycleCommand(CreatePayrollCycleDto Dto) : ICommand<PayrollCycleResponseDto>;
 public record UpdatePayrollCycleCommand(Guid Id, UpdatePayrollCycleDto Dto) : ICommand<PayrollCycleResponseDto>;
@@ -42,6 +44,67 @@ public class CreateSalaryGradeCommandHandler : IRequestHandler<CreateSalaryGrade
             MinSalary = entity.MinSalary, MaxSalary = entity.MaxSalary,
             Description = entity.Description, IsActive = entity.IsActive, CreatedAt = entity.CreatedAt
         };
+    }
+}
+
+public class UpdateSalaryGradeCommandHandler : IRequestHandler<UpdateSalaryGradeCommand, SalaryGradeResponseDto>
+{
+    private readonly AppDbContext _context;
+    public UpdateSalaryGradeCommandHandler(AppDbContext context) => _context = context;
+
+    public async Task<SalaryGradeResponseDto> Handle(UpdateSalaryGradeCommand request, CancellationToken ct)
+    {
+        var entity = await _context.Set<SalaryGrade>()
+            .FirstOrDefaultAsync(x => !x.IsDeleted && x.Id == request.Id, ct)
+            ?? throw new NotFoundException(nameof(SalaryGrade), request.Id);
+
+        var codeTaken = await _context.Set<SalaryGrade>()
+            .AnyAsync(x => !x.IsDeleted && x.Id != request.Id && x.GradeCode == request.Dto.GradeCode, ct);
+        if (codeTaken) throw new AppException($"Salary grade code '{request.Dto.GradeCode}' already exists.");
+
+        entity.GradeCode = request.Dto.GradeCode;
+        entity.Name = request.Dto.Name;
+        entity.MinSalary = request.Dto.MinSalary;
+        entity.MaxSalary = request.Dto.MaxSalary;
+        entity.Description = request.Dto.Description;
+        entity.IsActive = request.Dto.IsActive;
+        entity.UpdatedAt = DateTime.UtcNow;
+
+        _context.Set<SalaryGrade>().Update(entity);
+        await _context.SaveChangesAsync(ct);
+        return new SalaryGradeResponseDto
+        {
+            Id = entity.Id, GradeCode = entity.GradeCode, Name = entity.Name,
+            MinSalary = entity.MinSalary, MaxSalary = entity.MaxSalary,
+            Description = entity.Description, IsActive = entity.IsActive, CreatedAt = entity.CreatedAt
+        };
+    }
+}
+
+public class DeleteSalaryGradeCommandHandler : IRequestHandler<DeleteSalaryGradeCommand, Unit>
+{
+    private readonly AppDbContext _context;
+    public DeleteSalaryGradeCommandHandler(AppDbContext context) => _context = context;
+
+    public async Task<Unit> Handle(DeleteSalaryGradeCommand request, CancellationToken ct)
+    {
+        var entity = await _context.Set<SalaryGrade>()
+            .FirstOrDefaultAsync(x => !x.IsDeleted && x.Id == request.Id, ct)
+            ?? throw new NotFoundException(nameof(SalaryGrade), request.Id);
+
+        var usedByDesignation = await _context.Set<Designation>()
+            .AnyAsync(x => !x.IsDeleted && x.SalaryGradeId == request.Id, ct);
+        var usedByEmployee = await _context.Set<Employee>()
+            .AnyAsync(x => !x.IsDeleted && x.SalaryGradeId == request.Id, ct);
+        var usedBySalaryStructure = await _context.Set<EmployeeSalaryStructure>()
+            .AnyAsync(x => !x.IsDeleted && x.SalaryGradeId == request.Id, ct);
+        if (usedByDesignation || usedByEmployee || usedBySalaryStructure)
+            throw new AppException("This salary grade is assigned to designations or employees and cannot be deleted.", 409);
+
+        entity.IsDeleted = true;
+        entity.DeletedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync(ct);
+        return Unit.Value;
     }
 }
 

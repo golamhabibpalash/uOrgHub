@@ -12,6 +12,16 @@ public class CreateSalaryGradeDto
     public bool IsActive { get; set; } = true;
 }
 
+public class UpdateSalaryGradeDto
+{
+    public string GradeCode { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public decimal MinSalary { get; set; }
+    public decimal MaxSalary { get; set; }
+    public string? Description { get; set; }
+    public bool IsActive { get; set; } = true;
+}
+
 public class SalaryGradeResponseDto
 {
     public Guid Id { get; set; }

@@ -15,6 +15,18 @@ public class CreateSalaryGradeDtoValidator : AbstractValidator<CreateSalaryGrade
     }
 }
 
+public class UpdateSalaryGradeDtoValidator : AbstractValidator<UpdateSalaryGradeDto>
+{
+    public UpdateSalaryGradeDtoValidator()
+    {
+        RuleFor(x => x.GradeCode).NotEmpty().MaximumLength(20);
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
+        RuleFor(x => x.MinSalary).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.MaxSalary).GreaterThan(x => x.MinSalary)
+            .WithMessage("Max salary must be greater than min salary.");
+    }
+}
+
 public class CreateSalaryComponentDtoValidator : AbstractValidator<CreateSalaryComponentDto>
 {
     public CreateSalaryComponentDtoValidator()

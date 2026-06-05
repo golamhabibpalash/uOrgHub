@@ -63,6 +63,22 @@ public class PayrollController : BaseController
         return Ok(ApiResponse<SalaryGradeResponseDto>.Ok(result, "Salary grade created successfully."));
     }
 
+    [HttpPut("salary-grades/{id:guid}")]
+    [RequireClaim(Claims.HR.SalaryGrades.Edit)]
+    public async Task<IActionResult> UpdateSalaryGrade(Guid id, [FromBody] UpdateSalaryGradeDto dto)
+    {
+        var result = await _mediator.Send(new UpdateSalaryGradeCommand(id, dto));
+        return Ok(ApiResponse<SalaryGradeResponseDto>.Ok(result, "Salary grade updated successfully."));
+    }
+
+    [HttpDelete("salary-grades/{id:guid}")]
+    [RequireClaim(Claims.HR.SalaryGrades.Delete)]
+    public async Task<IActionResult> DeleteSalaryGrade(Guid id)
+    {
+        await _mediator.Send(new DeleteSalaryGradeCommand(id));
+        return Ok(ApiResponse<object>.Ok(null!, "Salary grade deleted successfully."));
+    }
+
     [HttpGet("salary-components")]
     [RequireClaim(Claims.HR.SalaryComponents.View)]
     public async Task<IActionResult> GetSalaryComponents([FromQuery] PaginationRequest request)
