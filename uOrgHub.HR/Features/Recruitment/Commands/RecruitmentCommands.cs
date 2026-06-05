@@ -46,7 +46,10 @@ public class CreateJobPostingCommandHandler : IRequestHandler<CreateJobPostingCo
             ExperienceYearsMin = request.Dto.ExperienceYearsMin,
             ExperienceYearsMax = request.Dto.ExperienceYearsMax,
             SalaryMin = request.Dto.SalaryMin, SalaryMax = request.Dto.SalaryMax,
-            Status = JobPostingStatus.Draft, PostedDate = request.Dto.PostedDate,
+            Status = request.Dto.Status,
+            // A published posting needs a posted date for "open positions" reporting.
+            PostedDate = request.Dto.PostedDate
+                ?? (request.Dto.Status == JobPostingStatus.Published ? DateTime.UtcNow : null),
             ClosingDate = request.Dto.ClosingDate,
             DepartmentId = request.Dto.DepartmentId, DesignationId = request.Dto.DesignationId,
             CreatedAt = DateTime.UtcNow

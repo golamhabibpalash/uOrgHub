@@ -13,6 +13,7 @@ public class CreateJobPostingDto
     public int ExperienceYearsMax { get; set; } = 0;
     public decimal? SalaryMin { get; set; }
     public decimal? SalaryMax { get; set; }
+    public JobPostingStatus Status { get; set; } = JobPostingStatus.Draft;
     public DateTime? PostedDate { get; set; }
     public DateTime? ClosingDate { get; set; }
     public Guid DepartmentId { get; set; }
