@@ -138,7 +138,7 @@ export default function Sidebar() {
     }
   }, [location.pathname]);
 
-  const isRouteActiveFor = useCallback(
+    const isRouteActiveFor = useCallback(
     (subItems: { path: string }[]) =>
       subItems.some(
         (item) =>
@@ -146,6 +146,16 @@ export default function Sidebar() {
           location.pathname.startsWith(item.path + "/")
       ),
     [location.pathname]
+  );
+
+  const isDashboardRoute = useCallback(
+    (subPath: string, subItems: { path: string }[]) =>
+      subItems.some(
+        (item) =>
+          item.path !== subPath &&
+          item.path.startsWith(subPath + "/")
+      ),
+    []
   );
 
   const isOpen = useCallback(
@@ -270,23 +280,26 @@ export default function Sidebar() {
             }`}
           >
             <div className="pt-1">
-              {subItems.map(({ label: subLabel, path: subPath, icon: SubIcon }) => (
-                <NavLink
-                  key={subPath}
-                  to={subPath}
-                  end={subPath === path}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 pl-10 pr-3 py-1.5 rounded-md mb-0.5 text-xs transition-colors ${
-                      isActive
-                        ? "bg-primary-500 text-white font-medium"
-                        : "sidebar-text-muted sidebar-hover"
-                    }`
-                  }
-                >
-                  <SubIcon size={14} />
-                  <span className="truncate">{subLabel}</span>
-                </NavLink>
-              ))}
+              {subItems.map(({ label: subLabel, path: subPath, icon: SubIcon }) => {
+                const isDashRoute = isDashboardRoute(subPath, subItems);
+                return (
+                  <NavLink
+                    key={subPath}
+                    to={subPath}
+                    end={isDashRoute}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 pl-10 pr-3 py-1.5 rounded-md mb-0.5 text-xs transition-colors ${
+                        isActive
+                          ? "bg-primary-500 text-white font-medium"
+                          : "sidebar-text-muted sidebar-hover"
+                      }`
+                    }
+                  >
+                    <SubIcon size={14} />
+                    <span className="truncate">{subLabel}</span>
+                  </NavLink>
+                );
+              })}
             </div>
           </div>
         </div>
