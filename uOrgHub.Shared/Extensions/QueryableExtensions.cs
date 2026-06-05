@@ -1,6 +1,4 @@
 using System.Linq.Expressions;
-using Microsoft.EntityFrameworkCore;
-using Npgsql.EntityFrameworkCore.PostgreSQL;
 
 namespace uOrgHub.Shared.Extensions;
 
@@ -14,19 +12,14 @@ public static class QueryableExtensions
 
         var parameter = Expression.Parameter(typeof(T), "e");
         Expression? orExpression = null;
+        var containsMethod = typeof(string).GetMethod(nameof(string.Contains), [typeof(string)]);
 
         foreach (var selector in propertySelectors)
         {
             var property = selector.Body.ReplaceParameter(selector.Parameters[0], parameter);
-            var searchConstant = Expression.Constant($"%{searchTerm}%");
-            var iLikeMethod = typeof(NpgsqlDbFunctionsExtensions).GetMethod(
-                nameof(NpgsqlDbFunctionsExtensions.ILike),
-                new[] { typeof(DbFunctions), typeof(string), typeof(string) }
-            );
-            var efFunctions = Expression.Property(null, typeof(EF).GetProperty(nameof(EF.Functions))!);
-            var iLikeCall = Expression.Call(iLikeMethod!, efFunctions, property, searchConstant);
+            var containsCall = Expression.Call(property, containsMethod!, Expression.Constant(searchTerm));
 
-            orExpression = orExpression == null ? iLikeCall : Expression.OrElse(orExpression, iLikeCall);
+            orExpression = orExpression == null ? containsCall : Expression.OrElse(orExpression, containsCall);
         }
 
         var lambda = Expression.Lambda<Func<T, bool>>(orExpression!, parameter);
