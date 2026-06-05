@@ -379,7 +379,7 @@ export default function Sidebar() {
 
       <div className={`px-3 py-3 border-t border-white/10 flex items-center gap-3 ${isCollapsed ? "justify-center" : ""}`}>
         <div className="cursor-pointer" onClick={() => { window.location.href = "/profile"; }} title="View profile">
-          <Avatar src={avatarUrl} name={displayName} size="sm" />
+          <Avatar src={avatarUrl} firstName={authUser?.firstName} lastName={authUser?.lastName} size="sm" />
         </div>
         {!isCollapsed && (
           <>
@@ -397,7 +397,7 @@ export default function Sidebar() {
         {isCollapsed && (
           <div className="relative">
             <div className="cursor-pointer" onClick={logout}>
-              <Avatar src={avatarUrl} name={displayName} size="sm" />
+              <Avatar src={avatarUrl} firstName={authUser?.firstName} lastName={authUser?.lastName} size="sm" />
             </div>
             <div className="absolute left-full ml-2 top-0 bg-slate-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity">
               {displayName} ({roleLabel})

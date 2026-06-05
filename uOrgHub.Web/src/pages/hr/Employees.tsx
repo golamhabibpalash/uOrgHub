@@ -327,7 +327,8 @@ export default function Employees() {
       render: (row: Employee) => (
         <Avatar
           src={row.profilePicturePath ? profilePictureUrl(row.profilePicturePath) : undefined}
-          name={`${row.firstName} ${row.lastName}`}
+          firstName={row.firstName}
+          lastName={row.lastName}
           size="sm"
         />
       ),
@@ -444,11 +445,11 @@ export default function Employees() {
             <div className="bg-gray-50 -mx-5 -mt-3 px-5 py-4 border-b border-gray-100">
               <ProfilePictureUploader
                 currentPath={editing.profilePicturePath}
-                name={`${editing.firstName} ${editing.lastName}`}
-                uploading={uploadPicMutation.isPending}
-                deleting={deletePicMutation.isPending}
-                onUpload={(file) => uploadPicMutation.mutate({ id: editing.id, file })}
-                onDelete={() => deletePicMutation.mutate(editing.id)}
+                firstName={editing.firstName}
+                lastName={editing.lastName}
+                disabled={uploadPicMutation.isPending || deletePicMutation.isPending}
+                onUpload={async (file) => { await uploadPicMutation.mutateAsync({ id: editing.id, file }); }}
+                onDelete={async () => { await deletePicMutation.mutateAsync(editing.id); }}
               />
             </div>
           )}

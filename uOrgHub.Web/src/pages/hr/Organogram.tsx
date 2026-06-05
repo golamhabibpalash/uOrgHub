@@ -286,7 +286,8 @@ export default function Organogram() {
               <div className="shrink-0">
                 <Avatar
                   src={detailData.profilePicturePath ? profilePictureUrl(detailData.profilePicturePath) : undefined}
-                  name={`${detailData.firstName} ${detailData.lastName}`}
+                  firstName={detailData.firstName}
+                  lastName={detailData.lastName}
                   size="xl"
                 />
               </div>

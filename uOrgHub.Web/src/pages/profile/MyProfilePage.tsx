@@ -131,11 +131,11 @@ export default function MyProfilePage() {
             <h2 className="text-white font-medium text-sm mb-4">Profile Picture</h2>
             <ProfilePictureUploader
               currentPath={user.profilePicture}
-              name={fullName}
-              uploading={uploadPicMutation.isPending}
-              deleting={deletePicMutation.isPending}
-              onUpload={(file) => uploadPicMutation.mutate(file)}
-              onDelete={() => deletePicMutation.mutate()}
+              firstName={user.firstName}
+              lastName={user.lastName}
+              disabled={uploadPicMutation.isPending || deletePicMutation.isPending}
+              onUpload={async (file) => { await uploadPicMutation.mutateAsync(file); }}
+              onDelete={async () => { await deletePicMutation.mutateAsync(); }}
             />
           </div>
           <div className="bg-slate-800 border border-slate-700 rounded-lg p-5 text-xs text-slate-400 leading-relaxed">
