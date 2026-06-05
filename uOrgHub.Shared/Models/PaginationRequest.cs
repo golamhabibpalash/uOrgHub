@@ -1,4 +1,6 @@
-﻿namespace uOrgHub.Shared.Models;
+﻿using System.Text.Json;
+
+namespace uOrgHub.Shared.Models;
 
 public class PaginationRequest
 {
@@ -20,4 +22,35 @@ public class PaginationRequest
     public string? Search { get; set; }
     public string? SortBy { get; set; }
     public bool SortDescending { get; set; } = false;
+
+    private string? _filtersJson;
+    public string? FiltersJson
+    {
+        get => _filtersJson;
+        set
+        {
+            _filtersJson = value;
+            _filters = null;
+        }
+    }
+
+    private Dictionary<string, string>? _filters;
+    public Dictionary<string, string> Filters
+    {
+        get
+        {
+            if (_filters == null)
+            {
+                if (!string.IsNullOrWhiteSpace(_filtersJson))
+                {
+                    try { _filters = JsonSerializer.Deserialize<Dictionary<string, string>>(_filtersJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new(); }
+                    catch { _filters = new(); }
+                }
+                else
+                    _filters = new();
+            }
+            return _filters;
+        }
+        set => _filters = value;
+    }
 }

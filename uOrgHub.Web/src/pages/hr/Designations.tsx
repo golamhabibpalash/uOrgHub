@@ -3,11 +3,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { Plus } from "lucide-react";
 import toast from "react-hot-toast";
-import DataTable from "../../components/shared/DataTable";
-import Pagination from "../../components/shared/Pagination";
+import DataGrid from "../../components/shared/DataGrid";
 import Modal from "../../components/shared/Modal";
 import ConfirmDialog from "../../components/shared/ConfirmDialog";
 import ExportMenu from "../../components/shared/ExportMenu";
+import { useDataGrid } from "../../hooks/useDataGrid";
 import {
   getDesignations,
   getAllDesignations,
@@ -22,17 +22,16 @@ import {
 
 export default function Designations() {
   const qc = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
-  const [deptFilter, setDeptFilter] = useState("");
+  const dg = useDataGrid({ defaultSortBy: "name" });
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Designation | null>(null);
   const [form, setForm] = useState({ name: "", code: "", departmentId: "", level: 1, isActive: true, parentDesignationId: "", salaryGradeId: "" });
   const [deleteTarget, setDeleteTarget] = useState<Designation | null>(null);
+  const [deptFilter, setDeptFilter] = useState("");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["designations", page, search, deptFilter],
-    queryFn: () => getDesignations({ page, pageSize: 10, search }, deptFilter || undefined),
+    queryKey: ["designations", dg.page, dg.search, dg.sortBy, dg.sortDescending, deptFilter],
+    queryFn: () => getDesignations(dg.queryParams, deptFilter || undefined),
   });
 
   const { data: deptData } = useQuery({
@@ -50,8 +49,9 @@ export default function Designations() {
     queryFn: () => getAllSalaryGrades(),
   });
 
-  const designations = data?.data?.data?.items ?? [];
+  const items = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
+  const totalCount = data?.data?.data?.totalCount ?? 0;
   const departments = deptData?.data?.data?.items ?? [];
   const allDesignations = allDesigData?.data?.data ?? [];
   const salaryGrades = salaryGradeData?.data?.data ?? [];
@@ -204,25 +204,29 @@ export default function Designations() {
         </button>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-        <div className="flex gap-3">
-          <input
-            type="text"
-            placeholder="Search designations..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 w-64 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          />
+      <DataGrid
+        columns={columns}
+        data={items}
+        loading={isLoading}
+        sortBy={dg.sortBy}
+        sortDescending={dg.sortDescending}
+        onSort={dg.handleSort}
+        search={dg.search}
+        onSearch={dg.setSearch}
+        searchPlaceholder="Search designations..."
+        page={dg.page}
+        totalPages={totalPages}
+        onPageChange={dg.setPage}
+        pageSize={dg.pageSize}
+        onPageSizeChange={dg.setPageSize}
+        totalCount={totalCount}
+        onEdit={openEdit}
+        onDelete={(row) => handleDeleteClick(row)}
+        emptyMessage="No designations found"
+        toolbarPrefix={
           <select
             value={deptFilter}
-            onChange={(e) => {
-              setDeptFilter(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => { setDeptFilter(e.target.value); dg.setPage(1); }}
             className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500"
           >
             <option value="">All Departments</option>
@@ -230,22 +234,9 @@ export default function Designations() {
               <option key={d.id} value={d.id}>{d.name}</option>
             ))}
           </select>
-        </div>
-        <ExportMenu baseUrl="designations" filters={{ search: search || undefined, departmentId: deptFilter || undefined }} />
-      </div>
-        <DataTable
-          columns={columns}
-          data={designations}
-          loading={isLoading}
-          onEdit={openEdit}
-          onDelete={(row) => handleDeleteClick(row)}
-        />
-        <Pagination
-          page={page}
-          totalPages={totalPages}
-          onPageChange={setPage}
-        />
-      </div>
+        }
+        actions={<ExportMenu baseUrl="designations" filters={{ search: dg.search || undefined, departmentId: deptFilter || undefined }} />}
+      />
 
       <Modal
         title={editing ? "Edit Designation" : "Add Designation"}
