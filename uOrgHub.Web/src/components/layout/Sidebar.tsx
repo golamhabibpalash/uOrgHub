@@ -45,7 +45,7 @@ import {
 import { useAuthStore } from "../../store/authStore";
 import { getMenuItems, type MenuItemDto } from "../../api/auth";
 import Avatar from "../shared/Avatar";
-import { profilePictureUrl } from "../../utils/profilePicture";
+
 
 const iconMap: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
   LayoutDashboard, Users, Receipt, Box, ShoppingCart, HardHat,
@@ -115,7 +115,7 @@ export default function Sidebar() {
   const logout = useAuthStore((s) => s.logout);
   const displayName = authUser ? `${authUser.firstName} ${authUser.lastName}`.trim() : "Admin";
   const roleLabel = authUser?.roles?.[0] ?? "User";
-  const avatarUrl = authUser?.profilePicture ? profilePictureUrl(authUser.profilePicture) : undefined;
+  const avatarPath = authUser?.profilePicture;
 
   const [menuItems, setMenuItems] = useState<MenuItemDto[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -379,7 +379,7 @@ export default function Sidebar() {
 
       <div className={`px-3 py-3 border-t border-white/10 flex items-center gap-3 ${isCollapsed ? "justify-center" : ""}`}>
         <div className="cursor-pointer" onClick={() => { window.location.href = "/profile"; }} title="View profile">
-          <Avatar src={avatarUrl} firstName={authUser?.firstName} lastName={authUser?.lastName} size="sm" />
+          <Avatar src={avatarPath} firstName={authUser?.firstName} lastName={authUser?.lastName} size="sm" />
         </div>
         {!isCollapsed && (
           <>
@@ -397,7 +397,7 @@ export default function Sidebar() {
         {isCollapsed && (
           <div className="relative">
             <div className="cursor-pointer" onClick={logout}>
-              <Avatar src={avatarUrl} firstName={authUser?.firstName} lastName={authUser?.lastName} size="sm" />
+          <Avatar src={avatarPath} firstName={authUser?.firstName} lastName={authUser?.lastName} size="sm" />
             </div>
             <div className="absolute left-full ml-2 top-0 bg-slate-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity">
               {displayName} ({roleLabel})

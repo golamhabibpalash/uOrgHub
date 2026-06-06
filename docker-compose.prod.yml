@@ -42,6 +42,8 @@ services:
       AllowedOrigins: ${ALLOWED_ORIGINS:-https://uorghub.unitymicrofund.com}
     ports:
       - "127.0.0.1:5177:8080"
+    volumes:
+      - uorghub-uploads:/app/wwwroot/uploads
     depends_on:
       uorghub-db:
         condition: service_healthy
@@ -70,4 +72,6 @@ networks:
 
 volumes:
   uorghub-db-data:
+    driver: local
+  uorghub-uploads:
     driver: local
