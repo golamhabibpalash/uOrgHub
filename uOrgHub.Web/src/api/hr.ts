@@ -11,6 +11,7 @@ export interface OrganogramNode {
   designationName: string;
   departmentName: string;
   profilePicturePath?: string;
+  profilePictureUrl?: string;
   status: string;
   managerName?: string;
   depth: number;

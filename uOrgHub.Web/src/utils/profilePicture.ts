@@ -3,10 +3,20 @@ export const DEFAULT_AVATAR = "/default-avatar.svg";
 export function profilePictureUrl(path: string | null | undefined): string {
   if (!path) return DEFAULT_AVATAR;
   if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:")) return path;
-  const normalized = path.replace(/\\/g, "/").replace(/^\/+/, "");
-  // Add cache busting timestamp
+  const clean = path.replace(/\\/g, "/")
+    .replace(/^\/?(uploads\/)?/i, "");
   const ts = new Date().getTime();
-  return `/uploads/${normalized}?t=${ts}`;
+  return `/uploads/${clean}?t=${ts}`;
+}
+
+export function profileThumbnailUrl(path: string | null | undefined): string {
+  if (!path) return DEFAULT_AVATAR;
+  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:")) return path;
+  const clean = path.replace(/\\/g, "/")
+    .replace(/^\/?(uploads\/)?/i, "")
+    .replace(/_display\./, "_thumb.");
+  const ts = new Date().getTime();
+  return `/uploads/${clean}?t=${ts}`;
 }
 
 export function getInitials(firstName?: string | null, lastName?: string | null): string {

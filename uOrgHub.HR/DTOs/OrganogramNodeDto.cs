@@ -11,6 +11,7 @@ public class OrganogramNodeDto
     public string DesignationName { get; set; } = string.Empty;
     public string DepartmentName { get; set; } = string.Empty;
     public string? ProfilePicturePath { get; set; }
+    public string? ProfilePictureUrl { get; set; }
     public string Status { get; set; } = string.Empty;
     public string? ManagerName { get; set; }
     public int Depth { get; set; }

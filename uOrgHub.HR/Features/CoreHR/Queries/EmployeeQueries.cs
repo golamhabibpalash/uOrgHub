@@ -316,6 +316,7 @@ public class GetOrganogramQueryHandler : IRequestHandler<GetOrganogramQuery, Lis
             DesignationName = employee.Designation?.Name ?? string.Empty,
             DepartmentName = employee.Department?.Name ?? string.Empty,
             ProfilePicturePath = employee.ProfilePicturePath,
+            ProfilePictureUrl = EmployeePictureUrl.ToPublicUrl(employee.ProfilePicturePath),
             Status = employee.Status.ToString(),
             ManagerName = employee.Manager != null
                 ? $"{employee.Manager.FirstName} {employee.Manager.LastName}".Trim()

@@ -1,6 +1,7 @@
 import { ChevronDown, ChevronUp, User } from "lucide-react";
 import clsx from "clsx";
 import type { OrganogramNode } from "../../api/hr";
+import { profilePictureUrl } from "../../utils/profilePicture";
 
 interface Props {
   nodes: OrganogramNode[];
@@ -91,9 +92,9 @@ export default function OrganogramTree({
                   flexShrink: 0,
                 }}
               >
-                {node.profilePicturePath ? (
+                {node.profilePicturePath || node.profilePictureUrl ? (
                   <img
-                    src={node.profilePicturePath}
+                    src={profilePictureUrl(node.profilePictureUrl ?? node.profilePicturePath)}
                     alt=""
                     style={{ width: "100%", height: "100%", objectFit: "cover" }}
                   />

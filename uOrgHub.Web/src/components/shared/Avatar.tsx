@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DEFAULT_AVATAR, getInitials, profilePictureUrl } from "../../utils/profilePicture";
+import { DEFAULT_AVATAR, getInitials, profilePictureUrl, profileThumbnailUrl } from "../../utils/profilePicture";
 
 type AvatarSize = "xs" | "sm" | "md" | "lg" | "xl";
 
@@ -27,7 +27,8 @@ export default function Avatar({
   className = "",
 }: AvatarProps) {
   const [errored, setErrored] = useState(false);
-  const url = !errored ? profilePictureUrl(src ?? null) : DEFAULT_AVATAR;
+  const resolveUrl = size === "xs" || size === "sm" || size === "md" ? profileThumbnailUrl : profilePictureUrl;
+  const url = !errored ? resolveUrl(src ?? null) : DEFAULT_AVATAR;
 
   return (
     <div

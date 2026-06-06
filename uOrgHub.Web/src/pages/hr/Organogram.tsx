@@ -285,7 +285,7 @@ export default function Organogram() {
             <div className="flex items-center gap-4">
               <div className="shrink-0">
                 <Avatar
-                  src={detailData.profilePicturePath}
+                  src={detailData.profilePictureUrl ?? detailData.profilePicturePath}
                   firstName={detailData.firstName}
                   lastName={detailData.lastName}
                   size="xl"
