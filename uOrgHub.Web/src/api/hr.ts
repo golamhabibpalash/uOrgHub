@@ -469,6 +469,9 @@ export const deleteDesignation = (id: string) =>
 export const getLeaveTypes = (params: PaginationRequest) =>
   apiClient.get<ApiResponse<PagedResult<LeaveType>>>("leave/types", { params });
 
+export const getActiveLeaveTypes = () =>
+  apiClient.get<ApiResponse<LeaveType[]>>("leave/types/active");
+
 export const createLeaveType = (data: Partial<LeaveType>) =>
   apiClient.post<ApiResponse<LeaveType>>("leave/types", data);
 

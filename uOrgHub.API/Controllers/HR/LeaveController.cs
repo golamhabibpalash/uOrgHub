@@ -80,6 +80,14 @@ public class LeaveController : BaseController
         return File(result.Content, result.MimeType, result.FileName);
     }
 
+    [HttpGet("types/active")]
+    [RequireAnyClaim(Claims.HR.LeaveTypes.View, Claims.Self.SubmitLeave)]
+    public async Task<IActionResult> GetActiveTypes()
+    {
+        var result = await _mediator.Send(new GetAllLeaveTypesQuery());
+        return Ok(ApiResponse<List<LeaveTypeResponseDto>>.Ok(result));
+    }
+
     [HttpPost("types")]
     [RequireClaim(Claims.HR.LeaveTypes.Create)]
     public async Task<IActionResult> CreateType([FromBody] CreateLeaveTypeDto dto)
