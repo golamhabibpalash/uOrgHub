@@ -8,10 +8,12 @@ using uOrgHub.API.Middleware;
 using uOrgHub.API.Services;
 using uOrgHub.Auth;
 using uOrgHub.Auth.Seeders;
+using uOrgHub.Settings.Seeders;
 using uOrgHub.HR;
 using uOrgHub.Inventory;
 using uOrgHub.Procurement;
 using uOrgHub.Projects;
+using uOrgHub.Settings;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Services;
 using uOrgHub.Shared.Export;
@@ -93,6 +95,9 @@ builder.Services.AddProjectsModule();
 
 // Auth Module
 builder.Services.AddAuthModule();
+
+// Settings Module
+builder.Services.AddSettingsModule();
 
 // Dashboard Service
 builder.Services.AddScoped<IDashboardService, DashboardService>();
@@ -181,6 +186,16 @@ using (var scope = app.Services.CreateScope())
         catch (Exception ex)
         {
             logger.LogError(ex, "Auth seeding failed: {Message}", ex.Message);
+        }
+
+        try
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            await SettingsSeeder.SeedAsync(db);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Settings seeding failed: {Message}", ex.Message);
         }
     }
 }
