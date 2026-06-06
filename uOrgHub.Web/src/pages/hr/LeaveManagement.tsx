@@ -5,6 +5,7 @@ import DataGrid from "../../components/shared/DataGrid";
 import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
+import { useAuthStore } from "../../store/authStore";
 import {
   getLeaveTypes,
   createLeaveType,
@@ -12,6 +13,7 @@ import {
   getLeaveRequests,
   createLeaveRequest,
   approveLeaveRequest,
+  cancelLeaveRequest,
   LeaveType,
   LeaveRequest,
   getEmployees,
@@ -19,7 +21,25 @@ import {
 
 export default function LeaveManagement() {
   const qc = useQueryClient();
-  const [activeTab, setActiveTab] = useState<"types" | "requests">("types");
+  const { hasClaim, hasRole, user } = useAuthStore();
+  const isAdmin = hasRole("Admin");
+  const canViewLeaveTypes = isAdmin || hasClaim("HR.LeaveTypes.View");
+  const canCreateLeaveType = isAdmin || hasClaim("HR.LeaveTypes.Create");
+  const canEditLeaveType = isAdmin || hasClaim("HR.LeaveTypes.Edit");
+  const canExportLeaveTypes = isAdmin || hasClaim("HR.LeaveTypes.Export");
+
+  const canViewRequests = isAdmin || hasClaim("HR.LeaveRequests.View") || hasClaim("Self.ViewLeave");
+  const canCreateRequest = isAdmin || hasClaim("HR.LeaveRequests.Create") || hasClaim("Self.SubmitLeave");
+  const canApproveRequest = isAdmin || hasClaim("HR.LeaveRequests.Approve");
+  const canCancelAnyRequest = isAdmin || hasClaim("HR.LeaveRequests.Edit");
+  const canExportRequests = isAdmin || hasClaim("HR.LeaveRequests.Export");
+
+  const isHrAdmin = isAdmin || hasClaim("HR.LeaveRequests.View");
+  const userEmployeeId = user?.employeeId;
+
+  const [activeTab, setActiveTab] = useState<"types" | "requests">(
+    canViewLeaveTypes ? "types" : "requests"
+  );
   const dg = useDataGrid({ defaultSortBy: "name" });
   const [statusFilter, setStatusFilter] = useState("");
   const [modal, setModal] = useState(false);
@@ -54,16 +74,23 @@ export default function LeaveManagement() {
   const { data: typesData, isLoading: typesLoading } = useQuery({
     queryKey: ["leave-types", dg.page, dg.search, dg.sortBy, dg.sortDescending],
     queryFn: () => getLeaveTypes(dg.queryParams),
+    enabled: canViewLeaveTypes,
   });
 
   const { data: requestsData, isLoading: requestsLoading } = useQuery({
     queryKey: ["leave-requests", dg.page, dg.search, dg.sortBy, dg.sortDescending, statusFilter],
-    queryFn: () => getLeaveRequests(dg.queryParams, undefined, statusFilter || undefined),
+    queryFn: () => getLeaveRequests(
+      dg.queryParams,
+      isHrAdmin ? undefined : userEmployeeId,
+      statusFilter || undefined
+    ),
+    enabled: canViewRequests,
   });
 
   const { data: empData } = useQuery({
     queryKey: ["employees-all"],
     queryFn: () => getEmployees({ page: 1, pageSize: 100 }),
+    enabled: isHrAdmin,
   });
 
   const leaveTypes = typesData?.data?.data?.items ?? [];
@@ -81,7 +108,10 @@ export default function LeaveManagement() {
   });
 
   const saveReqMutation = useMutation({
-    mutationFn: () => createLeaveRequest(reqForm),
+    mutationFn: () => createLeaveRequest({
+      ...reqForm,
+      employeeId: reqForm.employeeId || userEmployeeId || "",
+    }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["leave-requests"] });
       setReqModal(false);
@@ -91,6 +121,11 @@ export default function LeaveManagement() {
   const approveMutation = useMutation({
     mutationFn: ({ id, approved }: { id: string; approved: boolean }) =>
       approveLeaveRequest(id, { isApproved: approved, remarks: "" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["leave-requests"] }),
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: (id: string) => cancelLeaveRequest(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["leave-requests"] }),
   });
 
@@ -125,6 +160,7 @@ export default function LeaveManagement() {
         <span className={`text-xs px-2 py-0.5 rounded-full ${
           row.status === "Approved" ? "bg-green-50 text-green-700" :
           row.status === "Pending" ? "bg-yellow-50 text-yellow-700" :
+          row.status === "Cancelled" ? "bg-gray-50 text-gray-600" :
           "bg-red-50 text-red-600"
         }`}>
           {row.status}
@@ -135,18 +171,49 @@ export default function LeaveManagement() {
       key: "actions",
       label: "Actions",
       sortable: false,
-      render: (row: LeaveRequest) => row.status === "Pending" ? (
-        <div className="flex gap-2">
-          <button onClick={() => approveMutation.mutate({ id: row.id, approved: true })} className="text-green-600 hover:text-green-800">
-            <Check size={16} />
-          </button>
-          <button onClick={() => approveMutation.mutate({ id: row.id, approved: false })} className="text-red-600 hover:text-red-800">
-            <X size={16} />
-          </button>
-        </div>
-      ) : null,
+      render: (row: LeaveRequest) => {
+        const isOwner = userEmployeeId && row.employeeId === userEmployeeId;
+        const canApprove = canApproveRequest && row.status === "Pending";
+        const canCancel = row.status === "Pending" && (canCancelAnyRequest || isOwner);
+        return (
+          <div className="flex gap-2">
+            {canApprove && (
+              <>
+                <button
+                  onClick={() => approveMutation.mutate({ id: row.id, approved: true })}
+                  className="text-green-600 hover:text-green-800"
+                  title="Approve"
+                >
+                  <Check size={16} />
+                </button>
+                <button
+                  onClick={() => approveMutation.mutate({ id: row.id, approved: false })}
+                  className="text-red-600 hover:text-red-800"
+                  title="Reject"
+                >
+                  <X size={16} />
+                </button>
+              </>
+            )}
+            {canCancel && (
+              <button
+                onClick={() => { if (confirm("Cancel this leave request?")) cancelMutation.mutate(row.id); }}
+                className="text-gray-500 hover:text-gray-700 text-xs underline"
+                title="Cancel"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        );
+      },
     },
   ];
+
+  const tabs = ([
+    { key: "types" as const, label: "Leave Types", visible: canViewLeaveTypes },
+    { key: "requests" as const, label: "Leave Requests", visible: canViewRequests },
+  ] as const).filter(t => t.visible);
 
   return (
     <div>
@@ -155,40 +222,51 @@ export default function LeaveManagement() {
           <h2 className="text-base font-medium text-gray-900">Leave Management</h2>
           <p className="text-xs text-gray-400">Manage leave types and requests</p>
         </div>
-        {activeTab === "types" && (
-          <button
-            onClick={() => { setEditing(null); setForm({ name: "", code: "", description: "", totalDaysPerYear: 0, isPaid: true }); setModal(true); }}
-            className="flex items-center gap-2 bg-primary-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-primary-600"
-          >
-            <Plus size={15} /> Add Leave Type
-          </button>
-        )}
-        {activeTab === "requests" && (
-          <button
-            onClick={() => { setReqForm({ leaveTypeId: "", startDate: "", endDate: "", reason: "", employeeId: "" }); setReqFormError(""); setReqModal(true); }}
-            className="flex items-center gap-2 bg-primary-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-primary-600"
-          >
-            <Plus size={15} /> New Request
-          </button>
-        )}
+        <div className="flex gap-2">
+          {activeTab === "types" && canCreateLeaveType && (
+            <button
+              onClick={() => { setEditing(null); setForm({ name: "", code: "", description: "", totalDaysPerYear: 0, isPaid: true }); setModal(true); }}
+              className="flex items-center gap-2 bg-primary-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-primary-600"
+            >
+              <Plus size={15} /> Add Leave Type
+            </button>
+          )}
+          {activeTab === "requests" && canCreateRequest && (
+            <button
+              onClick={() => {
+                setReqForm({
+                  leaveTypeId: "",
+                  startDate: "",
+                  endDate: "",
+                  reason: "",
+                  employeeId: isHrAdmin ? "" : userEmployeeId || "",
+                });
+                setReqFormError("");
+                setReqModal(true);
+              }}
+              className="flex items-center gap-2 bg-primary-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-primary-600"
+            >
+              <Plus size={15} /> New Request
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="flex gap-4 mb-4">
-        <button
-          onClick={() => { setActiveTab("types"); dg.setPage(1); }}
-          className={`px-4 py-2 rounded text-sm ${activeTab === "types" ? "bg-primary-500 text-white" : "bg-gray-200"}`}
-        >
-          Leave Types
-        </button>
-        <button
-          onClick={() => { setActiveTab("requests"); dg.setPage(1); }}
-          className={`px-4 py-2 rounded text-sm ${activeTab === "requests" ? "bg-primary-500 text-white" : "bg-gray-200"}`}
-        >
-          Leave Requests
-        </button>
-      </div>
+      {tabs.length > 1 && (
+        <div className="flex gap-4 mb-4">
+          {tabs.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => { setActiveTab(tab.key); dg.setPage(1); }}
+              className={`px-4 py-2 rounded text-sm ${activeTab === tab.key ? "bg-primary-500 text-white" : "bg-gray-200"}`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
 
-      {activeTab === "types" && (
+      {activeTab === "types" && canViewLeaveTypes && (
         <DataGrid
           columns={typeColumns}
           data={leaveTypes}
@@ -205,12 +283,12 @@ export default function LeaveManagement() {
           pageSize={dg.pageSize}
           onPageSizeChange={dg.setPageSize}
           totalCount={typesData?.data?.data?.totalCount ?? 0}
-          onEdit={(row) => { setEditing(row); setForm({ name: row.name, code: row.code, description: row.description, totalDaysPerYear: row.totalDaysPerYear, isPaid: row.isPaid }); setModal(true); }}
+          onEdit={canEditLeaveType ? (row) => { setEditing(row); setForm({ name: row.name, code: row.code, description: row.description, totalDaysPerYear: row.totalDaysPerYear, isPaid: row.isPaid }); setModal(true); } : undefined}
           emptyMessage="No leave types found"
-          actions={<ExportMenu baseUrl="leave/types" filters={{ search: dg.search || undefined }} />}
+          actions={canExportLeaveTypes ? <ExportMenu baseUrl="leave/types" filters={{ search: dg.search || undefined }} /> : undefined}
         />
       )}
-      {activeTab === "requests" && (
+      {activeTab === "requests" && canViewRequests && (
         <DataGrid
           columns={requestColumns}
           data={leaveRequests}
@@ -229,119 +307,131 @@ export default function LeaveManagement() {
           totalCount={requestsData?.data?.data?.totalCount ?? 0}
           emptyMessage="No leave requests found"
           toolbarPrefix={
-            <select
-              value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); dg.setPage(1); }}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500"
-            >
-              <option value="">All Status</option>
-              <option value="Pending">Pending</option>
-              <option value="Approved">Approved</option>
-              <option value="Rejected">Rejected</option>
-            </select>
+            isHrAdmin ? (
+              <select
+                value={statusFilter}
+                onChange={(e) => { setStatusFilter(e.target.value); dg.setPage(1); }}
+                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              >
+                <option value="">All Status</option>
+                <option value="Pending">Pending</option>
+                <option value="Approved">Approved</option>
+                <option value="Rejected">Rejected</option>
+              </select>
+            ) : undefined
           }
-          actions={<ExportMenu baseUrl="leave/requests" filters={{ search: dg.search || undefined, status: statusFilter || undefined }} />}
+          actions={canExportRequests ? <ExportMenu baseUrl="leave/requests" filters={{ search: dg.search || undefined, status: statusFilter || undefined }} /> : undefined}
         />
       )}
 
-      <Modal title={editing ? "Edit Leave Type" : "Add Leave Type"} open={modal} onClose={() => setModal(false)}>
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Name *</label>
-              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} />
+      {canCreateLeaveType && (
+        <Modal title={editing ? "Edit Leave Type" : "Add Leave Type"} open={modal} onClose={() => setModal(false)}>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Name *</label>
+                <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Code *</label>
+                <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.code} onChange={(e) => setForm(f => ({ ...f, code: e.target.value }))} />
+              </div>
             </div>
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Code *</label>
-              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.code} onChange={(e) => setForm(f => ({ ...f, code: e.target.value }))} />
+              <label className="text-xs text-gray-500 mb-1 block">Description</label>
+              <textarea rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.description} onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Max Days/Year</label>
+                <input type="number" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.totalDaysPerYear} onChange={(e) => setForm(f => ({ ...f, totalDaysPerYear: Number(e.target.value) }))} />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Is Paid</label>
+                <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={String(form.isPaid)} onChange={(e) => setForm(f => ({ ...f, isPaid: e.target.value === "true" }))}>
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => setModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
+              <button onClick={() => saveTypeMutation.mutate()} disabled={saveTypeMutation.isPending} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">
+                {saveTypeMutation.isPending ? "Saving..." : "Save"}
+              </button>
             </div>
           </div>
-          <div>
-            <label className="text-xs text-gray-500 mb-1 block">Description</label>
-            <textarea rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.description} onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
+        </Modal>
+      )}
+
+      {canCreateRequest && (
+        <Modal title="New Leave Request" open={reqModal} onClose={() => setReqModal(false)}>
+          <div className="space-y-3">
+            {isHrAdmin ? (
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Employee</label>
+                <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={reqForm.employeeId} onChange={(e) => setReqForm(f => ({ ...f, employeeId: e.target.value }))}>
+                  <option value="">Select Employee</option>
+                  {employees.map(e => <option key={e.id} value={e.id}>{e.firstName} {e.lastName}</option>)}
+                </select>
+              </div>
+            ) : (
+              <div className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                Submitting leave request for yourself
+              </div>
+            )}
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Max Days/Year</label>
-              <input type="number" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.totalDaysPerYear} onChange={(e) => setForm(f => ({ ...f, totalDaysPerYear: Number(e.target.value) }))} />
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Is Paid</label>
-              <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={String(form.isPaid)} onChange={(e) => setForm(f => ({ ...f, isPaid: e.target.value === "true" }))}>
-                <option value="true">Yes</option>
-                <option value="false">No</option>
+              <label className="text-xs text-gray-500 mb-1 block">Leave Type</label>
+              <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={reqForm.leaveTypeId} onChange={(e) => setReqForm(f => ({ ...f, leaveTypeId: e.target.value }))}>
+                <option value="">Select Leave Type</option>
+                {leaveTypes.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
               </select>
             </div>
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <button onClick={() => setModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-            <button onClick={() => saveTypeMutation.mutate()} disabled={saveTypeMutation.isPending} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">
-              {saveTypeMutation.isPending ? "Saving..." : "Save"}
-            </button>
-          </div>
-        </div>
-      </Modal>
-
-      <Modal title="New Leave Request" open={reqModal} onClose={() => setReqModal(false)}>
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs text-gray-500 mb-1 block">Employee</label>
-            <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={reqForm.employeeId} onChange={(e) => setReqForm(f => ({ ...f, employeeId: e.target.value }))}>
-              <option value="">Select Employee</option>
-              {employees.map(e => <option key={e.id} value={e.id}>{e.firstName} {e.lastName}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs text-gray-500 mb-1 block">Leave Type</label>
-            <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={reqForm.leaveTypeId} onChange={(e) => setReqForm(f => ({ ...f, leaveTypeId: e.target.value }))}>
-              <option value="">Select Leave Type</option>
-              {leaveTypes.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-            </select>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Start Date</label>
+                <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={reqForm.startDate} onChange={(e) => { setReqForm(f => ({ ...f, startDate: e.target.value })); setReqFormError(""); }} />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">End Date</label>
+                <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={reqForm.endDate} onChange={(e) => { setReqForm(f => ({ ...f, endDate: e.target.value })); setReqFormError(""); }} />
+              </div>
+            </div>
+            {reqFormValidation.totalDays !== null && reqFormValidation.valid && (
+              <div className="text-xs text-gray-500">
+                Total days: <strong>{reqFormValidation.totalDays}</strong>
+              </div>
+            )}
+            {reqFormValidation.error && (
+              <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                {reqFormValidation.error}
+              </div>
+            )}
+            {reqFormError && (
+              <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                {reqFormError}
+              </div>
+            )}
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Start Date</label>
-              <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={reqForm.startDate} onChange={(e) => { setReqForm(f => ({ ...f, startDate: e.target.value })); setReqFormError(""); }} />
+              <label className="text-xs text-gray-500 mb-1 block">Reason</label>
+              <textarea rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={reqForm.reason} onChange={(e) => setReqForm(f => ({ ...f, reason: e.target.value }))} />
             </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">End Date</label>
-              <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={reqForm.endDate} onChange={(e) => { setReqForm(f => ({ ...f, endDate: e.target.value })); setReqFormError(""); }} />
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => setReqModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
+              <button
+                onClick={() => {
+                  if (!reqFormValidation.valid) { setReqFormError(reqFormValidation.error); return; }
+                  saveReqMutation.mutate();
+                }}
+                disabled={saveReqMutation.isPending}
+                className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
+              >
+                {saveReqMutation.isPending ? "Submitting..." : "Submit"}
+              </button>
             </div>
           </div>
-          {reqFormValidation.totalDays !== null && reqFormValidation.valid && (
-            <div className="text-xs text-gray-500">
-              Total days: <strong>{reqFormValidation.totalDays}</strong>
-            </div>
-          )}
-          {reqFormValidation.error && (
-            <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-              {reqFormValidation.error}
-            </div>
-          )}
-          {reqFormError && (
-            <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-              {reqFormError}
-            </div>
-          )}
-          <div>
-            <label className="text-xs text-gray-500 mb-1 block">Reason</label>
-            <textarea rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={reqForm.reason} onChange={(e) => setReqForm(f => ({ ...f, reason: e.target.value }))} />
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <button onClick={() => setReqModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-            <button
-              onClick={() => {
-                if (!reqFormValidation.valid) { setReqFormError(reqFormValidation.error); return; }
-                saveReqMutation.mutate();
-              }}
-              disabled={saveReqMutation.isPending}
-              className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
-            >
-              {saveReqMutation.isPending ? "Submitting..." : "Submit"}
-            </button>
-          </div>
-        </div>
-      </Modal>
+        </Modal>
+      )}
     </div>
   );
 }

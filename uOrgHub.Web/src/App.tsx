@@ -140,7 +140,7 @@ export default function App() {
             <Route path="hr/departments" element={<Departments />} />
             <Route path="hr/employees" element={<Employees />} />
             <Route path="hr/designations" element={<Designations />} />
-            <Route path="hr/leave" element={<LeaveManagement />} />
+            <Route path="hr/leave" element={<ProtectedRoute requiredClaims={['HR.LeaveRequests.View', 'Self.ViewLeave']}><LeaveManagement /></ProtectedRoute>} />
             <Route path="hr/attendance" element={<AttendanceManagement />} />
             <Route path="hr/payroll" element={<PayrollManagement />} />
             <Route path="hr/recruitment" element={<Recruitment />} />

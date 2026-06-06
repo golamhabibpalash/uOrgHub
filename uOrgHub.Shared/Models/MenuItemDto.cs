@@ -8,5 +8,6 @@ public record MenuItemDto(
     string? RequiredClaim,
     string? RequiredRole,
     string? Section,
-    List<MenuItemDto>? Children
+    List<MenuItemDto>? Children,
+    IReadOnlyList<string>? RequiredClaims = null
 );

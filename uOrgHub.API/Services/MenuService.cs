@@ -16,7 +16,7 @@ public class MenuService : IMenuService
             new("hr-employees", "Employees", "UserCircle", "/hr/employees", Claims.HR.Employees.View, null, null, null),
             new("hr-designations", "Designations", "Briefcase", "/hr/designations", Claims.HR.Designations.View, null, null, null),
             new("hr-organogram", "Organogram", "GitBranch", "/hr/organogram", Claims.HR.Employees.View, null, null, null),
-            new("hr-leave", "Leave", "CalendarClock", "/hr/leave", Claims.HR.LeaveRequests.View, null, null, null),
+            new("hr-leave", "Leave", "CalendarClock", "/hr/leave", null, null, null, null, [Claims.HR.LeaveRequests.View, Claims.Self.ViewLeave]),
             new("hr-attendance", "Attendance", "Clock", "/hr/attendance", Claims.HR.AttendanceLogs.View, null, null, null),
             new("hr-payroll", "Payroll", "Wallet", "/hr/payroll", Claims.HR.SalaryGrades.View, null, null, null),
             new("hr-recruitment", "Recruitment", "UserCheck", "/hr/recruitment", Claims.HR.Candidates.View, null, null, null),
@@ -89,9 +89,10 @@ public class MenuService : IMenuService
 
         bool HasAccess(MenuItemDto item)
         {
-            if (item.RequiredClaim == null && item.RequiredRole == null) return true;
+            if (item.RequiredClaim == null && item.RequiredRole == null && item.RequiredClaims == null) return true;
             if (isAdmin) return true;
             if (item.RequiredClaim != null && userClaims.Contains(item.RequiredClaim)) return true;
+            if (item.RequiredClaims != null && item.RequiredClaims.Any(c => userClaims.Contains(c))) return true;
             if (item.RequiredRole != null && userRoles.Contains(item.RequiredRole)) return true;
             return false;
         }

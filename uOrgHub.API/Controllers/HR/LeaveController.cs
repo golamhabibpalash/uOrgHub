@@ -2,9 +2,11 @@ using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
 using uOrgHub.Auth.Models.Entities;
+using uOrgHub.Auth.Services;
 using uOrgHub.HR.DTOs.Leave;
 using uOrgHub.HR.Features.Leave.Commands;
 using uOrgHub.HR.Features.Leave.Queries;
@@ -12,6 +14,7 @@ using uOrgHub.HR.Models.Entities;
 using uOrgHub.HR.Models.Enums;
 using uOrgHub.HR.Reporting.ExportColumns;
 using uOrgHub.Shared.Data;
+using uOrgHub.Shared.Exceptions;
 using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 
@@ -24,13 +27,36 @@ public class LeaveController : BaseController
     private readonly IMediator _mediator;
     private readonly AppDbContext _context;
     private readonly IExportService _exportService;
+    private readonly IPermissionService _permissionService;
 
-    public LeaveController(IMediator mediator, AppDbContext context, IExportService exportService)
+    public LeaveController(IMediator mediator, AppDbContext context, IExportService exportService, IPermissionService permissionService)
     {
         _mediator = mediator;
         _context = context;
         _exportService = exportService;
+        _permissionService = permissionService;
     }
+
+    private async Task<Guid?> GetCurrentEmployeeIdAsync()
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null || !Guid.TryParse(userIdClaim, out var userId))
+            return null;
+
+        var user = await _context.Set<ApplicationUser>().FindAsync(userId);
+        return user?.EmployeeId;
+    }
+
+    private async Task<bool> HasClaimAsync(string claim)
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null || !Guid.TryParse(userIdClaim, out var userId))
+            return false;
+
+        return await _permissionService.HasClaimAsync(userId, claim);
+    }
+
+    // ── Leave Types (Admin/Config only) ──────────────────────────────
 
     [HttpGet("types")]
     [RequireClaim(Claims.HR.LeaveTypes.View)]
@@ -70,10 +96,23 @@ public class LeaveController : BaseController
         return Ok(ApiResponse<LeaveTypeResponseDto>.Ok(result, "Leave type updated successfully."));
     }
 
+    // ── Leave Requests (Self-service + HR Admin) ────────────────────
+
     [HttpGet("requests")]
-    [RequireClaim(Claims.HR.LeaveRequests.View)]
+    [RequireAnyClaim(Claims.HR.LeaveRequests.View, Claims.Self.ViewLeave)]
     public async Task<IActionResult> GetRequests([FromQuery] PaginationRequest request, [FromQuery] Guid? employeeId = null, [FromQuery] LeaveStatus? status = null)
     {
+        var isHrAdmin = await HasClaimAsync(Claims.HR.LeaveRequests.View);
+
+        if (!isHrAdmin)
+        {
+            var currentEmployeeId = await GetCurrentEmployeeIdAsync();
+            if (currentEmployeeId == null)
+                return BadRequest(ApiResponse<PagedResult<LeaveRequestResponseDto>>.Fail("Current user is not linked to an employee."));
+
+            employeeId = currentEmployeeId;
+        }
+
         var result = await _mediator.Send(new GetLeaveRequestsQuery(request, employeeId, status));
         return Ok(ApiResponse<PagedResult<LeaveRequestResponseDto>>.Ok(result));
     }
@@ -93,9 +132,22 @@ public class LeaveController : BaseController
     }
 
     [HttpPost("requests")]
-    [RequireClaim(Claims.HR.LeaveRequests.Create)]
+    [RequireAnyClaim(Claims.HR.LeaveRequests.Create, Claims.Self.SubmitLeave)]
     public async Task<IActionResult> CreateRequest([FromBody] CreateLeaveRequestDto dto)
     {
+        var isHrAdmin = await HasClaimAsync(Claims.HR.LeaveRequests.Create);
+        if (!isHrAdmin)
+        {
+            var currentEmployeeId = await GetCurrentEmployeeIdAsync();
+            if (currentEmployeeId == null)
+                return BadRequest(ApiResponse<LeaveRequestResponseDto>.Fail("Current user is not linked to an employee."));
+
+            if (dto.EmployeeId != Guid.Empty && dto.EmployeeId != currentEmployeeId.Value)
+                return BadRequest(ApiResponse<LeaveRequestResponseDto>.Fail("You can only submit leave requests for yourself."));
+
+            dto.EmployeeId = currentEmployeeId.Value;
+        }
+
         var result = await _mediator.Send(new CreateLeaveRequestCommand(dto));
         return Ok(ApiResponse<LeaveRequestResponseDto>.Ok(result, "Leave request submitted successfully."));
     }
@@ -119,17 +171,47 @@ public class LeaveController : BaseController
     }
 
     [HttpPut("requests/{id:guid}/cancel")]
-    [RequireClaim(Claims.HR.LeaveRequests.Edit)]
+    [RequireAnyClaim(Claims.HR.LeaveRequests.Edit, Claims.Self.SubmitLeave)]
     public async Task<IActionResult> CancelRequest(Guid id)
     {
+        var isHrAdmin = await HasClaimAsync(Claims.HR.LeaveRequests.Edit);
+        if (!isHrAdmin)
+        {
+            var currentEmployeeId = await GetCurrentEmployeeIdAsync();
+            if (currentEmployeeId == null)
+                return BadRequest(ApiResponse<string>.Fail("Current user is not linked to an employee."));
+
+            var leaveRequest = await _context.Set<LeaveRequest>()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
+
+            if (leaveRequest == null)
+                return NotFound(ApiResponse<string>.NotFound("Leave request not found."));
+
+            if (leaveRequest.EmployeeId != currentEmployeeId.Value)
+                return BadRequest(ApiResponse<string>.Fail("You can only cancel your own leave requests."));
+        }
+
         await _mediator.Send(new CancelLeaveRequestCommand(id));
         return Ok(ApiResponse<string>.Ok("Cancelled", "Leave request cancelled successfully."));
     }
 
     [HttpGet("balances/{employeeId:guid}")]
-    [RequireClaim(Claims.HR.LeaveRequests.View)]
+    [RequireAnyClaim(Claims.HR.LeaveRequests.View, Claims.Self.ViewLeave)]
     public async Task<IActionResult> GetBalances(Guid employeeId, [FromQuery] int? year = null)
     {
+        var isHrAdmin = await HasClaimAsync(Claims.HR.LeaveRequests.View);
+        if (!isHrAdmin)
+        {
+            var currentEmployeeId = await GetCurrentEmployeeIdAsync();
+            if (currentEmployeeId == null)
+                return BadRequest(ApiResponse<List<LeaveBalanceResponseDto>>.Fail("Current user is not linked to an employee."));
+
+            if (employeeId != currentEmployeeId.Value)
+                return BadRequest(ApiResponse<List<LeaveBalanceResponseDto>>.Fail("You can only view your own leave balances."));
+
+            employeeId = currentEmployeeId.Value;
+        }
+
         var result = await _mediator.Send(new GetLeaveBalancesQuery(employeeId, year));
         return Ok(ApiResponse<List<LeaveBalanceResponseDto>>.Ok(result));
     }
