@@ -38,7 +38,7 @@ public class RoleController : ControllerBase
             .Select(r => new RoleDto(
                 r.Id, r.Name, r.Description, r.IsSystem, r.IsActive,
                 r.UserRoles.Count,
-                null
+                new List<ClaimDto>()
             ))
             .ToListAsync();
 
@@ -105,7 +105,7 @@ public class RoleController : ControllerBase
         await _db.SaveChangesAsync();
 
         return CreatedAtAction(nameof(GetRoleById), new { id = role.Id }, ApiResponse<RoleDto>.Ok(
-            new RoleDto(role.Id, role.Name, role.Description, role.IsSystem, role.IsActive, 0, null),
+            new RoleDto(role.Id, role.Name, role.Description, role.IsSystem, role.IsActive, 0, new List<ClaimDto>()),
             "Role created"
         ));
     }

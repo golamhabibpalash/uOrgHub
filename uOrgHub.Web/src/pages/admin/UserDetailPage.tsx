@@ -181,7 +181,7 @@ export default function UserDetailPage() {
         </div>
       </div>
 
-      <div className={tab !== 'roles' ? 'hidden' : ''}>
+      {tab === 'roles' && (
         <div className="grid grid-cols-3 gap-3 max-w-2xl">
           {roles.map(role => {
             const has = user.roles.includes(role.name);
@@ -192,14 +192,14 @@ export default function UserDetailPage() {
                   <span className="text-white text-sm font-medium">{role.name}</span>
                   {has && <span className="w-2 h-2 rounded-full bg-primary-400" />}
                 </div>
-                <div className="text-slate-400 text-xs">{role.claims.length} claims</div>
+                <div className="text-slate-400 text-xs">{(role.claims ?? []).length} claims</div>
               </button>
             );
           })}
         </div>
-      </div>
+      )}
 
-      <div className={tab !== 'claims' ? 'hidden' : ''}>
+      {tab === 'claims' && (
         <div className="space-y-4 max-w-3xl">
           {Object.entries(claimsByModule).map(([module, moduleClaims]) => (
             <div key={module}>
@@ -218,9 +218,9 @@ export default function UserDetailPage() {
             </div>
           ))}
         </div>
-      </div>
+      )}
 
-      <div className={tab !== 'sessions' ? 'hidden' : ''}>
+      {tab === 'sessions' && (
         <div className="space-y-2 max-w-3xl">
           {sessions.length === 0 && <p className="text-slate-400 text-sm">No active sessions.</p>}
           {sessions.map(s => (
@@ -235,9 +235,9 @@ export default function UserDetailPage() {
             </div>
           ))}
         </div>
-      </div>
+      )}
 
-      <div className={tab !== 'logs' ? 'hidden' : ''}>
+      {tab === 'logs' && (
         <div className="max-w-4xl">
           {!logs || logs.items.length === 0 ? <p className="text-slate-400 text-sm">No access logs.</p> : (
             <table className="w-full text-sm">
@@ -264,7 +264,7 @@ export default function UserDetailPage() {
             </table>
           )}
         </div>
-      </div>
+      )}
 
       {usernameModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
