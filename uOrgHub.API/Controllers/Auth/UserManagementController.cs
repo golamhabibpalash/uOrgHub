@@ -146,8 +146,7 @@ public class UserManagementController : ControllerBase
     [RequireClaim("Users.AssignRoles")]
     public async Task<IActionResult> AssignRole(Guid id, [FromBody] AssignRoleDto dto)
     {
-        foreach (var roleId in dto.RoleIds)
-            await _userManagement.AssignRoleAsync(id, roleId, GetCurrentUser());
+        await _userManagement.ReplaceRolesAsync(id, dto.RoleIds, GetCurrentUser());
         return Ok(ApiResponse<string>.Ok("Roles assigned"));
     }
 

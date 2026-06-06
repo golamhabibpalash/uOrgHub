@@ -13,13 +13,15 @@ public class UserManagementService : IUserManagementService
     private readonly IPermissionService _permissions;
     private readonly IEmailService _email;
     private readonly IUserProfilePictureResolver? _pictureResolver;
+    private readonly IAccessLogService _log;
 
     public UserManagementService(AppDbContext db, IPermissionService permissions, IEmailService email,
-        IUserProfilePictureResolver? pictureResolver = null)
+        IAccessLogService log, IUserProfilePictureResolver? pictureResolver = null)
     {
         _db = db;
         _permissions = permissions;
         _email = email;
+        _log = log;
         _pictureResolver = pictureResolver;
     }
 
@@ -308,6 +310,52 @@ public class UserManagementService : IUserManagementService
         });
         await _db.SaveChangesAsync();
         _permissions.InvalidateCache(userId);
+    }
+
+    public async Task ReplaceRolesAsync(Guid userId, List<Guid> roleIds, string assignedBy)
+    {
+        var user = await _db.Set<ApplicationUser>().FirstAsync(u => u.Id == userId);
+        var existingRoleNames = await _db.Set<UserRole>()
+            .Where(ur => ur.UserId == userId)
+            .Select(ur => ur.Role.Name)
+            .ToListAsync();
+
+        var existing = await _db.Set<UserRole>().Where(ur => ur.UserId == userId).ToListAsync();
+        _db.Set<UserRole>().RemoveRange(existing);
+
+        foreach (var roleId in roleIds)
+        {
+            _db.Set<UserRole>().Add(new UserRole
+            {
+                UserId = userId,
+                RoleId = roleId,
+                AssignedBy = assignedBy,
+                AssignedAt = DateTime.UtcNow,
+            });
+        }
+
+        await _db.SaveChangesAsync();
+        _permissions.InvalidateCache(userId);
+
+        var newRoleNames = await _db.Set<ApplicationRole>()
+            .Where(r => roleIds.Contains(r.Id))
+            .Select(r => r.Name)
+            .ToListAsync();
+
+        _log.LogAsync(new UserAccessLog
+        {
+            UserId = userId,
+            Username = user.Username,
+            Action = "RoleUpdated",
+            Module = "Auth",
+            EntityType = "User",
+            EntityId = userId.ToString(),
+            OldValues = System.Text.Json.JsonSerializer.Serialize(existingRoleNames),
+            NewValues = System.Text.Json.JsonSerializer.Serialize(newRoleNames),
+            IsSuccess = true,
+            IpAddress = assignedBy,
+            CreatedAt = DateTime.UtcNow,
+        });
     }
 
     public async Task RemoveRoleAsync(Guid userId, Guid roleId)

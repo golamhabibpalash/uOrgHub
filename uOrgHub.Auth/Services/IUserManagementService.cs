@@ -17,6 +17,7 @@ public interface IUserManagementService
     Task<UserDto> ChangeUsernameAsync(Guid id, string newUsername, string updatedBy);
     Task AssignRoleAsync(Guid userId, Guid roleId, string assignedBy);
     Task RemoveRoleAsync(Guid userId, Guid roleId);
+    Task ReplaceRolesAsync(Guid userId, List<Guid> roleIds, string assignedBy);
     Task AssignUserClaimAsync(Guid userId, Guid claimId, bool isGranted, string assignedBy);
     Task RemoveUserClaimAsync(Guid userId, Guid claimId);
     Task<List<UserSessionDto>> GetUserSessionsAsync(Guid userId);

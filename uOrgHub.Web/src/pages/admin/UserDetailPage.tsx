@@ -46,15 +46,27 @@ export default function UserDetailPage() {
     if (tab === 'logs' && !logs) getUserAccessLogs(id).then(setLogs).catch(() => {});
   }, [tab, id]);
 
+  const [roleSaving, setRoleSaving] = useState(false);
+
   const toggleRole = async (roleId: string, roleName: string) => {
-    if (!user || !id) return;
-    const hasRole = user.roles.includes(roleName);
-    const newRoleIds = hasRole
-      ? roles.filter(r => user.roles.includes(r.name) && r.name !== roleName).map(r => r.id)
-      : [...roles.filter(r => user.roles.includes(r.name)).map(r => r.id), roleId];
-    await setUserRoles(id, newRoleIds);
-    const updated = await getUserById(id);
-    setUser(updated);
+    if (!user || !id || roleSaving) return;
+    setRoleSaving(true);
+    try {
+      const hasRole = user.roles.includes(roleName);
+      const newRoleIds = hasRole
+        ? roles.filter(r => r.name !== roleName && user.roles.includes(r.name)).map(r => r.id)
+        : [...roles.filter(r => user.roles.includes(r.name)).map(r => r.id), roleId];
+      await setUserRoles(id, newRoleIds);
+      const updated = await getUserById(id);
+      setUser(updated);
+    } catch (err: unknown) {
+      const msg = (err as AxiosError<{ message?: string }>).response?.data?.message
+        || (err as Error)?.message
+        || 'Failed to update roles.';
+      toast.error(msg, { duration: 4000 });
+    } finally {
+      setRoleSaving(false);
+    }
   };
 
   const openUsernameModal = () => {
