@@ -3,6 +3,7 @@ using uOrgHub.Auth.DTOs;
 using uOrgHub.Auth.Models.Entities;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Models;
+using uOrgHub.Shared.Services;
 
 namespace uOrgHub.Auth.Services;
 
@@ -11,12 +12,15 @@ public class UserManagementService : IUserManagementService
     private readonly AppDbContext _db;
     private readonly IPermissionService _permissions;
     private readonly IEmailService _email;
+    private readonly IUserProfilePictureResolver? _pictureResolver;
 
-    public UserManagementService(AppDbContext db, IPermissionService permissions, IEmailService email)
+    public UserManagementService(AppDbContext db, IPermissionService permissions, IEmailService email,
+        IUserProfilePictureResolver? pictureResolver = null)
     {
         _db = db;
         _permissions = permissions;
         _email = email;
+        _pictureResolver = pictureResolver;
     }
 
     public async Task<UserDto> CreateUserAsync(CreateUserDto dto, string createdBy)
@@ -132,7 +136,7 @@ public class UserManagementService : IUserManagementService
             .OrderBy(u => u.FirstName)
             .ToListAsync();
 
-        return users.Select(u =>
+        var result = users.Select(u =>
         {
             var roles = u.UserRoles.Where(ur => !ur.Role.IsDeleted).Select(ur => ur.Role.Name).ToList();
             return new UserDto(
@@ -144,6 +148,9 @@ public class UserManagementService : IUserManagementService
                 u.CreatedAt, u.UpdatedAt
             );
         }).ToList();
+
+        await ResolveEmployeePicturesAsync(result);
+        return result;
     }
 
     public async Task<PagedResult<UserDto>> GetUsersAsync(PaginationRequest request)
@@ -189,6 +196,8 @@ public class UserManagementService : IUserManagementService
             );
         }).ToList();
 
+        await ResolveEmployeePicturesAsync(userDtos);
+
         return new PagedResult<UserDto>
         {
             Items = userDtos,
@@ -207,7 +216,7 @@ public class UserManagementService : IUserManagementService
         var roles = user.UserRoles.Where(ur => !ur.Role.IsDeleted).Select(ur => ur.Role.Name).ToList();
         var claims = await _permissions.GetUserClaimsAsync(id);
 
-        return new UserDto(
+        var dto = new UserDto(
             user.Id, user.Username, user.Email, user.PhoneNumber,
             user.FirstName, user.LastName, $"{user.FirstName} {user.LastName}",
             user.EmployeeId, user.IsActive, user.IsTwoFactorEnabled, user.TwoFactorMethod,
@@ -215,6 +224,15 @@ public class UserManagementService : IUserManagementService
             user.ProfilePicture, roles, claims,
             user.CreatedAt, user.UpdatedAt
         );
+
+        if (dto.EmployeeId.HasValue && _pictureResolver is not null)
+        {
+            var empPicture = await _pictureResolver.ResolveAsync(dto.EmployeeId.Value);
+            if (empPicture is not null)
+                dto = dto with { ProfilePicture = empPicture };
+        }
+
+        return dto;
     }
 
     public async Task<UserDto> ChangeUsernameAsync(Guid id, string newUsername, string updatedBy)
@@ -372,5 +390,27 @@ public class UserManagementService : IUserManagementService
                 l.DurationMs, l.IsSuccess, l.ErrorMessage, l.OldValues, l.NewValues, l.CreatedAt
             ))
             .ToListAsync();
+    }
+
+    private async Task ResolveEmployeePicturesAsync(List<UserDto> users)
+    {
+        if (_pictureResolver is null) return;
+
+        var employeeIds = users
+            .Where(u => u.EmployeeId.HasValue)
+            .Select(u => u.EmployeeId!.Value)
+            .Distinct()
+            .ToList();
+
+        if (employeeIds.Count == 0) return;
+
+        var pictures = await _pictureResolver.ResolveBatchAsync(employeeIds);
+
+        for (var i = 0; i < users.Count; i++)
+        {
+            var user = users[i];
+            if (user.EmployeeId.HasValue && pictures.TryGetValue(user.EmployeeId.Value, out var pic) && pic is not null)
+                users[i] = user with { ProfilePicture = pic };
+        }
     }
 }

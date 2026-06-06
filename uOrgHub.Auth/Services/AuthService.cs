@@ -4,6 +4,7 @@ using uOrgHub.Auth.DTOs;
 using uOrgHub.Auth.Models.Entities;
 using uOrgHub.Auth.Repositories;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Services;
 
 namespace uOrgHub.Auth.Services;
 
@@ -16,13 +17,16 @@ public class AuthService : IAuthService
     private readonly ISmsService _sms;
     private readonly IAccessLogService _log;
     private readonly IConfiguration _config;
+    private readonly IUserProfilePictureResolver? _pictureResolver;
 
     public AuthService(
         IUserRepository users, ITokenRepository tokens, IJwtService jwt,
-        IEmailService email, ISmsService sms, IAccessLogService log, IConfiguration config)
+        IEmailService email, ISmsService sms, IAccessLogService log, IConfiguration config,
+        IUserProfilePictureResolver? pictureResolver = null)
     {
         _users = users; _tokens = tokens; _jwt = jwt;
         _email = email; _sms = sms; _log = log; _config = config;
+        _pictureResolver = pictureResolver;
     }
 
     public async Task<LoginResponseDto> LoginAsync(LoginRequestDto dto, string ipAddress, string userAgent)
@@ -146,7 +150,7 @@ public class AuthService : IAuthService
         await _tokens.AddRefreshTokenAsync(newRefresh);
 
         var expiry = int.Parse(_config["JwtSettings:AccessTokenExpiryMinutes"] ?? "15");
-        return new TokenResponseDto(accessToken, newRefresh.Token, expiry * 60, MapProfile(user, roles, claims));
+        return new TokenResponseDto(accessToken, newRefresh.Token, expiry * 60, await MapProfileAsync(user, roles, claims));
     }
 
     public async Task LogoutAsync(Guid userId, string sessionToken)
@@ -207,7 +211,7 @@ public class AuthService : IAuthService
             ?? throw new AppException("User not found.", 404);
         var roles = user.UserRoles.Where(ur => !ur.IsDeleted).Select(ur => ur.Role.Name).ToList();
         var claims = (await _users.GetUserClaimsAsync(userId)).Where(c => c.IsGranted).Select(c => c.Name).ToList();
-        return MapProfile(user, roles, claims);
+        return await MapProfileAsync(user, roles, claims);
     }
 
     public async Task<UserProfileDto> UpdateProfileAsync(Guid userId, UpdateProfileDto dto)
@@ -285,7 +289,7 @@ public class AuthService : IAuthService
         await _log.LogAsync(BuildLog(user.Id, user.Username, "Login", true, ipAddress, userAgent, null));
 
         var expiry = int.Parse(_config["JwtSettings:AccessTokenExpiryMinutes"] ?? "15");
-        var profile = MapProfile(userWithDetails, roles, claims);
+        var profile = await MapProfileAsync(userWithDetails, roles, claims);
 
         return new LoginResponseDto(false, null, null, null, null, accessToken, refreshToken.Token, profile);
     }
@@ -297,11 +301,21 @@ public class AuthService : IAuthService
         return null;
     }
 
-    private static UserProfileDto MapProfile(ApplicationUser user, List<string> roles, List<string> claims) =>
-        new(user.Id, user.Username, user.Email, user.PhoneNumber, user.FirstName, user.LastName,
-            $"{user.FirstName} {user.LastName}", user.EmployeeId, user.IsActive,
-            user.IsTwoFactorEnabled, user.TwoFactorMethod, roles, claims,
-            user.LastLoginAt, user.ProfilePicture);
+    private async Task<UserProfileDto> MapProfileAsync(ApplicationUser user, List<string> roles, List<string> claims)
+    {
+        var picture = user.ProfilePicture;
+        if (user.EmployeeId.HasValue && _pictureResolver is not null)
+        {
+            var empPicture = await _pictureResolver.ResolveAsync(user.EmployeeId.Value);
+            if (empPicture is not null)
+                picture = empPicture;
+        }
+
+        return new UserProfileDto(user.Id, user.Username, user.Email, user.PhoneNumber,
+            user.FirstName, user.LastName, $"{user.FirstName} {user.LastName}",
+            user.EmployeeId, user.IsActive, user.IsTwoFactorEnabled, user.TwoFactorMethod,
+            roles, claims, user.LastLoginAt, picture);
+    }
 
     private static UserAccessLog BuildLog(Guid? userId, string? username, string action, bool success, string? ip, string? ua, string? details) =>
         new()

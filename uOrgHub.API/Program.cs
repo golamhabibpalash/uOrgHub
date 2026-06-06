@@ -13,6 +13,7 @@ using uOrgHub.Inventory;
 using uOrgHub.Procurement;
 using uOrgHub.Projects;
 using uOrgHub.Shared.Data;
+using uOrgHub.Shared.Services;
 using uOrgHub.Shared.Export;
 using uOrgHub.API.Services.Storage;
 
@@ -70,6 +71,7 @@ builder.Services.AddScoped<IDashboardService, DashboardService>();
 // Cross-module services
 builder.Services.AddScoped<IEmployeeWithUserService, EmployeeWithUserService>();
 builder.Services.AddScoped<EmployeeProfilePictureService>();
+builder.Services.AddScoped<IUserProfilePictureResolver, UserProfilePictureResolver>();
 
 // HR Module
 builder.Services.AddHRModule();
