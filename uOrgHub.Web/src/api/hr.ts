@@ -486,7 +486,7 @@ export const getLeaveRequests = (params: PaginationRequest, employeeId?: string,
 export const createLeaveRequest = (data: Partial<LeaveRequest>) =>
   apiClient.post<ApiResponse<LeaveRequest>>("leave/requests", data);
 
-export const approveLeaveRequest = (id: string, data: { isApproved: boolean; remarks?: string }) =>
+export const approveLeaveRequest = (id: string, data: { isApproved: boolean; remarks?: string; rejectReason?: string }) =>
   apiClient.post<ApiResponse<LeaveRequest>>("leave/requests/approve", { ...data, leaveRequestId: id });
 
 export const updateLeaveRequest = (id: string, data: { leaveTypeId: string; startDate: string; endDate: string; reason: string }) =>

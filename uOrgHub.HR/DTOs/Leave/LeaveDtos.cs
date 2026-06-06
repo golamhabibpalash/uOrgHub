@@ -107,6 +107,7 @@ public class ApproveLeaveRequestDto
     public int ApprovalLevel { get; set; }
     public bool IsApproved { get; set; }
     public string? Comments { get; set; }
+    public string? RejectReason { get; set; }
 }
 
 public class LeaveApprovalResponseDto
@@ -118,5 +119,6 @@ public class LeaveApprovalResponseDto
     public int ApprovalLevel { get; set; }
     public ApprovalStatus Status { get; set; }
     public string? Comments { get; set; }
+    public string? RejectReason { get; set; }
     public DateTime? ActionedAt { get; set; }
 }

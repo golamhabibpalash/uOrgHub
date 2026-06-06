@@ -45,5 +45,8 @@ public class ApproveLeaveRequestDtoValidator : AbstractValidator<ApproveLeaveReq
     {
         RuleFor(x => x.LeaveRequestId).NotEmpty();
         RuleFor(x => x.Comments).MaximumLength(1000).When(x => x.Comments != null);
+        RuleFor(x => x.RejectReason).NotEmpty().WithMessage("Reject reason is required.")
+            .MaximumLength(1000)
+            .When(x => !x.IsApproved);
     }
 }

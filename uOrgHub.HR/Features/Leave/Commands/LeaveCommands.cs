@@ -122,19 +122,20 @@ public class ApproveLeaveRequestCommandHandler : IRequestHandler<ApproveLeaveReq
             .FirstOrDefaultAsync(x => !x.IsDeleted && x.Id == request.Dto.LeaveRequestId, ct)
             ?? throw new NotFoundException(nameof(LeaveRequest), request.Dto.LeaveRequestId);
 
+        var isApproved = request.Dto.IsApproved;
         var approval = new LeaveApproval
         {
             LeaveRequestId = request.Dto.LeaveRequestId,
             ApproverId = request.Dto.ApproverId,
             ApprovalLevel = request.Dto.ApprovalLevel,
-            Status = request.Dto.IsApproved ? ApprovalStatus.Approved : ApprovalStatus.Rejected,
-            Comments = request.Dto.Comments,
+            Status = isApproved ? ApprovalStatus.Approved : ApprovalStatus.Rejected,
+            Comments = isApproved ? request.Dto.Comments : request.Dto.RejectReason,
             ActionedAt = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow
         };
         _context.Set<LeaveApproval>().Add(approval);
 
-        if (!request.Dto.IsApproved)
+        if (!isApproved)
         {
             leaveRequest.Status = LeaveStatus.Rejected;
         }
@@ -156,7 +157,8 @@ public class ApproveLeaveRequestCommandHandler : IRequestHandler<ApproveLeaveReq
             ApproverId = approval.ApproverId,
             ApproverName = approver != null ? $"{approver.FirstName} {approver.LastName}" : string.Empty,
             ApprovalLevel = approval.ApprovalLevel, Status = approval.Status,
-            Comments = approval.Comments, ActionedAt = approval.ActionedAt
+            Comments = approval.Comments, RejectReason = isApproved ? null : approval.Comments,
+            ActionedAt = approval.ActionedAt
         };
     }
 }

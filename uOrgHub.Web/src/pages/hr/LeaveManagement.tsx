@@ -55,6 +55,9 @@ export default function LeaveManagement() {
 
   const [reqModal, setReqModal] = useState(false);
   const [editingReq, setEditingReq] = useState<LeaveRequest | null>(null);
+  const [rejectModal, setRejectModal] = useState<{ id: string } | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejectSubmitted, setRejectSubmitted] = useState(false);
   const [reqForm, setReqForm] = useState({
     leaveTypeId: "",
     startDate: "",
@@ -146,10 +149,13 @@ export default function LeaveManagement() {
   });
 
   const approveMutation = useMutation({
-    mutationFn: ({ id, approved }: { id: string; approved: boolean }) =>
-      approveLeaveRequest(id, { isApproved: approved, remarks: "" }),
+    mutationFn: ({ id, approved, reason }: { id: string; approved: boolean; reason?: string }) =>
+      approveLeaveRequest(id, { isApproved: approved, remarks: "", rejectReason: reason }),
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ["leave-requests"] });
+      setRejectModal(null);
+      setRejectReason("");
+      setRejectSubmitted(false);
       toast.success(vars.approved ? "Leave request approved." : "Leave request rejected.");
     },
     onError: () => toast.error("Failed to process leave request."),
@@ -242,7 +248,7 @@ export default function LeaveManagement() {
                 <Check size={16} />
               </button>
               <button
-                onClick={() => approveMutation.mutate({ id: row.id, approved: false })}
+                onClick={() => { setRejectModal({ id: row.id }); setRejectReason(""); }}
                 className="text-red-600 hover:text-red-800"
                 title="Reject"
               >
@@ -522,6 +528,44 @@ export default function LeaveManagement() {
           </div>
         </Modal>
       )}
+
+      <Modal title="Reject Leave Request" open={rejectModal !== null} onClose={() => { setRejectModal(null); setRejectReason(""); setRejectSubmitted(false); }}>
+        <div className="space-y-3">
+          <p className="text-sm text-gray-600">Please provide a reason for rejecting this leave request.</p>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Reject Reason *</label>
+            <textarea
+              rows={3}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+              value={rejectReason}
+              onChange={(e) => { setRejectReason(e.target.value); setRejectSubmitted(false); }}
+              placeholder="Enter reason for rejection"
+            />
+          </div>
+          {rejectSubmitted && !rejectReason.trim() && (
+            <p className="text-xs text-red-600">Reject reason is required.</p>
+          )}
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              onClick={() => { setRejectModal(null); setRejectReason(""); setRejectSubmitted(false); }}
+              className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                setRejectSubmitted(true);
+                if (!rejectReason.trim()) return;
+                approveMutation.mutate({ id: rejectModal!.id, approved: false, reason: rejectReason.trim() });
+              }}
+              disabled={approveMutation.isPending}
+              className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+            >
+              {approveMutation.isPending ? "Rejecting..." : "Confirm Reject"}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
