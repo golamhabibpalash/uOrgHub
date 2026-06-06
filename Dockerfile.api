@@ -9,6 +9,7 @@ COPY uOrgHub.Accounts/uOrgHub.Accounts.csproj   uOrgHub.Accounts/
 COPY uOrgHub.Inventory/uOrgHub.Inventory.csproj uOrgHub.Inventory/
 COPY uOrgHub.Procurement/uOrgHub.Procurement.csproj uOrgHub.Procurement/
 COPY uOrgHub.Projects/uOrgHub.Projects.csproj   uOrgHub.Projects/
+COPY uOrgHub.Settings/uOrgHub.Settings.csproj   uOrgHub.Settings/
 COPY uOrgHub.Shared/uOrgHub.Shared.csproj       uOrgHub.Shared/
 COPY global.json ./
 
@@ -21,6 +22,7 @@ COPY uOrgHub.Accounts/  uOrgHub.Accounts/
 COPY uOrgHub.Inventory/ uOrgHub.Inventory/
 COPY uOrgHub.Procurement/ uOrgHub.Procurement/
 COPY uOrgHub.Projects/  uOrgHub.Projects/
+COPY uOrgHub.Settings/  uOrgHub.Settings/
 COPY uOrgHub.Shared/    uOrgHub.Shared/
 
 RUN dotnet publish "uOrgHub.API/uOrgHub.API.csproj" \
