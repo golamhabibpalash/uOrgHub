@@ -98,6 +98,9 @@ public class LeaveRequestResponseDto
     public LeaveStatus Status { get; set; }
     public int CurrentApprovalLevel { get; set; }
     public DateTime CreatedAt { get; set; }
+    public string? RejectionReason { get; set; }
+    public string? RejectedBy { get; set; }
+    public DateTime? RejectedAt { get; set; }
 }
 
 public class ApproveLeaveRequestDto

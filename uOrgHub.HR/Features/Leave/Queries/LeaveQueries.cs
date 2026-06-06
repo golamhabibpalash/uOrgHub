@@ -81,6 +81,7 @@ public class GetLeaveRequestsQueryHandler : IRequestHandler<GetLeaveRequestsQuer
     {
         var query = _context.Set<LeaveRequest>()
             .Include(x => x.Employee).Include(x => x.LeaveType)
+            .Include(x => x.Approvals).ThenInclude(x => x.Approver)
             .Where(x => !x.IsDeleted);
 
         if (request.EmployeeId.HasValue) query = query.Where(x => x.EmployeeId == request.EmployeeId);
@@ -94,14 +95,21 @@ public class GetLeaveRequestsQueryHandler : IRequestHandler<GetLeaveRequestsQuer
 
         return new PagedResult<LeaveRequestResponseDto>
         {
-            Items = items.Select(e => new LeaveRequestResponseDto
+            Items = items.Select(e =>
             {
-                Id = e.Id, EmployeeId = e.EmployeeId,
-                EmployeeName = e.Employee != null ? $"{e.Employee.FirstName} {e.Employee.LastName}" : string.Empty,
-                LeaveTypeId = e.LeaveTypeId, LeaveTypeName = e.LeaveType?.Name ?? string.Empty,
-                StartDate = e.StartDate, EndDate = e.EndDate, TotalDays = e.TotalDays,
-                Reason = e.Reason, Status = e.Status,
-                CurrentApprovalLevel = e.CurrentApprovalLevel, CreatedAt = e.CreatedAt
+                var rejectedApproval = e.Approvals.FirstOrDefault(a => a.Status == Models.Enums.ApprovalStatus.Rejected);
+                return new LeaveRequestResponseDto
+                {
+                    Id = e.Id, EmployeeId = e.EmployeeId,
+                    EmployeeName = e.Employee != null ? $"{e.Employee.FirstName} {e.Employee.LastName}" : string.Empty,
+                    LeaveTypeId = e.LeaveTypeId, LeaveTypeName = e.LeaveType?.Name ?? string.Empty,
+                    StartDate = e.StartDate, EndDate = e.EndDate, TotalDays = e.TotalDays,
+                    Reason = e.Reason, Status = e.Status,
+                    CurrentApprovalLevel = e.CurrentApprovalLevel, CreatedAt = e.CreatedAt,
+                    RejectionReason = e.RejectionReason ?? rejectedApproval?.Comments,
+                    RejectedBy = rejectedApproval?.Approver != null ? $"{rejectedApproval.Approver.FirstName} {rejectedApproval.Approver.LastName}" : null,
+                    RejectedAt = rejectedApproval?.ActionedAt
+                };
             }).ToList(),
             TotalCount = totalCount, Page = request.Request.Page, PageSize = request.Request.PageSize
         };
@@ -117,18 +125,27 @@ public class GetAllLeaveRequestsQueryHandler : IRequestHandler<GetAllLeaveReques
     {
         var items = await _context.Set<LeaveRequest>()
             .Include(x => x.Employee).Include(x => x.LeaveType)
+            .Include(x => x.Approvals).ThenInclude(x => x.Approver)
             .Where(x => !x.IsDeleted)
             .OrderByDescending(x => x.StartDate)
-            .Select(x => new LeaveRequestResponseDto
+            .ToListAsync(ct);
+
+        return items.Select(e =>
+        {
+            var rejectedApproval = e.Approvals.FirstOrDefault(a => a.Status == Models.Enums.ApprovalStatus.Rejected);
+            return new LeaveRequestResponseDto
             {
-                Id = x.Id, EmployeeId = x.EmployeeId,
-                EmployeeName = x.Employee != null ? $"{x.Employee.FirstName} {x.Employee.LastName}" : string.Empty,
-                LeaveTypeId = x.LeaveTypeId, LeaveTypeName = x.LeaveType != null ? x.LeaveType.Name : string.Empty,
-                StartDate = x.StartDate, EndDate = x.EndDate, TotalDays = x.TotalDays,
-                Reason = x.Reason, Status = x.Status,
-                CurrentApprovalLevel = x.CurrentApprovalLevel, CreatedAt = x.CreatedAt
-            }).ToListAsync(ct);
-        return items;
+                Id = e.Id, EmployeeId = e.EmployeeId,
+                EmployeeName = e.Employee != null ? $"{e.Employee.FirstName} {e.Employee.LastName}" : string.Empty,
+                LeaveTypeId = e.LeaveTypeId, LeaveTypeName = e.LeaveType?.Name ?? string.Empty,
+                StartDate = e.StartDate, EndDate = e.EndDate, TotalDays = e.TotalDays,
+                Reason = e.Reason, Status = e.Status,
+                CurrentApprovalLevel = e.CurrentApprovalLevel, CreatedAt = e.CreatedAt,
+                RejectionReason = e.RejectionReason ?? rejectedApproval?.Comments,
+                RejectedBy = rejectedApproval?.Approver != null ? $"{rejectedApproval.Approver.FirstName} {rejectedApproval.Approver.LastName}" : null,
+                RejectedAt = rejectedApproval?.ActionedAt
+            };
+        }).ToList();
     }
 }
 

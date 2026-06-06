@@ -138,6 +138,7 @@ public class ApproveLeaveRequestCommandHandler : IRequestHandler<ApproveLeaveReq
         if (!isApproved)
         {
             leaveRequest.Status = LeaveStatus.Rejected;
+            leaveRequest.RejectionReason = request.Dto.RejectReason;
         }
         else if (request.Dto.ApprovalLevel >= leaveRequest.LeaveType!.ApprovalLevels)
         {

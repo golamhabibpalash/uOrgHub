@@ -108,6 +108,9 @@ export interface LeaveRequest {
   approverId?: string;
   approverName?: string;
   createdAt: string;
+  rejectionReason?: string;
+  rejectedBy?: string;
+  rejectedAt?: string;
 }
 
 export interface LeaveBalance {

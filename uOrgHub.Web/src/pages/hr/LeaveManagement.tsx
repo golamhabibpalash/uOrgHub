@@ -222,14 +222,27 @@ export default function LeaveManagement() {
       label: "Status",
       sortable: false,
       render: (row: LeaveRequest) => (
-        <span className={`text-xs px-2 py-0.5 rounded-full ${
-          row.status === "Approved" ? "bg-green-50 text-green-700" :
-          row.status === "Pending" ? "bg-yellow-50 text-yellow-700" :
-          row.status === "Cancelled" ? "bg-gray-50 text-gray-600" :
-          "bg-red-50 text-red-600"
-        }`}>
-          {row.status}
-        </span>
+        <div>
+          <span className={`text-xs px-2 py-0.5 rounded-full ${
+            row.status === "Approved" ? "bg-green-50 text-green-700" :
+            row.status === "Pending" ? "bg-yellow-50 text-yellow-700" :
+            row.status === "Cancelled" ? "bg-gray-50 text-gray-600" :
+            "bg-red-50 text-red-600"
+          }`}>
+            {row.status}
+          </span>
+          {row.status === "Rejected" && row.rejectionReason && (
+            <div className="mt-1 group relative">
+              <span className="text-xs text-red-500 cursor-pointer underline decoration-dotted">Reason</span>
+              <div className="absolute left-0 top-full z-10 mt-1 w-72 bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-xs text-gray-700 hidden group-hover:block whitespace-normal">
+                <p className="font-medium text-red-600 mb-1">Rejection Reason</p>
+                <p>{row.rejectionReason}</p>
+                {row.rejectedBy && <p className="mt-1 text-gray-400">by {row.rejectedBy}</p>}
+                {row.rejectedAt && <p className="text-gray-400">{new Date(row.rejectedAt).toLocaleString()}</p>}
+              </div>
+            </div>
+          )}
+        </div>
       ),
     },
     {
