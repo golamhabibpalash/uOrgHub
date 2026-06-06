@@ -133,6 +133,24 @@ public static class Claims
         public static class RABills { public const string View = "Projects.RABills.View"; public const string Create = "Projects.RABills.Create"; public const string Edit = "Projects.RABills.Edit"; public const string Delete = "Projects.RABills.Delete"; public const string Approve = "Projects.RABills.Approve"; public const string Export = "Projects.RABills.Export"; }
     }
 
+    public static class Settings
+    {
+        public static class SystemSettings
+        {
+            public const string View = "Settings.SystemSettings.View";
+            public const string Create = "Settings.SystemSettings.Create";
+            public const string Edit = "Settings.SystemSettings.Edit";
+            public const string Delete = "Settings.SystemSettings.Delete";
+        }
+        public static class ValidationRules
+        {
+            public const string View = "Settings.ValidationRules.View";
+            public const string Create = "Settings.ValidationRules.Create";
+            public const string Edit = "Settings.ValidationRules.Edit";
+            public const string Delete = "Settings.ValidationRules.Delete";
+        }
+    }
+
     public static class Self
     {
         public const string ViewProfile = "Self.ViewProfile";

@@ -80,7 +80,11 @@ public class MenuService : IMenuService
 
         new("profile", "My Profile", "UserCircle", "/profile", Claims.Self.ViewProfile, null, "profile", null),
 
-        new("settings", "Settings", "Settings", "/settings", null, null, "system", null),
+        new("settings", "Settings", "Settings", null, null, null, "system", new()
+        {
+            new("settings-system", "System Settings", "Sliders", "/settings/system", Claims.Settings.SystemSettings.View, null, "system", null),
+            new("settings-validation", "Validation Rules", "CheckSquare", "/settings/validation-rules", Claims.Settings.ValidationRules.View, null, "system", null),
+        }),
     ];
 
     public List<MenuItemDto> GetAuthorizedMenu(List<string> userClaims, List<string> userRoles)
