@@ -76,11 +76,9 @@ import QAChecklistsPage from "./pages/projects/QAChecklistsPage";
 import NCRsPage from "./pages/projects/NCRsPage";
 import SafetyIncidentsPage from "./pages/projects/SafetyIncidentsPage";
 import RABillsPage from "./pages/projects/RABillsPage";
+import SystemSettingsPage from "./pages/settings/SystemSettingsPage";
+import ValidationRulesPage from "./pages/settings/ValidationRulesPage";
 import { getCompanyStatus } from "./api/company";
-
-function Placeholder({ name }: { name: string }) {
-  return <div className="text-gray-500 text-sm p-4">{name} — coming soon</div>;
-}
 
 function LoadingScreen() {
   return (
@@ -194,7 +192,9 @@ export default function App() {
             <Route path="projects/:id/ncrs" element={<NCRsPage />} />
             <Route path="projects/:id/safety-incidents" element={<SafetyIncidentsPage />} />
             <Route path="projects/:id/ra-bills" element={<RABillsPage />} />
-            <Route path="settings/*" element={<Placeholder name="Settings" />} />
+            <Route path="settings/system" element={<SystemSettingsPage />} />
+            <Route path="settings/validation-rules" element={<ValidationRulesPage />} />
+            <Route path="settings" element={<Navigate to="/settings/system" replace />} />
             <Route path="profile" element={<MyProfilePage />} />
             <Route path="admin/theme" element={<ThemeSettingsPage />} />
             <Route path="admin/users" element={<ProtectedRoute requiredClaim="Users.View"><UsersPage /></ProtectedRoute>} />
