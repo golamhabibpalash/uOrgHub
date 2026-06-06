@@ -11,7 +11,7 @@ namespace uOrgHub.HR.Features.Leave.Commands;
 
 public record CreateLeaveTypeCommand(CreateLeaveTypeDto Dto) : ICommand<LeaveTypeResponseDto>;
 public record UpdateLeaveTypeCommand(Guid Id, UpdateLeaveTypeDto Dto) : ICommand<LeaveTypeResponseDto>;
-public record CreateLeaveRequestCommand(CreateLeaveRequestDto Dto) : ICommand<LeaveRequestResponseDto>;
+public record CreateLeaveRequestCommand(CreateLeaveRequestDto Dto, string CreatedBy = "") : ICommand<LeaveRequestResponseDto>;
 public record UpdateLeaveRequestCommand(Guid Id, UpdateLeaveRequestDto Dto) : ICommand<LeaveRequestResponseDto>;
 public record DeleteLeaveRequestCommand(Guid Id) : ICommand<Unit>;
 public record ApproveLeaveRequestCommand(ApproveLeaveRequestDto Dto) : ICommand<LeaveApprovalResponseDto>;
@@ -91,7 +91,8 @@ public class CreateLeaveRequestCommandHandler : IRequestHandler<CreateLeaveReque
             TotalDays = totalDays, Reason = request.Dto.Reason,
             DocumentPath = request.Dto.DocumentPath,
             Status = LeaveStatus.Pending, CurrentApprovalLevel = 1,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = request.CreatedBy
         };
         _context.Set<LeaveRequest>().Add(entity);
         await _context.SaveChangesAsync(ct);

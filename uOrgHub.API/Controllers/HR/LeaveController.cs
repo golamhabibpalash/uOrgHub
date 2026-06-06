@@ -149,7 +149,10 @@ public class LeaveController : BaseController
             dto.EmployeeId = currentEmployeeId.Value;
         }
 
-        var result = await _mediator.Send(new CreateLeaveRequestCommand(dto));
+        var givenName = User.FindFirstValue("given_name") ?? "";
+        var familyName = User.FindFirstValue("family_name") ?? "";
+        var userName = $"{givenName} {familyName}".Trim();
+        var result = await _mediator.Send(new CreateLeaveRequestCommand(dto, userName));
         return Ok(ApiResponse<LeaveRequestResponseDto>.Ok(result, "Leave request submitted successfully."));
     }
 
