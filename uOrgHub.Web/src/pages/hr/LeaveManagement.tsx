@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Check, X } from "lucide-react";
+import { Plus, Check, X, Pencil, Trash2 } from "lucide-react";
+import toast from "react-hot-toast";
 import DataGrid from "../../components/shared/DataGrid";
 import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
@@ -12,6 +13,8 @@ import {
   updateLeaveType,
   getLeaveRequests,
   createLeaveRequest,
+  updateLeaveRequest,
+  deleteLeaveRequest,
   approveLeaveRequest,
   cancelLeaveRequest,
   LeaveType,
@@ -31,11 +34,14 @@ export default function LeaveManagement() {
   const canViewRequests = isAdmin || hasClaim("HR.LeaveRequests.View") || hasClaim("Self.ViewLeave");
   const canCreateRequest = isAdmin || hasClaim("HR.LeaveRequests.Create") || hasClaim("Self.SubmitLeave");
   const canApproveRequest = isAdmin || hasClaim("HR.LeaveRequests.Approve");
+  const canEditAnyRequest = isAdmin || hasClaim("HR.LeaveRequests.Edit");
+  const canDeleteAnyRequest = isAdmin || hasClaim("HR.LeaveRequests.Delete");
   const canCancelAnyRequest = isAdmin || hasClaim("HR.LeaveRequests.Edit");
   const canExportRequests = isAdmin || hasClaim("HR.LeaveRequests.Export");
 
   const isHrAdmin = isAdmin || hasClaim("HR.LeaveRequests.View");
   const userEmployeeId = user?.employeeId;
+  const canSelfService = isAdmin || hasClaim("Self.SubmitLeave");
 
   const [activeTab, setActiveTab] = useState<"types" | "requests">(
     canViewLeaveTypes ? "types" : "requests"
@@ -47,6 +53,7 @@ export default function LeaveManagement() {
   const [form, setForm] = useState({ name: "", code: "", description: "", totalDaysPerYear: 0, isPaid: true });
 
   const [reqModal, setReqModal] = useState(false);
+  const [editingReq, setEditingReq] = useState<LeaveRequest | null>(null);
   const [reqForm, setReqForm] = useState({
     leaveTypeId: "",
     startDate: "",
@@ -104,30 +111,74 @@ export default function LeaveManagement() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["leave-types"] });
       setModal(false);
+      toast.success(editing ? "Leave type updated." : "Leave type created.");
     },
+    onError: () => toast.error("Failed to save leave type."),
   });
 
   const saveReqMutation = useMutation({
-    mutationFn: () => createLeaveRequest({
-      ...reqForm,
-      employeeId: reqForm.employeeId || userEmployeeId || "",
-    }),
+    mutationFn: () => editingReq
+      ? updateLeaveRequest(editingReq.id, {
+          leaveTypeId: reqForm.leaveTypeId,
+          startDate: reqForm.startDate,
+          endDate: reqForm.endDate,
+          reason: reqForm.reason,
+        })
+      : createLeaveRequest({
+          ...reqForm,
+          employeeId: reqForm.employeeId || userEmployeeId || "",
+        }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["leave-requests"] });
       setReqModal(false);
+      setEditingReq(null);
+      toast.success(editingReq ? "Leave request updated." : "Leave request submitted.");
     },
+    onError: () => toast.error(editingReq ? "Failed to update leave request." : "Failed to submit leave request."),
   });
 
   const approveMutation = useMutation({
     mutationFn: ({ id, approved }: { id: string; approved: boolean }) =>
       approveLeaveRequest(id, { isApproved: approved, remarks: "" }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["leave-requests"] }),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ["leave-requests"] });
+      toast.success(vars.approved ? "Leave request approved." : "Leave request rejected.");
+    },
+    onError: () => toast.error("Failed to process leave request."),
   });
 
   const cancelMutation = useMutation({
     mutationFn: (id: string) => cancelLeaveRequest(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["leave-requests"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["leave-requests"] });
+      toast.success("Leave request cancelled.");
+    },
+    onError: () => toast.error("Failed to cancel leave request."),
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteLeaveRequest(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["leave-requests"] });
+      toast.success("Leave request deleted.");
+    },
+    onError: () => toast.error("Failed to delete leave request."),
+  });
+
+  const canEditRow = (row: LeaveRequest) => {
+    if (row.status !== "Pending") return false;
+    return canEditAnyRequest || (canSelfService && userEmployeeId === row.employeeId);
+  };
+
+  const canDeleteRow = (row: LeaveRequest) => {
+    if (row.status !== "Pending") return false;
+    return canDeleteAnyRequest || (canSelfService && userEmployeeId === row.employeeId);
+  };
+
+  const canCancelRow = (row: LeaveRequest) => {
+    if (row.status !== "Pending") return false;
+    return canCancelAnyRequest || (canSelfService && userEmployeeId === row.employeeId);
+  };
 
   const typeColumns = [
     { key: "code", label: "Code" },
@@ -171,42 +222,68 @@ export default function LeaveManagement() {
       key: "actions",
       label: "Actions",
       sortable: false,
-      render: (row: LeaveRequest) => {
-        const isOwner = userEmployeeId && row.employeeId === userEmployeeId;
-        const canApprove = canApproveRequest && row.status === "Pending";
-        const canCancel = row.status === "Pending" && (canCancelAnyRequest || isOwner);
-        return (
-          <div className="flex gap-2">
-            {canApprove && (
-              <>
-                <button
-                  onClick={() => approveMutation.mutate({ id: row.id, approved: true })}
-                  className="text-green-600 hover:text-green-800"
-                  title="Approve"
-                >
-                  <Check size={16} />
-                </button>
-                <button
-                  onClick={() => approveMutation.mutate({ id: row.id, approved: false })}
-                  className="text-red-600 hover:text-red-800"
-                  title="Reject"
-                >
-                  <X size={16} />
-                </button>
-              </>
-            )}
-            {canCancel && (
+      render: (row: LeaveRequest) => (
+        <div className="flex gap-2 items-center">
+          {canApproveRequest && row.status === "Pending" && (
+            <>
               <button
-                onClick={() => { if (confirm("Cancel this leave request?")) cancelMutation.mutate(row.id); }}
-                className="text-gray-500 hover:text-gray-700 text-xs underline"
-                title="Cancel"
+                onClick={() => approveMutation.mutate({ id: row.id, approved: true })}
+                className="text-green-600 hover:text-green-800"
+                title="Approve"
               >
-                Cancel
+                <Check size={16} />
               </button>
-            )}
-          </div>
-        );
-      },
+              <button
+                onClick={() => approveMutation.mutate({ id: row.id, approved: false })}
+                className="text-red-600 hover:text-red-800"
+                title="Reject"
+              >
+                <X size={16} />
+              </button>
+            </>
+          )}
+          {canEditRow(row) && (
+            <button
+              onClick={() => {
+                setEditingReq(row);
+                setReqForm({
+                  leaveTypeId: row.leaveTypeId,
+                  startDate: row.startDate.split("T")[0],
+                  endDate: row.endDate.split("T")[0],
+                  reason: row.reason || "",
+                  employeeId: row.employeeId,
+                });
+                setReqFormError("");
+                setReqModal(true);
+              }}
+              className="text-blue-600 hover:text-blue-800"
+              title="Edit"
+            >
+              <Pencil size={16} />
+            </button>
+          )}
+          {canDeleteRow(row) && (
+            <button
+              onClick={() => {
+                if (confirm("Delete this leave request permanently?")) deleteMutation.mutate(row.id);
+              }}
+              className="text-red-600 hover:text-red-800"
+              title="Delete"
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
+          {canCancelRow(row) && !canApproveRequest && (
+            <button
+              onClick={() => { if (confirm("Cancel this leave request?")) cancelMutation.mutate(row.id); }}
+              className="text-gray-500 hover:text-gray-700 text-xs underline"
+              title="Cancel"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+      ),
     },
   ];
 
@@ -234,6 +311,7 @@ export default function LeaveManagement() {
           {activeTab === "requests" && canCreateRequest && (
             <button
               onClick={() => {
+                setEditingReq(null);
                 setReqForm({
                   leaveTypeId: "",
                   startDate: "",
@@ -364,10 +442,14 @@ export default function LeaveManagement() {
         </Modal>
       )}
 
-      {canCreateRequest && (
-        <Modal title="New Leave Request" open={reqModal} onClose={() => setReqModal(false)}>
+      {(canCreateRequest || canEditAnyRequest || canSelfService) && (
+        <Modal title={editingReq ? "Edit Leave Request" : "New Leave Request"} open={reqModal} onClose={() => { setReqModal(false); setEditingReq(null); }}>
           <div className="space-y-3">
-            {isHrAdmin ? (
+            {editingReq ? (
+              <div className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                Editing leave request for <strong>{editingReq.employeeName}</strong>
+              </div>
+            ) : isHrAdmin ? (
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">Employee</label>
                 <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={reqForm.employeeId} onChange={(e) => setReqForm(f => ({ ...f, employeeId: e.target.value }))}>
@@ -417,7 +499,7 @@ export default function LeaveManagement() {
               <textarea rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={reqForm.reason} onChange={(e) => setReqForm(f => ({ ...f, reason: e.target.value }))} />
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setReqModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
+              <button onClick={() => { setReqModal(false); setEditingReq(null); }} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
               <button
                 onClick={() => {
                   if (!reqFormValidation.valid) { setReqFormError(reqFormValidation.error); return; }
@@ -426,7 +508,7 @@ export default function LeaveManagement() {
                 disabled={saveReqMutation.isPending}
                 className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
               >
-                {saveReqMutation.isPending ? "Submitting..." : "Submit"}
+                {saveReqMutation.isPending ? "Saving..." : "Save"}
               </button>
             </div>
           </div>

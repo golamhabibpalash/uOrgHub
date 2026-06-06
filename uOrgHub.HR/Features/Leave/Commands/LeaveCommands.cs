@@ -12,6 +12,8 @@ namespace uOrgHub.HR.Features.Leave.Commands;
 public record CreateLeaveTypeCommand(CreateLeaveTypeDto Dto) : ICommand<LeaveTypeResponseDto>;
 public record UpdateLeaveTypeCommand(Guid Id, UpdateLeaveTypeDto Dto) : ICommand<LeaveTypeResponseDto>;
 public record CreateLeaveRequestCommand(CreateLeaveRequestDto Dto) : ICommand<LeaveRequestResponseDto>;
+public record UpdateLeaveRequestCommand(Guid Id, UpdateLeaveRequestDto Dto) : ICommand<LeaveRequestResponseDto>;
+public record DeleteLeaveRequestCommand(Guid Id) : ICommand<Unit>;
 public record ApproveLeaveRequestCommand(ApproveLeaveRequestDto Dto) : ICommand<LeaveApprovalResponseDto>;
 public record CancelLeaveRequestCommand(Guid Id) : ICommand<Unit>;
 
@@ -173,6 +175,71 @@ public class CancelLeaveRequestCommandHandler : IRequestHandler<CancelLeaveReque
             throw new AppException("Only pending leave requests can be cancelled.");
 
         entity.Status = LeaveStatus.Cancelled; entity.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync(ct);
+        return Unit.Value;
+    }
+}
+
+public class UpdateLeaveRequestCommandHandler : IRequestHandler<UpdateLeaveRequestCommand, LeaveRequestResponseDto>
+{
+    private readonly AppDbContext _context;
+    public UpdateLeaveRequestCommandHandler(AppDbContext context) => _context = context;
+
+    public async Task<LeaveRequestResponseDto> Handle(UpdateLeaveRequestCommand request, CancellationToken ct)
+    {
+        var entity = await _context.Set<LeaveRequest>()
+            .Include(x => x.Employee).Include(x => x.LeaveType)
+            .FirstOrDefaultAsync(x => !x.IsDeleted && x.Id == request.Id, ct)
+            ?? throw new NotFoundException(nameof(LeaveRequest), request.Id);
+
+        if (entity.Status != LeaveStatus.Pending)
+            throw new AppException("Only pending leave requests can be edited.");
+
+        if (request.Dto.EndDate.Date < request.Dto.StartDate.Date)
+            throw new AppException("Start date cannot be greater than end date.");
+
+        var leaveType = await _context.Set<LeaveType>()
+            .FirstOrDefaultAsync(x => !x.IsDeleted && x.Id == request.Dto.LeaveTypeId, ct)
+            ?? throw new NotFoundException(nameof(LeaveType), request.Dto.LeaveTypeId);
+
+        entity.LeaveTypeId = request.Dto.LeaveTypeId;
+        entity.StartDate = request.Dto.StartDate.Date;
+        entity.EndDate = request.Dto.EndDate.Date;
+        entity.TotalDays = (decimal)(request.Dto.EndDate.Date - request.Dto.StartDate.Date).TotalDays + 1;
+        entity.Reason = request.Dto.Reason;
+        entity.DocumentPath = request.Dto.DocumentPath;
+        entity.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync(ct);
+
+        return new LeaveRequestResponseDto
+        {
+            Id = entity.Id, EmployeeId = entity.EmployeeId,
+            EmployeeName = entity.Employee != null ? $"{entity.Employee.FirstName} {entity.Employee.LastName}" : string.Empty,
+            LeaveTypeId = entity.LeaveTypeId, LeaveTypeName = entity.LeaveType?.Name ?? string.Empty,
+            StartDate = entity.StartDate, EndDate = entity.EndDate, TotalDays = entity.TotalDays,
+            Reason = entity.Reason, Status = entity.Status,
+            CurrentApprovalLevel = entity.CurrentApprovalLevel, CreatedAt = entity.CreatedAt
+        };
+    }
+}
+
+public class DeleteLeaveRequestCommandHandler : IRequestHandler<DeleteLeaveRequestCommand, Unit>
+{
+    private readonly AppDbContext _context;
+    public DeleteLeaveRequestCommandHandler(AppDbContext context) => _context = context;
+
+    public async Task<Unit> Handle(DeleteLeaveRequestCommand request, CancellationToken ct)
+    {
+        var entity = await _context.Set<LeaveRequest>()
+            .FirstOrDefaultAsync(x => !x.IsDeleted && x.Id == request.Id, ct)
+            ?? throw new NotFoundException(nameof(LeaveRequest), request.Id);
+
+        if (entity.Status != LeaveStatus.Pending)
+            throw new AppException("Only pending leave requests can be deleted.");
+
+        entity.IsDeleted = true;
+        entity.DeletedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(ct);
         return Unit.Value;
     }

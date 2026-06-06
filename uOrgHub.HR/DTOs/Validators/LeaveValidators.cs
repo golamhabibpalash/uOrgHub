@@ -27,6 +27,18 @@ public class CreateLeaveRequestDtoValidator : AbstractValidator<CreateLeaveReque
     }
 }
 
+public class UpdateLeaveRequestDtoValidator : AbstractValidator<UpdateLeaveRequestDto>
+{
+    public UpdateLeaveRequestDtoValidator()
+    {
+        RuleFor(x => x.LeaveTypeId).NotEmpty();
+        RuleFor(x => x.StartDate).NotEmpty();
+        RuleFor(x => x.EndDate).GreaterThanOrEqualTo(x => x.StartDate)
+            .WithMessage("End date must be on or after start date.");
+        RuleFor(x => x.Reason).NotEmpty().MaximumLength(1000);
+    }
+}
+
 public class ApproveLeaveRequestDtoValidator : AbstractValidator<ApproveLeaveRequestDto>
 {
     public ApproveLeaveRequestDtoValidator()

@@ -486,6 +486,12 @@ export const createLeaveRequest = (data: Partial<LeaveRequest>) =>
 export const approveLeaveRequest = (id: string, data: { isApproved: boolean; remarks?: string }) =>
   apiClient.post<ApiResponse<LeaveRequest>>("leave/requests/approve", { ...data, leaveRequestId: id });
 
+export const updateLeaveRequest = (id: string, data: { leaveTypeId: string; startDate: string; endDate: string; reason: string }) =>
+  apiClient.put<ApiResponse<LeaveRequest>>(`leave/requests/${id}`, data);
+
+export const deleteLeaveRequest = (id: string) =>
+  apiClient.delete<ApiResponse<null>>(`leave/requests/${id}`);
+
 export const cancelLeaveRequest = (id: string) =>
   apiClient.put<ApiResponse<null>>(`leave/requests/${id}/cancel`, {});
 

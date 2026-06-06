@@ -110,6 +110,7 @@ public class LeaveController : BaseController
             if (currentEmployeeId == null)
                 return BadRequest(ApiResponse<PagedResult<LeaveRequestResponseDto>>.Fail("Current user is not linked to an employee."));
 
+            // Force filter to own requests — ignore any client-supplied employeeId
             employeeId = currentEmployeeId;
         }
 
@@ -150,6 +151,62 @@ public class LeaveController : BaseController
 
         var result = await _mediator.Send(new CreateLeaveRequestCommand(dto));
         return Ok(ApiResponse<LeaveRequestResponseDto>.Ok(result, "Leave request submitted successfully."));
+    }
+
+    [HttpPut("requests/{id:guid}")]
+    [RequireAnyClaim(Claims.HR.LeaveRequests.Edit, Claims.Self.SubmitLeave)]
+    public async Task<IActionResult> UpdateRequest(Guid id, [FromBody] UpdateLeaveRequestDto dto)
+    {
+        var leaveRequest = await _context.Set<LeaveRequest>()
+            .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
+
+        if (leaveRequest == null)
+            return NotFound(ApiResponse<LeaveRequestResponseDto>.NotFound("Leave request not found."));
+
+        if (leaveRequest.Status != LeaveStatus.Pending)
+            return BadRequest(ApiResponse<LeaveRequestResponseDto>.Fail("Only pending leave requests can be edited."));
+
+        var isHrAdmin = await HasClaimAsync(Claims.HR.LeaveRequests.Edit);
+        if (!isHrAdmin)
+        {
+            var currentEmployeeId = await GetCurrentEmployeeIdAsync();
+            if (currentEmployeeId == null)
+                return BadRequest(ApiResponse<LeaveRequestResponseDto>.Fail("Current user is not linked to an employee."));
+
+            if (leaveRequest.EmployeeId != currentEmployeeId.Value)
+                return BadRequest(ApiResponse<LeaveRequestResponseDto>.Fail("You can only edit your own leave requests."));
+        }
+
+        var result = await _mediator.Send(new UpdateLeaveRequestCommand(id, dto));
+        return Ok(ApiResponse<LeaveRequestResponseDto>.Ok(result, "Leave request updated successfully."));
+    }
+
+    [HttpDelete("requests/{id:guid}")]
+    [RequireAnyClaim(Claims.HR.LeaveRequests.Delete, Claims.Self.SubmitLeave)]
+    public async Task<IActionResult> DeleteRequest(Guid id)
+    {
+        var leaveRequest = await _context.Set<LeaveRequest>()
+            .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
+
+        if (leaveRequest == null)
+            return NotFound(ApiResponse<string>.NotFound("Leave request not found."));
+
+        if (leaveRequest.Status != LeaveStatus.Pending)
+            return BadRequest(ApiResponse<string>.Fail("Only pending leave requests can be deleted."));
+
+        var isHrAdmin = await HasClaimAsync(Claims.HR.LeaveRequests.Delete);
+        if (!isHrAdmin)
+        {
+            var currentEmployeeId = await GetCurrentEmployeeIdAsync();
+            if (currentEmployeeId == null)
+                return BadRequest(ApiResponse<string>.Fail("Current user is not linked to an employee."));
+
+            if (leaveRequest.EmployeeId != currentEmployeeId.Value)
+                return BadRequest(ApiResponse<string>.Fail("You can only delete your own leave requests."));
+        }
+
+        await _mediator.Send(new DeleteLeaveRequestCommand(id));
+        return Ok(ApiResponse<string>.Ok("Deleted", "Leave request deleted successfully."));
     }
 
     [HttpPost("requests/approve")]
