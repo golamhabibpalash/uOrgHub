@@ -198,8 +198,8 @@ export default function UserDetailPage() {
           {roles.map(role => {
             const has = user.roles.includes(role.name);
             return (
-              <button key={role.id} onClick={() => !role.isSystem || has ? toggleRole(role.id, role.name) : undefined}
-                className={`p-4 rounded-lg border text-left transition-all ${has ? 'bg-primary-600/20 border-primary-500/50' : 'bg-slate-800 border-slate-700 hover:border-slate-500'}`}>
+              <button key={role.id} type="button" disabled={roleSaving} onClick={() => toggleRole(role.id, role.name)}
+                className={`p-4 rounded-lg border text-left transition-all disabled:opacity-60 disabled:cursor-not-allowed ${has ? 'bg-primary-600/20 border-primary-500/50' : 'bg-slate-800 border-slate-700 hover:border-slate-500'}`}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-white text-sm font-medium">{role.name}</span>
                   {has && <span className="w-2 h-2 rounded-full bg-primary-400" />}
