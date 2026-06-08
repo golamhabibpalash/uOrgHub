@@ -1,23 +1,21 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Search, X } from 'lucide-react';
+import { ArrowLeft, Save } from 'lucide-react';
 import { createUser, getRoles, type RoleDto } from '../../api/auth';
-import { getEmployees, type Employee } from '../../api/hr';
+import SearchableDropdown from '../../components/shared/SearchableDropdown';
+import { useEmployeeLookup } from '../../hooks/useEntityLookup';
 
 type UserType = 'employee-linked' | 'standalone';
 
 export default function UserCreatePage() {
   const navigate = useNavigate();
   const [roles, setRoles] = useState<RoleDto[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [userType, setUserType] = useState<UserType>('standalone');
-  const [employeeSearch, setEmployeeSearch] = useState('');
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
-  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
-  const employeeRef = useRef<HTMLDivElement>(null);
-  const searchRef = useRef<HTMLInputElement>(null);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
+
+  const { options: employeeOptions } = useEmployeeLookup();
 
   const [form, setForm] = useState({
     username: '', email: '', firstName: '', lastName: '',
@@ -26,40 +24,7 @@ export default function UserCreatePage() {
 
   useEffect(() => {
     getRoles().then(setRoles).catch(() => {});
-    getEmployees({ page: 1, pageSize: 200 })
-      .then(res => setEmployees(res.data.data?.items ?? []))
-      .catch(() => {});
   }, []);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (employeeRef.current && !employeeRef.current.contains(e.target as Node)) {
-        setShowEmployeeDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const filteredEmployees = employees.filter(e => {
-    const q = employeeSearch.toLowerCase();
-    return `${e.firstName} ${e.lastName}`.toLowerCase().includes(q)
-      || e.employeeCode.toLowerCase().includes(q)
-      || e.email.toLowerCase().includes(q);
-  });
-
-  const selectEmployee = (emp: Employee) => {
-    setSelectedEmployee(emp);
-    setShowEmployeeDropdown(false);
-    setEmployeeSearch(`${emp.firstName} ${emp.lastName} (${emp.employeeCode})`);
-    setForm(f => ({ ...f, firstName: emp.firstName, lastName: emp.lastName, email: emp.email }));
-  };
-
-  const clearEmployee = () => {
-    setSelectedEmployee(null);
-    setEmployeeSearch('');
-    setShowEmployeeDropdown(false);
-  };
 
   const toggleRole = (id: string) => {
     setForm(f => ({
@@ -88,7 +53,7 @@ export default function UserCreatePage() {
         lastName: form.lastName,
         password: form.password,
         roleIds: form.roleIds,
-        employeeId: userType === 'employee-linked' ? selectedEmployee?.id : undefined,
+        employeeId: userType === 'employee-linked' ? selectedEmployeeId || undefined : undefined,
       });
       navigate('/admin/users', { state: { created: form.firstName + ' ' + form.lastName } });
     } catch (err: unknown) {
@@ -128,7 +93,7 @@ export default function UserCreatePage() {
         <div>
           <label className="block text-slate-300 text-xs font-medium mb-2">User Type</label>
           <div className="flex gap-3">
-            <button type="button" onClick={() => { setUserType('standalone'); clearEmployee(); }}
+            <button type="button" onClick={() => { setUserType('standalone'); setSelectedEmployeeId(''); }}
               className={`flex-1 px-4 py-3 rounded-xl border text-sm font-medium transition-all ${
                 userType === 'standalone'
                   ? 'bg-primary-600/20 border-primary-500/50 text-primary-300'
@@ -151,44 +116,15 @@ export default function UserCreatePage() {
 
         {/* Employee Selection */}
         {userType === 'employee-linked' && (
-          <div ref={employeeRef} className="relative">
-            <label className="block text-slate-300 text-xs font-medium mb-1.5">
-              Select Employee <span className="text-red-400">*</span>
-            </label>
-            <div className="relative">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-              <input ref={searchRef} type="text" placeholder="Search by name, code or email..."
-                value={employeeSearch}
-                onChange={e => { setEmployeeSearch(e.target.value); setShowEmployeeDropdown(true); if (e.target.value !== `${selectedEmployee?.firstName} ${selectedEmployee?.lastName}`) setSelectedEmployee(null); }}
-                onFocus={() => setShowEmployeeDropdown(true)}
-                className="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-lg pl-9 pr-8 py-2 focus:outline-none focus:border-primary-500"
-              />
-              {selectedEmployee && (
-                <button type="button" onClick={clearEmployee}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
-                  <X size={15} />
-                </button>
-              )}
-            </div>
-            {showEmployeeDropdown && (
-              <div className="absolute z-20 mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-60 overflow-y-auto">
-                {filteredEmployees.length === 0 ? (
-                  <div className="px-3 py-4 text-slate-500 text-sm text-center">No employees found</div>
-                ) : filteredEmployees.map(emp => (
-                  <button key={emp.id} type="button" onClick={() => selectEmployee(emp)}
-                    className={`w-full text-left px-3 py-2.5 text-sm flex items-center justify-between hover:bg-slate-700 transition-colors ${
-                      selectedEmployee?.id === emp.id ? 'bg-primary-600/20' : ''
-                    }`}>
-                    <div>
-                      <div className="text-white font-medium">{emp.firstName} {emp.lastName}</div>
-                      <div className="text-slate-400 text-xs">{emp.employeeCode} · {emp.departmentName}</div>
-                    </div>
-                    <span className="text-slate-500 text-xs">{emp.designationName}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <SearchableDropdown
+            label="Link to Employee"
+            options={employeeOptions}
+            value={selectedEmployeeId}
+            onChange={(v) => setSelectedEmployeeId(v || "")}
+            placeholder="Search employee..."
+            searchPlaceholder="Type name, code or email..."
+            clearable
+          />
         )}
 
         {/* Name fields */}
