@@ -10,7 +10,7 @@ import {
 } from "../api/hr";
 import { getChartOfAccounts, getAccountGroups, getCostCenters, getCustomers, getVendors, getFiscalYears, getBankAccounts } from "../api/accounts";
 import { getInventoryTypes, getInventoryCategories, getUnitsOfMeasure, getWarehouses } from "../api/inventory";
-import { getProjectCategories } from "../api/projects";
+import { getProjectCategories, getClients, getProjects } from "../api/projects";
 
 type OptionMapper<T> = (item: T) => SelectOption;
 
@@ -261,6 +261,40 @@ export function useProjectCategoryLookup() {
       value: c.id,
       label: `${c.code} — ${c.name}`,
       searchText: `${c.name} ${c.code}`,
+    })),
+    [query.data],
+  );
+  return { options, isLoading: query.isLoading };
+}
+
+export function useClientLookup() {
+  const query = useQuery({
+    queryKey: ["clients"],
+    queryFn: () => getClients({ page: 1, pageSize: 200 }),
+    staleTime: 60000,
+  });
+  const options = useMemo(
+    () => toOptions(query.data?.data?.data?.items, (c) => ({
+      value: c.id,
+      label: `${c.companyName} (${c.clientCode})`,
+      searchText: `${c.companyName} ${c.clientCode} ${c.contactPerson ?? ""}`,
+    })),
+    [query.data],
+  );
+  return { options, isLoading: query.isLoading };
+}
+
+export function useProjectLookup() {
+  const query = useQuery({
+    queryKey: ["projects-all"],
+    queryFn: () => getProjects({ page: 1, pageSize: 200 }),
+    staleTime: 60000,
+  });
+  const options = useMemo(
+    () => toOptions(query.data?.data?.data?.items, (p) => ({
+      value: p.id,
+      label: `${p.projectName} (${p.projectCode ?? ""})`,
+      searchText: `${p.projectName} ${p.projectCode ?? ""}`,
     })),
     [query.data],
   );

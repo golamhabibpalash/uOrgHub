@@ -49,13 +49,30 @@ export interface ProjectBudgetSummary {
   percentUsed: number;
 }
 
+export interface ProjectBudget {
+  id: string;
+  projectId: string;
+  budgetType: string;
+  fiscalYearId?: string;
+  allocatedAmount: number;
+  spentAmount: number;
+  revisedAmount?: number;
+  remainingAmount: number;
+  isOverBudget: boolean;
+  notes?: string;
+  createdAt: string;
+}
+
 export interface ProjectTeamMember {
   id: string;
+  projectId: string;
   employeeId: string;
   employeeName: string;
-  employeeCode: string;
   role: string;
-  assignedDate: string;
+  joinedDate: string;
+  leftDate?: string;
+  isActive: boolean;
+  notes?: string;
 }
 
 export interface ProjectProgress {
@@ -228,14 +245,40 @@ export const getProjectWBS = (projectId: string) =>
 export const getProjectBudgetSummary = (projectId: string) =>
   apiClient.get<ApiResponse<ProjectBudgetSummary>>(`/projects/${projectId}/budget-summary`);
 
+export const getProjectBudgets = (projectId: string, params: PaginationRequest) =>
+  apiClient.get<ApiResponse<PagedResult<ProjectBudget>>>("/projectbudgets", { params: { ...params, projectId } });
+
+export const getProjectBudgetById = (id: string) =>
+  apiClient.get<ApiResponse<ProjectBudget>>(`/projectbudgets/${id}`);
+
+export const createProjectBudget = (data: {
+  projectId: string;
+  budgetType: string;
+  fiscalYearId?: string;
+  allocatedAmount: number;
+  revisedAmount?: number;
+  notes?: string;
+}) =>
+  apiClient.post<ApiResponse<ProjectBudget>>("/projectbudgets", data);
+
+export const updateProjectBudget = (id: string, data: {
+  allocatedAmount: number;
+  revisedAmount?: number;
+  notes?: string;
+}) =>
+  apiClient.put<ApiResponse<ProjectBudget>>(`/projectbudgets/${id}`, data);
+
+export const deleteProjectBudget = (id: string) =>
+  apiClient.delete<ApiResponse<null>>(`/projectbudgets/${id}`);
+
 export const getProjectTeam = (projectId: string) =>
   apiClient.get<ApiResponse<ProjectTeamMember[]>>(`/projects/${projectId}/team`);
 
-export const addTeamMember = (projectId: string, data: { employeeId: string; role: string }) =>
+export const addTeamMember = (projectId: string, data: { employeeId: string; role: string; joinedDate: string; notes?: string }) =>
   apiClient.post<ApiResponse<ProjectTeamMember>>(`/projects/${projectId}/team`, data);
 
-export const removeTeamMember = (projectId: string, memberId: string) =>
-  apiClient.delete<ApiResponse<null>>(`/projects/${projectId}/team/${memberId}`);
+export const removeTeamMember = (projectId: string, employeeId: string) =>
+  apiClient.delete<ApiResponse<null>>(`/projects/${projectId}/team/${employeeId}`);
 
 export const getProjectProgress = (projectId: string) =>
   apiClient.get<ApiResponse<ProjectProgress>>(`/projects/${projectId}/progress`);

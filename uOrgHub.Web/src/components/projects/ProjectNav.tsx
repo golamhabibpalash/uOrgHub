@@ -14,11 +14,15 @@ import {
   AlertTriangle,
   ShieldAlert,
   Banknote,
+  PiggyBank,
+  UserPlus,
 } from "lucide-react";
 
 const sections = [
   { label: "WBS", key: "wbs", icon: Layers },
   { label: "BOQ", key: "boq", icon: FileSpreadsheet },
+  { label: "Budget", key: "budgets", icon: PiggyBank },
+  { label: "Team", key: "team", icon: UserPlus },
   { label: "DPR", key: "dpr", icon: ClipboardList },
   { label: "Materials", key: "materials", icon: Package },
   { label: "Expenses", key: "expenses", icon: Receipt },

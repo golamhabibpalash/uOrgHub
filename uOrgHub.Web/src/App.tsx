@@ -68,6 +68,8 @@ import MaterialRequestPage from "./pages/projects/MaterialRequestPage";
 import ExpensePage from "./pages/projects/ExpensePage";
 import ClientsPage from "./pages/projects/ClientsPage";
 import ProjectCategories from "./pages/projects/ProjectCategories";
+import ProjectBudgetPage from "./pages/projects/ProjectBudgetPage";
+import ProjectTeamPage from "./pages/projects/ProjectTeamPage";
 import MilestonePage from "./pages/projects/MilestonePage";
 import DrawingsPage from "./pages/projects/DrawingsPage";
 import RFIsPage from "./pages/projects/RFIsPage";
@@ -186,6 +188,8 @@ export default function App() {
             <Route path="projects/:id/materials" element={<MaterialRequestPage />} />
             <Route path="projects/:id/expenses" element={<ExpensePage />} />
             <Route path="projects/:id/milestones" element={<MilestonePage />} />
+            <Route path="projects/:id/budgets" element={<ProjectBudgetPage />} />
+            <Route path="projects/:id/team" element={<ProjectTeamPage />} />
             <Route path="projects/:id/drawings" element={<DrawingsPage />} />
             <Route path="projects/:id/rfis" element={<RFIsPage />} />
             <Route path="projects/:id/submittals" element={<SubmittalsPage />} />
