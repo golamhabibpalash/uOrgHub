@@ -1,53 +1,44 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
-import DataGrid from "../../components/shared/DataGrid";
-import ExportMenu from "../../components/shared/ExportMenu";
-import { useDataGrid } from "../../hooks/useDataGrid";
-import Modal from "../../components/shared/Modal";
 import {
-  getProjects,
-  getProjectDashboard,
-  type Project,
-} from "../../api/projects";
-import ProjectForm from "./ProjectForm";
+  HardHat,
+  Users,
+  Tag,
+} from "lucide-react";
+import StatCard from "../../components/shared/StatCard";
+import { getProjects } from "../../api/projects";
 
 export default function ProjectsDashboard() {
   const navigate = useNavigate();
-  const dg = useDataGrid({ defaultSortBy: "projectName" });
-  const [status, setStatus] = useState("");
-  const [modal, setModal] = useState(false);
-  const [editing, setEditing] = useState<Project | null>(null);
-
-  const { data: dashboardData } = useQuery({
-    queryKey: ["projectDashboard"],
-    queryFn: getProjectDashboard,
-  });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["projects", dg.page, dg.search, dg.sortBy, dg.sortDescending, status],
-    queryFn: () => getProjects(dg.queryParams, status),
+    queryKey: ["projects", 1, "", "projectName", false, ""],
+    queryFn: () => getProjects({ page: 1, pageSize: 100 }),
   });
 
   const projects = data?.data?.data?.items ?? [];
-  const totalPages = data?.data?.data?.totalPages ?? 1;
-  const totalCount = data?.data?.data?.totalCount ?? 0;
 
-  function openAdd() {
-    setEditing(null);
-    setModal(true);
-  }
+  const totalProjects = projects.length;
+  const activeProjects = projects.filter((p) => p.status === "Active" || p.status === "InProgress").length;
+  const completedProjects = projects.filter((p) => p.status === "Completed").length;
+  const onHoldProjects = projects.filter((p) => p.status === "OnHold").length;
 
-  function openEdit(project: Project) {
-    setEditing(project);
-    setModal(true);
-  }
+  const recentProjects = [...projects].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  ).slice(0, 5);
 
-  function closeModal() {
-    setModal(false);
-    setEditing(null);
-  }
+  const modules = [
+    { name: "All Projects", path: "/projects", icon: HardHat, color: "bg-blue-500" },
+    { name: "Categories", path: "/projects/categories", icon: Tag, color: "bg-purple-500" },
+    { name: "Clients", path: "/projects/clients", icon: Users, color: "bg-green-500" },
+  ];
+
+  const stats = [
+    { label: "Total Projects", value: totalProjects, sub: `${activeProjects} active` },
+    { label: "Active / In Progress", value: activeProjects, sub: `${((activeProjects / (totalProjects || 1)) * 100).toFixed(0)}% of total` },
+    { label: "Completed", value: completedProjects, sub: "" },
+    { label: "On Hold", value: onHoldProjects, sub: "" },
+  ];
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
@@ -61,185 +52,85 @@ export default function ProjectsDashboard() {
     return styles[status] || "bg-gray-100 text-gray-600";
   };
 
-  const getPriorityBadge = (priority: string) => {
-    const styles: Record<string, string> = {
-      High: "bg-red-50 text-red-700",
-      Medium: "bg-amber-50 text-amber-700",
-      Low: "bg-blue-50 text-blue-700",
-      Critical: "bg-red-50 text-red-700",
-    };
-    return styles[priority] || "bg-gray-100 text-gray-600";
-  };
-
-  const columns = [
-    {
-      key: "projectCode",
-      label: "Code",
-      render: (row: Project) => (
-        <span className="font-medium text-gray-900">{row.projectCode}</span>
-      ),
-    },
-    {
-      key: "projectName",
-      label: "Project Name",
-      render: (row: Project) => (
-        <span className="font-medium text-gray-900">{row.projectName}</span>
-      ),
-    },
-    { key: "clientName", label: "Client" },
-    { key: "categoryName", label: "Category" },
-    {
-      key: "progress",
-      label: "Progress",
-      sortable: false,
-      render: (row: Project) => (
-        <div className="flex items-center gap-2 w-24">
-          <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-primary-500 rounded-full"
-              style={{ width: `${row.progress}%` }}
-            />
-          </div>
-          <span className="text-xs text-gray-500">{row.progress}%</span>
-        </div>
-      ),
-    },
-    {
-      key: "status",
-      label: "Status",
-      sortable: false,
-      render: (row: Project) => (
-        <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusBadge(row.status)}`}>
-          {row.status}
-        </span>
-      ),
-    },
-    {
-      key: "priority",
-      label: "Priority",
-      sortable: false,
-      render: (row: Project) => (
-        <span className={`text-xs px-2 py-0.5 rounded-full ${getPriorityBadge(row.priority)}`}>
-          {row.priority}
-        </span>
-      ),
-    },
-    { key: "projectManagerName", label: "PM" },
-    {
-      key: "actions",
-      label: "Actions",
-      sortable: false,
-      render: (row: Project) => (
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate(`/projects/${row.id}`)}
-            className="text-xs text-primary-600 hover:underline"
-          >
-            View
-          </button>
-          <button
-            onClick={() => openEdit(row)}
-            className="text-xs text-gray-500 hover:text-primary-600"
-          >
-            Edit
-          </button>
-        </div>
-      ),
-    },
-  ];
-
-  const stats = [
-    {
-      label: "Active Projects",
-      value: dashboardData?.data?.data?.activeProjects ?? 0,
-    },
-    {
-      label: "Total BOQ Value",
-      value: `BDT ${(dashboardData?.data?.data?.totalBOQValue ?? 0).toLocaleString()}`,
-    },
-    {
-      label: "Pending DPRs",
-      value: dashboardData?.data?.data?.pendingDPRs ?? 0,
-    },
-    {
-      label: "Material Requests",
-      value: dashboardData?.data?.data?.materialRequests ?? 0,
-    },
-  ];
-
   return (
-    <div>
+    <div className="p-6">
       <div className="mb-6">
-        <h2 className="text-lg font-medium text-gray-900">Projects</h2>
-        <p className="text-sm text-gray-500">Manage your construction projects</p>
+        <h1 className="text-2xl font-bold text-gray-900">Project Management</h1>
+        <p className="text-sm text-gray-400">Construction project management module</p>
       </div>
 
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className="bg-gray-50 border border-gray-200 rounded-xl p-4"
-          >
-            <p className="text-xs text-gray-500 mb-1">{stat.label}</p>
-            <p className="text-2xl font-medium text-gray-900">{stat.value}</p>
-          </div>
-        ))}
-      </div>
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-white border border-gray-200 rounded-xl p-5 animate-pulse">
+              <div className="h-3 bg-gray-200 rounded w-24 mb-3" />
+              <div className="h-6 bg-gray-200 rounded w-16 mb-2" />
+              <div className="h-3 bg-gray-200 rounded w-20" />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {stats.map((stat) => (
+            <StatCard key={stat.label} label={stat.label} value={stat.value} sub={stat.sub} />
+          ))}
+        </div>
+      )}
 
-      <DataGrid
-        columns={columns}
-        data={projects}
-        loading={isLoading}
-        sortBy={dg.sortBy}
-        sortDescending={dg.sortDescending}
-        onSort={dg.handleSort}
-        search={dg.search}
-        onSearch={dg.setSearch}
-        searchPlaceholder="Search projects..."
-        page={dg.page}
-        totalPages={totalPages}
-        onPageChange={dg.setPage}
-        pageSize={dg.pageSize}
-        onPageSizeChange={dg.setPageSize}
-        totalCount={totalCount}
-        emptyMessage="No projects found"
-        toolbarPrefix={
-          <select
-            value={status}
-            onChange={(e) => { setStatus(e.target.value); dg.setPage(1); }}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          >
-            <option value="">All Status</option>
-            <option value="Active">Active</option>
-            <option value="InProgress">In Progress</option>
-            <option value="OnHold">On Hold</option>
-            <option value="Completed">Completed</option>
-            <option value="Cancelled">Cancelled</option>
-          </select>
-        }
-        actions={
-          <div className="flex items-center gap-2">
-            <ExportMenu baseUrl="/projects" filters={{ search: dg.search || undefined, status: status || undefined }} />
+      <div className="mb-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Project Modules</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {modules.map((mod) => (
             <button
-              onClick={openAdd}
-              className="flex items-center gap-2 bg-primary-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-primary-600"
+              key={mod.path}
+              onClick={() => navigate(mod.path)}
+              className="bg-white border border-gray-200 rounded-xl p-4 text-left hover:border-primary-500 hover:shadow-md transition-all group"
             >
-              <Plus size={15} /> Add Project
+              <div className={`w-10 h-10 ${mod.color} rounded-lg flex items-center justify-center mb-3`}>
+                <mod.icon size={20} className="text-white" />
+              </div>
+              <h3 className="text-sm font-medium text-gray-900 group-hover:text-primary-600">
+                {mod.name}
+              </h3>
+              <p className="text-xs text-gray-400 mt-1">
+                Manage {mod.name.toLowerCase()}
+              </p>
             </button>
-          </div>
-        }
-      />
+          ))}
+        </div>
+      </div>
 
-      <Modal
-        title={editing ? "Edit Project" : "Add Project"}
-        open={modal}
-        onClose={closeModal}
-      >
-        <ProjectForm
-          project={editing}
-          onClose={closeModal}
-        />
-      </Modal>
+      {recentProjects.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-xl">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h3 className="text-sm font-medium text-gray-900">Recent Projects</h3>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {recentProjects.map((project) => (
+              <button
+                key={project.id}
+                onClick={() => navigate(`/projects/${project.id}`)}
+                className="w-full flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors text-left"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <HardHat size={16} className="text-gray-400 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {project.projectName}
+                    </p>
+                    <p className="text-xs text-gray-400 truncate">
+                      {project.projectCode} — {project.clientName}
+                    </p>
+                  </div>
+                </div>
+                <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${getStatusBadge(project.status)}`}>
+                  {project.status}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
