@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
+import toast from "react-hot-toast";
 import DataGrid from "../../components/shared/DataGrid";
 import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
@@ -26,7 +27,7 @@ export default function AttendanceManagement() {
   const [modal, setModal] = useState(false);
   const [modalType, setModalType] = useState<"schedule" | "shift" | "log">("schedule");
   const [form, setForm] = useState({ name: "", description: "" });
-  const [shiftForm, setShiftForm] = useState({ name: "", startTime: "", endTime: "", workScheduleId: "" });
+  const [shiftForm, setShiftForm] = useState({ name: "", code: "", startTime: "", endTime: "", workScheduleId: "" });
   const [logForm, setLogForm] = useState({ employeeId: "", attendanceDate: "", checkIn: "", checkOut: "", status: "Present", remarks: "" });
   const [editingLog, setEditingLog] = useState<AttendanceLog | null>(null);
 
@@ -82,7 +83,7 @@ export default function AttendanceManagement() {
     setModalType(type);
     setModal(true);
     if (type === "schedule") setForm({ name: "", description: "" });
-    if (type === "shift") setShiftForm({ name: "", startTime: "", endTime: "", workScheduleId: "" });
+    if (type === "shift") setShiftForm({ name: "", code: "", startTime: "", endTime: "", workScheduleId: "" });
     if (type === "log") { setLogForm({ employeeId: "", attendanceDate: "", checkIn: "", checkOut: "", status: "Present", remarks: "" }); setEditingLog(null); }
   }
 
@@ -218,13 +219,22 @@ export default function AttendanceManagement() {
         )}
         {modalType === "shift" && (
           <div className="space-y-3">
-            <div><label className="text-xs text-gray-500 mb-1 block">Shift Name *</label><input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={shiftForm.name} onChange={e => setShiftForm(f => ({ ...f, name: e.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label className="text-xs text-gray-500 mb-1 block">Start Time</label><input type="time" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={shiftForm.startTime} onChange={e => setShiftForm(f => ({ ...f, startTime: e.target.value }))} /></div>
-              <div><label className="text-xs text-gray-500 mb-1 block">End Time</label><input type="time" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={shiftForm.endTime} onChange={e => setShiftForm(f => ({ ...f, endTime: e.target.value }))} /></div>
+              <div><label className="text-xs text-gray-500 mb-1 block">Shift Name *</label><input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={shiftForm.name} onChange={e => setShiftForm(f => ({ ...f, name: e.target.value }))} /></div>
+              <div><label className="text-xs text-gray-500 mb-1 block">Code *</label><input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={shiftForm.code} onChange={e => setShiftForm(f => ({ ...f, code: e.target.value }))} /></div>
             </div>
-            <div><label className="text-xs text-gray-500 mb-1 block">Schedule</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={shiftForm.workScheduleId} onChange={e => setShiftForm(f => ({ ...f, workScheduleId: e.target.value }))}><option value="">Select Schedule</option>{allSchedules.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
-            <div className="flex justify-end gap-2 pt-2"><button onClick={() => setModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button><button onClick={() => createShiftMutation.mutate()} disabled={createShiftMutation.isPending} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">{createShiftMutation.isPending ? "Saving..." : "Save"}</button></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="text-xs text-gray-500 mb-1 block">Start Time *</label><input type="time" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={shiftForm.startTime} onChange={e => setShiftForm(f => ({ ...f, startTime: e.target.value }))} /></div>
+              <div><label className="text-xs text-gray-500 mb-1 block">End Time *</label><input type="time" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={shiftForm.endTime} onChange={e => setShiftForm(f => ({ ...f, endTime: e.target.value }))} /></div>
+            </div>
+            <div><label className="text-xs text-gray-500 mb-1 block">Work Schedule *</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={shiftForm.workScheduleId} onChange={e => setShiftForm(f => ({ ...f, workScheduleId: e.target.value }))}><option value="">Select Schedule</option>{allSchedules.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
+            <div className="flex justify-end gap-2 pt-2"><button onClick={() => setModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button><button onClick={() => {
+              if (!shiftForm.name.trim() || !shiftForm.code.trim() || !shiftForm.startTime || !shiftForm.endTime || !shiftForm.workScheduleId) {
+                toast.error("Please fill in all required fields.");
+                return;
+              }
+              createShiftMutation.mutate();
+            }} disabled={createShiftMutation.isPending} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">{createShiftMutation.isPending ? "Saving..." : "Save"}</button></div>
           </div>
         )}
         {modalType === "log" && (
