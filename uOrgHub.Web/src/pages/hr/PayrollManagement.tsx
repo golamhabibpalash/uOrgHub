@@ -44,7 +44,7 @@ export default function PayrollManagement() {
 
   const [gradeForm, setGradeForm] = useState({ name: "", gradeCode: "", description: "", minSalary: 0, maxSalary: 0, isActive: true });
   const [gradeErrors, setGradeErrors] = useState<{ name?: string; gradeCode?: string }>({});
-  const [compForm, setCompForm] = useState({ name: "", code: "", componentType: "Allowance", isTaxable: true, isActive: true });
+  const [compForm, setCompForm] = useState({ name: "", code: "", componentType: "OtherAllowance", isTaxable: true, isActive: true });
   const [cycleForm, setCycleForm] = useState({ title: "", startDate: "", endDate: "", paymentDate: "" });
   const [expForm, setExpForm] = useState({ employeeId: "", amount: 0, category: "", description: "" });
 
@@ -120,7 +120,7 @@ export default function PayrollManagement() {
     setModal(true);
     setGradeErrors({});
     if (tab === "grades") { setGradeForm({ name: "", gradeCode: "", description: "", minSalary: 0, maxSalary: 0, isActive: true }); setEditingGrade(null); }
-    if (tab === "components") { setCompForm({ name: "", code: "", componentType: "Allowance", isTaxable: true, isActive: true }); setEditingComponent(null); }
+    if (tab === "components") { setCompForm({ name: "", code: "", componentType: "OtherAllowance", isTaxable: true, isActive: true }); setEditingComponent(null); }
     if (tab === "cycles") { setCycleForm({ title: "", startDate: "", endDate: "", paymentDate: "" }); setEditing(null); }
     if (tab === "expenses") setExpForm({ employeeId: "", amount: 0, category: "", description: "" });
   }
@@ -284,7 +284,7 @@ export default function PayrollManagement() {
         {activeTab === "components" && (
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3"><div><label className="text-xs text-gray-500 mb-1 block">Name</label><input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={compForm.name} onChange={e => setCompForm(f => ({ ...f, name: e.target.value }))} /></div><div><label className="text-xs text-gray-500 mb-1 block">Code</label><input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={compForm.code} onChange={e => setCompForm(f => ({ ...f, code: e.target.value }))} /></div></div>
-            <div className="grid grid-cols-2 gap-3"><div><label className="text-xs text-gray-500 mb-1 block">Type</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={compForm.componentType} onChange={e => setCompForm(f => ({ ...f, componentType: e.target.value }))}><option value="Allowance">Allowance</option><option value="Deduction">Deduction</option></select></div><div><label className="text-xs text-gray-500 mb-1 block">Status</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={String(compForm.isActive)} onChange={e => setCompForm(f => ({ ...f, isActive: e.target.value === "true" }))}><option value="true">Active</option><option value="false">Inactive</option></select></div></div>
+            <div className="grid grid-cols-2 gap-3"><div><label className="text-xs text-gray-500 mb-1 block">Type</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={compForm.componentType} onChange={e => setCompForm(f => ({ ...f, componentType: e.target.value }))}><option value="BasicSalary">Basic Salary</option><option value="HouseRentAllowance">House Rent Allowance</option><option value="MedicalAllowance">Medical Allowance</option><option value="TransportAllowance">Transport Allowance</option><option value="FoodAllowance">Food Allowance</option><option value="OtherAllowance">Other Allowance</option><option value="PF">Provident Fund</option><option value="Tax">Tax</option><option value="Loan">Loan</option><option value="Advance">Advance</option><option value="OtherDeduction">Other Deduction</option></select></div><div><label className="text-xs text-gray-500 mb-1 block">Status</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={String(compForm.isActive)} onChange={e => setCompForm(f => ({ ...f, isActive: e.target.value === "true" }))}><option value="true">Active</option><option value="false">Inactive</option></select></div></div>
             <div><label className="text-xs text-gray-500 mb-1 block">Taxable</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={String(compForm.isTaxable)} onChange={e => setCompForm(f => ({ ...f, isTaxable: e.target.value === "true" }))}><option value="true">Yes</option><option value="false">No</option></select></div>
             <div className="flex justify-end gap-2 pt-2"><button onClick={() => { setModal(false); setEditingComponent(null); }} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button><button onClick={() => compMutation.mutate()} disabled={compMutation.isPending} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">{compMutation.isPending ? "Saving..." : "Save"}</button></div>
           </div>
