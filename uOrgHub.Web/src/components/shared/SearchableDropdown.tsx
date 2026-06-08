@@ -24,6 +24,7 @@ interface SearchableDropdownProps {
   error?: string;
   required?: boolean;
   searchFields?: string[];
+  buttonClassName?: string;
 }
 
 export default function SearchableDropdown({
@@ -39,6 +40,7 @@ export default function SearchableDropdown({
   onCreate,
   noResultsMessage = "No results found",
   className = "",
+  buttonClassName = "",
   label,
   error,
   required = false,
@@ -172,7 +174,7 @@ export default function SearchableDropdown({
             disabled ? "bg-gray-50 cursor-not-allowed opacity-60" : "bg-white cursor-pointer hover:border-gray-400"
           } ${
             error ? "border-red-400" : "border-gray-200"
-          } ${!selectedOption ? "text-gray-400" : "text-gray-900"}`}
+          } ${!selectedOption ? "text-gray-400" : "text-gray-900"} ${buttonClassName}`}
         >
           <Search size={14} className="shrink-0 text-gray-400" />
           <span className="flex-1 truncate">

@@ -1,5 +1,6 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { Building2, Globe, DollarSign, MapPin, Phone, Mail, FileText, Upload, X, Save } from 'lucide-react';
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
 import { getMyCompany, updateCompany, uploadLogo, getLogoUrl, type CompanyDto } from '../../api/company';
 
 const timezones = [
@@ -77,6 +78,15 @@ export default function CompanySettingsPage() {
       // handled by axios interceptor
     } finally { setSaving(false); }
   };
+
+  const currencyOptions = useMemo(
+    () => currencies.map((c) => ({ value: c.code, label: `${c.code} — ${c.name}` })),
+    [],
+  );
+  const timezoneOptions = useMemo(
+    () => timezones.map((tz) => ({ value: tz, label: tz.replace('_', ' ') })),
+    [],
+  );
 
   if (loading) return (
     <div className="p-6"><div className="text-slate-400 text-sm">Loading...</div></div>
@@ -183,9 +193,7 @@ export default function CompanySettingsPage() {
             <label className={labelClass}>Currency</label>
             <div className="relative">
               <DollarSign size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 z-10" />
-              <select value={form.currency} onChange={e => update('currency', e.target.value)} className="w-full bg-slate-700 border border-slate-600 text-white text-sm rounded-lg pl-9 pr-4 py-2.5 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 appearance-none">
-                {currencies.map(c => <option key={c.code} value={c.code}>{c.code} — {c.name}</option>)}
-              </select>
+              <SearchableDropdown value={form.currency} options={currencyOptions} onChange={(v) => update('currency', v ?? 'BDT')} placeholder="Select currency" searchPlaceholder="Search currencies..." className="w-full" buttonClassName="!bg-slate-700 !border-slate-600 !text-white" />
             </div>
           </div>
 
@@ -194,9 +202,7 @@ export default function CompanySettingsPage() {
             <label className={labelClass}>Time Zone</label>
             <div className="relative">
               <Globe size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 z-10" />
-              <select value={form.timeZone} onChange={e => update('timeZone', e.target.value)} className="w-full bg-slate-700 border border-slate-600 text-white text-sm rounded-lg pl-9 pr-4 py-2.5 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 appearance-none">
-                {timezones.map(tz => <option key={tz} value={tz}>{tz.replace('_', ' ')}</option>)}
-              </select>
+              <SearchableDropdown value={form.timeZone} options={timezoneOptions} onChange={(v) => update('timeZone', v ?? 'Asia/Dhaka')} placeholder="Select timezone" searchPlaceholder="Search timezones..." className="w-full" buttonClassName="!bg-slate-700 !border-slate-600 !text-white" />
             </div>
           </div>
         </div>
