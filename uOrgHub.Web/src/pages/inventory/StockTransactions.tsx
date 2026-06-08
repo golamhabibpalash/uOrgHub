@@ -1,14 +1,16 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, CheckCircle, XCircle } from "lucide-react";
 import DataGrid from "../../components/shared/DataGrid";
 import ExportMenu from "../../components/shared/ExportMenu";
 import Modal from "../../components/shared/Modal";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
 import { useDataGrid } from "../../hooks/useDataGrid";
+import { useWarehouseLookup } from "../../hooks/useEntityLookup";
 import {
   getStockTransactions, createStockTransaction, updateStockTransaction,
   deleteStockTransaction, confirmStockTransaction, cancelStockTransaction,
-  getWarehouses, getItemVariants,
+  getItemVariants,
   StockTransaction, StockTransactionType, StockTransactionStatus,
 } from "../../api/inventory";
 
@@ -46,10 +48,7 @@ export default function StockTransactions() {
     queryFn: () => getStockTransactions(dg.queryParams, undefined, undefined, filterStatus || undefined),
   });
 
-  const { data: warehousesData } = useQuery({
-    queryKey: ["warehouses-all"],
-    queryFn: () => getWarehouses({ page: 1, pageSize: 100 }),
-  });
+  const { options: warehouseOptions, isLoading: warehousesLoading } = useWarehouseLookup();
 
   const { data: variantsData } = useQuery({
     queryKey: ["item-variants-all"],
@@ -59,8 +58,8 @@ export default function StockTransactions() {
   const txns = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
   const totalCount = data?.data?.data?.totalCount ?? 0;
-  const allWarehouses = warehousesData?.data?.data?.items ?? [];
   const allVariants = variantsData?.data?.data?.items ?? [];
+  const variantOptions = useMemo(() => allVariants.map((v) => ({ value: v.id, label: `${v.sku} — ${v.variantName}` })), [allVariants]);
 
   const saveMutation = useMutation({
     mutationFn: () => {
@@ -94,7 +93,7 @@ export default function StockTransactions() {
 
   function openAdd() {
     setEditing(null);
-    setForm({ transactionDate: new Date().toISOString().split("T")[0], transactionType: "GoodsReceived", itemVariantId: allVariants[0]?.id ?? "", warehouseId: allWarehouses[0]?.id ?? "", fromWarehouseId: "", quantity: 1, unitCost: 0, referenceNumber: "", notes: "" });
+    setForm({ transactionDate: new Date().toISOString().split("T")[0], transactionType: "GoodsReceived", itemVariantId: allVariants[0]?.id ?? "", warehouseId: "", fromWarehouseId: "", quantity: 1, unitCost: 0, referenceNumber: "", notes: "" });
     setModal(true);
   }
 
@@ -236,27 +235,44 @@ export default function StockTransactions() {
           </div>
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Item Variant *</label>
-            <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.itemVariantId} onChange={(e) => setForm((f) => ({ ...f, itemVariantId: e.target.value }))}>
-              <option value="">Select variant...</option>
-              {allVariants.map((v) => <option key={v.id} value={v.id}>{v.sku} — {v.variantName}</option>)}
-            </select>
+            <SearchableDropdown
+              label="Item Variant"
+              required
+              options={variantOptions}
+              value={form.itemVariantId || undefined}
+              onChange={(v) => setForm((f) => ({ ...f, itemVariantId: v ?? "" }))}
+              placeholder="Select variant..."
+              className="w-full"
+            />
           </div>
           <div className={isTransfer ? "grid grid-cols-2 gap-3" : ""}>
             {isTransfer && (
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">From Warehouse *</label>
-                <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.fromWarehouseId} onChange={(e) => setForm((f) => ({ ...f, fromWarehouseId: e.target.value }))}>
-                  <option value="">Select source...</option>
-                  {allWarehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
-                </select>
+                <SearchableDropdown
+                  label="From Warehouse"
+                  required
+                  options={warehouseOptions}
+                  value={form.fromWarehouseId || undefined}
+                  onChange={(v) => setForm((f) => ({ ...f, fromWarehouseId: v ?? "" }))}
+                  loading={warehousesLoading}
+                  placeholder="Select source..."
+                  className="w-full"
+                />
               </div>
             )}
             <div className={!isTransfer ? "" : ""}>
               <label className="text-xs text-gray-500 mb-1 block">{isTransfer ? "To Warehouse *" : "Warehouse *"}</label>
-              <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.warehouseId} onChange={(e) => setForm((f) => ({ ...f, warehouseId: e.target.value }))}>
-                <option value="">Select warehouse...</option>
-                {allWarehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
-              </select>
+              <SearchableDropdown
+                label={isTransfer ? "To Warehouse" : "Warehouse"}
+                required
+                options={warehouseOptions}
+                value={form.warehouseId || undefined}
+                onChange={(v) => setForm((f) => ({ ...f, warehouseId: v ?? "" }))}
+                loading={warehousesLoading}
+                placeholder="Select warehouse..."
+                className="w-full"
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">

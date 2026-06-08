@@ -5,12 +5,13 @@ import ExportMenu from "../../components/shared/ExportMenu";
 import DataTable from "../../components/shared/DataTable";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
+import { useInventoryCategoryLookup } from "../../hooks/useEntityLookup";
 import {
   getAttributeDefinitions,
   createAttributeDefinition,
   updateAttributeDefinition,
   deleteAttributeDefinition,
-  getInventoryCategories,
   AttributeDefinition,
   AttributeDataType,
 } from "../../api/inventory";
@@ -37,14 +38,10 @@ export default function AttributeDefinitions() {
     queryFn: () => getAttributeDefinitions({ page, pageSize: 10, search }),
   });
 
-  const { data: catsData } = useQuery({
-    queryKey: ["inventory-categories-all"],
-    queryFn: () => getInventoryCategories({ page: 1, pageSize: 200 }),
-  });
+  const { options: catOptions, isLoading: catsLoading } = useInventoryCategoryLookup();
 
   const attributes = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
-  const allCategories = catsData?.data?.data?.items ?? [];
 
   const saveMutation = useMutation({
     mutationFn: () => editing
@@ -146,10 +143,16 @@ export default function AttributeDefinitions() {
           </div>
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Category (leave blank for global)</label>
-            <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.categoryId} onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}>
-              <option value="">Global (all categories)</option>
-              {allCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+            <SearchableDropdown
+              label="Category (leave blank for global)"
+              options={catOptions}
+              value={form.categoryId || undefined}
+              onChange={(v) => setForm((f) => ({ ...f, categoryId: v ?? "" }))}
+              loading={catsLoading}
+              placeholder="Global (all categories)"
+              clearable
+              className="w-full"
+            />
           </div>
           {form.dataType === "List" && (
             <div>

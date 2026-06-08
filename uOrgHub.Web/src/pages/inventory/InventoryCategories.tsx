@@ -4,13 +4,14 @@ import { Plus } from "lucide-react";
 import DataGrid from "../../components/shared/DataGrid";
 import ExportMenu from "../../components/shared/ExportMenu";
 import Modal from "../../components/shared/Modal";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
 import { useDataGrid } from "../../hooks/useDataGrid";
+import { useInventoryTypeLookup, useInventoryCategoryLookup } from "../../hooks/useEntityLookup";
 import {
   getInventoryCategories,
   createInventoryCategory,
   updateInventoryCategory,
   deleteInventoryCategory,
-  getInventoryTypes,
   InventoryCategory,
 } from "../../api/inventory";
 
@@ -27,21 +28,12 @@ export default function InventoryCategories() {
     queryFn: () => getInventoryCategories(dg.queryParams, filterTypeId || undefined),
   });
 
-  const { data: typesData } = useQuery({
-    queryKey: ["inventory-types", 1, ""],
-    queryFn: () => getInventoryTypes({ page: 1, pageSize: 100 }),
-  });
-
-  const { data: allCatsData } = useQuery({
-    queryKey: ["inventory-categories-all"],
-    queryFn: () => getInventoryCategories({ page: 1, pageSize: 200 }),
-  });
+  const { options: typeOptions, isLoading: typesLoading } = useInventoryTypeLookup();
+  const { options: catOptions, isLoading: catsLoading } = useInventoryCategoryLookup();
 
   const categories = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
   const totalCount = data?.data?.data?.totalCount ?? 0;
-  const allTypes = typesData?.data?.data?.items ?? [];
-  const allCategories = allCatsData?.data?.data?.items ?? [];
 
   const saveMutation = useMutation({
     mutationFn: () => editing
@@ -57,7 +49,7 @@ export default function InventoryCategories() {
 
   function openAdd() {
     setEditing(null);
-    setForm({ name: "", code: "", typeId: allTypes[0]?.id ?? "", parentCategoryId: "", description: "", isActive: true });
+    setForm({ name: "", code: "", typeId: "", parentCategoryId: "", description: "", isActive: true });
     setModal(true);
   }
 
@@ -119,14 +111,14 @@ export default function InventoryCategories() {
         onDelete={(row) => deleteMutation.mutate(row.id)}
         emptyMessage="No categories found"
         toolbarPrefix={
-          <select
-            value={filterTypeId}
-            onChange={(e) => { setFilterTypeId(e.target.value); dg.setPage(1); }}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          >
-            <option value="">All Types</option>
-            {allTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-          </select>
+          <SearchableDropdown
+            options={typeOptions}
+            value={filterTypeId || undefined}
+            onChange={(v) => { setFilterTypeId(v ?? ""); dg.setPage(1); }}
+            placeholder="All Types"
+            clearable
+            className="w-48"
+          />
         }
         actions={<ExportMenu baseUrl="/inventorycategories" filters={{ search: dg.search || undefined, typeId: filterTypeId || undefined }} />}
       />
@@ -144,20 +136,28 @@ export default function InventoryCategories() {
             </div>
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Inventory Type *</label>
-            <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.typeId} onChange={(e) => setForm((f) => ({ ...f, typeId: e.target.value }))}>
-              <option value="">Select type...</option>
-              {allTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-            </select>
+            <SearchableDropdown
+              label="Inventory Type"
+              required
+              options={typeOptions}
+              value={form.typeId || undefined}
+              onChange={(v) => setForm((f) => ({ ...f, typeId: v ?? "" }))}
+              loading={typesLoading}
+              placeholder="Select type..."
+              className="w-full"
+            />
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Parent Category</label>
-            <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.parentCategoryId} onChange={(e) => setForm((f) => ({ ...f, parentCategoryId: e.target.value }))}>
-              <option value="">None (Top Level)</option>
-              {allCategories.filter((c) => c.id !== editing?.id).map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+            <SearchableDropdown
+              label="Parent Category"
+              options={catOptions.filter((c) => c.value !== editing?.id)}
+              value={form.parentCategoryId || undefined}
+              onChange={(v) => setForm((f) => ({ ...f, parentCategoryId: v ?? "" }))}
+              loading={catsLoading}
+              placeholder="None (Top Level)"
+              clearable
+              className="w-full"
+            />
           </div>
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Description</label>

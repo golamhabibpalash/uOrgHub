@@ -4,16 +4,20 @@ import { Plus } from "lucide-react";
 import DataGrid from "../../components/shared/DataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
 import { useDataGrid } from "../../hooks/useDataGrid";
+import { useInventoryTypeLookup, useInventoryCategoryLookup, useUnitOfMeasureLookup } from "../../hooks/useEntityLookup";
 import {
   getItems, createItem, updateItem, deleteItem,
-  getInventoryTypes, getInventoryCategories, getUnitsOfMeasure,
   Item,
 } from "../../api/inventory";
 
 export default function Items() {
   const qc = useQueryClient();
   const dg = useDataGrid({ defaultSortBy: "name" });
+  const { options: typeOptions, isLoading: typesLoading } = useInventoryTypeLookup();
+  const { options: catOptions, isLoading: catsLoading } = useInventoryCategoryLookup();
+  const { options: uomOptions, isLoading: uomsLoading } = useUnitOfMeasureLookup();
   const [filterCatId, setFilterCatId] = useState("");
   const [filterTypeId, setFilterTypeId] = useState("");
   const [modal, setModal] = useState(false);
@@ -28,16 +32,9 @@ export default function Items() {
     queryFn: () => getItems(dg.queryParams, filterCatId || undefined, filterTypeId || undefined),
   });
 
-  const { data: typesData } = useQuery({ queryKey: ["inventory-types", 1, ""], queryFn: () => getInventoryTypes({ page: 1, pageSize: 100 }) });
-  const { data: catsData } = useQuery({ queryKey: ["inventory-categories-all"], queryFn: () => getInventoryCategories({ page: 1, pageSize: 200 }) });
-  const { data: uomsData } = useQuery({ queryKey: ["units-of-measure", 1, ""], queryFn: () => getUnitsOfMeasure({ page: 1, pageSize: 100 }) });
-
   const items = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
   const totalCount = data?.data?.data?.totalCount ?? 0;
-  const allTypes = typesData?.data?.data?.items ?? [];
-  const allCategories = catsData?.data?.data?.items ?? [];
-  const allUoMs = uomsData?.data?.data?.items ?? [];
 
   const saveMutation = useMutation({
     mutationFn: () => editing ? updateItem(editing.id, form) : createItem(form),
@@ -51,7 +48,7 @@ export default function Items() {
 
   function openAdd() {
     setEditing(null);
-    setForm({ baseName: "", typeId: allTypes[0]?.id ?? "", categoryId: allCategories[0]?.id ?? "", unitOfMeasureId: allUoMs[0]?.id ?? "", brand: "", manufacturer: "", description: "", reorderLevel: 0, standardCost: 0, isActive: true });
+    setForm({ baseName: "", typeId: "", categoryId: "", unitOfMeasureId: "", brand: "", manufacturer: "", description: "", reorderLevel: 0, standardCost: 0, isActive: true });
     setModal(true);
   }
 
@@ -114,14 +111,22 @@ export default function Items() {
         emptyMessage="No items found"
         toolbarPrefix={
           <>
-            <select value={filterTypeId} onChange={(e) => { setFilterTypeId(e.target.value); dg.setPage(1); }} className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500">
-              <option value="">All Types</option>
-              {allTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-            </select>
-            <select value={filterCatId} onChange={(e) => { setFilterCatId(e.target.value); dg.setPage(1); }} className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500">
-              <option value="">All Categories</option>
-              {allCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+            <SearchableDropdown
+              options={typeOptions}
+              value={filterTypeId || undefined}
+              onChange={(v) => { setFilterTypeId(v ?? ""); dg.setPage(1); }}
+              placeholder="All Types"
+              clearable
+              className="w-48"
+            />
+            <SearchableDropdown
+              options={catOptions}
+              value={filterCatId || undefined}
+              onChange={(v) => { setFilterCatId(v ?? ""); dg.setPage(1); }}
+              placeholder="All Categories"
+              clearable
+              className="w-48"
+            />
           </>
         }
         actions={<ExportMenu baseUrl="items" filters={{ search: dg.search || undefined, categoryId: filterCatId || undefined, typeId: filterTypeId || undefined }} />}
@@ -135,26 +140,41 @@ export default function Items() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Type *</label>
-              <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.typeId} onChange={(e) => setForm((f) => ({ ...f, typeId: e.target.value }))}>
-                <option value="">Select type...</option>
-                {allTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-              </select>
+              <SearchableDropdown
+                label="Type"
+                required
+                options={typeOptions}
+                value={form.typeId || undefined}
+                onChange={(v) => setForm((f) => ({ ...f, typeId: v ?? "" }))}
+                loading={typesLoading}
+                placeholder="Select type..."
+                className="w-full"
+              />
             </div>
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Category *</label>
-              <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.categoryId} onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}>
-                <option value="">Select category...</option>
-                {allCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+              <SearchableDropdown
+                label="Category"
+                required
+                options={catOptions}
+                value={form.categoryId || undefined}
+                onChange={(v) => setForm((f) => ({ ...f, categoryId: v ?? "" }))}
+                loading={catsLoading}
+                placeholder="Select category..."
+                className="w-full"
+              />
             </div>
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Unit of Measure *</label>
-            <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.unitOfMeasureId} onChange={(e) => setForm((f) => ({ ...f, unitOfMeasureId: e.target.value }))}>
-              <option value="">Select unit...</option>
-              {allUoMs.map((u) => <option key={u.id} value={u.id}>{u.name} ({u.abbreviation})</option>)}
-            </select>
+            <SearchableDropdown
+              label="Unit of Measure"
+              required
+              options={uomOptions}
+              value={form.unitOfMeasureId || undefined}
+              onChange={(v) => setForm((f) => ({ ...f, unitOfMeasureId: v ?? "" }))}
+              loading={uomsLoading}
+              placeholder="Select unit..."
+              className="w-full"
+            />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>

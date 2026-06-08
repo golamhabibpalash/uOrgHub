@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import DataGrid from "../../components/shared/DataGrid";
 import ExportMenu from "../../components/shared/ExportMenu";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
 import { useDataGrid } from "../../hooks/useDataGrid";
-import { getStockBalances, getWarehouses, getItemVariants, StockBalance } from "../../api/inventory";
+import { useWarehouseLookup } from "../../hooks/useEntityLookup";
+import { getStockBalances, getItemVariants, StockBalance } from "../../api/inventory";
 
 export default function StockBalances() {
   const dg = useDataGrid({ defaultSortBy: "name" });
@@ -15,10 +17,7 @@ export default function StockBalances() {
     queryFn: () => getStockBalances(dg.queryParams, filterWarehouseId || undefined, filterVariantId || undefined),
   });
 
-  const { data: warehousesData } = useQuery({
-    queryKey: ["warehouses-all"],
-    queryFn: () => getWarehouses({ page: 1, pageSize: 100 }),
-  });
+  const { options: warehouseOptions } = useWarehouseLookup();
 
   const { data: variantsData } = useQuery({
     queryKey: ["item-variants-all"],
@@ -28,8 +27,8 @@ export default function StockBalances() {
   const balances = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
   const totalCount = data?.data?.data?.totalCount ?? 0;
-  const allWarehouses = warehousesData?.data?.data?.items ?? [];
   const allVariants = variantsData?.data?.data?.items ?? [];
+  const variantOptions = useMemo(() => allVariants.map((v) => ({ value: v.id, label: `${v.sku} — ${v.variantName}` })), [allVariants]);
 
   function qtyColor(qty: number) {
     if (qty <= 0) return "text-red-600 font-medium";
@@ -85,14 +84,22 @@ export default function StockBalances() {
         emptyMessage="No stock balances found"
         toolbarPrefix={
           <>
-            <select value={filterWarehouseId} onChange={(e) => { setFilterWarehouseId(e.target.value); dg.setPage(1); }} className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500">
-              <option value="">All Warehouses</option>
-              {allWarehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
-            </select>
-            <select value={filterVariantId} onChange={(e) => { setFilterVariantId(e.target.value); dg.setPage(1); }} className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500">
-              <option value="">All Variants</option>
-              {allVariants.map((v) => <option key={v.id} value={v.id}>{v.sku} — {v.variantName}</option>)}
-            </select>
+            <SearchableDropdown
+              options={warehouseOptions}
+              value={filterWarehouseId || undefined}
+              onChange={(v) => { setFilterWarehouseId(v ?? ""); dg.setPage(1); }}
+              placeholder="All Warehouses"
+              clearable
+              className="w-48"
+            />
+            <SearchableDropdown
+              options={variantOptions}
+              value={filterVariantId || undefined}
+              onChange={(v) => { setFilterVariantId(v ?? ""); dg.setPage(1); }}
+              placeholder="All Variants"
+              clearable
+              className="w-48"
+            />
           </>
         }
         actions={<ExportMenu baseUrl="/stockbalances" filters={{ search: dg.search || undefined, warehouseId: filterWarehouseId || undefined, itemVariantId: filterVariantId || undefined }} />}
