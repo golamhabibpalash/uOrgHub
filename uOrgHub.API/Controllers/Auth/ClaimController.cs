@@ -36,6 +36,8 @@ public class ClaimController : ControllerBase
             .Select(c => new ClaimDto(c.Id, c.Name, c.Description, c.Module, c.Category, c.IsActive))
             .ToListAsync();
 
+        claims = claims.DistinctBy(c => c.Name).ToList();
+
         return Ok(ApiResponse<List<ClaimDto>>.Ok(claims));
     }
 }

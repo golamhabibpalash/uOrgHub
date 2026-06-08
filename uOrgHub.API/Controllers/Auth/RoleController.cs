@@ -38,7 +38,9 @@ public class RoleController : ControllerBase
             .Select(r => new RoleDto(
                 r.Id, r.Name, r.Description, r.IsSystem, r.IsActive,
                 r.UserRoles.Count,
-                new List<ClaimDto>()
+                r.RoleClaims.Where(rc => !rc.Claim.IsDeleted).Select(rc => new ClaimDto(
+                    rc.Claim.Id, rc.Claim.Name, rc.Claim.Description, rc.Claim.Module, rc.Claim.Category, rc.Claim.IsActive
+                )).DistinctBy(rc => rc.Id).ToList()
             ))
             .ToListAsync();
 
