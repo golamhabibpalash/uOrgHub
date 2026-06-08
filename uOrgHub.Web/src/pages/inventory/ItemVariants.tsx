@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, Tag } from "lucide-react";
 import DataGrid from "../../components/shared/DataGrid";
 import ExportMenu from "../../components/shared/ExportMenu";
 import Modal from "../../components/shared/Modal";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
 import { useDataGrid } from "../../hooks/useDataGrid";
 import {
   getItemVariants, createItemVariant, updateItemVariant, deleteItemVariant,
@@ -44,6 +45,15 @@ export default function ItemVariants() {
   const totalCount = data?.data?.data?.totalCount ?? 0;
   const allItems = itemsData?.data?.data?.items ?? [];
   const allAttrs: AttributeDefinition[] = attrsData?.data?.data?.items ?? [];
+
+const itemOptions = useMemo(
+  () => allItems.map((i) => ({ value: i.id, label: `${i.baseName} (${i.itemCode})` })),
+  [allItems],
+);
+const attrOptions = useMemo(
+  () => allAttrs.map((a) => ({ value: a.id, label: a.name })),
+  [allAttrs],
+);
 
   const saveMutation = useMutation({
     mutationFn: () => editing
@@ -152,10 +162,14 @@ export default function ItemVariants() {
         onDelete={(row) => deleteMutation.mutate(row.id)}
         emptyMessage="No item variants found"
         toolbarPrefix={
-          <select value={filterItemId} onChange={(e) => { setFilterItemId(e.target.value); dg.setPage(1); }} className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500">
-            <option value="">All Items</option>
-            {allItems.map((i) => <option key={i.id} value={i.id}>{i.baseName}</option>)}
-          </select>
+          <SearchableDropdown
+            options={itemOptions}
+            value={filterItemId}
+            onChange={(v) => { setFilterItemId(v ?? ""); dg.setPage(1); }}
+            placeholder="All Items"
+            searchPlaceholder="Search items..."
+            className="min-w-[180px]"
+          />
         }
         actions={<ExportMenu baseUrl="/itemvariants" filters={{ search: dg.search || undefined, itemId: filterItemId || undefined }} />}
       />
@@ -164,10 +178,7 @@ export default function ItemVariants() {
         <div className="space-y-3">
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Item *</label>
-            <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.itemId} onChange={(e) => setForm((f) => ({ ...f, itemId: e.target.value }))} disabled={!!editing}>
-              <option value="">Select item...</option>
-              {allItems.map((i) => <option key={i.id} value={i.id}>{i.baseName} ({i.itemCode})</option>)}
-            </select>
+            <SearchableDropdown label="Item *" options={itemOptions} value={form.itemId} onChange={(v) => setForm((f) => ({ ...f, itemId: v ?? "" }))} placeholder="Select item..." searchPlaceholder="Search items..." disabled={!!editing} required />
           </div>
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Barcode</label>
@@ -210,13 +221,14 @@ export default function ItemVariants() {
                 const attrDef = allAttrs.find((a) => a.id === row.attributeDefinitionId);
                 return (
                   <div key={i} className="flex gap-2 items-center">
-                    <select
-                      className="flex-1 border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary-500"
+                    <SearchableDropdown
+                      options={attrOptions}
                       value={row.attributeDefinitionId}
-                      onChange={(e) => updateAttrRow(i, "attributeDefinitionId", e.target.value)}
-                    >
-                      {allAttrs.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-                    </select>
+                      onChange={(v) => updateAttrRow(i, "attributeDefinitionId", v ?? "")}
+                      placeholder="Select attribute..."
+                      searchPlaceholder="Search..."
+                      className="flex-1"
+                    />
                     {attrDef?.dataType === "Boolean" ? (
                       <select className="flex-1 border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary-500" value={row.value} onChange={(e) => updateAttrRow(i, "value", e.target.value)}>
                         <option value="true">Yes</option>
