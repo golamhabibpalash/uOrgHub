@@ -67,6 +67,7 @@ import DPRPage from "./pages/projects/DPRPage";
 import MaterialRequestPage from "./pages/projects/MaterialRequestPage";
 import ExpensePage from "./pages/projects/ExpensePage";
 import ClientsPage from "./pages/projects/ClientsPage";
+import ProjectCategories from "./pages/projects/ProjectCategories";
 import MilestonePage from "./pages/projects/MilestonePage";
 import DrawingsPage from "./pages/projects/DrawingsPage";
 import RFIsPage from "./pages/projects/RFIsPage";
@@ -176,6 +177,7 @@ export default function App() {
             <Route path="procurement/purchase-orders" element={<PurchaseOrders />} />
             <Route path="procurement/grns" element={<GoodsReceivedNotes />} />
             <Route path="projects" element={<ProjectsDashboard />} />
+            <Route path="projects/categories" element={<ProjectCategories />} />
             <Route path="projects/clients" element={<ClientsPage />} />
             <Route path="projects/:id" element={<ProjectDetail />} />
             <Route path="projects/:id/wbs" element={<WBSPage />} />

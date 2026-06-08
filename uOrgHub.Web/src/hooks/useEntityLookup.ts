@@ -10,6 +10,7 @@ import {
 } from "../api/hr";
 import { getChartOfAccounts, getAccountGroups, getCostCenters, getCustomers, getVendors, getFiscalYears, getBankAccounts } from "../api/accounts";
 import { getInventoryTypes, getInventoryCategories, getUnitsOfMeasure, getWarehouses } from "../api/inventory";
+import { getProjectCategories } from "../api/projects";
 
 type OptionMapper<T> = (item: T) => SelectOption;
 
@@ -241,6 +242,25 @@ export function useUnitOfMeasureLookup() {
       value: u.id,
       label: `${u.name} (${u.abbreviation ?? ""})`,
       searchText: `${u.name} ${u.abbreviation ?? ""}`,
+    })),
+    [query.data],
+  );
+  return { options, isLoading: query.isLoading };
+}
+
+// --- Projects Lookups ---
+
+export function useProjectCategoryLookup() {
+  const query = useQuery({
+    queryKey: ["project-categories"],
+    queryFn: () => getProjectCategories({ page: 1, pageSize: 200 }),
+    staleTime: 60000,
+  });
+  const options = useMemo(
+    () => toOptions(query.data?.data?.data?.items, (c) => ({
+      value: c.id,
+      label: `${c.code} — ${c.name}`,
+      searchText: `${c.name} ${c.code}`,
     })),
     [query.data],
   );

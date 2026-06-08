@@ -29,6 +29,8 @@ export interface ProjectCategory {
   name: string;
   code: string;
   description?: string;
+  isActive: boolean;
+  createdAt: string;
 }
 
 export interface ProjectDashboard {
@@ -239,7 +241,19 @@ export const getProjectProgress = (projectId: string) =>
   apiClient.get<ApiResponse<ProjectProgress>>(`/projects/${projectId}/progress`);
 
 export const getProjectCategories = (params: PaginationRequest) =>
-  apiClient.get<ApiResponse<PagedResult<ProjectCategory>>>("/projects/categories", { params });
+  apiClient.get<ApiResponse<PagedResult<ProjectCategory>>>("/projectcategories", { params });
+
+export const getProjectCategoryById = (id: string) =>
+  apiClient.get<ApiResponse<ProjectCategory>>(`/projectcategories/${id}`);
+
+export const createProjectCategory = (data: { name: string; code: string; description?: string }) =>
+  apiClient.post<ApiResponse<ProjectCategory>>("/projectcategories", data);
+
+export const updateProjectCategory = (id: string, data: { name: string; code: string; description?: string; isActive: boolean }) =>
+  apiClient.put<ApiResponse<ProjectCategory>>(`/projectcategories/${id}`, data);
+
+export const deleteProjectCategory = (id: string) =>
+  apiClient.delete<ApiResponse<null>>(`/projectcategories/${id}`);
 
 export const getProjectByIdWithDetails = (id: string) =>
   apiClient.get<ApiResponse<Project>>(`/projects/${id}/details`);

@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect, useMemo } from "react";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { AxiosError } from "axios";
-import { createProject, updateProject, Project } from "../../api/projects";
+import { createProject, updateProject, getProjectCategories, Project } from "../../api/projects";
 import SearchableDropdown from "../../components/shared/SearchableDropdown";
 
 interface ProjectFormProps {
@@ -29,6 +29,16 @@ export default function ProjectForm({ project, onClose }: ProjectFormProps) {
 
   const clientOptions = [{ value: "1", label: "Client 1" }];
   const pmOptions = [{ value: "1", label: "PM 1" }];
+
+  const { data: catData, isLoading: catLoading } = useQuery({
+    queryKey: ["project-categories"],
+    queryFn: () => getProjectCategories({ page: 1, pageSize: 200 }),
+    staleTime: 60000,
+  });
+  const categoryOptions = useMemo(
+    () => (catData?.data?.data?.items ?? []).map((c) => ({ value: c.id, label: `${c.code} — ${c.name}` })),
+    [catData],
+  );
 
   useEffect(() => {
     if (project) {
@@ -98,18 +108,7 @@ export default function ProjectForm({ project, onClose }: ProjectFormProps) {
           <SearchableDropdown label="Client *" options={clientOptions} value={form.clientId} onChange={(v) => setForm((f) => ({ ...f, clientId: v ?? "" }))} placeholder="Select Client" searchPlaceholder="Search clients..." required />
         </div>
         <div>
-          <label className="text-xs text-gray-500 mb-1 block">Category *</label>
-          <select
-            name="categoryId"
-            value={form.categoryId}
-            onChange={handleChange}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
-          >
-            <option value="">Select Category</option>
-            <option value="1">Building</option>
-            <option value="2">Infrastructure</option>
-            <option value="3">Industrial</option>
-          </select>
+          <SearchableDropdown label="Category *" options={categoryOptions} value={form.categoryId} onChange={(v) => setForm((f) => ({ ...f, categoryId: v ?? "" }))} placeholder="Select Category" searchPlaceholder="Search categories..." loading={catLoading} required />
         </div>
       </div>
 
