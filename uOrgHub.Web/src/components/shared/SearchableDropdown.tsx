@@ -66,12 +66,11 @@ export default function SearchableDropdown({
 
   const showCreate = creatable && search.trim() && !filtered.some((o) => o.label.toLowerCase() === search.trim().toLowerCase());
 
-  useEffect(() => {
-    if (!open) {
-      setSearch("");
-      setHighlightedIndex(-1);
-    }
-  }, [open]);
+  const close = useCallback(() => {
+    setOpen(false);
+    setSearch("");
+    setHighlightedIndex(-1);
+  }, []);
 
   useEffect(() => {
     if (open && searchInputRef.current) {
@@ -82,19 +81,19 @@ export default function SearchableDropdown({
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
+        close();
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [close]);
 
   const handleSelect = useCallback(
     (optionValue: string | undefined) => {
       onChange(optionValue);
-      setOpen(false);
+      close();
     },
-    [onChange],
+    [onChange, close],
   );
 
   const handleClear = useCallback(
@@ -139,14 +138,14 @@ export default function SearchableDropdown({
           break;
         case "Escape":
           e.preventDefault();
-          setOpen(false);
+          close();
           break;
         case "Tab":
-          setOpen(false);
+          close();
           break;
       }
     },
-    [open, filtered, showCreate, search, highlightedIndex, handleSelect, onCreate],
+    [open, filtered, showCreate, search, highlightedIndex, handleSelect, onCreate, close],
   );
 
   useEffect(() => {
@@ -240,7 +239,7 @@ export default function SearchableDropdown({
                 <button
                   type="button"
                   onMouseEnter={() => setHighlightedIndex(filtered.length)}
-                  onClick={() => { onCreate?.(search); setOpen(false); }}
+                  onClick={() => { onCreate?.(search); close(); }}
                   className={`w-full text-left px-3 py-2 text-sm transition-colors border-t border-dashed border-gray-200 ${
                     highlightedIndex === filtered.length ? "bg-primary-50 text-primary-700" : "text-gray-500 hover:bg-gray-50"
                   }`}
