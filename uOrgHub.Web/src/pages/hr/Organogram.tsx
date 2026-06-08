@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   ZoomIn,
@@ -19,6 +19,7 @@ import { getOrganogram, getAllDepartments, getAllDesignations, getEmployeeById }
 import OrganogramTree from "../../components/shared/OrganogramTree";
 import Modal from "../../components/shared/Modal";
 import Avatar from "../../components/shared/Avatar";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
 
 import type { OrganogramNode, Employee } from "../../api/hr";
 
@@ -54,6 +55,14 @@ export default function Organogram() {
   });
 
   const nodes = orgData?.data?.data ?? [];
+  const deptOptions = useMemo(
+    () => (deptData?.data?.data ?? []).map((d: { id: string; name: string }) => ({ value: d.id, label: d.name })),
+    [deptData],
+  );
+  const desigOptions = useMemo(
+    () => (desigData?.data?.data ?? []).map((d: { id: string; name: string }) => ({ value: d.id, label: d.name })),
+    [desigData],
+  );
 
   // Flatten all nodes for search
   const flattenNodes = useCallback((items: typeof nodes): OrganogramNode[] => {
@@ -179,29 +188,25 @@ export default function Organogram() {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 text-sm">
             <Building2 size={15} className="text-gray-400 shrink-0" />
-            <select
+            <SearchableDropdown
+              options={deptOptions}
               value={deptFilter}
-              onChange={(e) => setDeptFilter(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
-            >
-              <option value="">All Departments</option>
-              {(deptData?.data?.data ?? []).map((d: { id: string; name: string }) => (
-                <option key={d.id} value={d.id}>{d.name}</option>
-              ))}
-            </select>
+              onChange={(v) => setDeptFilter(v ?? "")}
+              placeholder="All Departments"
+              searchPlaceholder="Search departments..."
+              className="min-w-[180px]"
+            />
           </div>
           <div className="flex items-center gap-2 text-sm">
             <Briefcase size={15} className="text-gray-400 shrink-0" />
-            <select
+            <SearchableDropdown
+              options={desigOptions}
               value={desigFilter}
-              onChange={(e) => setDesigFilter(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
-            >
-              <option value="">All Designations</option>
-              {(desigData?.data?.data ?? []).map((d: { id: string; name: string }) => (
-                <option key={d.id} value={d.id}>{d.name}</option>
-              ))}
-            </select>
+              onChange={(v) => setDesigFilter(v ?? "")}
+              placeholder="All Designations"
+              searchPlaceholder="Search designations..."
+              className="min-w-[180px]"
+            />
           </div>
 
           {highlightedId && (

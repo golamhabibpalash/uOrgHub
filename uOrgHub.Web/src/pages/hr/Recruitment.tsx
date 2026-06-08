@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import DataGrid from "../../components/shared/DataGrid";
@@ -44,6 +44,19 @@ export default function Recruitment() {
   const candidates = candidatesData?.data?.data?.items ?? [];
   const applications = appsData?.data?.data?.items ?? [];
   const interviews = interviewsData?.data?.data?.items ?? [];
+
+  const candidateOptions = useMemo(
+    () => candidates.map((c) => ({ value: c.id, label: `${c.firstName} ${c.lastName}` })),
+    [candidates],
+  );
+  const postingOptions = useMemo(
+    () => postings.filter((p) => p.status === "Published").map((p) => ({ value: p.id, label: p.title })),
+    [postings],
+  );
+  const applicationOptions = useMemo(
+    () => applications.map((a) => ({ value: a.id, label: `${a.candidateName} - ${a.jobTitle}` })),
+    [applications],
+  );
 
   const postingMutation = useMutation({ mutationFn: () => createJobPosting(postingForm), onSuccess: () => { qc.invalidateQueries({ queryKey: ["job-postings"] }); setModal(false); } });
   const candidateMutation = useMutation({ mutationFn: () => createCandidate(candidateForm), onSuccess: () => { qc.invalidateQueries({ queryKey: ["candidates"] }); setModal(false); } });
@@ -184,14 +197,14 @@ export default function Recruitment() {
         )}
         {activeTab === "applications" && (
           <div className="space-y-3">
-            <div><label className="text-xs text-gray-500 mb-1 block">Candidate</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={appForm.candidateId} onChange={e => setAppForm(f => ({ ...f, candidateId: e.target.value }))}><option value="">Select</option>{candidates.map(c => <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>)}</select></div>
-            <div><label className="text-xs text-gray-500 mb-1 block">Job Posting</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={appForm.jobPostingId} onChange={e => setAppForm(f => ({ ...f, jobPostingId: e.target.value }))}><option value="">Select</option>{postings.filter(p => p.status === "Published").map(p => <option key={p.id} value={p.id}>{p.title}</option>)}</select></div>
+            <div><SearchableDropdown label="Candidate" options={candidateOptions} value={appForm.candidateId} onChange={v => setAppForm(f => ({ ...f, candidateId: v ?? "" }))} placeholder="Select" searchPlaceholder="Search candidates..." required /></div>
+            <div><SearchableDropdown label="Job Posting" options={postingOptions} value={appForm.jobPostingId} onChange={v => setAppForm(f => ({ ...f, jobPostingId: v ?? "" }))} placeholder="Select" searchPlaceholder="Search postings..." required /></div>
             <div className="flex justify-end gap-2 pt-2"><button onClick={() => setModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button><button onClick={() => appMutation.mutate()} disabled={appMutation.isPending} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">{appMutation.isPending ? "Submitting..." : "Submit"}</button></div>
           </div>
         )}
         {activeTab === "interviews" && (
           <div className="space-y-3">
-            <div><label className="text-xs text-gray-500 mb-1 block">Application</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={interviewForm.applicationId} onChange={e => setInterviewForm(f => ({ ...f, applicationId: e.target.value }))}><option value="">Select</option>{applications.map(a => <option key={a.id} value={a.id}>{a.candidateName} - {a.jobTitle}</option>)}</select></div>
+            <div><SearchableDropdown label="Application" options={applicationOptions} value={interviewForm.applicationId} onChange={v => setInterviewForm(f => ({ ...f, applicationId: v ?? "" }))} placeholder="Select" searchPlaceholder="Search applications..." required /></div>
             <div className="grid grid-cols-2 gap-3"><div><label className="text-xs text-gray-500 mb-1 block">Date/Time</label><input type="datetime-local" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={interviewForm.scheduledAt} onChange={e => setInterviewForm(f => ({ ...f, scheduledAt: e.target.value }))} /></div><div><label className="text-xs text-gray-500 mb-1 block">Location</label><input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={interviewForm.location} onChange={e => setInterviewForm(f => ({ ...f, location: e.target.value }))} /></div></div>
             <div className="flex justify-end gap-2 pt-2"><button onClick={() => setModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button><button onClick={() => interviewMutation.mutate()} disabled={interviewMutation.isPending} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">{interviewMutation.isPending ? "Scheduling..." : "Schedule"}</button></div>
           </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import DataGrid from "../../components/shared/DataGrid";
@@ -50,6 +50,15 @@ export default function PerformanceManagement() {
   const reviews = reviewsData?.data?.data?.items ?? [];
   const programs = programsData?.data?.data?.items ?? [];
   const empTrainings = empTrainingsData?.data?.data?.items ?? [];
+
+  const cycleOptions = useMemo(
+    () => cycles.map((c) => ({ value: c.id, label: c.name })),
+    [cycles],
+  );
+  const programOptions = useMemo(
+    () => programs.map((p) => ({ value: p.id, label: p.title })),
+    [programs],
+  );
 
   const cycleMutation = useMutation({ mutationFn: () => createReviewCycle(cycleForm), onSuccess: () => { qc.invalidateQueries({ queryKey: ["review-cycles"] }); setModal(false); } });
   const goalMutation = useMutation({ mutationFn: () => createGoal(goalForm), onSuccess: () => { qc.invalidateQueries({ queryKey: ["goals"] }); setModal(false); } });
@@ -241,14 +250,14 @@ export default function PerformanceManagement() {
           <div className="space-y-3">
             <div><SearchableDropdown label="Employee" options={empOptions} value={reviewForm.employeeId} onChange={v => setReviewForm(f => ({ ...f, employeeId: v || "" }))} placeholder="Select" searchPlaceholder="Search employee..." loading={empLoading} required /></div>
             <div><SearchableDropdown label="Reviewer" options={empOptions} value={reviewForm.reviewerId} onChange={v => setReviewForm(f => ({ ...f, reviewerId: v || "" }))} placeholder="Select" searchPlaceholder="Search employee..." loading={empLoading} required /></div>
-            <div><label className="text-xs text-gray-500 mb-1 block">Review Cycle</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={reviewForm.reviewCycleId} onChange={e => setReviewForm(f => ({ ...f, reviewCycleId: e.target.value }))}><option value="">Select</option>{cycles.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+            <div><SearchableDropdown label="Review Cycle" options={cycleOptions} value={reviewForm.reviewCycleId} onChange={v => setReviewForm(f => ({ ...f, reviewCycleId: v ?? "" }))} placeholder="Select" searchPlaceholder="Search cycles..." /></div>
             <div className="flex justify-end gap-2 pt-2"><button onClick={() => setModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button><button onClick={() => reviewMutation.mutate()} disabled={reviewMutation.isPending} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">{reviewMutation.isPending ? "Saving..." : "Save"}</button></div>
           </div>
         )}
         {activeTab === "training" && trainingMode === "enroll" && (
           <div className="space-y-3">
             <div><SearchableDropdown label="Employee" options={empOptions} value={trainingForm.employeeId} onChange={v => setTrainingForm(f => ({ ...f, employeeId: v || "" }))} placeholder="Select" searchPlaceholder="Search employee..." loading={empLoading} required /></div>
-            <div><label className="text-xs text-gray-500 mb-1 block">Training Program</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={trainingForm.trainingProgramId} onChange={e => setTrainingForm(f => ({ ...f, trainingProgramId: e.target.value }))}><option value="">Select</option>{programs.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}</select></div>
+            <div><SearchableDropdown label="Training Program" options={programOptions} value={trainingForm.trainingProgramId} onChange={v => setTrainingForm(f => ({ ...f, trainingProgramId: v ?? "" }))} placeholder="Select" searchPlaceholder="Search programs..." /></div>
             <div className="flex justify-end gap-2 pt-2"><button onClick={() => setModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button><button onClick={handleEnroll} disabled={enrollMutation.isPending || !trainingForm.employeeId || !trainingForm.trainingProgramId} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">{enrollMutation.isPending ? "Enrolling..." : "Enroll"}</button></div>
           </div>
         )}
