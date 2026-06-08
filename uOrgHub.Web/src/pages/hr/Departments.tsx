@@ -8,9 +8,10 @@ import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
 import ConfirmDialog from "../../components/shared/ConfirmDialog";
 import ExportMenu from "../../components/shared/ExportMenu";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
+import { useDepartmentLookup } from "../../hooks/useEntityLookup";
 import {
   getDepartments,
-  getAllDepartments,
   createDepartment,
   updateDepartment,
   deleteDepartment,
@@ -32,18 +33,14 @@ export default function Departments() {
     queryFn: () => getDepartments(dg.queryParams),
   });
 
-  const { data: allDeptData } = useQuery({
-    queryKey: ["departments-all"],
-    queryFn: () => getAllDepartments(),
-  });
+  const { options: deptOptions } = useDepartmentLookup();
 
   const departments = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
   const totalCount = data?.data?.data?.totalCount ?? 0;
-  const allDepartments = allDeptData?.data?.data ?? [];
 
-  const parentOptions = allDepartments.filter((d) =>
-    editing ? d.id !== editing.id : true
+  const parentOptions = deptOptions.filter((d) =>
+    editing ? d.value !== editing.id : true
   );
 
   function extractApiError(err: unknown): string {
@@ -231,25 +228,15 @@ export default function Departments() {
               onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))}
             />
           </div>
-          <div>
-            <label className="text-xs text-gray-500 mb-1 block">
-              Parent Department
-            </label>
-            <select
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
-              value={form.parentDepartmentId}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, parentDepartmentId: e.target.value }))
-              }
-            >
-              <option value="">None (Top-Level Department)</option>
-              {parentOptions.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <SearchableDropdown
+            label="Parent Department"
+            options={parentOptions}
+            value={form.parentDepartmentId || undefined}
+            onChange={(v) => setForm((f) => ({ ...f, parentDepartmentId: v ?? "" }))}
+            placeholder="None (Top-Level Department)"
+            searchPlaceholder="Search departments..."
+            clearable
+          />
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Status</label>
             <div className="flex items-center gap-3">

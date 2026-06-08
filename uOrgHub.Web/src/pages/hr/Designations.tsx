@@ -7,17 +7,16 @@ import DataGrid from "../../components/shared/DataGrid";
 import Modal from "../../components/shared/Modal";
 import ConfirmDialog from "../../components/shared/ConfirmDialog";
 import ExportMenu from "../../components/shared/ExportMenu";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
 import { useDataGrid } from "../../hooks/useDataGrid";
+import { useDepartmentLookup, useDesignationLookup, useSalaryGradeLookup } from "../../hooks/useEntityLookup";
 import {
   getDesignations,
-  getAllDesignations,
   createDesignation,
   updateDesignation,
   deleteDesignation,
   getDesignationDependencies,
   Designation,
-  getDepartments,
-  getAllSalaryGrades,
 } from "../../api/hr";
 
 export default function Designations() {
@@ -34,30 +33,16 @@ export default function Designations() {
     queryFn: () => getDesignations(dg.queryParams, deptFilter || undefined),
   });
 
-  const { data: deptData } = useQuery({
-    queryKey: ["departments-all"],
-    queryFn: () => getDepartments({ page: 1, pageSize: 100 }),
-  });
-
-  const { data: allDesigData } = useQuery({
-    queryKey: ["designations-all"],
-    queryFn: () => getAllDesignations(),
-  });
-
-  const { data: salaryGradeData } = useQuery({
-    queryKey: ["salary-grades-all"],
-    queryFn: () => getAllSalaryGrades(),
-  });
+  const { options: deptOptions, isLoading: deptLoading } = useDepartmentLookup();
+  const { options: desigOptions } = useDesignationLookup();
+  const { options: sgOptions } = useSalaryGradeLookup();
 
   const items = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
   const totalCount = data?.data?.data?.totalCount ?? 0;
-  const departments = deptData?.data?.data?.items ?? [];
-  const allDesignations = allDesigData?.data?.data ?? [];
-  const salaryGrades = salaryGradeData?.data?.data ?? [];
 
-  const parentOptions = allDesignations.filter((d) =>
-    editing ? d.id !== editing.id : true
+  const parentOptions = desigOptions.filter((d) =>
+    editing ? d.value !== editing.id : true
   );
 
   const saveMutation = useMutation({
@@ -224,16 +209,16 @@ export default function Designations() {
         onDelete={(row) => handleDeleteClick(row)}
         emptyMessage="No designations found"
         toolbarPrefix={
-          <select
-            value={deptFilter}
-            onChange={(e) => { setDeptFilter(e.target.value); dg.setPage(1); }}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          >
-            <option value="">All Departments</option>
-            {departments.map((d) => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
-          </select>
+          <SearchableDropdown
+            options={deptOptions}
+            value={deptFilter || undefined}
+            onChange={(v) => { setDeptFilter(v ?? ""); dg.setPage(1); }}
+            placeholder="All Departments"
+            searchPlaceholder="Search departments..."
+            clearable
+            loading={deptLoading}
+            className="w-48"
+          />
         }
         actions={<ExportMenu baseUrl="designations" filters={{ search: dg.search || undefined, departmentId: deptFilter || undefined }} />}
       />
@@ -260,19 +245,16 @@ export default function Designations() {
               onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))}
             />
           </div>
-          <div>
-            <label className="text-xs text-gray-500 mb-1 block">Department *</label>
-            <select
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
-              value={form.departmentId}
-              onChange={(e) => setForm((f) => ({ ...f, departmentId: e.target.value }))}
-            >
-              <option value="">Select Department</option>
-              {departments.map((d) => (
-                <option key={d.id} value={d.id}>{d.name}</option>
-              ))}
-            </select>
-          </div>
+          <SearchableDropdown
+            label="Department"
+            required
+            options={deptOptions}
+            value={form.departmentId || undefined}
+            onChange={(v) => setForm((f) => ({ ...f, departmentId: v ?? "" }))}
+            placeholder="Select Department"
+            searchPlaceholder="Search departments..."
+            loading={deptLoading}
+          />
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Level *</label>
             <input
@@ -283,36 +265,24 @@ export default function Designations() {
               onChange={(e) => setForm((f) => ({ ...f, level: parseInt(e.target.value) || 1 }))}
             />
           </div>
-          <div>
-            <label className="text-xs text-gray-500 mb-1 block">Parent Designation</label>
-            <select
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
-              value={form.parentDesignationId}
-              onChange={(e) => setForm((f) => ({ ...f, parentDesignationId: e.target.value }))}
-            >
-              <option value="">None (Top-Level Designation)</option>
-              {parentOptions.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs text-gray-500 mb-1 block">Salary Grade</label>
-            <select
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
-              value={form.salaryGradeId}
-              onChange={(e) => setForm((f) => ({ ...f, salaryGradeId: e.target.value }))}
-            >
-              <option value="">None</option>
-              {salaryGrades.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.gradeCode} — {g.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <SearchableDropdown
+            label="Parent Designation"
+            options={parentOptions}
+            value={form.parentDesignationId || undefined}
+            onChange={(v) => setForm((f) => ({ ...f, parentDesignationId: v ?? "" }))}
+            placeholder="None (Top-Level Designation)"
+            searchPlaceholder="Search designations..."
+            clearable
+          />
+          <SearchableDropdown
+            label="Salary Grade"
+            options={sgOptions}
+            value={form.salaryGradeId || undefined}
+            onChange={(v) => setForm((f) => ({ ...f, salaryGradeId: v ?? "" }))}
+            placeholder="None"
+            searchPlaceholder="Search salary grades..."
+            clearable
+          />
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Status</label>
             <div className="flex items-center gap-3">
