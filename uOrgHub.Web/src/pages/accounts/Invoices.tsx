@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Send, XCircle, ChevronDown, ChevronUp } from "lucide-react";
 import Pagination from "../../components/shared/Pagination";
@@ -61,6 +61,10 @@ export default function Invoices() {
   const invoices = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
   const taxRates = taxRatesData?.data?.data?.items ?? [];
+  const taxRateOptions = useMemo(
+    () => taxRates.map((t) => ({ value: t.id, label: t.code })),
+    [taxRates],
+  );
   const [saveError, setSaveError] = useState("");
 
   const createMutation = useMutation({
@@ -337,10 +341,7 @@ export default function Invoices() {
                         <input type="number" min={0} max={100} className="w-12 border border-gray-200 rounded px-1 py-1 text-xs text-right focus:outline-none" value={line.discountPercent || ""} onChange={(e) => updateLine(idx, "discountPercent", parseFloat(e.target.value) || 0)} />
                       </td>
                       <td className="px-2 py-1">
-                        <select className="w-20 border border-gray-200 rounded px-1 py-1 text-xs focus:outline-none" value={line.taxRateId} onChange={(e) => updateLine(idx, "taxRateId", e.target.value)}>
-                          <option value="">None</option>
-                          {taxRates.map((t) => <option key={t.id} value={t.id}>{t.code}</option>)}
-                        </select>
+                        <SearchableDropdown options={taxRateOptions} value={line.taxRateId} onChange={(v) => updateLine(idx, "taxRateId", v ?? "")} placeholder="None" searchPlaceholder="Search tax rates..." className="w-20" />
                       </td>
                       <td className="px-2 py-1">
                         <SearchableDropdown
