@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, ArrowLeft } from "lucide-react";
 import Modal from "../../components/shared/Modal";
 import ProjectNav from "../../components/projects/ProjectNav";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
 import {
   getExpenses,
   createExpense,
@@ -25,6 +26,8 @@ export default function ExpensePage() {
     invoiceNumber: "",
     notes: "",
   });
+
+  const vendorOptions = [{ value: "1", label: "Vendor 1" }];
 
   const { data: budgetData } = useQuery({
     queryKey: ["projectBudget", projectId],
@@ -285,15 +288,7 @@ export default function ExpensePage() {
             </div>
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Vendor</label>
-            <select
-              value={form.vendorId}
-              onChange={(e) => setForm((f) => ({ ...f, vendorId: e.target.value }))}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
-            >
-              <option value="">Select Vendor</option>
-              <option value="1">Vendor 1</option>
-            </select>
+            <SearchableDropdown label="Vendor" options={vendorOptions} value={form.vendorId} onChange={(v) => setForm((f) => ({ ...f, vendorId: v ?? "" }))} placeholder="Select Vendor" searchPlaceholder="Search vendors..." />
           </div>
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Notes</label>

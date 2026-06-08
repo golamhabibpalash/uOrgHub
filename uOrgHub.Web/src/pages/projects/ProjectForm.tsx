@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { createProject, updateProject, Project } from "../../api/projects";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
 
 interface ProjectFormProps {
   project: Project | null;
@@ -25,6 +26,9 @@ export default function ProjectForm({ project, onClose }: ProjectFormProps) {
     priority: "Medium",
     description: "",
   });
+
+  const clientOptions = [{ value: "1", label: "Client 1" }];
+  const pmOptions = [{ value: "1", label: "PM 1" }];
 
   useEffect(() => {
     if (project) {
@@ -91,16 +95,7 @@ export default function ProjectForm({ project, onClose }: ProjectFormProps) {
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-xs text-gray-500 mb-1 block">Client *</label>
-          <select
-            name="clientId"
-            value={form.clientId}
-            onChange={handleChange}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
-          >
-            <option value="">Select Client</option>
-            <option value="1">Client 1</option>
-          </select>
+          <SearchableDropdown label="Client *" options={clientOptions} value={form.clientId} onChange={(v) => setForm((f) => ({ ...f, clientId: v ?? "" }))} placeholder="Select Client" searchPlaceholder="Search clients..." required />
         </div>
         <div>
           <label className="text-xs text-gray-500 mb-1 block">Category *</label>
@@ -120,18 +115,7 @@ export default function ProjectForm({ project, onClose }: ProjectFormProps) {
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-xs text-gray-500 mb-1 block">
-            Project Manager *
-          </label>
-          <select
-            name="projectManagerId"
-            value={form.projectManagerId}
-            onChange={handleChange}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
-          >
-            <option value="">Select PM</option>
-            <option value="1">PM 1</option>
-          </select>
+          <SearchableDropdown label="Project Manager *" options={pmOptions} value={form.projectManagerId} onChange={(v) => setForm((f) => ({ ...f, projectManagerId: v ?? "" }))} placeholder="Select PM" searchPlaceholder="Search employees..." required />
         </div>
         <div>
           <label className="text-xs text-gray-500 mb-1 block">

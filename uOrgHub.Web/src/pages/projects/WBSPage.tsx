@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, ArrowLeft, ChevronDown, ChevronRight } from "lucide-react";
 import Modal from "../../components/shared/Modal";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
 import ProjectNav from "../../components/projects/ProjectNav";
 import { getWBSList, createWBS, updateWBS, deleteWBS, updateWBSCompletion, WBS } from "../../api/projects";
 
@@ -28,6 +29,11 @@ export default function WBSPage() {
   });
 
   const wbsList = data?.data?.data ?? [];
+
+  const wbsParentOptions = useMemo(
+    () => wbsList.filter((w) => w.id !== editing?.id).map((w) => ({ value: w.id, label: `${w.wbsCode} - ${w.title}` })),
+    [wbsList, editing],
+  );
 
   const saveMutation = useMutation({
     mutationFn: () =>
@@ -299,19 +305,7 @@ export default function WBSPage() {
             />
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Parent WBS</label>
-            <select
-              value={form.parentWbsId}
-              onChange={(e) => setForm((f) => ({ ...f, parentWbsId: e.target.value }))}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
-            >
-              <option value="">No Parent</option>
-              {wbsList.map((w) => (
-                <option key={w.id} value={w.id}>
-                  {w.wbsCode} - {w.title}
-                </option>
-              ))}
-            </select>
+            <SearchableDropdown label="Parent WBS" options={wbsParentOptions} value={form.parentWbsId} onChange={(v) => setForm((f) => ({ ...f, parentWbsId: v ?? "" }))} placeholder="No Parent" searchPlaceholder="Search WBS..." clearable />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>

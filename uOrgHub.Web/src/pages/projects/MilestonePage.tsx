@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, ArrowLeft } from "lucide-react";
 import Modal from "../../components/shared/Modal";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
 import ProjectNav from "../../components/projects/ProjectNav";
 import { getMilestones, createMilestone, updateMilestone, deleteMilestone, Milestone } from "../../api/projects";
 
@@ -71,6 +72,8 @@ export default function MilestonePage() {
     setModal(false);
     setEditing(null);
   }
+
+  const wbsOptions: { value: string; label: string }[] = [];
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
@@ -238,14 +241,7 @@ export default function MilestonePage() {
             />
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">WBS</label>
-            <select
-              value={form.wbsId}
-              onChange={(e) => setForm((f) => ({ ...f, wbsId: e.target.value }))}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
-            >
-              <option value="">Select WBS</option>
-            </select>
+            <SearchableDropdown label="WBS" options={wbsOptions} value={form.wbsId} onChange={(v) => setForm((f) => ({ ...f, wbsId: v ?? "" }))} placeholder="Select WBS" searchPlaceholder="Search WBS..." />
           </div>
           <div className="flex items-center gap-2">
             <input
