@@ -5,12 +5,13 @@ import DataGrid from "../../components/shared/DataGrid";
 import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
+import { useChartOfAccountsLookup } from "../../hooks/useEntityLookup";
 import {
   getVendors,
   createVendor,
   updateVendor,
   deleteVendor,
-  getChartOfAccounts,
   Vendor,
 } from "../../api/accounts";
 
@@ -38,15 +39,11 @@ export default function Vendors() {
     queryFn: () => getVendors(dg.queryParams),
   });
 
-  const { data: accountsData } = useQuery({
-    queryKey: ["chart-of-accounts", 1, ""],
-    queryFn: () => getChartOfAccounts({ page: 1, pageSize: 200 }),
-  });
+  const { options: coaOptions } = useChartOfAccountsLookup();
 
   const vendors = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
   const totalCount = data?.data?.data?.totalCount ?? 0;
-  const coaAccounts = accountsData?.data?.data?.items ?? [];
   const [saveError, setSaveError] = useState("");
 
   const saveMutation = useMutation({
@@ -68,7 +65,7 @@ export default function Vendors() {
 
   function openAdd() {
     setEditing(null);
-    setForm({ vendorCode: "", name: "", contactPerson: "", email: "", phone: "", address: "", tin: "", bin: "", paymentTermsDays: 30, payableAccountId: coaAccounts[0]?.id ?? "", isActive: true });
+    setForm({ vendorCode: "", name: "", contactPerson: "", email: "", phone: "", address: "", tin: "", bin: "", paymentTermsDays: 30, payableAccountId: coaOptions[0]?.value ?? "", isActive: true });
     setSaveError("");
     setModal(true);
   }
@@ -189,11 +186,15 @@ export default function Vendors() {
             <input type="number" min={0} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.paymentTermsDays} onChange={(e) => setForm((f) => ({ ...f, paymentTermsDays: parseInt(e.target.value) || 0 }))} />
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Payable Account *</label>
-            <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.payableAccountId} onChange={(e) => setForm((f) => ({ ...f, payableAccountId: e.target.value }))}>
-              <option value="">Select account</option>
-              {coaAccounts.map((a) => <option key={a.id} value={a.id}>{a.accountCode} — {a.accountName}</option>)}
-            </select>
+            <SearchableDropdown
+              label="Payable Account *"
+              options={coaOptions}
+              value={form.payableAccountId}
+              onChange={(v) => setForm((f) => ({ ...f, payableAccountId: v ?? "" }))}
+              placeholder="Select account"
+              searchPlaceholder="Search accounts..."
+              required
+            />
           </div>
           {editing && (
             <div className="flex items-center gap-2">

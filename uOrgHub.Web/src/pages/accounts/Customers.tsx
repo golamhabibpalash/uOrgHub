@@ -5,12 +5,13 @@ import DataGrid from "../../components/shared/DataGrid";
 import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
+import { useChartOfAccountsLookup } from "../../hooks/useEntityLookup";
 import {
   getCustomers,
   createCustomer,
   updateCustomer,
   deleteCustomer,
-  getChartOfAccounts,
   Customer,
 } from "../../api/accounts";
 
@@ -39,15 +40,11 @@ export default function Customers() {
     queryFn: () => getCustomers(dg.queryParams),
   });
 
-  const { data: accountsData } = useQuery({
-    queryKey: ["chart-of-accounts", 1, ""],
-    queryFn: () => getChartOfAccounts({ page: 1, pageSize: 200 }),
-  });
+  const { options: coaOptions } = useChartOfAccountsLookup();
 
   const customers = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
   const totalCount = data?.data?.data?.totalCount ?? 0;
-  const coaAccounts = accountsData?.data?.data?.items ?? [];
   const [saveError, setSaveError] = useState("");
 
   const saveMutation = useMutation({
@@ -69,7 +66,7 @@ export default function Customers() {
 
   function openAdd() {
     setEditing(null);
-    setForm({ customerCode: "", name: "", contactPerson: "", email: "", phone: "", address: "", tin: "", bin: "", creditLimit: 0, paymentTermsDays: 30, receivableAccountId: coaAccounts[0]?.id ?? "", isActive: true });
+    setForm({ customerCode: "", name: "", contactPerson: "", email: "", phone: "", address: "", tin: "", bin: "", creditLimit: 0, paymentTermsDays: 30, receivableAccountId: coaOptions[0]?.value ?? "", isActive: true });
     setSaveError("");
     setModal(true);
   }
@@ -201,11 +198,15 @@ export default function Customers() {
             </div>
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Receivable Account *</label>
-            <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.receivableAccountId} onChange={(e) => setForm((f) => ({ ...f, receivableAccountId: e.target.value }))}>
-              <option value="">Select account</option>
-              {coaAccounts.map((a) => <option key={a.id} value={a.id}>{a.accountCode} — {a.accountName}</option>)}
-            </select>
+            <SearchableDropdown
+              label="Receivable Account *"
+              options={coaOptions}
+              value={form.receivableAccountId}
+              onChange={(v) => setForm((f) => ({ ...f, receivableAccountId: v ?? "" }))}
+              placeholder="Select account"
+              searchPlaceholder="Search accounts..."
+              required
+            />
           </div>
           {editing && (
             <div className="flex items-center gap-2">

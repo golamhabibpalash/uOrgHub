@@ -5,9 +5,10 @@ import DataGrid from "../../components/shared/DataGrid";
 import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
+import { useAccountGroupLookup } from "../../hooks/useEntityLookup";
 import {
   getChartOfAccounts,
-  getAccountGroups,
   createChartOfAccount,
   updateChartOfAccount,
   deleteChartOfAccount,
@@ -44,15 +45,11 @@ export default function ChartOfAccounts() {
     queryFn: () => getChartOfAccounts(dg.queryParams),
   });
 
-  const { data: groupsData } = useQuery({
-    queryKey: ["account-groups", 1, ""],
-    queryFn: () => getAccountGroups({ page: 1, pageSize: 100 }),
-  });
+  const { options: groupOptions } = useAccountGroupLookup();
 
   const accounts = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
   const totalCount = data?.data?.data?.totalCount ?? 0;
-  const groups = groupsData?.data?.data?.items ?? [];
   const [saveError, setSaveError] = useState("");
 
   const saveMutation = useMutation({
@@ -74,7 +71,7 @@ export default function ChartOfAccounts() {
 
   function openAdd() {
     setEditing(null);
-    setForm({ accountCode: "", accountName: "", accountGroupId: groups[0]?.id ?? "", accountType: "Asset", openingBalance: 0, description: "", allowDirectEntry: true, isActive: true });
+    setForm({ accountCode: "", accountName: "", accountGroupId: groupOptions[0]?.value ?? "", accountType: "Asset", openingBalance: 0, description: "", allowDirectEntry: true, isActive: true });
     setSaveError("");
     setModal(true);
   }
@@ -180,11 +177,15 @@ export default function ChartOfAccounts() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Account Group *</label>
-              <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.accountGroupId} onChange={(e) => setForm((f) => ({ ...f, accountGroupId: e.target.value }))}>
-                <option value="">Select group</option>
-                {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
-              </select>
+              <SearchableDropdown
+                label="Account Group *"
+                options={groupOptions}
+                value={form.accountGroupId}
+                onChange={(v) => setForm((f) => ({ ...f, accountGroupId: v ?? "" }))}
+                placeholder="Select group"
+                searchPlaceholder="Search groups..."
+                required
+              />
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Account Type *</label>

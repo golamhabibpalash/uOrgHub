@@ -3,6 +3,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, CheckCircle, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
+import {
+  useCostCenterLookup,
+  useChartOfAccountsLookup,
+} from "../../hooks/useEntityLookup";
 import {
   getBudgets,
   createBudget,
@@ -10,8 +15,6 @@ import {
   deleteBudget,
   approveBudget,
   getFiscalYears,
-  getChartOfAccounts,
-  getCostCenters,
   type Budget,
   BudgetStatus,
 } from "../../api/accounts";
@@ -45,14 +48,13 @@ export default function Budgets() {
   });
 
   const { data: fiscalYearsData } = useQuery({ queryKey: ["fiscal-years", 1, ""], queryFn: () => getFiscalYears({ page: 1, pageSize: 50 }) });
-  const { data: accountsData } = useQuery({ queryKey: ["chart-of-accounts", 1, ""], queryFn: () => getChartOfAccounts({ page: 1, pageSize: 200 }) });
-  const { data: costCentersData } = useQuery({ queryKey: ["cost-centers", 1, ""], queryFn: () => getCostCenters({ page: 1, pageSize: 100 }) });
+  const { options: coaOptions } = useChartOfAccountsLookup();
+  const { options: costCenterOptions } = useCostCenterLookup();
 
   const budgets = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
   const fiscalYears = fiscalYearsData?.data?.data?.items ?? [];
-  const coaAccounts = accountsData?.data?.data?.items ?? [];
-  const costCenters = costCentersData?.data?.data?.items ?? [];
+  const fiscalYearOptions = fiscalYears.map((fy) => ({ value: fy.id, label: fy.name }));
   const [saveError, setSaveError] = useState("");
 
   const saveMutation = useMutation({
@@ -86,7 +88,7 @@ export default function Budgets() {
   function openAdd() {
     setEditing(null);
     const currentFY = fiscalYears.find((fy) => fy.isCurrent);
-    setForm({ name: "", description: "", fiscalYearId: currentFY?.id ?? fiscalYears[0]?.id ?? "", costCenterId: "", lines: [{ accountId: coaAccounts[0]?.id ?? "", costCenterId: "", period: 0, plannedAmount: 0 }] });
+    setForm({ name: "", description: "", fiscalYearId: currentFY?.id ?? fiscalYears[0]?.id ?? "", costCenterId: "", lines: [{ accountId: coaOptions[0]?.value ?? "", costCenterId: "", period: 0, plannedAmount: 0 }] });
     setSaveError("");
     setModal(true);
   }
@@ -101,7 +103,7 @@ export default function Budgets() {
   function closeModal() { setModal(false); setEditing(null); setSaveError(""); }
 
   function addLine() {
-    setForm((f) => ({ ...f, lines: [...f.lines, { accountId: coaAccounts[0]?.id ?? "", costCenterId: "", period: 0, plannedAmount: 0 }] }));
+    setForm((f) => ({ ...f, lines: [...f.lines, { accountId: coaOptions[0]?.value ?? "", costCenterId: "", period: 0, plannedAmount: 0 }] }));
   }
 
   function removeLine(idx: number) {
@@ -228,18 +230,26 @@ export default function Budgets() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Fiscal Year *</label>
-              <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.fiscalYearId} onChange={(e) => setForm((f) => ({ ...f, fiscalYearId: e.target.value }))} disabled={!!editing}>
-                <option value="">Select year</option>
-                {fiscalYears.map((fy) => <option key={fy.id} value={fy.id}>{fy.name}</option>)}
-              </select>
+              <SearchableDropdown
+                label="Fiscal Year *"
+                options={fiscalYearOptions}
+                value={form.fiscalYearId}
+                onChange={(v) => setForm((f) => ({ ...f, fiscalYearId: v ?? "" }))}
+                placeholder="Select year"
+                searchPlaceholder="Search fiscal years..."
+                disabled={!!editing}
+                required
+              />
             </div>
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Cost Center</label>
-              <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.costCenterId} onChange={(e) => setForm((f) => ({ ...f, costCenterId: e.target.value }))}>
-                <option value="">None</option>
-                {costCenters.map((cc) => <option key={cc.id} value={cc.id}>{cc.name}</option>)}
-              </select>
+              <SearchableDropdown
+                label="Cost Center"
+                options={costCenterOptions}
+                value={form.costCenterId}
+                onChange={(v) => setForm((f) => ({ ...f, costCenterId: v ?? "" }))}
+                placeholder="None"
+                searchPlaceholder="Search cost centers..."
+              />
             </div>
           </div>
           <div>
@@ -253,7 +263,7 @@ export default function Budgets() {
                 <label className="text-xs text-gray-500">Budget Lines</label>
                 <button onClick={addLine} className="text-xs text-primary-600 hover:underline">+ Add Line</button>
               </div>
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <div className="border border-gray-200 rounded-lg">
                 <table className="w-full text-xs">
                   <thead className="bg-gray-50">
                     <tr>
@@ -267,10 +277,13 @@ export default function Budgets() {
                     {form.lines.map((line, idx) => (
                       <tr key={idx} className="border-t border-gray-100">
                         <td className="px-2 py-1">
-                          <select className="w-32 border border-gray-200 rounded px-1 py-1 text-xs" value={line.accountId} onChange={(e) => updateLine(idx, "accountId", e.target.value)}>
-                            <option value="">Select</option>
-                            {coaAccounts.map((a) => <option key={a.id} value={a.id}>{a.accountCode} — {a.accountName}</option>)}
-                          </select>
+                          <SearchableDropdown
+                            options={coaOptions}
+                            value={line.accountId}
+                            onChange={(v) => updateLine(idx, "accountId", v ?? "")}
+                            placeholder="Select"
+                            searchPlaceholder="Search accounts..."
+                          />
                         </td>
                         <td className="px-2 py-1">
                           <select className="w-24 border border-gray-200 rounded px-1 py-1 text-xs" value={line.period} onChange={(e) => updateLine(idx, "period", parseInt(e.target.value))}>

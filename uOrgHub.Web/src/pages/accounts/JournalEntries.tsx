@@ -3,12 +3,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Send, XCircle, ChevronDown, ChevronUp } from "lucide-react";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
+import { useChartOfAccountsLookup } from "../../hooks/useEntityLookup";
 import {
   getJournalEntries,
   createJournalEntry,
   postJournalEntry,
   cancelJournalEntry,
-  getChartOfAccounts,
   JournalEntry,
   JournalEntryStatus,
   CreateJournalEntryLineDto,
@@ -41,14 +42,10 @@ export default function JournalEntries() {
     queryFn: () => getJournalEntries({ page, pageSize: 10, search }),
   });
 
-  const { data: accountsData } = useQuery({
-    queryKey: ["chart-of-accounts", 1, ""],
-    queryFn: () => getChartOfAccounts({ page: 1, pageSize: 200 }),
-  });
+  const { options: coaOptions } = useChartOfAccountsLookup();
 
   const entries = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
-  const accounts = accountsData?.data?.data?.items ?? [];
   const [saveError, setSaveError] = useState("");
 
   const createMutation = useMutation({
@@ -277,7 +274,7 @@ export default function JournalEntries() {
               <label className="text-xs text-gray-500">Entry Lines</label>
               <button onClick={addLine} className="text-xs text-primary-600 hover:underline">+ Add Line</button>
             </div>
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="border border-gray-200 rounded-lg">
               <table className="w-full text-xs">
                 <thead className="bg-gray-50">
                   <tr>
@@ -292,10 +289,13 @@ export default function JournalEntries() {
                   {form.lines.map((line, idx) => (
                     <tr key={idx} className="border-t border-gray-100">
                       <td className="px-2 py-1">
-                        <select className="w-full border border-gray-200 rounded px-1 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary-500" value={line.accountId} onChange={(e) => updateLine(idx, "accountId", e.target.value)}>
-                          <option value="">Select</option>
-                          {accounts.map((a) => <option key={a.id} value={a.id}>{a.accountCode} — {a.accountName}</option>)}
-                        </select>
+                        <SearchableDropdown
+                          options={coaOptions}
+                          value={line.accountId}
+                          onChange={(v) => updateLine(idx, "accountId", v ?? "")}
+                          placeholder="Select"
+                          searchPlaceholder="Search accounts..."
+                        />
                       </td>
                       <td className="px-2 py-1">
                         <input className="w-full border border-gray-200 rounded px-1 py-1 text-xs focus:outline-none" value={line.description ?? ""} onChange={(e) => updateLine(idx, "description", e.target.value)} />

@@ -3,16 +3,19 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Send, XCircle, ChevronDown, ChevronUp } from "lucide-react";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
+import {
+  useCustomerLookup,
+  useFiscalYearLookup,
+  useCostCenterLookup,
+  useChartOfAccountsLookup,
+} from "../../hooks/useEntityLookup";
 import {
   getInvoices,
   createInvoice,
   postInvoice,
   voidInvoice,
-  getCustomers,
-  getFiscalYears,
   getTaxRates,
-  getChartOfAccounts,
-  getCostCenters,
   InvoiceStatus,
 } from "../../api/accounts";
 
@@ -49,19 +52,15 @@ export default function Invoices() {
     queryFn: () => getInvoices({ page, pageSize: 10, search }, undefined, statusFilter || undefined),
   });
 
-  const { data: customersData } = useQuery({ queryKey: ["customers", 1, ""], queryFn: () => getCustomers({ page: 1, pageSize: 200 }) });
-  const { data: fiscalYearsData } = useQuery({ queryKey: ["fiscal-years", 1, ""], queryFn: () => getFiscalYears({ page: 1, pageSize: 50 }) });
   const { data: taxRatesData } = useQuery({ queryKey: ["tax-rates", 1, ""], queryFn: () => getTaxRates({ page: 1, pageSize: 100 }) });
-  const { data: accountsData } = useQuery({ queryKey: ["chart-of-accounts", 1, ""], queryFn: () => getChartOfAccounts({ page: 1, pageSize: 200 }) });
-  const { data: costCentersData } = useQuery({ queryKey: ["cost-centers", 1, ""], queryFn: () => getCostCenters({ page: 1, pageSize: 100 }) });
+  const { options: customerOptions } = useCustomerLookup();
+  const { options: fiscalYearOptions } = useFiscalYearLookup();
+  const { options: costCenterOptions } = useCostCenterLookup();
+  const { options: coaOptions } = useChartOfAccountsLookup();
 
   const invoices = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
-  const customers = customersData?.data?.data?.items ?? [];
-  const fiscalYears = fiscalYearsData?.data?.data?.items ?? [];
   const taxRates = taxRatesData?.data?.data?.items ?? [];
-  const coaAccounts = accountsData?.data?.data?.items ?? [];
-  const costCenters = costCentersData?.data?.data?.items ?? [];
   const [saveError, setSaveError] = useState("");
 
   const createMutation = useMutation({
@@ -99,16 +98,15 @@ export default function Invoices() {
   });
 
   function openAdd() {
-    const currentFY = fiscalYears.find((fy) => fy.isCurrent);
     setForm({
       invoiceNumber: "",
-      customerId: customers[0]?.id ?? "",
-      fiscalYearId: currentFY?.id ?? fiscalYears[0]?.id ?? "",
+      customerId: "",
+      fiscalYearId: "",
       invoiceDate: new Date().toISOString().split("T")[0],
       dueDate: "",
       notes: "",
       costCenterId: "",
-      lines: [{ description: "", quantity: 1, unitPrice: 0, discountPercent: 0, lineOrder: 1, taxRateId: "", revenueAccountId: coaAccounts[0]?.id ?? "", costCenterId: "" }],
+      lines: [{ description: "", quantity: 1, unitPrice: 0, discountPercent: 0, lineOrder: 1, taxRateId: "", revenueAccountId: "", costCenterId: "" }],
     });
     setSaveError("");
     setModal(true);
@@ -119,7 +117,7 @@ export default function Invoices() {
   function addLine() {
     setForm((f) => ({
       ...f,
-      lines: [...f.lines, { description: "", quantity: 1, unitPrice: 0, discountPercent: 0, lineOrder: f.lines.length + 1, taxRateId: "", revenueAccountId: coaAccounts[0]?.id ?? "", costCenterId: "" }],
+      lines: [...f.lines, { description: "", quantity: 1, unitPrice: 0, discountPercent: 0, lineOrder: f.lines.length + 1, taxRateId: "", revenueAccountId: "", costCenterId: "" }],
     }));
   }
 
@@ -261,20 +259,28 @@ export default function Invoices() {
               <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.invoiceNumber} onChange={(e) => setForm((f) => ({ ...f, invoiceNumber: e.target.value }))} placeholder="INV-2026-001" />
             </div>
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Customer *</label>
-              <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.customerId} onChange={(e) => setForm((f) => ({ ...f, customerId: e.target.value }))}>
-                <option value="">Select customer</option>
-                {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+              <SearchableDropdown
+                label="Customer *"
+                options={customerOptions}
+                value={form.customerId}
+                onChange={(v) => setForm((f) => ({ ...f, customerId: v ?? "" }))}
+                placeholder="Select customer"
+                searchPlaceholder="Search customers..."
+                required
+              />
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Fiscal Year *</label>
-              <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.fiscalYearId} onChange={(e) => setForm((f) => ({ ...f, fiscalYearId: e.target.value }))}>
-                <option value="">Select year</option>
-                {fiscalYears.map((fy) => <option key={fy.id} value={fy.id}>{fy.name}</option>)}
-              </select>
+              <SearchableDropdown
+                label="Fiscal Year *"
+                options={fiscalYearOptions}
+                value={form.fiscalYearId}
+                onChange={(v) => setForm((f) => ({ ...f, fiscalYearId: v ?? "" }))}
+                placeholder="Select year"
+                searchPlaceholder="Search fiscal years..."
+                required
+              />
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Invoice Date *</label>
@@ -286,11 +292,14 @@ export default function Invoices() {
             </div>
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Cost Center</label>
-            <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.costCenterId} onChange={(e) => setForm((f) => ({ ...f, costCenterId: e.target.value }))}>
-              <option value="">None</option>
-              {costCenters.map((cc) => <option key={cc.id} value={cc.id}>{cc.name}</option>)}
-            </select>
+            <SearchableDropdown
+              label="Cost Center"
+              options={costCenterOptions}
+              value={form.costCenterId}
+              onChange={(v) => setForm((f) => ({ ...f, costCenterId: v ?? "" }))}
+              placeholder="None"
+              searchPlaceholder="Search cost centers..."
+            />
           </div>
 
           <div>
@@ -298,7 +307,7 @@ export default function Invoices() {
               <label className="text-xs text-gray-500">Line Items</label>
               <button onClick={addLine} className="text-xs text-primary-600 hover:underline">+ Add Line</button>
             </div>
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="border border-gray-200 rounded-lg">
               <table className="w-full text-xs">
                 <thead className="bg-gray-50">
                   <tr>
@@ -334,10 +343,13 @@ export default function Invoices() {
                         </select>
                       </td>
                       <td className="px-2 py-1">
-                        <select className="w-24 border border-gray-200 rounded px-1 py-1 text-xs focus:outline-none" value={line.revenueAccountId} onChange={(e) => updateLine(idx, "revenueAccountId", e.target.value)}>
-                          <option value="">Select</option>
-                          {coaAccounts.map((a) => <option key={a.id} value={a.id}>{a.accountCode}</option>)}
-                        </select>
+                        <SearchableDropdown
+                          options={coaOptions}
+                          value={line.revenueAccountId}
+                          onChange={(v) => updateLine(idx, "revenueAccountId", v ?? "")}
+                          placeholder="Select"
+                          searchPlaceholder="Search accounts..."
+                        />
                       </td>
                       <td className="px-2 py-1 text-right font-medium">{lineSubtotal(line).toLocaleString("en-BD", { minimumFractionDigits: 2 })}</td>
                       <td className="px-2 py-1">

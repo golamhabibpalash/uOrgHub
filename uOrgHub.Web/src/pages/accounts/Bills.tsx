@@ -3,16 +3,19 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, CheckCircle, XCircle, ChevronDown, ChevronUp } from "lucide-react";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
+import {
+  useVendorLookup,
+  useFiscalYearLookup,
+  useCostCenterLookup,
+  useChartOfAccountsLookup,
+} from "../../hooks/useEntityLookup";
 import {
   getBills,
   createBill,
   approveBill,
   voidBill,
-  getVendors,
-  getFiscalYears,
   getTaxRates,
-  getChartOfAccounts,
-  getCostCenters,
   BillStatus,
 } from "../../api/accounts";
 
@@ -50,19 +53,15 @@ export default function Bills() {
     queryFn: () => getBills({ page, pageSize: 10, search }, undefined, statusFilter || undefined),
   });
 
-  const { data: vendorsData } = useQuery({ queryKey: ["vendors", 1, ""], queryFn: () => getVendors({ page: 1, pageSize: 200 }) });
-  const { data: fiscalYearsData } = useQuery({ queryKey: ["fiscal-years", 1, ""], queryFn: () => getFiscalYears({ page: 1, pageSize: 50 }) });
   const { data: taxRatesData } = useQuery({ queryKey: ["tax-rates", 1, ""], queryFn: () => getTaxRates({ page: 1, pageSize: 100 }) });
-  const { data: accountsData } = useQuery({ queryKey: ["chart-of-accounts", 1, ""], queryFn: () => getChartOfAccounts({ page: 1, pageSize: 200 }) });
-  const { data: costCentersData } = useQuery({ queryKey: ["cost-centers", 1, ""], queryFn: () => getCostCenters({ page: 1, pageSize: 100 }) });
+  const { options: vendorOptions } = useVendorLookup();
+  const { options: fiscalYearOptions } = useFiscalYearLookup();
+  const { options: costCenterOptions } = useCostCenterLookup();
+  const { options: coaOptions } = useChartOfAccountsLookup();
 
   const bills = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
-  const vendors = vendorsData?.data?.data?.items ?? [];
-  const fiscalYears = fiscalYearsData?.data?.data?.items ?? [];
   const taxRates = taxRatesData?.data?.data?.items ?? [];
-  const coaAccounts = accountsData?.data?.data?.items ?? [];
-  const costCenters = costCentersData?.data?.data?.items ?? [];
   const [saveError, setSaveError] = useState("");
 
   const createMutation = useMutation({
@@ -96,8 +95,7 @@ export default function Bills() {
   });
 
   function openAdd() {
-    const currentFY = fiscalYears.find((fy) => fy.isCurrent);
-    setForm({ billNumber: "", vendorBillNumber: "", vendorId: vendors[0]?.id ?? "", fiscalYearId: currentFY?.id ?? fiscalYears[0]?.id ?? "", billDate: new Date().toISOString().split("T")[0], dueDate: "", notes: "", costCenterId: "", lines: [{ description: "", quantity: 1, unitPrice: 0, discountPercent: 0, lineOrder: 1, taxRateId: "", expenseAccountId: coaAccounts[0]?.id ?? "", costCenterId: "" }] });
+    setForm({ billNumber: "", vendorBillNumber: "", vendorId: "", fiscalYearId: "", billDate: new Date().toISOString().split("T")[0], dueDate: "", notes: "", costCenterId: "", lines: [{ description: "", quantity: 1, unitPrice: 0, discountPercent: 0, lineOrder: 1, taxRateId: "", expenseAccountId: "", costCenterId: "" }] });
     setSaveError("");
     setModal(true);
   }
@@ -105,7 +103,7 @@ export default function Bills() {
   function closeModal() { setModal(false); setSaveError(""); }
 
   function addLine() {
-    setForm((f) => ({ ...f, lines: [...f.lines, { description: "", quantity: 1, unitPrice: 0, discountPercent: 0, lineOrder: f.lines.length + 1, taxRateId: "", expenseAccountId: coaAccounts[0]?.id ?? "", costCenterId: "" }] }));
+    setForm((f) => ({ ...f, lines: [...f.lines, { description: "", quantity: 1, unitPrice: 0, discountPercent: 0, lineOrder: f.lines.length + 1, taxRateId: "", expenseAccountId: "", costCenterId: "" }] }));
   }
 
   function removeLine(idx: number) {
@@ -253,18 +251,26 @@ export default function Bills() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Vendor *</label>
-              <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.vendorId} onChange={(e) => setForm((f) => ({ ...f, vendorId: e.target.value }))}>
-                <option value="">Select vendor</option>
-                {vendors.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
-              </select>
+              <SearchableDropdown
+                label="Vendor *"
+                options={vendorOptions}
+                value={form.vendorId}
+                onChange={(v) => setForm((f) => ({ ...f, vendorId: v ?? "" }))}
+                placeholder="Select vendor"
+                searchPlaceholder="Search vendors..."
+                required
+              />
             </div>
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Fiscal Year *</label>
-              <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.fiscalYearId} onChange={(e) => setForm((f) => ({ ...f, fiscalYearId: e.target.value }))}>
-                <option value="">Select year</option>
-                {fiscalYears.map((fy) => <option key={fy.id} value={fy.id}>{fy.name}</option>)}
-              </select>
+              <SearchableDropdown
+                label="Fiscal Year *"
+                options={fiscalYearOptions}
+                value={form.fiscalYearId}
+                onChange={(v) => setForm((f) => ({ ...f, fiscalYearId: v ?? "" }))}
+                placeholder="Select year"
+                searchPlaceholder="Search fiscal years..."
+                required
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -278,11 +284,14 @@ export default function Bills() {
             </div>
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Cost Center</label>
-            <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.costCenterId} onChange={(e) => setForm((f) => ({ ...f, costCenterId: e.target.value }))}>
-              <option value="">None</option>
-              {costCenters.map((cc) => <option key={cc.id} value={cc.id}>{cc.name}</option>)}
-            </select>
+            <SearchableDropdown
+              label="Cost Center"
+              options={costCenterOptions}
+              value={form.costCenterId}
+              onChange={(v) => setForm((f) => ({ ...f, costCenterId: v ?? "" }))}
+              placeholder="None"
+              searchPlaceholder="Search cost centers..."
+            />
           </div>
 
           <div>
@@ -290,7 +299,7 @@ export default function Bills() {
               <label className="text-xs text-gray-500">Line Items</label>
               <button onClick={addLine} className="text-xs text-primary-600 hover:underline">+ Add Line</button>
             </div>
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="border border-gray-200 rounded-lg">
               <table className="w-full text-xs">
                 <thead className="bg-gray-50">
                   <tr>
@@ -312,7 +321,13 @@ export default function Bills() {
                       <td className="px-2 py-1"><input type="number" min={0} className="w-20 border border-gray-200 rounded px-1 py-1 text-xs text-right" value={line.unitPrice || ""} onChange={(e) => updateLine(idx, "unitPrice", parseFloat(e.target.value) || 0)} /></td>
                       <td className="px-2 py-1"><input type="number" min={0} max={100} className="w-12 border border-gray-200 rounded px-1 py-1 text-xs text-right" value={line.discountPercent || ""} onChange={(e) => updateLine(idx, "discountPercent", parseFloat(e.target.value) || 0)} /></td>
                       <td className="px-2 py-1"><select className="w-20 border border-gray-200 rounded px-1 py-1 text-xs" value={line.taxRateId} onChange={(e) => updateLine(idx, "taxRateId", e.target.value)}><option value="">None</option>{taxRates.map((t) => <option key={t.id} value={t.id}>{t.code}</option>)}</select></td>
-                      <td className="px-2 py-1"><select className="w-24 border border-gray-200 rounded px-1 py-1 text-xs" value={line.expenseAccountId} onChange={(e) => updateLine(idx, "expenseAccountId", e.target.value)}><option value="">Select</option>{coaAccounts.map((a) => <option key={a.id} value={a.id}>{a.accountCode}</option>)}</select></td>
+                      <td className="px-2 py-1"><SearchableDropdown
+                          options={coaOptions}
+                          value={line.expenseAccountId}
+                          onChange={(v) => updateLine(idx, "expenseAccountId", v ?? "")}
+                          placeholder="Select"
+                          searchPlaceholder="Search accounts..."
+                        /></td>
                       <td className="px-2 py-1 text-right font-medium">{lineSubtotal(line).toLocaleString("en-BD", { minimumFractionDigits: 2 })}</td>
                       <td className="px-2 py-1">{form.lines.length > 1 && <button onClick={() => removeLine(idx)} className="text-red-400 hover:text-red-600">×</button>}</td>
                     </tr>

@@ -3,13 +3,16 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, ChevronDown, ChevronUp } from "lucide-react";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
+import {
+  useCustomerLookup,
+  useVendorLookup,
+  useFiscalYearLookup,
+  useBankAccountLookup,
+} from "../../hooks/useEntityLookup";
 import {
   getPayments,
   createPayment,
-  getCustomers,
-  getVendors,
-  getFiscalYears,
-  getBankAccounts,
   getInvoices,
   getBills,
   PaymentType,
@@ -64,19 +67,15 @@ export default function Payments() {
     queryFn: () => getPayments({ page, pageSize: 10, search }),
   });
 
-  const { data: customersData } = useQuery({ queryKey: ["customers", 1, ""], queryFn: () => getCustomers({ page: 1, pageSize: 200 }) });
-  const { data: vendorsData } = useQuery({ queryKey: ["vendors", 1, ""], queryFn: () => getVendors({ page: 1, pageSize: 200 }) });
-  const { data: fiscalYearsData } = useQuery({ queryKey: ["fiscal-years", 1, ""], queryFn: () => getFiscalYears({ page: 1, pageSize: 50 }) });
-  const { data: bankAccountsData } = useQuery({ queryKey: ["bank-accounts", 1, ""], queryFn: () => getBankAccounts({ page: 1, pageSize: 100 }) });
+  const { options: customerOptions } = useCustomerLookup();
+  const { options: vendorOptions } = useVendorLookup();
+  const { options: fiscalYearOptions } = useFiscalYearLookup();
+  const { options: bankAccountOptions } = useBankAccountLookup();
   const { data: invoicesData } = useQuery({ queryKey: ["invoices", 1, "", ""], queryFn: () => getInvoices({ page: 1, pageSize: 200 }) });
   const { data: billsData } = useQuery({ queryKey: ["bills", 1, "", ""], queryFn: () => getBills({ page: 1, pageSize: 200 }) });
 
   const payments = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
-  const customers = customersData?.data?.data?.items ?? [];
-  const vendors = vendorsData?.data?.data?.items ?? [];
-  const fiscalYears = fiscalYearsData?.data?.data?.items ?? [];
-  const bankAccounts = bankAccountsData?.data?.data?.items ?? [];
   const openInvoices = (invoicesData?.data?.data?.items ?? []).filter((inv) => ["Sent", "PartiallyPaid", "Overdue"].includes(inv.status));
   const openBills = (billsData?.data?.data?.items ?? []).filter((b) => ["Received", "PartiallyPaid", "Overdue"].includes(b.status));
   const [saveError, setSaveError] = useState("");
@@ -110,8 +109,7 @@ export default function Payments() {
   });
 
   function openAdd() {
-    const currentFY = fiscalYears.find((fy) => fy.isCurrent);
-    setForm({ paymentNumber: "", paymentType: "CustomerPayment", paymentMethod: "BankTransfer", paymentDate: new Date().toISOString().split("T")[0], amount: 0, referenceNumber: "", chequeNumber: "", notes: "", customerId: customers[0]?.id ?? "", vendorId: "", bankAccountId: bankAccounts[0]?.id ?? "", fiscalYearId: currentFY?.id ?? fiscalYears[0]?.id ?? "", allocations: [] });
+    setForm({ paymentNumber: "", paymentType: "CustomerPayment", paymentMethod: "BankTransfer", paymentDate: new Date().toISOString().split("T")[0], amount: 0, referenceNumber: "", chequeNumber: "", notes: "", customerId: "", vendorId: "", bankAccountId: "", fiscalYearId: "", allocations: [] });
     setSaveError("");
     setModal(true);
   }
@@ -254,21 +252,29 @@ export default function Payments() {
 
           {isCustomerPayment && (
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Customer *</label>
-              <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.customerId} onChange={(e) => setForm((f) => ({ ...f, customerId: e.target.value, allocations: [] }))}>
-                <option value="">Select customer</option>
-                {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+              <SearchableDropdown
+                label="Customer *"
+                options={customerOptions}
+                value={form.customerId}
+                onChange={(v) => setForm((f) => ({ ...f, customerId: v ?? "", allocations: [] }))}
+                placeholder="Select customer"
+                searchPlaceholder="Search customers..."
+                required
+              />
             </div>
           )}
 
           {isVendorPayment && (
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Vendor *</label>
-              <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.vendorId} onChange={(e) => setForm((f) => ({ ...f, vendorId: e.target.value, allocations: [] }))}>
-                <option value="">Select vendor</option>
-                {vendors.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
-              </select>
+              <SearchableDropdown
+                label="Vendor *"
+                options={vendorOptions}
+                value={form.vendorId}
+                onChange={(v) => setForm((f) => ({ ...f, vendorId: v ?? "", allocations: [] }))}
+                placeholder="Select vendor"
+                searchPlaceholder="Search vendors..."
+                required
+              />
             </div>
           )}
 
@@ -278,11 +284,14 @@ export default function Payments() {
               <input type="number" min={0} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.amount || ""} onChange={(e) => setForm((f) => ({ ...f, amount: parseFloat(e.target.value) || 0 }))} />
             </div>
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Bank Account</label>
-              <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.bankAccountId} onChange={(e) => setForm((f) => ({ ...f, bankAccountId: e.target.value }))}>
-                <option value="">None (Cash)</option>
-                {bankAccounts.map((ba) => <option key={ba.id} value={ba.id}>{ba.accountName}</option>)}
-              </select>
+              <SearchableDropdown
+                label="Bank Account"
+                options={bankAccountOptions}
+                value={form.bankAccountId}
+                onChange={(v) => setForm((f) => ({ ...f, bankAccountId: v ?? "" }))}
+                placeholder="None (Cash)"
+                searchPlaceholder="Search bank accounts..."
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -297,11 +306,15 @@ export default function Payments() {
           </div>
 
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Fiscal Year *</label>
-            <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.fiscalYearId} onChange={(e) => setForm((f) => ({ ...f, fiscalYearId: e.target.value }))}>
-              <option value="">Select year</option>
-              {fiscalYears.map((fy) => <option key={fy.id} value={fy.id}>{fy.name}</option>)}
-            </select>
+            <SearchableDropdown
+              label="Fiscal Year *"
+              options={fiscalYearOptions}
+              value={form.fiscalYearId}
+              onChange={(v) => setForm((f) => ({ ...f, fiscalYearId: v ?? "" }))}
+              placeholder="Select year"
+              searchPlaceholder="Search fiscal years..."
+              required
+            />
           </div>
 
           {(isCustomerPayment && form.customerId || isVendorPayment && form.vendorId) && (

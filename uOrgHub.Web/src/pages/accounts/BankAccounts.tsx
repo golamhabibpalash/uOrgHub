@@ -7,13 +7,14 @@ import Pagination from "../../components/shared/Pagination";
 import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
+import { useChartOfAccountsLookup } from "../../hooks/useEntityLookup";
 import {
   getBankAccounts,
   createBankAccount,
   updateBankAccount,
   getBankTransactions,
   createBankTransaction,
-  getChartOfAccounts,
   BankAccount,
   BankTransaction,
   BankTransactionType,
@@ -67,10 +68,7 @@ export default function BankAccounts() {
     queryFn: () => getBankAccounts(dg.queryParams),
   });
 
-  const { data: accountsData } = useQuery({
-    queryKey: ["chart-of-accounts", 1, ""],
-    queryFn: () => getChartOfAccounts({ page: 1, pageSize: 200 }),
-  });
+  const { options: coaOptions } = useChartOfAccountsLookup();
 
   const { data: txnData, isLoading: txnLoading } = useQuery({
     queryKey: ["bank-transactions", selectedAccount?.id, txnPage],
@@ -81,7 +79,6 @@ export default function BankAccounts() {
   const bankAccounts = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
   const totalCount = data?.data?.data?.totalCount ?? 0;
-  const coaAccounts = accountsData?.data?.data?.items ?? [];
   const transactions = txnData?.data?.data?.items ?? [];
   const txnTotalPages = txnData?.data?.data?.totalPages ?? 1;
   const [saveError, setSaveError] = useState("");
@@ -116,7 +113,7 @@ export default function BankAccounts() {
 
   function openAdd() {
     setEditing(null);
-    setForm({ accountNumber: "", accountName: "", bankName: "", branchName: "", routingNumber: "", currency: "BDT", openingBalance: 0, chartOfAccountId: coaAccounts[0]?.id ?? "", isActive: true });
+    setForm({ accountNumber: "", accountName: "", bankName: "", branchName: "", routingNumber: "", currency: "BDT", openingBalance: 0, chartOfAccountId: coaOptions[0]?.value ?? "", isActive: true });
     setSaveError("");
     setModal(true);
   }
@@ -311,11 +308,15 @@ export default function BankAccounts() {
             </div>
           )}
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Linked GL Account *</label>
-            <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.chartOfAccountId} onChange={(e) => setForm((f) => ({ ...f, chartOfAccountId: e.target.value }))}>
-              <option value="">Select account</option>
-              {coaAccounts.map((a) => <option key={a.id} value={a.id}>{a.accountCode} — {a.accountName}</option>)}
-            </select>
+            <SearchableDropdown
+              label="Linked GL Account *"
+              options={coaOptions}
+              value={form.chartOfAccountId}
+              onChange={(v) => setForm((f) => ({ ...f, chartOfAccountId: v ?? "" }))}
+              placeholder="Select account"
+              searchPlaceholder="Search accounts..."
+              required
+            />
           </div>
           {editing && (
             <div className="flex items-center gap-2">
