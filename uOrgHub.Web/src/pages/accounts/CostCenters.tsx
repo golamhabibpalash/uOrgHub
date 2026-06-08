@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import DataGrid from "../../components/shared/DataGrid";
 import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
 import {
   getCostCenters,
   createCostCenter,
@@ -34,6 +35,13 @@ export default function CostCenters() {
   const costCenters = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
   const totalCount = data?.data?.data?.totalCount ?? 0;
+  const parentOptions = useMemo(
+    () => costCenters.filter((cc) => cc.id !== editing?.id).map((cc) => ({
+      value: cc.id,
+      label: `${cc.code} — ${cc.name}`,
+    })),
+    [costCenters, editing],
+  );
   const [saveError, setSaveError] = useState("");
 
   const saveMutation = useMutation({
@@ -144,13 +152,14 @@ export default function CostCenters() {
             </div>
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Parent Cost Center</label>
-            <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.parentCostCenterId} onChange={(e) => setForm((f) => ({ ...f, parentCostCenterId: e.target.value }))}>
-              <option value="">None (Top Level)</option>
-              {costCenters.filter((cc) => cc.id !== editing?.id).map((cc) => (
-                <option key={cc.id} value={cc.id}>{cc.code} — {cc.name}</option>
-              ))}
-            </select>
+            <SearchableDropdown
+              label="Parent Cost Center"
+              options={parentOptions}
+              value={form.parentCostCenterId}
+              onChange={(v) => setForm((f) => ({ ...f, parentCostCenterId: v ?? "" }))}
+              placeholder="None (Top Level)"
+              clearable
+            />
           </div>
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Description</label>
