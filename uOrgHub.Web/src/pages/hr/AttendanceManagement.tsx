@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { Plus } from "lucide-react";
@@ -7,6 +7,8 @@ import DataGrid from "../../components/shared/DataGrid";
 import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
+import { useEmployeeLookup } from "../../hooks/useEntityLookup";
 import {
   getWorkSchedules,
   createWorkSchedule,
@@ -18,7 +20,6 @@ import {
   WorkSchedule,
   Shift,
   AttendanceLog,
-  getEmployees,
 } from "../../api/hr";
 
 export default function AttendanceManagement() {
@@ -47,10 +48,7 @@ export default function AttendanceManagement() {
     queryFn: () => getAttendanceLogs(dg.queryParams),
   });
 
-  const { data: empData } = useQuery({
-    queryKey: ["employees-all"],
-    queryFn: () => getEmployees({ page: 1, pageSize: 100 }),
-  });
+  const { options: empOptions, isLoading: empLoading } = useEmployeeLookup();
 
   const { data: scheduleData } = useQuery({
     queryKey: ["work-schedules-all"],
@@ -60,8 +58,8 @@ export default function AttendanceManagement() {
   const schedules = schedulesData?.data?.data?.items ?? [];
   const shifts = shiftsData?.data?.data?.items ?? [];
   const logs = logsData?.data?.data?.items ?? [];
-  const employees = empData?.data?.data?.items ?? [];
   const allSchedules = scheduleData?.data?.data?.items ?? [];
+  const scheduleOptions = useMemo(() => allSchedules.map(s => ({ value: s.id, label: s.name })), [allSchedules]);
 
   function extractApiError(err: unknown): string {
     const axiosErr = err as AxiosError<{ message?: string; errors?: string[] | Record<string, string[]> }>;
@@ -245,7 +243,7 @@ export default function AttendanceManagement() {
               <div><label className="text-xs text-gray-500 mb-1 block">Start Time *</label><input type="time" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={shiftForm.startTime} onChange={e => setShiftForm(f => ({ ...f, startTime: e.target.value }))} /></div>
               <div><label className="text-xs text-gray-500 mb-1 block">End Time *</label><input type="time" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={shiftForm.endTime} onChange={e => setShiftForm(f => ({ ...f, endTime: e.target.value }))} /></div>
             </div>
-            <div><label className="text-xs text-gray-500 mb-1 block">Work Schedule *</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={shiftForm.workScheduleId} onChange={e => setShiftForm(f => ({ ...f, workScheduleId: e.target.value }))}><option value="">Select Schedule</option>{allSchedules.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
+            <div><SearchableDropdown label="Work Schedule *" options={scheduleOptions} value={shiftForm.workScheduleId} onChange={v => setShiftForm(f => ({ ...f, workScheduleId: v || "" }))} placeholder="Select Schedule" searchPlaceholder="Search schedules..." required /></div>
             <div className="flex justify-end gap-2 pt-2"><button onClick={() => setModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button><button onClick={() => {
               if (!shiftForm.name.trim() || !shiftForm.code.trim() || !shiftForm.startTime || !shiftForm.endTime || !shiftForm.workScheduleId) {
                 toast.error("Please fill in all required fields.");
@@ -257,7 +255,7 @@ export default function AttendanceManagement() {
         )}
         {modalType === "log" && (
           <div className="space-y-3">
-            <div><label className="text-xs text-gray-500 mb-1 block">Employee</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={logForm.employeeId} onChange={e => setLogForm(f => ({ ...f, employeeId: e.target.value }))}><option value="">Select Employee</option>{employees.map(e => <option key={e.id} value={e.id}>{e.firstName} {e.lastName}</option>)}</select></div>
+            <div><SearchableDropdown label="Employee" options={empOptions} value={logForm.employeeId} onChange={v => setLogForm(f => ({ ...f, employeeId: v || "" }))} placeholder="Select Employee" searchPlaceholder="Search employee..." loading={empLoading} required /></div>
             <div><label className="text-xs text-gray-500 mb-1 block">Date</label><input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={logForm.attendanceDate} onChange={e => setLogForm(f => ({ ...f, attendanceDate: e.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-3">
               <div><label className="text-xs text-gray-500 mb-1 block">Check In</label><input type="time" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={logForm.checkIn} onChange={e => setLogForm(f => ({ ...f, checkIn: e.target.value }))} /></div>

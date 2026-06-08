@@ -5,6 +5,8 @@ import DataGrid from "../../components/shared/DataGrid";
 import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
+import { useDepartmentLookup, useDesignationLookup } from "../../hooks/useEntityLookup";
 import {
   getJobPostings,
   createJobPosting,
@@ -18,8 +20,6 @@ import {
   Candidate,
   JobApplication,
   InterviewSchedule,
-  getDepartments,
-  getDesignations,
 } from "../../api/hr";
 
 export default function Recruitment() {
@@ -37,15 +37,13 @@ export default function Recruitment() {
   const { data: candidatesData, isLoading: candidatesLoading } = useQuery({ queryKey: ["candidates", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getCandidates(dg.queryParams) });
   const { data: appsData, isLoading: appsLoading } = useQuery({ queryKey: ["applications", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getApplications(dg.queryParams) });
   const { data: interviewsData, isLoading: interviewsLoading } = useQuery({ queryKey: ["interviews", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getInterviews(dg.queryParams) });
-  const { data: deptData } = useQuery({ queryKey: ["departments-all"], queryFn: () => getDepartments({ page: 1, pageSize: 100 }) });
-  const { data: desigData } = useQuery({ queryKey: ["designations-all"], queryFn: () => getDesignations({ page: 1, pageSize: 100 }) });
+  const { options: deptOptions, isLoading: deptLoading } = useDepartmentLookup();
+  const { options: desigOptions, isLoading: desigLoading } = useDesignationLookup();
 
   const postings = postingsData?.data?.data?.items ?? [];
   const candidates = candidatesData?.data?.data?.items ?? [];
   const applications = appsData?.data?.data?.items ?? [];
   const interviews = interviewsData?.data?.data?.items ?? [];
-  const departments = deptData?.data?.data?.items ?? [];
-  const designations = desigData?.data?.data?.items ?? [];
 
   const postingMutation = useMutation({ mutationFn: () => createJobPosting(postingForm), onSuccess: () => { qc.invalidateQueries({ queryKey: ["job-postings"] }); setModal(false); } });
   const candidateMutation = useMutation({ mutationFn: () => createCandidate(candidateForm), onSuccess: () => { qc.invalidateQueries({ queryKey: ["candidates"] }); setModal(false); } });
@@ -168,7 +166,7 @@ export default function Recruitment() {
         {activeTab === "postings" && (
           <div className="space-y-3">
             <div><label className="text-xs text-gray-500 mb-1 block">Job Title</label><input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={postingForm.title} onChange={e => setPostingForm(f => ({ ...f, title: e.target.value }))} /></div>
-            <div className="grid grid-cols-2 gap-3"><div><label className="text-xs text-gray-500 mb-1 block">Department</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={postingForm.departmentId} onChange={e => setPostingForm(f => ({ ...f, departmentId: e.target.value }))}><option value="">Select</option>{departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select></div><div><label className="text-xs text-gray-500 mb-1 block">Designation</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={postingForm.designationId} onChange={e => setPostingForm(f => ({ ...f, designationId: e.target.value }))}><option value="">Select</option>{designations.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select></div></div>
+            <div className="grid grid-cols-2 gap-3"><div><SearchableDropdown label="Department" options={deptOptions} value={postingForm.departmentId} onChange={v => setPostingForm(f => ({ ...f, departmentId: v || "" }))} placeholder="Select" searchPlaceholder="Search departments..." loading={deptLoading} clearable /></div><div><SearchableDropdown label="Designation" options={desigOptions} value={postingForm.designationId} onChange={v => setPostingForm(f => ({ ...f, designationId: v || "" }))} placeholder="Select" searchPlaceholder="Search designations..." loading={desigLoading} clearable /></div></div>
             <div><label className="text-xs text-gray-500 mb-1 block">Location</label><input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={postingForm.location} onChange={e => setPostingForm(f => ({ ...f, location: e.target.value }))} /></div>
             <div><label className="text-xs text-gray-500 mb-1 block">Description</label><textarea rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={postingForm.description} onChange={e => setPostingForm(f => ({ ...f, description: e.target.value }))} /></div>
             <div><label className="text-xs text-gray-500 mb-1 block">Requirements</label><textarea rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={postingForm.requirements} onChange={e => setPostingForm(f => ({ ...f, requirements: e.target.value }))} /></div>

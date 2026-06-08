@@ -8,12 +8,13 @@ import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
 import ConfirmDialog from "../../components/shared/ConfirmDialog";
 import ExportMenu from "../../components/shared/ExportMenu";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
+import { useDepartmentLookup, useDesignationLookup, useEmployeeLookup } from "../../hooks/useEntityLookup";
 import Avatar from "../../components/shared/Avatar";
 import ProfilePictureUploader from "../../components/shared/ProfilePictureUploader";
 import EmployeeDetailsModal from "./EmployeeDetailsModal";
 import {
   getEmployees,
-  getAllEmployees,
   createEmployee,
   createEmployeeWithUser,
   updateEmployee,
@@ -26,8 +27,6 @@ import {
   Employee,
   Department,
   Designation,
-  getAllDepartments,
-  getAllDesignations,
   createDepartment,
   createDesignation,
 } from "../../api/hr";
@@ -93,38 +92,18 @@ export default function Employees() {
     queryFn: () => getEmployees(dg.queryParams),
   });
 
-  const { data: deptData } = useQuery({
-    queryKey: ["departments-all"],
-    queryFn: getAllDepartments,
-  });
-
-  const { data: desigData } = useQuery({
-    queryKey: ["designations-all"],
-    queryFn: getAllDesignations,
-  });
+  const { options: deptOptions, isLoading: deptLoading } = useDepartmentLookup();
+  const { options: desigOptions, isLoading: desigLoading } = useDesignationLookup();
+  const { options: empOptions, isLoading: empLoading } = useEmployeeLookup();
 
   const { data: rolesData } = useQuery({
     queryKey: ["roles-all"],
     queryFn: () => getRoles(),
   });
 
-  const { data: allEmployeesData } = useQuery({
-    queryKey: ["employees-all"],
-    queryFn: getAllEmployees,
-  });
-
   const employees = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
-  const departments = deptData?.data?.data ?? [];
-  const allDesignations = desigData?.data?.data ?? [];
-  const designations = form.departmentId
-    ? allDesignations.filter((d) => d.departmentId === form.departmentId)
-    : allDesignations;
   const roles = rolesData ?? [];
-  const allEmployees = allEmployeesData?.data?.data ?? [];
-  const managerOptions = editing
-    ? allEmployees.filter((e) => e.id !== editing.id)
-    : allEmployees;
 
   const totalCount = data?.data?.data?.totalCount ?? 0;
 
@@ -794,18 +773,18 @@ export default function Employees() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Department</label>
               <div className="flex gap-1.5">
-                <select
-                  className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                <SearchableDropdown
+                  label="Department"
+                  options={deptOptions}
                   value={form.departmentId}
-                  onChange={(e) => setForm((f) => ({ ...f, departmentId: e.target.value, designationId: "" }))}
-                >
-                  <option value="">Select Department</option>
-                  {departments.map((d) => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
-                </select>
+                  onChange={(v) => setForm((f) => ({ ...f, departmentId: v || "", designationId: "" }))}
+                  placeholder="Select Department"
+                  searchPlaceholder="Search departments..."
+                  loading={deptLoading}
+                  required
+                  className="flex-1"
+                />
                 <button
                   type="button"
                   onClick={() => {
@@ -824,18 +803,18 @@ export default function Employees() {
               </div>
             </div>
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Designation</label>
               <div className="flex gap-1.5">
-                <select
-                  className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                <SearchableDropdown
+                  label="Designation"
+                  options={desigOptions}
                   value={form.designationId}
-                  onChange={(e) => setForm((f) => ({ ...f, designationId: e.target.value }))}
-                >
-                  <option value="">Select Designation</option>
-                  {designations.map((d) => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
-                </select>
+                  onChange={(v) => setForm((f) => ({ ...f, designationId: v || "" }))}
+                  placeholder="Select Designation"
+                  searchPlaceholder="Search designations..."
+                  loading={desigLoading}
+                  required
+                  className="flex-1"
+                />
                 <button
                   type="button"
                   onClick={() => {
@@ -857,19 +836,16 @@ export default function Employees() {
 
           {/* Manager */}
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Reports To (Manager)</label>
-            <select
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+            <SearchableDropdown
+              label="Reports To (Manager)"
+              options={empOptions}
               value={form.managerId}
-              onChange={(e) => setForm((f) => ({ ...f, managerId: e.target.value }))}
-            >
-              <option value="">No Manager (Top Level)</option>
-              {managerOptions.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.firstName} {e.lastName} ({e.employeeCode}) — {e.designationName}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => setForm((f) => ({ ...f, managerId: v || "" }))}
+              placeholder="No Manager (Top Level)"
+              searchPlaceholder="Search employees..."
+              loading={empLoading}
+              clearable
+            />
           </div>
 
           {deptInlineOpen && (
@@ -954,7 +930,7 @@ export default function Employees() {
                 </div>
               ) : (
                 <div className="text-xs text-gray-500">
-                  Will be added under <span className="text-gray-700 font-medium">{departments.find((d) => d.id === form.departmentId)?.name}</span>.
+                  Will be added under <span className="text-gray-700 font-medium">{deptOptions.find((d) => d.value === form.departmentId)?.label}</span>.
                 </div>
               )}
               <div className="grid grid-cols-2 gap-2">

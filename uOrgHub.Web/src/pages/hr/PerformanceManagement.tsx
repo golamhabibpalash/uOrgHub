@@ -5,6 +5,8 @@ import DataGrid from "../../components/shared/DataGrid";
 import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
+import { useEmployeeLookup } from "../../hooks/useEntityLookup";
 import {
   getReviewCycles,
   createReviewCycle,
@@ -21,7 +23,6 @@ import {
   PerformanceReview,
   TrainingProgram,
   EmployeeTraining,
-  getEmployees,
 } from "../../api/hr";
 
 export default function PerformanceManagement() {
@@ -42,14 +43,13 @@ export default function PerformanceManagement() {
   const { data: reviewsData, isLoading: reviewsLoading } = useQuery({ queryKey: ["performance-reviews", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getPerformanceReviews(dg.queryParams) });
   const { data: programsData, isLoading: programsLoading } = useQuery({ queryKey: ["training-programs", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getTrainingPrograms(dg.queryParams) });
   const { data: empTrainingsData, isLoading: empTrainingsLoading } = useQuery({ queryKey: ["employee-trainings", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getEmployeeTrainings(dg.queryParams) });
-  const { data: empData } = useQuery({ queryKey: ["employees-all"], queryFn: () => getEmployees({ page: 1, pageSize: 100 }) });
+  const { options: empOptions, isLoading: empLoading } = useEmployeeLookup();
 
   const cycles = cyclesData?.data?.data?.items ?? [];
   const goals = goalsData?.data?.data?.items ?? [];
   const reviews = reviewsData?.data?.data?.items ?? [];
   const programs = programsData?.data?.data?.items ?? [];
   const empTrainings = empTrainingsData?.data?.data?.items ?? [];
-  const employees = empData?.data?.data?.items ?? [];
 
   const cycleMutation = useMutation({ mutationFn: () => createReviewCycle(cycleForm), onSuccess: () => { qc.invalidateQueries({ queryKey: ["review-cycles"] }); setModal(false); } });
   const goalMutation = useMutation({ mutationFn: () => createGoal(goalForm), onSuccess: () => { qc.invalidateQueries({ queryKey: ["goals"] }); setModal(false); } });
@@ -230,7 +230,7 @@ export default function PerformanceManagement() {
         )}
         {activeTab === "goals" && (
           <div className="space-y-3">
-            <div><label className="text-xs text-gray-500 mb-1 block">Employee</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={goalForm.employeeId} onChange={e => setGoalForm(f => ({ ...f, employeeId: e.target.value }))}><option value="">Select</option>{employees.map(e => <option key={e.id} value={e.id}>{e.firstName} {e.lastName}</option>)}</select></div>
+            <div><SearchableDropdown label="Employee" options={empOptions} value={goalForm.employeeId} onChange={v => setGoalForm(f => ({ ...f, employeeId: v || "" }))} placeholder="Select" searchPlaceholder="Search employee..." loading={empLoading} required /></div>
             <div><label className="text-xs text-gray-500 mb-1 block">Goal Title</label><input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={goalForm.title} onChange={e => setGoalForm(f => ({ ...f, title: e.target.value }))} /></div>
             <div><label className="text-xs text-gray-500 mb-1 block">Description</label><textarea rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={goalForm.description} onChange={e => setGoalForm(f => ({ ...f, description: e.target.value }))} /></div>
             <div><label className="text-xs text-gray-500 mb-1 block">Target Date</label><input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={goalForm.targetDate} onChange={e => setGoalForm(f => ({ ...f, targetDate: e.target.value }))} /></div>
@@ -239,15 +239,15 @@ export default function PerformanceManagement() {
         )}
         {activeTab === "reviews" && (
           <div className="space-y-3">
-            <div><label className="text-xs text-gray-500 mb-1 block">Employee</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={reviewForm.employeeId} onChange={e => setReviewForm(f => ({ ...f, employeeId: e.target.value }))}><option value="">Select</option>{employees.map(e => <option key={e.id} value={e.id}>{e.firstName} {e.lastName}</option>)}</select></div>
-            <div><label className="text-xs text-gray-500 mb-1 block">Reviewer</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={reviewForm.reviewerId} onChange={e => setReviewForm(f => ({ ...f, reviewerId: e.target.value }))}><option value="">Select</option>{employees.map(e => <option key={e.id} value={e.id}>{e.firstName} {e.lastName}</option>)}</select></div>
+            <div><SearchableDropdown label="Employee" options={empOptions} value={reviewForm.employeeId} onChange={v => setReviewForm(f => ({ ...f, employeeId: v || "" }))} placeholder="Select" searchPlaceholder="Search employee..." loading={empLoading} required /></div>
+            <div><SearchableDropdown label="Reviewer" options={empOptions} value={reviewForm.reviewerId} onChange={v => setReviewForm(f => ({ ...f, reviewerId: v || "" }))} placeholder="Select" searchPlaceholder="Search employee..." loading={empLoading} required /></div>
             <div><label className="text-xs text-gray-500 mb-1 block">Review Cycle</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={reviewForm.reviewCycleId} onChange={e => setReviewForm(f => ({ ...f, reviewCycleId: e.target.value }))}><option value="">Select</option>{cycles.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
             <div className="flex justify-end gap-2 pt-2"><button onClick={() => setModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button><button onClick={() => reviewMutation.mutate()} disabled={reviewMutation.isPending} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">{reviewMutation.isPending ? "Saving..." : "Save"}</button></div>
           </div>
         )}
         {activeTab === "training" && trainingMode === "enroll" && (
           <div className="space-y-3">
-            <div><label className="text-xs text-gray-500 mb-1 block">Employee</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={trainingForm.employeeId} onChange={e => setTrainingForm(f => ({ ...f, employeeId: e.target.value }))}><option value="">Select</option>{employees.map(e => <option key={e.id} value={e.id}>{e.firstName} {e.lastName}</option>)}</select></div>
+            <div><SearchableDropdown label="Employee" options={empOptions} value={trainingForm.employeeId} onChange={v => setTrainingForm(f => ({ ...f, employeeId: v || "" }))} placeholder="Select" searchPlaceholder="Search employee..." loading={empLoading} required /></div>
             <div><label className="text-xs text-gray-500 mb-1 block">Training Program</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={trainingForm.trainingProgramId} onChange={e => setTrainingForm(f => ({ ...f, trainingProgramId: e.target.value }))}><option value="">Select</option>{programs.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}</select></div>
             <div className="flex justify-end gap-2 pt-2"><button onClick={() => setModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button><button onClick={handleEnroll} disabled={enrollMutation.isPending || !trainingForm.employeeId || !trainingForm.trainingProgramId} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">{enrollMutation.isPending ? "Enrolling..." : "Enroll"}</button></div>
           </div>

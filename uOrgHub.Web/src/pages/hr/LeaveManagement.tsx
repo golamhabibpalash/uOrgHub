@@ -6,10 +6,11 @@ import DataGrid from "../../components/shared/DataGrid";
 import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
+import { useEmployeeLookup, useLeaveTypeLookup } from "../../hooks/useEntityLookup";
 import { useAuthStore } from "../../store/authStore";
 import {
   getLeaveTypes,
-  getActiveLeaveTypes,
   createLeaveType,
   updateLeaveType,
   getLeaveRequests,
@@ -20,7 +21,6 @@ import {
   cancelLeaveRequest,
   LeaveType,
   LeaveRequest,
-  getEmployees,
 } from "../../api/hr";
 
 export default function LeaveManagement() {
@@ -88,11 +88,8 @@ export default function LeaveManagement() {
     enabled: canViewLeaveTypes,
   });
 
-  const { data: activeTypesData } = useQuery({
-    queryKey: ["leave-types-active"],
-    queryFn: getActiveLeaveTypes,
-    enabled: canCreateRequest || canEditAnyRequest || canSelfService,
-  });
+  const { options: leaveTypeOptions, isLoading: leaveTypeLoading } = useLeaveTypeLookup();
+  const { options: empOptions, isLoading: empLoading } = useEmployeeLookup();
 
   const { data: requestsData, isLoading: requestsLoading } = useQuery({
     queryKey: ["leave-requests", dg.page, dg.search, dg.sortBy, dg.sortDescending, statusFilter],
@@ -104,16 +101,8 @@ export default function LeaveManagement() {
     enabled: canViewRequests,
   });
 
-  const { data: empData } = useQuery({
-    queryKey: ["employees-all"],
-    queryFn: () => getEmployees({ page: 1, pageSize: 100 }),
-    enabled: isHrAdmin,
-  });
-
   const leaveTypes = typesData?.data?.data?.items ?? [];
-  const activeLeaveTypes = activeTypesData?.data?.data ?? [];
   const leaveRequests = requestsData?.data?.data?.items ?? [];
-  const employees = empData?.data?.data?.items ?? [];
 
   const saveTypeMutation = useMutation({
     mutationFn: () => editing
@@ -478,11 +467,16 @@ export default function LeaveManagement() {
               </div>
             ) : isHrAdmin ? (
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Employee</label>
-                <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={reqForm.employeeId} onChange={(e) => setReqForm(f => ({ ...f, employeeId: e.target.value }))}>
-                  <option value="">Select Employee</option>
-                  {employees.map(e => <option key={e.id} value={e.id}>{e.firstName} {e.lastName}</option>)}
-                </select>
+                <SearchableDropdown
+                  label="Employee"
+                  options={empOptions}
+                  value={reqForm.employeeId}
+                  onChange={(v) => setReqForm(f => ({ ...f, employeeId: v || "" }))}
+                  placeholder="Select Employee"
+                  searchPlaceholder="Search employee..."
+                  loading={empLoading}
+                  required
+                />
               </div>
             ) : (
               <div className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
@@ -490,11 +484,16 @@ export default function LeaveManagement() {
               </div>
             )}
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Leave Type</label>
-              <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={reqForm.leaveTypeId} onChange={(e) => setReqForm(f => ({ ...f, leaveTypeId: e.target.value }))}>
-                <option value="">Select Leave Type</option>
-                {(activeLeaveTypes.length ? activeLeaveTypes : leaveTypes).map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-              </select>
+              <SearchableDropdown
+                label="Leave Type"
+                options={leaveTypeOptions}
+                value={reqForm.leaveTypeId}
+                onChange={(v) => setReqForm(f => ({ ...f, leaveTypeId: v || "" }))}
+                placeholder="Select Leave Type"
+                searchPlaceholder="Search leave types..."
+                loading={leaveTypeLoading}
+                required
+              />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>

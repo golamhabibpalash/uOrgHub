@@ -8,6 +8,8 @@ import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
 import ConfirmDialog from "../../components/shared/ConfirmDialog";
 import ExportMenu from "../../components/shared/ExportMenu";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
+import { useEmployeeLookup } from "../../hooks/useEntityLookup";
 import {
   getSalaryGrades,
   createSalaryGrade,
@@ -27,7 +29,6 @@ import {
   SalaryComponent,
   PayrollCycle,
   ExpenseRequest,
-  getEmployees,
 } from "../../api/hr";
 
 export default function PayrollManagement() {
@@ -52,13 +53,12 @@ export default function PayrollManagement() {
   const { data: compsData, isLoading: compsLoading } = useQuery({ queryKey: ["salary-components", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getSalaryComponents(dg.queryParams) });
   const { data: cyclesData, isLoading: cyclesLoading } = useQuery({ queryKey: ["payroll-cycles", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getPayrollCycles(dg.queryParams) });
   const { data: expData, isLoading: expLoading } = useQuery({ queryKey: ["expenses", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getExpenses(dg.queryParams) });
-  const { data: empData } = useQuery({ queryKey: ["employees-all"], queryFn: () => getEmployees({ page: 1, pageSize: 100 }) });
+  const { options: empOptions, isLoading: empLoading } = useEmployeeLookup();
 
   const grades = gradesData?.data?.data?.items ?? [];
   const components = compsData?.data?.data?.items ?? [];
   const cycles = cyclesData?.data?.data?.items ?? [];
   const expenses = expData?.data?.data?.items ?? [];
-  const employees = empData?.data?.data?.items ?? [];
 
   function extractApiError(err: unknown): string {
     const axiosErr = err as AxiosError<{ message?: string; errors?: string[] | Record<string, string[]> }>;
@@ -298,7 +298,7 @@ export default function PayrollManagement() {
         )}
         {activeTab === "expenses" && (
           <div className="space-y-3">
-            <div><label className="text-xs text-gray-500 mb-1 block">Employee</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={expForm.employeeId} onChange={e => setExpForm(f => ({ ...f, employeeId: e.target.value }))}><option value="">Select Employee</option>{employees.map(e => <option key={e.id} value={e.id}>{e.firstName} {e.lastName}</option>)}</select></div>
+            <div><SearchableDropdown label="Employee" options={empOptions} value={expForm.employeeId} onChange={v => setExpForm(f => ({ ...f, employeeId: v || "" }))} placeholder="Select Employee" searchPlaceholder="Search employee..." loading={empLoading} required /></div>
             <div className="grid grid-cols-2 gap-3"><div><label className="text-xs text-gray-500 mb-1 block">Amount</label><input type="number" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={expForm.amount} onChange={e => setExpForm(f => ({ ...f, amount: Number(e.target.value) }))} /></div><div><label className="text-xs text-gray-500 mb-1 block">Category</label><select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={expForm.category} onChange={e => setExpForm(f => ({ ...f, category: e.target.value }))}><option value="">Select</option><option value="Travel">Travel</option><option value="Food">Food</option><option value="Accommodation">Accommodation</option><option value="Other">Other</option></select></div></div>
             <div><label className="text-xs text-gray-500 mb-1 block">Description</label><textarea rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={expForm.description} onChange={e => setExpForm(f => ({ ...f, description: e.target.value }))} /></div>
             <div className="flex justify-end gap-2 pt-2"><button onClick={() => setModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button><button onClick={() => expMutation.mutate()} disabled={expMutation.isPending} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">{expMutation.isPending ? "Submitting..." : "Submit"}</button></div>
