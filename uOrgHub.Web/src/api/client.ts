@@ -7,6 +7,18 @@ const apiClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+function extractFirstError(errors: unknown): string | undefined {
+  if (!errors) return undefined;
+  if (Array.isArray(errors)) return errors[0];
+  if (typeof errors === 'object') {
+    const vals = Object.values(errors as Record<string, unknown>);
+    const first = vals[0];
+    if (Array.isArray(first)) return first[0];
+    if (typeof first === 'string') return first;
+  }
+  return undefined;
+}
+
 apiClient.interceptors.request.use((config) => {
   const token = useAuthStore.getState().token;
   if (token) config.headers.Authorization = `Bearer ${token}`;
@@ -71,7 +83,7 @@ apiClient.interceptors.response.use(
     }
 
     const errMsg = error.response?.data?.message
-      || error.response?.data?.errors?.[0]
+      || extractFirstError(error.response?.data?.errors)
       || error.message
       || 'An error occurred';
     if (status && status !== 401 && status !== 403) {

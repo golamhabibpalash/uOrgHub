@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { AxiosError } from "axios";
 import { Plus } from "lucide-react";
 import toast from "react-hot-toast";
 import DataGrid from "../../components/shared/DataGrid";
@@ -62,14 +63,31 @@ export default function AttendanceManagement() {
   const employees = empData?.data?.data?.items ?? [];
   const allSchedules = scheduleData?.data?.data?.items ?? [];
 
+  function extractApiError(err: unknown): string {
+    const axiosErr = err as AxiosError<{ message?: string; errors?: string[] | Record<string, string[]> }>;
+    const body = axiosErr.response?.data;
+    if (typeof body?.message === "string") return body.message;
+    if (body?.errors) {
+      if (Array.isArray(body.errors)) return body.errors[0] ?? "";
+      const first = Object.values(body.errors).flat()[0];
+      if (first) return first;
+    }
+    return (err as Error)?.message ?? "An error occurred";
+  }
+
   const createScheduleMutation = useMutation({
     mutationFn: () => createWorkSchedule(form),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["work-schedules"] }); setModal(false); },
   });
 
   const createShiftMutation = useMutation({
-    mutationFn: () => createShift(shiftForm),
+    mutationFn: () => createShift({
+      ...shiftForm,
+      startTime: `${shiftForm.startTime}:00`,
+      endTime: `${shiftForm.endTime}:00`,
+    }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["shifts"] }); setModal(false); },
+    onError: (err) => toast.error(extractApiError(err)),
   });
 
   const saveLogMutation = useMutation({
