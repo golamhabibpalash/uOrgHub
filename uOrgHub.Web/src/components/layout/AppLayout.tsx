@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
+import ErrorBoundary from "../shared/ErrorBoundary";
 
 const pageTitles: Record<string, { title: string; breadcrumb: string }> = {
   "/dashboard": { title: "Dashboard", breadcrumb: "Home / Dashboard" },
@@ -29,7 +30,9 @@ export default function AppLayout() {
       <div className="flex flex-col flex-1 overflow-hidden">
         <Topbar title={meta.title} breadcrumb={meta.breadcrumb} />
         <main className="flex-1 overflow-y-auto p-5">
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
     </div>
