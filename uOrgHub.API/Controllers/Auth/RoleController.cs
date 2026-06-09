@@ -31,18 +31,24 @@ public class RoleController : ControllerBase
     [RequireClaim("Users.View")]
     public async Task<IActionResult> GetRoles()
     {
-        var roles = await _db.Set<ApplicationRole>()
-            .Include(r => r.UserRoles)
+        var rawRoles = await _db.Set<ApplicationRole>()
             .Where(r => !r.IsDeleted)
             .OrderBy(r => r.Name)
-            .Select(r => new RoleDto(
+            .Select(r => new
+            {
                 r.Id, r.Name, r.Description, r.IsSystem, r.IsActive,
-                r.UserRoles.Count,
-                r.RoleClaims.Where(rc => !rc.Claim.IsDeleted).Select(rc => new ClaimDto(
+                UserCount = r.UserRoles.Count,
+                Claims = r.RoleClaims.Where(rc => !rc.Claim.IsDeleted).Select(rc => new ClaimDto(
                     rc.Claim.Id, rc.Claim.Name, rc.Claim.Description, rc.Claim.Module, rc.Claim.Category, rc.Claim.IsActive
-                )).DistinctBy(rc => rc.Id).ToList()
-            ))
+                )).ToList()
+            })
             .ToListAsync();
+
+        var roles = rawRoles.Select(r => new RoleDto(
+            r.Id, r.Name, r.Description, r.IsSystem, r.IsActive,
+            r.UserCount,
+            r.Claims.DistinctBy(c => c.Id).ToList()
+        )).ToList();
 
         return Ok(ApiResponse<List<RoleDto>>.Ok(roles));
     }
