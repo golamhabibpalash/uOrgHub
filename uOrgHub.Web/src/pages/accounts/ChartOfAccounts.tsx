@@ -176,7 +176,7 @@ export default function ChartOfAccounts() {
         actions={<ExportMenu baseUrl="/accounts/chart-of-accounts" filters={{ search: dg.search || undefined }} />}
       />
 
-      <Modal title={editing ? "Edit Account" : "Add Account"} open={modal} onClose={closeModal} size="3xl">
+      <Modal title={editing ? "Edit Account" : "Add Account"} open={modal} onClose={closeModal} size="4xl">
         <div className="space-y-4">
           {saveError && (
             <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">

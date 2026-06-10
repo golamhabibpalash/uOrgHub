@@ -146,7 +146,7 @@ export function useAccountGroupLookup() {
       })
       .map(({ g, pathStr }) => ({
         value: g.id,
-        label: `[${pathStr}] ${g.name}`,
+        label: `${pathStr} - ${g.name}`,
         searchText: `${g.name} ${g.code} ${pathStr}`,
       }));
   }, [query.data]);
