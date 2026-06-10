@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Accounts.DTOs;
 using uOrgHub.Accounts.Features.AccountGroup;
+using uOrgHub.Accounts.Models.Enums;
 using uOrgHub.Accounts.Reporting.ExportColumns;
 using uOrgHub.Accounts.Services;
 using uOrgHub.API.Middleware;
@@ -33,6 +34,22 @@ public class AccountGroupsController : BaseController
     {
         var result = await _service.GetAllAsync(request);
         return Ok(ApiResponse<PagedResult<AccountGroupResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("all")]
+    [RequireClaim(Claims.Accounts.AccountGroups.View)]
+    public async Task<IActionResult> GetAllFlat()
+    {
+        var result = await _service.GetAllFlatAsync();
+        return Ok(ApiResponse<List<AccountGroupResponseDto>>.Ok(result));
+    }
+
+    [HttpGet("generate-code")]
+    [RequireClaim(Claims.Accounts.AccountGroups.View)]
+    public async Task<IActionResult> GenerateCode([FromQuery] AccountGroupType type, [FromQuery] Guid? parentAccountGroupId)
+    {
+        var code = await _service.GenerateCodeAsync(type, parentAccountGroupId);
+        return Ok(ApiResponse<GeneratedCodeDto>.Ok(new GeneratedCodeDto { Code = code, Type = type, ParentAccountGroupId = parentAccountGroupId }));
     }
 
     [HttpGet("export")]

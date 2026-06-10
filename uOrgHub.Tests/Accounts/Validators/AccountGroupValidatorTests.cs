@@ -12,7 +12,6 @@ public class CreateAccountGroupValidatorTests
     private CreateAccountGroupDto ValidDto() => new()
     {
         Name = "Current Assets",
-        Code = "CA",
         Type = AccountGroupType.Asset,
         IsActive = true
     };
@@ -36,22 +35,6 @@ public class CreateAccountGroupValidatorTests
     public void Name_over_100_chars_fails()
     {
         var dto = ValidDto(); dto.Name = new string('A', 101);
-        _validator.Validate(dto).IsValid.Should().BeFalse();
-    }
-
-    [Fact]
-    public void Empty_code_fails()
-    {
-        var dto = ValidDto(); dto.Code = "";
-        var result = _validator.Validate(dto);
-        result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.ErrorMessage == "Code is required");
-    }
-
-    [Fact]
-    public void Code_over_20_chars_fails()
-    {
-        var dto = ValidDto(); dto.Code = new string('C', 21);
         _validator.Validate(dto).IsValid.Should().BeFalse();
     }
 
