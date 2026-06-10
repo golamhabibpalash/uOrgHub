@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import DataGrid from "../../components/shared/DataGrid";
@@ -12,6 +12,7 @@ import {
   createChartOfAccount,
   updateChartOfAccount,
   deleteChartOfAccount,
+  getGeneratedAccountCode,
   ChartOfAccount,
   AccountGroupType,
 } from "../../api/accounts";
@@ -30,7 +31,6 @@ export default function ChartOfAccounts() {
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<ChartOfAccount | null>(null);
   const [form, setForm] = useState({
-    accountCode: "",
     accountName: "",
     accountGroupId: "",
     accountType: "Asset" as AccountGroupType,
@@ -38,7 +38,9 @@ export default function ChartOfAccounts() {
     description: "",
     allowDirectEntry: true,
     isActive: true,
+    customCode: "",
   });
+  const [generatedCode, setGeneratedCode] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["chart-of-accounts", dg.page, dg.search, dg.sortBy, dg.sortDescending],
@@ -47,13 +49,27 @@ export default function ChartOfAccounts() {
 
   const { options: groupOptions } = useAccountGroupLookup();
 
+  const { data: generatedCodeData } = useQuery({
+    queryKey: ["generated-account-code", form.accountGroupId],
+    queryFn: () => getGeneratedAccountCode(form.accountGroupId),
+    enabled: !!form.accountGroupId,
+  });
+
+  useEffect(() => {
+    if (generatedCodeData?.data?.data) {
+      setGeneratedCode(generatedCodeData.data.data);
+    }
+  }, [generatedCodeData]);
+
   const accounts = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
   const totalCount = data?.data?.data?.totalCount ?? 0;
   const [saveError, setSaveError] = useState("");
 
   const saveMutation = useMutation({
-    mutationFn: () => editing ? updateChartOfAccount(editing.id, form) : createChartOfAccount(form),
+    mutationFn: () => editing
+      ? updateChartOfAccount(editing.id, { ...form, id: editing.id, accountCode: editing.accountCode })
+      : createChartOfAccount(form),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["chart-of-accounts"] }); closeModal(); },
     onError: (err: unknown) => {
       const axiosErr = err as { response?: { data?: { message?: string; errors?: string[] } } };
@@ -71,7 +87,8 @@ export default function ChartOfAccounts() {
 
   function openAdd() {
     setEditing(null);
-    setForm({ accountCode: "", accountName: "", accountGroupId: groupOptions[0]?.value ?? "", accountType: "Asset", openingBalance: 0, description: "", allowDirectEntry: true, isActive: true });
+    setForm({ accountName: "", accountGroupId: groupOptions[0]?.value ?? "", accountType: "Asset", openingBalance: 0, description: "", allowDirectEntry: true, isActive: true, customCode: "" });
+    setGeneratedCode("");
     setSaveError("");
     setModal(true);
   }
@@ -79,7 +96,6 @@ export default function ChartOfAccounts() {
   function openEdit(acc: ChartOfAccount) {
     setEditing(acc);
     setForm({
-      accountCode: acc.accountCode,
       accountName: acc.accountName,
       accountGroupId: acc.accountGroupId,
       accountType: acc.accountType,
@@ -87,7 +103,9 @@ export default function ChartOfAccounts() {
       description: acc.description ?? "",
       allowDirectEntry: acc.allowDirectEntry,
       isActive: acc.isActive,
+      customCode: acc.customCode ?? "",
     });
+    setGeneratedCode(acc.accountCode);
     setSaveError("");
     setModal(true);
   }
@@ -167,15 +185,9 @@ export default function ChartOfAccounts() {
           )}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Account Code *</label>
-              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.accountCode} onChange={(e) => setForm((f) => ({ ...f, accountCode: e.target.value }))} />
-            </div>
-            <div>
               <label className="text-xs text-gray-500 mb-1 block">Account Name *</label>
               <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.accountName} onChange={(e) => setForm((f) => ({ ...f, accountName: e.target.value }))} />
             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
             <div>
               <SearchableDropdown
                 label="Account Group *"
@@ -187,11 +199,17 @@ export default function ChartOfAccounts() {
                 required
               />
             </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Account Type *</label>
-              <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.accountType} onChange={(e) => setForm((f) => ({ ...f, accountType: e.target.value as AccountGroupType }))}>
-                {(["Asset", "Liability", "Equity", "Income", "Expense"] as AccountGroupType[]).map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
+              <label className="text-xs text-gray-500 mb-1 block">Account Code</label>
+              <div className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-700">
+                {form.accountGroupId ? (generatedCode || "Loading...") : <span className="text-gray-400">Select a group</span>}
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Custom Code</label>
+              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.customCode} onChange={(e) => setForm((f) => ({ ...f, customCode: e.target.value }))} />
             </div>
           </div>
           {!editing && (

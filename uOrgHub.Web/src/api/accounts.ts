@@ -23,12 +23,27 @@ export interface AccountGroup {
   type: AccountGroupType;
   description?: string;
   isActive: boolean;
+  parentAccountGroupId?: string;
+  parentGroupName?: string;
+  customCode?: string;
   createdAt: string;
   createdBy: string;
 }
 
+export interface GeneratedCode {
+  code: string;
+  type: AccountGroupType;
+  parentAccountGroupId?: string;
+}
+
 export const getAccountGroups = (params: PaginationRequest) =>
   apiClient.get<ApiResponse<PagedResult<AccountGroup>>>("/accounts/account-groups", { params });
+
+export const getAllAccountGroups = () =>
+  apiClient.get<ApiResponse<AccountGroup[]>>("/accounts/account-groups/all");
+
+export const getGeneratedCode = (type: AccountGroupType, parentAccountGroupId?: string) =>
+  apiClient.get<ApiResponse<GeneratedCode>>("/accounts/account-groups/generate-code", { params: { type, parentAccountGroupId } });
 
 export const createAccountGroup = (data: Partial<AccountGroup>) =>
   apiClient.post<ApiResponse<AccountGroup>>("/accounts/account-groups", data);
@@ -38,6 +53,7 @@ export const updateAccountGroup = (id: string, data: Partial<AccountGroup>) =>
 
 export const deleteAccountGroup = (id: string) =>
   apiClient.delete<ApiResponse<null>>(`/accounts/account-groups/${id}`);
+// ── End of Account Groups ──────────────────────────────────────────────
 
 // ── Fiscal Years ───────────────────────────────────────────────────────────
 
@@ -80,6 +96,7 @@ export interface ChartOfAccount {
   currentBalance: number;
   description?: string;
   allowDirectEntry: boolean;
+  customCode?: string;
   createdAt: string;
   createdBy: string;
 }
@@ -105,6 +122,9 @@ export const updateChartOfAccount = (id: string, data: Partial<ChartOfAccount>) 
 
 export const deleteChartOfAccount = (id: string) =>
   apiClient.delete<ApiResponse<null>>(`/accounts/chart-of-accounts/${id}`);
+
+export const getGeneratedAccountCode = (accountGroupId: string) =>
+  apiClient.get<ApiResponse<string>>("/accounts/chart-of-accounts/generate-code", { params: { accountGroupId } });
 
 export const getAccountLedger = (id: string) =>
   apiClient.get<ApiResponse<JournalEntryLineResponse[]>>(`/accounts/chart-of-accounts/${id}/ledger`);
