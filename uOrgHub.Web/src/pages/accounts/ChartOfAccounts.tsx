@@ -176,69 +176,98 @@ export default function ChartOfAccounts() {
         actions={<ExportMenu baseUrl="/accounts/chart-of-accounts" filters={{ search: dg.search || undefined }} />}
       />
 
-      <Modal title={editing ? "Edit Account" : "Add Account"} open={modal} onClose={closeModal} size="2xl">
-        <div className="space-y-3">
+      <Modal title={editing ? "Edit Account" : "Add Account"} open={modal} onClose={closeModal} size="3xl">
+        <div className="space-y-4">
           {saveError && (
             <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
               {saveError}
             </div>
           )}
-          <div className="grid grid-cols-2 gap-3">
+
+          {/* Identity */}
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Account Name *</label>
-              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.accountName} onChange={(e) => setForm((f) => ({ ...f, accountName: e.target.value }))} />
-            </div>
-            <div>
-              <SearchableDropdown
-                label="Account Group *"
-                options={groupOptions}
-                value={form.accountGroupId}
-                onChange={(v) => setForm((f) => ({ ...f, accountGroupId: v ?? "" }))}
-                placeholder="Select group"
-                searchPlaceholder="Search groups..."
-                required
+              <input
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                value={form.accountName}
+                onChange={(e) => setForm((f) => ({ ...f, accountName: e.target.value }))}
               />
             </div>
+            <SearchableDropdown
+              label="Account Group *"
+              options={groupOptions}
+              value={form.accountGroupId}
+              onChange={(v) => setForm((f) => ({ ...f, accountGroupId: v ?? "" }))}
+              placeholder="Select group"
+              searchPlaceholder="Search by name or code..."
+              required
+            />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+
+          {/* Codes + Opening Balance */}
+          <div className={`grid gap-4 ${!editing ? "grid-cols-3" : "grid-cols-2"}`}>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Account Code</label>
-              <div className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-700">
-                {form.accountGroupId ? (generatedCode || "Loading...") : <span className="text-gray-400">Select a group</span>}
+              <div className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-700 font-mono">
+                {form.accountGroupId
+                  ? (generatedCode || <span className="text-gray-400 font-sans">Loading…</span>)
+                  : <span className="text-gray-400 font-sans">Select a group first</span>}
               </div>
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Custom Code</label>
-              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.customCode} onChange={(e) => setForm((f) => ({ ...f, customCode: e.target.value }))} />
+              <input
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                value={form.customCode}
+                onChange={(e) => setForm((f) => ({ ...f, customCode: e.target.value }))}
+                placeholder="Leave blank for auto"
+              />
             </div>
-          </div>
-          {!editing && (
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Opening Balance</label>
-              <input type="number" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.openingBalance} onChange={(e) => setForm((f) => ({ ...f, openingBalance: parseFloat(e.target.value) || 0 }))} />
-            </div>
-          )}
-          <div>
-            <label className="text-xs text-gray-500 mb-1 block">Description</label>
-            <textarea rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <input type="checkbox" id="allowDirect" checked={form.allowDirectEntry} onChange={(e) => setForm((f) => ({ ...f, allowDirectEntry: e.target.checked }))} />
-              <label htmlFor="allowDirect" className="text-xs text-gray-600">Allow direct entry</label>
-            </div>
-            {editing && (
-              <div className="flex items-center gap-2">
-                <input type="checkbox" id="isActive" checked={form.isActive} onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))} />
-                <label htmlFor="isActive" className="text-xs text-gray-600">Active</label>
+            {!editing && (
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Opening Balance</label>
+                <input
+                  type="number"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  value={form.openingBalance}
+                  onChange={(e) => setForm((f) => ({ ...f, openingBalance: parseFloat(e.target.value) || 0 }))}
+                />
               </div>
             )}
           </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <button onClick={closeModal} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-            <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">
-              {saveMutation.isPending ? "Saving..." : "Save"}
-            </button>
+
+          {/* Description */}
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Description</label>
+            <textarea
+              rows={2}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500 resize-none"
+              value={form.description}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+            />
+          </div>
+
+          {/* Toggles + Actions */}
+          <div className="flex items-center justify-between pt-1 border-t border-gray-100">
+            <div className="flex items-center gap-5">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input type="checkbox" id="allowDirect" checked={form.allowDirectEntry} onChange={(e) => setForm((f) => ({ ...f, allowDirectEntry: e.target.checked }))} />
+                <span className="text-xs text-gray-600">Allow direct entry</span>
+              </label>
+              {editing && (
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input type="checkbox" id="isActive" checked={form.isActive} onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))} />
+                  <span className="text-xs text-gray-600">Active</span>
+                </label>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button onClick={closeModal} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
+              <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">
+                {saveMutation.isPending ? "Saving…" : "Save"}
+              </button>
+            </div>
           </div>
         </div>
       </Modal>

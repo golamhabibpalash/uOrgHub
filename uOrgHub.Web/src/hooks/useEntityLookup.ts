@@ -8,7 +8,7 @@ import {
   getActiveLeaveTypes,
   getAllSalaryGrades,
 } from "../api/hr";
-import { getChartOfAccounts, getAccountGroups, getCostCenters, getCustomers, getVendors, getFiscalYears, getBankAccounts } from "../api/accounts";
+import { getChartOfAccounts, getAllAccountGroups, getCostCenters, getCustomers, getVendors, getFiscalYears, getBankAccounts } from "../api/accounts";
 import { getInventoryTypes, getInventoryCategories, getUnitsOfMeasure, getWarehouses } from "../api/inventory";
 import { getProjectCategories, getClients, getProjects } from "../api/projects";
 
@@ -115,14 +115,42 @@ export function useChartOfAccountsLookup() {
 
 export function useAccountGroupLookup() {
   const query = useQuery({
-    queryKey: ["account-groups"],
-    queryFn: () => getAccountGroups({ page: 1, pageSize: 200 }),
+    queryKey: ["account-groups-all"],
+    queryFn: getAllAccountGroups,
     staleTime: 60000,
   });
-  const options = useMemo(
-    () => toOptions(query.data?.data?.data?.items, (g) => ({ value: g.id, label: g.name })),
-    [query.data],
-  );
+
+  const options = useMemo((): SelectOption[] => {
+    const groups = query.data?.data?.data ?? [];
+    const groupMap = new Map(groups.map((g) => [g.id, g]));
+
+    function getCodePath(id: string): string[] {
+      const g = groupMap.get(id);
+      if (!g) return [];
+      if (!g.parentAccountGroupId) return [g.code];
+      return [...getCodePath(g.parentAccountGroupId), g.code];
+    }
+
+    return groups
+      .map((g) => {
+        const codePath = getCodePath(g.id);
+        const pathStr = codePath.join(" > ");
+        return { g, codePath, pathStr };
+      })
+      .sort((a, b) => {
+        for (let i = 0; i < Math.min(a.codePath.length, b.codePath.length); i++) {
+          const cmp = a.codePath[i].localeCompare(b.codePath[i]);
+          if (cmp !== 0) return cmp;
+        }
+        return a.codePath.length - b.codePath.length;
+      })
+      .map(({ g, pathStr }) => ({
+        value: g.id,
+        label: `[${pathStr}] ${g.name}`,
+        searchText: `${g.name} ${g.code} ${pathStr}`,
+      }));
+  }, [query.data]);
+
   return { options, isLoading: query.isLoading };
 }
 
