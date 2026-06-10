@@ -19,5 +19,13 @@ public class UpdateAccountGroupValidator : AbstractValidator<UpdateAccountGroupD
 
         RuleFor(x => x.Description)
             .MaximumLength(500);
+
+        RuleFor(x => x.CustomCode)
+            .MaximumLength(50)
+            .When(x => !string.IsNullOrWhiteSpace(x.CustomCode));
+
+        RuleFor(x => x.ParentAccountGroupId)
+            .NotEmpty().WithMessage("Parent group is invalid.")
+            .When(x => x.ParentAccountGroupId.HasValue);
     }
 }

@@ -11,11 +11,15 @@ public class CreateAccountGroupValidator : AbstractValidator<CreateAccountGroupD
             .NotEmpty().WithMessage("Name is required")
             .MaximumLength(100);
 
-        RuleFor(x => x.Code)
-            .NotEmpty().WithMessage("Code is required")
-            .MaximumLength(20);
-
         RuleFor(x => x.Description)
             .MaximumLength(500);
+
+        RuleFor(x => x.CustomCode)
+            .MaximumLength(50)
+            .When(x => !string.IsNullOrWhiteSpace(x.CustomCode));
+
+        RuleFor(x => x.ParentAccountGroupId)
+            .NotEmpty().WithMessage("Parent group is invalid.")
+            .When(x => x.ParentAccountGroupId.HasValue);
     }
 }

@@ -10,4 +10,6 @@ public class UpdateAccountGroupDto
     public AccountGroupType Type { get; set; }
     public string? Description { get; set; }
     public bool IsActive { get; set; } = true;
+    public Guid? ParentAccountGroupId { get; set; }
+    public string? CustomCode { get; set; }
 }
