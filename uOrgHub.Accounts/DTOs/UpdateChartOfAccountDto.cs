@@ -13,4 +13,5 @@ public class UpdateChartOfAccountDto
     public bool IsActive { get; set; } = true;
     public string? Description { get; set; }
     public bool AllowDirectEntry { get; set; } = true;
+    public string? CustomCode { get; set; }
 }

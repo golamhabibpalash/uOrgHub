@@ -6,4 +6,5 @@ namespace uOrgHub.Accounts.Services;
 public interface IChartOfAccountService : IBaseService<ChartOfAccountResponseDto, CreateChartOfAccountDto, UpdateChartOfAccountDto>
 {
     Task<List<JournalEntryLineResponseDto>> GetLedgerAsync(Guid accountId);
+    Task<string> GenerateAccountCodeAsync(Guid accountGroupId);
 }

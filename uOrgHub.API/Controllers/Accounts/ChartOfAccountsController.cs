@@ -57,6 +57,14 @@ public class ChartOfAccountsController : BaseController
         return Ok(ApiResponse<ChartOfAccountResponseDto>.Ok(result));
     }
 
+    [HttpGet("generate-code")]
+    [RequireClaim(Claims.Accounts.ChartOfAccounts.View)]
+    public async Task<IActionResult> GenerateCode([FromQuery] Guid accountGroupId)
+    {
+        var code = await _service.GenerateAccountCodeAsync(accountGroupId);
+        return Ok(ApiResponse<string>.Ok(code));
+    }
+
     [HttpGet("{id:guid}/ledger")]
     [RequireClaim(Claims.Accounts.ChartOfAccounts.View)]
     public async Task<IActionResult> GetLedger(Guid id)

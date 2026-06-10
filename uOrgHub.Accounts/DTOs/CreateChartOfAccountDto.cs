@@ -4,7 +4,6 @@ namespace uOrgHub.Accounts.DTOs;
 
 public class CreateChartOfAccountDto
 {
-    public string AccountCode { get; set; } = string.Empty;
     public string AccountName { get; set; } = string.Empty;
     public Guid AccountGroupId { get; set; }
     public Guid? ParentAccountId { get; set; }
@@ -13,4 +12,5 @@ public class CreateChartOfAccountDto
     public decimal OpeningBalance { get; set; } = 0;
     public string? Description { get; set; }
     public bool AllowDirectEntry { get; set; } = true;
+    public string? CustomCode { get; set; }
 }

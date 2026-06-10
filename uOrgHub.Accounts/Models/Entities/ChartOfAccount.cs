@@ -12,6 +12,9 @@ public class ChartOfAccount : BaseEntity
     [MaxLength(20)]
     public string AccountCode { get; set; } = string.Empty;
 
+    [MaxLength(50)]
+    public string? CustomCode { get; set; }
+
     [Required]
     [MaxLength(200)]
     public string AccountName { get; set; } = string.Empty;

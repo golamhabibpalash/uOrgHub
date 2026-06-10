@@ -20,6 +20,10 @@ public class UpdateChartOfAccountValidator : AbstractValidator<UpdateChartOfAcco
         RuleFor(x => x.AccountGroupId)
             .NotEmpty().WithMessage("Account Group is required");
 
+        RuleFor(x => x.CustomCode)
+            .MaximumLength(50)
+            .When(x => !string.IsNullOrWhiteSpace(x.CustomCode));
+
         RuleFor(x => x.Description)
             .MaximumLength(500);
     }

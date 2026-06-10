@@ -11,7 +11,6 @@ public class CreateChartOfAccountValidatorTests
 
     private CreateChartOfAccountDto ValidDto() => new()
     {
-        AccountCode = "1001",
         AccountName = "Cash and Cash Equivalents",
         AccountGroupId = Guid.NewGuid()
     };
@@ -20,22 +19,6 @@ public class CreateChartOfAccountValidatorTests
     public void Valid_dto_passes()
     {
         _validator.Validate(ValidDto()).IsValid.Should().BeTrue();
-    }
-
-    [Fact]
-    public void Empty_account_code_fails()
-    {
-        var dto = ValidDto(); dto.AccountCode = "";
-        var result = _validator.Validate(dto);
-        result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.ErrorMessage == "Account Code is required");
-    }
-
-    [Fact]
-    public void Account_code_over_20_chars_fails()
-    {
-        var dto = ValidDto(); dto.AccountCode = new string('1', 21);
-        _validator.Validate(dto).IsValid.Should().BeFalse();
     }
 
     [Fact]

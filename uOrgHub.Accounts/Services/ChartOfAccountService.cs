@@ -44,16 +44,29 @@ public class ChartOfAccountService : IChartOfAccountService
         return _mapper.ToDto(entity);
     }
 
+    public async Task<string> GenerateAccountCodeAsync(Guid accountGroupId)
+    {
+        return await _repository.GetNextAccountCodeAsync(accountGroupId);
+    }
+
     public async Task<ChartOfAccountResponseDto> CreateAsync(CreateChartOfAccountDto dto)
     {
         var validation = await _createValidator.ValidateAsync(dto);
         if (!validation.IsValid)
             throw new ValidationException(validation.Errors.Select(e => e.ErrorMessage).ToList());
 
-        if (await _repository.CodeExistsAsync(dto.AccountCode))
-            throw new ValidationException(new List<string> { "Account Code already exists" });
+        var accountCode = await _repository.GetNextAccountCodeAsync(dto.AccountGroupId);
+
+        if (!string.IsNullOrWhiteSpace(dto.CustomCode))
+        {
+            if (await _repository.CustomCodeExistsAsync(dto.CustomCode))
+                throw new ValidationException(new List<string> { "Custom code already exists." });
+            if (dto.CustomCode == accountCode)
+                throw new ValidationException(new List<string> { "Custom code cannot match the system-generated account code." });
+        }
 
         var entity = _mapper.ToEntity(dto);
+        entity.AccountCode = accountCode;
         entity.CurrentBalance = dto.OpeningBalance;
         entity.CreatedAt = DateTime.UtcNow;
 
@@ -70,9 +83,18 @@ public class ChartOfAccountService : IChartOfAccountService
         var entity = await _repository.GetByIdAsync(id)
             ?? throw new NotFoundException(nameof(Models.Entities.ChartOfAccount), id);
 
-        if (await _repository.CodeExistsAsync(dto.AccountCode, id))
+        if (dto.AccountCode != entity.AccountCode && await _repository.CodeExistsAsync(dto.AccountCode, id))
             throw new ValidationException(new List<string> { "Account Code already exists" });
 
+        if (!string.IsNullOrWhiteSpace(dto.CustomCode))
+        {
+            if (dto.CustomCode != entity.CustomCode && await _repository.CustomCodeExistsAsync(dto.CustomCode, id))
+                throw new ValidationException(new List<string> { "Custom code already exists." });
+            if (dto.CustomCode == entity.AccountCode)
+                throw new ValidationException(new List<string> { "Custom code cannot match the system-generated account code." });
+        }
+
+        dto.Id = id;
         _mapper.UpdateEntity(dto, entity);
         entity.UpdatedAt = DateTime.UtcNow;
 

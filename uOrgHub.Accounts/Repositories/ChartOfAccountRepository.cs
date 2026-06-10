@@ -71,6 +71,37 @@ public class ChartOfAccountRepository : IChartOfAccountRepository
     public async Task<bool> CodeExistsAsync(string code, Guid? excludeId = null)
         => await BaseQuery().AnyAsync(x => x.AccountCode == code && (excludeId == null || x.Id != excludeId));
 
+    public async Task<bool> CustomCodeExistsAsync(string customCode, Guid? excludeId = null)
+        => await BaseQuery().AnyAsync(x => x.CustomCode == customCode && (excludeId == null || x.Id != excludeId));
+
+    public async Task<string> GetNextAccountCodeAsync(Guid accountGroupId)
+    {
+        var group = await _context.Set<AccountGroup>()
+            .Where(x => x.Id == accountGroupId && !x.IsDeleted)
+            .Select(x => x.Code)
+            .FirstOrDefaultAsync();
+
+        if (string.IsNullOrEmpty(group)) return "000001";
+
+        var prefix = group;
+        var taken = await BaseQuery()
+            .Where(x => x.AccountCode.StartsWith(prefix) && x.AccountCode.Length == prefix.Length + 2)
+            .Select(x => x.AccountCode)
+            .ToListAsync();
+
+        var used = taken
+            .Select(x => int.TryParse(x[prefix.Length..], out var n) ? n : 0)
+            .ToHashSet();
+
+        for (var i = 1; i <= 99; i++)
+        {
+            if (!used.Contains(i))
+                return $"{prefix}{i:D2}";
+        }
+
+        return $"{prefix}99";
+    }
+
     public async Task<List<JournalEntryLine>> GetLedgerAsync(Guid accountId)
     {
         return await _context.Set<JournalEntryLine>()

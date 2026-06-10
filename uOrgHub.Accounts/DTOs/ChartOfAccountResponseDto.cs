@@ -17,6 +17,7 @@ public class ChartOfAccountResponseDto
     public decimal CurrentBalance { get; set; }
     public string? Description { get; set; }
     public bool AllowDirectEntry { get; set; }
+    public string? CustomCode { get; set; }
     public DateTime CreatedAt { get; set; }
     public string CreatedBy { get; set; } = string.Empty;
 }

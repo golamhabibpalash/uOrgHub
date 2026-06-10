@@ -6,5 +6,7 @@ namespace uOrgHub.Accounts.Repositories;
 public interface IChartOfAccountRepository : IBaseRepository<ChartOfAccount>
 {
     Task<bool> CodeExistsAsync(string code, Guid? excludeId = null);
+    Task<bool> CustomCodeExistsAsync(string customCode, Guid? excludeId = null);
+    Task<string> GetNextAccountCodeAsync(Guid accountGroupId);
     Task<List<JournalEntryLine>> GetLedgerAsync(Guid accountId);
 }
