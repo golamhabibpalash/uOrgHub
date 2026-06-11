@@ -35,7 +35,7 @@ export default function FiscalYears() {
   const [saveError, setSaveError] = useState("");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["fiscal-years", dg.page, dg.search, dg.sortBy, dg.sortDescending],
+    queryKey: ["fiscal-years", ...dg.queryKey],
     queryFn: () => getFiscalYears(dg.queryParams),
   });
 

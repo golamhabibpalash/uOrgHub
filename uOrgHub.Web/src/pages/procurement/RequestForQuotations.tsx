@@ -25,7 +25,7 @@ export default function RequestForQuotations() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["rfqs", dg.page, dg.search, dg.sortBy, dg.sortDescending, filterStatus],
+    queryKey: ["rfqs", ...dg.queryKey, filterStatus],
     queryFn: () => getRFQs(dg.queryParams,
       filterStatus ? filterStatus as RFQStatus : undefined),
   });

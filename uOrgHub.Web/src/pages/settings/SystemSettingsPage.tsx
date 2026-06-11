@@ -49,7 +49,7 @@ export default function SystemSettingsPage() {
   const [deleteTarget, setDeleteTarget] = useState<SystemSetting | null>(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["system-settings", dg.page, dg.search, dg.sortBy, dg.sortDescending],
+    queryKey: ["system-settings", ...dg.queryKey],
     queryFn: () => getSystemSettings(dg.queryParams),
   });
 

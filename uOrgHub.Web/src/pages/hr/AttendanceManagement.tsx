@@ -34,17 +34,17 @@ export default function AttendanceManagement() {
   const [editingLog, setEditingLog] = useState<AttendanceLog | null>(null);
 
   const { data: schedulesData, isLoading: schedulesLoading } = useQuery({
-    queryKey: ["work-schedules", dg.page, dg.search, dg.sortBy, dg.sortDescending],
+    queryKey: ["work-schedules", ...dg.queryKey],
     queryFn: () => getWorkSchedules(dg.queryParams),
   });
 
   const { data: shiftsData, isLoading: shiftsLoading } = useQuery({
-    queryKey: ["shifts", dg.page, dg.search, dg.sortBy, dg.sortDescending],
+    queryKey: ["shifts", ...dg.queryKey],
     queryFn: () => getShifts(dg.queryParams),
   });
 
   const { data: logsData, isLoading: logsLoading } = useQuery({
-    queryKey: ["attendance-logs", dg.page, dg.search, dg.sortBy, dg.sortDescending],
+    queryKey: ["attendance-logs", ...dg.queryKey],
     queryFn: () => getAttendanceLogs(dg.queryParams),
   });
 

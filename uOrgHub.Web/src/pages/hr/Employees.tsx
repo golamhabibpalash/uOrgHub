@@ -88,7 +88,7 @@ export default function Employees() {
   const [desigInlineError, setDesigInlineError] = useState("");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["employees", dg.page, dg.search, dg.sortBy, dg.sortDescending],
+    queryKey: ["employees", ...dg.queryKey],
     queryFn: () => getEmployees(dg.queryParams),
   });
 
@@ -165,7 +165,7 @@ export default function Employees() {
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["employees"] });
       if (editing) {
-        const fresh = qc.getQueryData<{ data: { data: { items: Employee[] } } }>(["employees", dg.page, dg.search, dg.sortBy, dg.sortDescending]);
+        const fresh = qc.getQueryData<{ data: { data: { items: Employee[] } } }>(["employees", ...dg.queryKey]);
         const items = fresh?.data?.data?.items ?? [];
         const found = items.find((e) => e.id === editing.id);
         if (found) setEditing(found);

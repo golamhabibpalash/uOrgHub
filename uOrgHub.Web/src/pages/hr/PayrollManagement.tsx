@@ -49,10 +49,10 @@ export default function PayrollManagement() {
   const [cycleForm, setCycleForm] = useState({ title: "", startDate: "", endDate: "", paymentDate: "" });
   const [expForm, setExpForm] = useState({ employeeId: "", amount: 0, category: "", description: "" });
 
-  const { data: gradesData, isLoading: gradesLoading } = useQuery({ queryKey: ["salary-grades", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getSalaryGrades(dg.queryParams) });
-  const { data: compsData, isLoading: compsLoading } = useQuery({ queryKey: ["salary-components", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getSalaryComponents(dg.queryParams) });
-  const { data: cyclesData, isLoading: cyclesLoading } = useQuery({ queryKey: ["payroll-cycles", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getPayrollCycles(dg.queryParams) });
-  const { data: expData, isLoading: expLoading } = useQuery({ queryKey: ["expenses", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getExpenses(dg.queryParams) });
+  const { data: gradesData, isLoading: gradesLoading } = useQuery({ queryKey: ["salary-grades", ...dg.queryKey], queryFn: () => getSalaryGrades(dg.queryParams) });
+  const { data: compsData, isLoading: compsLoading } = useQuery({ queryKey: ["salary-components", ...dg.queryKey], queryFn: () => getSalaryComponents(dg.queryParams) });
+  const { data: cyclesData, isLoading: cyclesLoading } = useQuery({ queryKey: ["payroll-cycles", ...dg.queryKey], queryFn: () => getPayrollCycles(dg.queryParams) });
+  const { data: expData, isLoading: expLoading } = useQuery({ queryKey: ["expenses", ...dg.queryKey], queryFn: () => getExpenses(dg.queryParams) });
   const { options: empOptions, isLoading: empLoading } = useEmployeeLookup();
 
   const grades = gradesData?.data?.data?.items ?? [];

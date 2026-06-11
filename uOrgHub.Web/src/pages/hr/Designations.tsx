@@ -29,7 +29,7 @@ export default function Designations() {
   const [deptFilter, setDeptFilter] = useState("");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["designations", dg.page, dg.search, dg.sortBy, dg.sortDescending, deptFilter],
+    queryKey: ["designations", ...dg.queryKey, deptFilter],
     queryFn: () => getDesignations(dg.queryParams, deptFilter || undefined),
   });
 

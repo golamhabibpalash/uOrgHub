@@ -26,7 +26,7 @@ export default function ProjectCategories() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["project-categories", dg.page, dg.search, dg.sortBy, dg.sortDescending],
+    queryKey: ["project-categories", ...dg.queryKey],
     queryFn: () => getProjectCategories(dg.queryParams),
   });
 

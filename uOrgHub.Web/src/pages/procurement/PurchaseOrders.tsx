@@ -20,7 +20,7 @@ export default function PurchaseOrders() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["purchase-orders", dg.page, dg.search, dg.sortBy, dg.sortDescending, filterStatus],
+    queryKey: ["purchase-orders", ...dg.queryKey, filterStatus],
     queryFn: () => getPurchaseOrders(dg.queryParams,
       filterStatus ? filterStatus as POStatus : undefined),
   });

@@ -29,7 +29,7 @@ export default function Departments() {
   const [checkingDeps, setCheckingDeps] = useState(false);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["departments", dg.page, dg.search, dg.sortBy, dg.sortDescending],
+    queryKey: ["departments", ...dg.queryKey],
     queryFn: () => getDepartments(dg.queryParams),
   });
 

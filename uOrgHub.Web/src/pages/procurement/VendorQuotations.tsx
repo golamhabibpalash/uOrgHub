@@ -21,7 +21,7 @@ export default function VendorQuotations() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["vendor-quotations", dg.page, dg.search, dg.sortBy, dg.sortDescending, filterStatus],
+    queryKey: ["vendor-quotations", ...dg.queryKey, filterStatus],
     queryFn: () => getVendorQuotations(dg.queryParams,
       filterStatus ? filterStatus as QuotationStatus : undefined),
   });

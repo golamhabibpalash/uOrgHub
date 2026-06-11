@@ -22,7 +22,7 @@ export default function Vendors() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["vendors", dg.page, dg.search, dg.sortBy, dg.sortDescending, filterStatus, filterType],
+    queryKey: ["vendors", ...dg.queryKey, filterStatus, filterType],
     queryFn: () => getVendors(dg.queryParams,
       filterStatus ? filterStatus as VendorStatus : undefined,
       filterType ? filterType as VendorType : undefined),

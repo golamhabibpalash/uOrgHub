@@ -38,11 +38,11 @@ export default function PerformanceManagement() {
   const [trainingForm, setTrainingForm] = useState({ employeeId: "", trainingProgramId: "" });
   const [programForm, setProgramForm] = useState({ title: "", description: "", provider: "", startDate: "", endDate: "", maxParticipants: 0 });
 
-  const { data: cyclesData, isLoading: cyclesLoading } = useQuery({ queryKey: ["review-cycles", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getReviewCycles(dg.queryParams) });
-  const { data: goalsData, isLoading: goalsLoading } = useQuery({ queryKey: ["goals", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getGoals(dg.queryParams) });
-  const { data: reviewsData, isLoading: reviewsLoading } = useQuery({ queryKey: ["performance-reviews", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getPerformanceReviews(dg.queryParams) });
-  const { data: programsData, isLoading: programsLoading } = useQuery({ queryKey: ["training-programs", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getTrainingPrograms(dg.queryParams) });
-  const { data: empTrainingsData, isLoading: empTrainingsLoading } = useQuery({ queryKey: ["employee-trainings", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getEmployeeTrainings(dg.queryParams) });
+  const { data: cyclesData, isLoading: cyclesLoading } = useQuery({ queryKey: ["review-cycles", ...dg.queryKey], queryFn: () => getReviewCycles(dg.queryParams) });
+  const { data: goalsData, isLoading: goalsLoading } = useQuery({ queryKey: ["goals", ...dg.queryKey], queryFn: () => getGoals(dg.queryParams) });
+  const { data: reviewsData, isLoading: reviewsLoading } = useQuery({ queryKey: ["performance-reviews", ...dg.queryKey], queryFn: () => getPerformanceReviews(dg.queryParams) });
+  const { data: programsData, isLoading: programsLoading } = useQuery({ queryKey: ["training-programs", ...dg.queryKey], queryFn: () => getTrainingPrograms(dg.queryParams) });
+  const { data: empTrainingsData, isLoading: empTrainingsLoading } = useQuery({ queryKey: ["employee-trainings", ...dg.queryKey], queryFn: () => getEmployeeTrainings(dg.queryParams) });
   const { options: empOptions, isLoading: empLoading } = useEmployeeLookup();
 
   const cycles = cyclesData?.data?.data?.items ?? [];

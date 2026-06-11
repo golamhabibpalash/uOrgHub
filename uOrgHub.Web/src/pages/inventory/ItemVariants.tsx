@@ -26,7 +26,7 @@ export default function ItemVariants() {
   const [attrRows, setAttrRows] = useState<AttrRow[]>([]);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["item-variants", dg.page, dg.search, dg.sortBy, dg.sortDescending, filterItemId],
+    queryKey: ["item-variants", ...dg.queryKey, filterItemId],
     queryFn: () => getItemVariants(dg.queryParams, filterItemId || undefined),
   });
 

@@ -83,7 +83,7 @@ export default function LeaveManagement() {
   }, [reqForm.startDate, reqForm.endDate]);
 
   const { data: typesData, isLoading: typesLoading } = useQuery({
-    queryKey: ["leave-types", dg.page, dg.search, dg.sortBy, dg.sortDescending],
+    queryKey: ["leave-types", ...dg.queryKey],
     queryFn: () => getLeaveTypes(dg.queryParams),
     enabled: canViewLeaveTypes,
   });
@@ -92,7 +92,7 @@ export default function LeaveManagement() {
   const { options: empOptions, isLoading: empLoading } = useEmployeeLookup();
 
   const { data: requestsData, isLoading: requestsLoading } = useQuery({
-    queryKey: ["leave-requests", dg.page, dg.search, dg.sortBy, dg.sortDescending, statusFilter],
+    queryKey: ["leave-requests", ...dg.queryKey, statusFilter],
     queryFn: () => getLeaveRequests(
       dg.queryParams,
       isHrAdmin ? undefined : userEmployeeId,

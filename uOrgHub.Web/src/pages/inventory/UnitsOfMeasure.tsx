@@ -21,7 +21,7 @@ export default function UnitsOfMeasure() {
   const [form, setForm] = useState({ name: "", abbreviation: "", isActive: true });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["units-of-measure", dg.page, dg.search, dg.sortBy, dg.sortDescending],
+    queryKey: ["units-of-measure", ...dg.queryKey],
     queryFn: () => getUnitsOfMeasure(dg.queryParams),
   });
 

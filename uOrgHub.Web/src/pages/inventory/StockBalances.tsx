@@ -13,7 +13,7 @@ export default function StockBalances() {
   const [filterVariantId, setFilterVariantId] = useState("");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["stock-balances", dg.page, dg.search, dg.sortBy, dg.sortDescending, filterWarehouseId, filterVariantId],
+    queryKey: ["stock-balances", ...dg.queryKey, filterWarehouseId, filterVariantId],
     queryFn: () => getStockBalances(dg.queryParams, filterWarehouseId || undefined, filterVariantId || undefined),
   });
 

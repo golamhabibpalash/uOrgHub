@@ -28,7 +28,7 @@ export default function CostCenters() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["cost-centers", dg.page, dg.search, dg.sortBy, dg.sortDescending],
+    queryKey: ["cost-centers", ...dg.queryKey],
     queryFn: () => getCostCenters(dg.queryParams),
   });
 

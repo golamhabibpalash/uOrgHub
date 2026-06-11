@@ -27,7 +27,7 @@ export default function PurchaseRequisitions() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["purchase-requisitions", dg.page, dg.search, dg.sortBy, dg.sortDescending, filterStatus],
+    queryKey: ["purchase-requisitions", ...dg.queryKey, filterStatus],
     queryFn: () => getPurchaseRequisitions(dg.queryParams,
       filterStatus ? filterStatus as PRStatus : undefined),
   });

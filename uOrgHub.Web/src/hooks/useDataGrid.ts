@@ -66,6 +66,13 @@ export function useDataGrid(options: UseDataGridOptions = {}) {
     ...(Object.keys(filters).length > 0 && { filtersJson: JSON.stringify(filters) }),
   }), [page, pageSize, search, sortBy, sortDescending, filters]);
 
+  // Stable array covering every param that affects server results.
+  // Pages spread this into their queryKey: ["entity", ...dg.queryKey, ...extras]
+  const queryKey = useMemo(
+    () => [page, pageSize, search, sortBy, sortDescending] as unknown[],
+    [page, pageSize, search, sortBy, sortDescending],
+  );
+
   const state: DataGridState = useMemo(() => ({
     page, pageSize, search, sortBy, sortDescending, filters,
   }), [page, pageSize, search, sortBy, sortDescending, filters]);
@@ -82,5 +89,6 @@ export function useDataGrid(options: UseDataGridOptions = {}) {
     resetFilters,
     resetPage,
     queryParams,
+    queryKey,
   };
 }

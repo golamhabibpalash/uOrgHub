@@ -17,7 +17,7 @@ export default function Warehouses() {
   const [form, setForm] = useState({ name: "", code: "", location: "", contactPerson: "", contactPhone: "", isActive: true });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["warehouses", dg.page, dg.search, dg.sortBy, dg.sortDescending],
+    queryKey: ["warehouses", ...dg.queryKey],
     queryFn: () => getWarehouses(dg.queryParams),
   });
 

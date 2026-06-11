@@ -28,7 +28,7 @@ export default function Items() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["items", dg.page, dg.search, dg.sortBy, dg.sortDescending, filterCatId, filterTypeId],
+    queryKey: ["items", ...dg.queryKey, filterCatId, filterTypeId],
     queryFn: () => getItems(dg.queryParams, filterCatId || undefined, filterTypeId || undefined),
   });
 

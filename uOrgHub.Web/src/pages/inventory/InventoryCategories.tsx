@@ -24,7 +24,7 @@ export default function InventoryCategories() {
   const [form, setForm] = useState({ name: "", code: "", typeId: "", parentCategoryId: "", description: "", isActive: true });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["inventory-categories", dg.page, dg.search, dg.sortBy, dg.sortDescending, filterTypeId],
+    queryKey: ["inventory-categories", ...dg.queryKey, filterTypeId],
     queryFn: () => getInventoryCategories(dg.queryParams, filterTypeId || undefined),
   });
 

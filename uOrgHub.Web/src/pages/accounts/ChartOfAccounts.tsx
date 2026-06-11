@@ -43,7 +43,7 @@ export default function ChartOfAccounts() {
   const [generatedCode, setGeneratedCode] = useState("");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["chart-of-accounts", dg.page, dg.search, dg.sortBy, dg.sortDescending],
+    queryKey: ["chart-of-accounts", ...dg.queryKey],
     queryFn: () => getChartOfAccounts(dg.queryParams),
   });
 

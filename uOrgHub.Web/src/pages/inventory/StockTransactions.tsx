@@ -44,7 +44,7 @@ export default function StockTransactions() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["stock-transactions", dg.page, dg.search, dg.sortBy, dg.sortDescending, filterStatus],
+    queryKey: ["stock-transactions", ...dg.queryKey, filterStatus],
     queryFn: () => getStockTransactions(dg.queryParams, undefined, undefined, filterStatus || undefined),
   });
 

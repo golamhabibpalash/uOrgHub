@@ -21,7 +21,7 @@ export default function InventoryTypes() {
   const [form, setForm] = useState({ name: "", code: "", description: "", isActive: true });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["inventory-types", dg.page, dg.search, dg.sortBy, dg.sortDescending],
+    queryKey: ["inventory-types", ...dg.queryKey],
     queryFn: () => getInventoryTypes(dg.queryParams),
   });
 

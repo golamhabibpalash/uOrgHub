@@ -64,7 +64,7 @@ export default function BankAccounts() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["bank-accounts", dg.page, dg.search, dg.sortBy, dg.sortDescending],
+    queryKey: ["bank-accounts", ...dg.queryKey],
     queryFn: () => getBankAccounts(dg.queryParams),
   });
 

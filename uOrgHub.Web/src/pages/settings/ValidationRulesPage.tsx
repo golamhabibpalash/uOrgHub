@@ -49,7 +49,7 @@ export default function ValidationRulesPage() {
   const [deleteTarget, setDeleteTarget] = useState<ValidationRule | null>(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["validation-rules", dg.page, dg.search, dg.sortBy, dg.sortDescending],
+    queryKey: ["validation-rules", ...dg.queryKey],
     queryFn: () => getValidationRules(dg.queryParams),
   });
 

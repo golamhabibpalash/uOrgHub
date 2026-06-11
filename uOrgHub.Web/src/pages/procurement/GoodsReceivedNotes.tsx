@@ -20,7 +20,7 @@ export default function GoodsReceivedNotes() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["grns", dg.page, dg.search, dg.sortBy, dg.sortDescending, filterStatus],
+    queryKey: ["grns", ...dg.queryKey, filterStatus],
     queryFn: () => getGRNs(dg.queryParams,
       filterStatus ? filterStatus as GRNStatus : undefined),
   });

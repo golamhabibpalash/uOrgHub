@@ -36,7 +36,7 @@ export default function Customers() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["customers", dg.page, dg.search, dg.sortBy, dg.sortDescending],
+    queryKey: ["customers", ...dg.queryKey],
     queryFn: () => getCustomers(dg.queryParams),
   });
 

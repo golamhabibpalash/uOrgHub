@@ -39,7 +39,7 @@ export default function TaxRates() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["tax-rates", dg.page, dg.search, dg.sortBy, dg.sortDescending],
+    queryKey: ["tax-rates", ...dg.queryKey],
     queryFn: () => getTaxRates(dg.queryParams),
   });
 

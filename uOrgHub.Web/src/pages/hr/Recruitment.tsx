@@ -33,10 +33,10 @@ export default function Recruitment() {
   const [appForm, setAppForm] = useState({ candidateId: "", jobPostingId: "" });
   const [interviewForm, setInterviewForm] = useState({ applicationId: "", scheduledAt: "", location: "" });
 
-  const { data: postingsData, isLoading: postingsLoading } = useQuery({ queryKey: ["job-postings", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getJobPostings(dg.queryParams) });
-  const { data: candidatesData, isLoading: candidatesLoading } = useQuery({ queryKey: ["candidates", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getCandidates(dg.queryParams) });
-  const { data: appsData, isLoading: appsLoading } = useQuery({ queryKey: ["applications", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getApplications(dg.queryParams) });
-  const { data: interviewsData, isLoading: interviewsLoading } = useQuery({ queryKey: ["interviews", dg.page, dg.search, dg.sortBy, dg.sortDescending], queryFn: () => getInterviews(dg.queryParams) });
+  const { data: postingsData, isLoading: postingsLoading } = useQuery({ queryKey: ["job-postings", ...dg.queryKey], queryFn: () => getJobPostings(dg.queryParams) });
+  const { data: candidatesData, isLoading: candidatesLoading } = useQuery({ queryKey: ["candidates", ...dg.queryKey], queryFn: () => getCandidates(dg.queryParams) });
+  const { data: appsData, isLoading: appsLoading } = useQuery({ queryKey: ["applications", ...dg.queryKey], queryFn: () => getApplications(dg.queryParams) });
+  const { data: interviewsData, isLoading: interviewsLoading } = useQuery({ queryKey: ["interviews", ...dg.queryKey], queryFn: () => getInterviews(dg.queryParams) });
   const { options: deptOptions, isLoading: deptLoading } = useDepartmentLookup();
   const { options: desigOptions, isLoading: desigLoading } = useDesignationLookup();
 
