@@ -86,6 +86,12 @@ public static class Claims
         public static class Bills { public const string View = "Accounts.Bills.View"; public const string Create = "Accounts.Bills.Create"; public const string Edit = "Accounts.Bills.Edit"; public const string Delete = "Accounts.Bills.Delete"; public const string Approve = "Accounts.Bills.Approve"; public const string Export = "Accounts.Bills.Export"; }
         public static class Payments { public const string View = "Accounts.Payments.View"; public const string Create = "Accounts.Payments.Create"; public const string Edit = "Accounts.Payments.Edit"; public const string Delete = "Accounts.Payments.Delete"; public const string Export = "Accounts.Payments.Export"; }
         public static class Budgets { public const string View = "Accounts.Budgets.View"; public const string Create = "Accounts.Budgets.Create"; public const string Edit = "Accounts.Budgets.Edit"; public const string Delete = "Accounts.Budgets.Delete"; public const string Export = "Accounts.Budgets.Export"; }
+        public static class Reports
+        {
+            public const string View = "Accounts.Reports.View";
+            public const string Print = "Accounts.Reports.Print";
+            public const string Export = "Accounts.Reports.Export";
+        }
     }
 
     public static class Inventory

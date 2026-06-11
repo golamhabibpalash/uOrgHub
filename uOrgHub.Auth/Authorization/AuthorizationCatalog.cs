@@ -52,6 +52,7 @@ public static class AuthorizationCatalog
             "Post" => $"Post {subject}",
             "Process" => $"Process {subject}",
             "AssignRoles" => $"Assign roles to {subject}",
+            "Print" => $"Print {subject}",
             _ => claim,
         };
     }

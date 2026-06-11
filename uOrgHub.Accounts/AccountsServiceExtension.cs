@@ -24,6 +24,8 @@ public static class AccountsServiceExtension
         services.AddScoped<IFiscalYearRepository, FiscalYearRepository>();
         services.AddScoped<IFiscalYearService, FiscalYearService>();
 
+        services.AddScoped<IAccountingReportService, AccountingReportService>();
+
         return services;
     }
 }

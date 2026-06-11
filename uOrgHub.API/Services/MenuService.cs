@@ -39,6 +39,7 @@ public class MenuService : IMenuService
             new("acc-bills", "Bills", "FileText", "/accounts/bills", Claims.Accounts.Bills.View, null, null, null),
             new("acc-payments", "Payments", "CreditCard", "/accounts/payments", Claims.Accounts.Payments.View, null, null, null),
             new("acc-budgets", "Budgets", "PiggyBank", "/accounts/budgets", Claims.Accounts.Budgets.View, null, null, null),
+            new("acc-reports", "Reports", "BarChart3", "/accounts/reports", Claims.Accounts.Reports.View, null, null, null),
         ]),
 
         new("inventory", "Inventory", "Box", null, null, null, "main",

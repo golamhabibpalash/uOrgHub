@@ -524,3 +524,207 @@ export const approveBudget = (id: string) =>
 
 export const deleteBudget = (id: string) =>
   apiClient.delete<ApiResponse<null>>(`/accounts/budgets/${id}`);
+
+// ── Accounting Reports ─────────────────────────────────────────────────────
+
+export interface ReportFilter {
+  dateFrom?: string;
+  dateTo?: string;
+  fiscalYearId?: string;
+  accountType?: AccountGroupType;
+  accountGroupId?: string;
+  accountId?: string;
+  status?: string;
+  createdBy?: string;
+}
+
+export interface TrialBalanceRow {
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  accountGroupName: string;
+  accountType: AccountGroupType;
+  openingDebit: number;
+  openingCredit: number;
+  debit: number;
+  credit: number;
+  closingDebit: number;
+  closingCredit: number;
+}
+
+export interface TrialBalanceResponse {
+  rows: TrialBalanceRow[];
+  totalOpeningDebit: number;
+  totalOpeningCredit: number;
+  totalDebit: number;
+  totalCredit: number;
+  totalClosingDebit: number;
+  totalClosingCredit: number;
+}
+
+export interface GeneralLedgerRow {
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  accountGroupName: string;
+  accountType: AccountGroupType;
+  openingBalance: number;
+  debit: number;
+  credit: number;
+  closingBalance: number;
+}
+
+export interface IncomeStatementLine {
+  label: string;
+  amount: number;
+  isBold: boolean;
+  children?: IncomeStatementLine[];
+}
+
+export interface IncomeStatement {
+  totalRevenue: number;
+  costOfSales: number;
+  grossProfit: number;
+  totalExpenses: number;
+  netProfit: number;
+  lines: IncomeStatementLine[];
+}
+
+export interface BalanceSheetLine {
+  label: string;
+  amount: number;
+  isBold: boolean;
+  children?: BalanceSheetLine[];
+}
+
+export interface BalanceSheet {
+  totalAssets: number;
+  totalLiabilities: number;
+  totalEquity: number;
+  lines: BalanceSheetLine[];
+}
+
+export interface AccountLedgerRow {
+  entryDate: string;
+  entryNumber: string;
+  referenceNumber?: string;
+  narration: string;
+  debit: number;
+  credit: number;
+  runningBalance: number;
+}
+
+export interface DayBookRow {
+  entryDate: string;
+  entryNumber: string;
+  referenceNumber?: string;
+  description: string;
+  status: string;
+  debitTotal: number;
+  creditTotal: number;
+  createdBy: string;
+}
+
+export interface ChartOfAccountsReportRow {
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  accountGroupName: string;
+  accountType: AccountGroupType;
+  currentBalance: number;
+  isActive: boolean;
+  customCode?: string;
+}
+
+export interface JournalEntryReportRow {
+  entryNumber: string;
+  entryDate: string;
+  referenceNumber?: string;
+  description: string;
+  totalDebit: number;
+  totalCredit: number;
+  status: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface AccountGroupSummaryRow {
+  groupId: string;
+  groupCode: string;
+  groupName: string;
+  groupType: AccountGroupType;
+  totalDebit: number;
+  totalCredit: number;
+  balance: number;
+  accountCount: number;
+}
+
+export interface DashboardSummary {
+  totalAssets: number;
+  totalLiabilities: number;
+  totalEquity: number;
+  currentProfitLoss: number;
+  totalJournalEntries: number;
+  recentTransactions: number;
+}
+
+export const getTrialBalance = (filter?: ReportFilter) =>
+  apiClient.get<ApiResponse<TrialBalanceResponse>>("/accounts/reports/trial-balance", { params: filter });
+
+export const getGeneralLedger = (filter?: ReportFilter) =>
+  apiClient.get<ApiResponse<GeneralLedgerRow[]>>("/accounts/reports/general-ledger", { params: filter });
+
+export const getIncomeStatement = (filter?: ReportFilter) =>
+  apiClient.get<ApiResponse<IncomeStatement>>("/accounts/reports/income-statement", { params: filter });
+
+export const getBalanceSheet = (filter?: ReportFilter) =>
+  apiClient.get<ApiResponse<BalanceSheet>>("/accounts/reports/balance-sheet", { params: filter });
+
+export const getReportAccountLedger = (accountId: string, dateFrom?: string, dateTo?: string) =>
+  apiClient.get<ApiResponse<AccountLedgerRow[]>>(`/accounts/reports/account-ledger/${accountId}`, { params: { dateFrom, dateTo } });
+
+export const getDayBook = (date: string) =>
+  apiClient.get<ApiResponse<DayBookRow[]>>("/accounts/reports/day-book", { params: { date } });
+
+export const getChartOfAccountsReport = (filter?: ReportFilter) =>
+  apiClient.get<ApiResponse<ChartOfAccountsReportRow[]>>("/accounts/reports/chart-of-accounts", { params: filter });
+
+export const getJournalEntryReport = (filter?: ReportFilter) =>
+  apiClient.get<ApiResponse<JournalEntryReportRow[]>>("/accounts/reports/journal-entries", { params: filter });
+
+export const getAccountGroupSummary = (filter?: ReportFilter) =>
+  apiClient.get<ApiResponse<AccountGroupSummaryRow[]>>("/accounts/reports/account-group-summary", { params: filter });
+
+export const getDashboardSummary = () =>
+  apiClient.get<ApiResponse<DashboardSummary>>("/accounts/reports/dashboard-summary");
+
+// ── Aging Reports ──────────────────────────────────────────────────────
+
+export interface AgingRow {
+  id: string;
+  customerOrVendor: string;
+  documentNumber: string;
+  documentDate: string;
+  dueDate: string;
+  totalAmount: number;
+  paidAmount: number;
+  balanceDue: number;
+  daysOverdue: number;
+  agingBucket: string;
+}
+
+export interface AgingSummary {
+  currentAmount: number;
+  days1To30: number;
+  days31To60: number;
+  days61To90: number;
+  daysOver90: number;
+  totalOutstanding: number;
+  rows: AgingRow[];
+}
+
+export const getARAging = (asOfDate?: string) =>
+  apiClient.get<ApiResponse<AgingSummary>>("/accounts/reports/ar-aging", { params: { asOfDate } });
+
+export const getAPAging = (asOfDate?: string) =>
+  apiClient.get<ApiResponse<AgingSummary>>("/accounts/reports/ap-aging", { params: { asOfDate } });

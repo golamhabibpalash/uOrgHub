@@ -42,6 +42,18 @@ import AccountsVendors from "./pages/accounts/Vendors";
 import Bills from "./pages/accounts/Bills";
 import Payments from "./pages/accounts/Payments";
 import Budgets from "./pages/accounts/Budgets";
+import ReportsDashboard from "./pages/accounts/reports/ReportsDashboard";
+import TrialBalancePage from "./pages/accounts/reports/TrialBalancePage";
+import IncomeStatementPage from "./pages/accounts/reports/IncomeStatementPage";
+import BalanceSheetPage from "./pages/accounts/reports/BalanceSheetPage";
+import GeneralLedgerPage from "./pages/accounts/reports/GeneralLedgerPage";
+import ChartOfAccountsReportPage from "./pages/accounts/reports/ChartOfAccountsReportPage";
+import JournalEntryReportPage from "./pages/accounts/reports/JournalEntryReportPage";
+import AccountLedgerPage from "./pages/accounts/reports/AccountLedgerPage";
+import DayBookPage from "./pages/accounts/reports/DayBookPage";
+import AccountGroupSummaryPage from "./pages/accounts/reports/AccountGroupSummaryPage";
+import ARAgingPage from "./pages/accounts/reports/ARAgingPage";
+import APAgingPage from "./pages/accounts/reports/APAgingPage";
 import InventoryDashboard from "./pages/inventory/InventoryDashboard";
 import InventoryTypes from "./pages/inventory/InventoryTypes";
 import InventoryCategories from "./pages/inventory/InventoryCategories";
@@ -161,6 +173,18 @@ export default function App() {
             <Route path="accounts/bills" element={<Bills />} />
             <Route path="accounts/payments" element={<Payments />} />
             <Route path="accounts/budgets" element={<Budgets />} />
+            <Route path="accounts/reports" element={<ReportsDashboard />} />
+            <Route path="accounts/reports/trial-balance" element={<ProtectedRoute requiredClaim="Accounts.Reports.View"><TrialBalancePage /></ProtectedRoute>} />
+            <Route path="accounts/reports/income-statement" element={<ProtectedRoute requiredClaim="Accounts.Reports.View"><IncomeStatementPage /></ProtectedRoute>} />
+            <Route path="accounts/reports/balance-sheet" element={<ProtectedRoute requiredClaim="Accounts.Reports.View"><BalanceSheetPage /></ProtectedRoute>} />
+            <Route path="accounts/reports/general-ledger" element={<ProtectedRoute requiredClaim="Accounts.Reports.View"><GeneralLedgerPage /></ProtectedRoute>} />
+            <Route path="accounts/reports/chart-of-accounts" element={<ProtectedRoute requiredClaim="Accounts.Reports.View"><ChartOfAccountsReportPage /></ProtectedRoute>} />
+            <Route path="accounts/reports/journal-entries" element={<ProtectedRoute requiredClaim="Accounts.Reports.View"><JournalEntryReportPage /></ProtectedRoute>} />
+            <Route path="accounts/reports/account-ledger" element={<ProtectedRoute requiredClaim="Accounts.Reports.View"><AccountLedgerPage /></ProtectedRoute>} />
+            <Route path="accounts/reports/day-book" element={<ProtectedRoute requiredClaim="Accounts.Reports.View"><DayBookPage /></ProtectedRoute>} />
+            <Route path="accounts/reports/account-group-summary" element={<ProtectedRoute requiredClaim="Accounts.Reports.View"><AccountGroupSummaryPage /></ProtectedRoute>} />
+            <Route path="accounts/reports/ar-aging" element={<ProtectedRoute requiredClaim="Accounts.Reports.View"><ARAgingPage /></ProtectedRoute>} />
+            <Route path="accounts/reports/ap-aging" element={<ProtectedRoute requiredClaim="Accounts.Reports.View"><APAgingPage /></ProtectedRoute>} />
             <Route path="inventory" element={<InventoryDashboard />} />
             <Route path="inventory/types" element={<InventoryTypes />} />
             <Route path="inventory/categories" element={<InventoryCategories />} />
