@@ -41,6 +41,7 @@ import {
   ScrollText,
   Palette,
   GitBranch,
+  BarChart3,
 } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 import { getMenuItems, type MenuItemDto } from "../../api/auth";
@@ -53,7 +54,7 @@ const iconMap: Record<string, React.ComponentType<{ size?: number; className?: s
   UserCheck, Target, ShieldCheck, ScrollText, Palette, Settings,
   BookOpen, Calendar, Layers, MapPin, Percent, Landmark, FileText,
   CreditCard, PiggyBank, FileSpreadsheet, ShoppingBag, Tag, Ruler,
-  Package, Warehouse, ArrowDownToLine, ArrowUpFromLine, GitBranch,
+  Package, Warehouse, ArrowDownToLine, ArrowUpFromLine, GitBranch, BarChart3,
 };
 
 interface NavItem {
