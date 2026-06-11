@@ -1,7 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
 import { BarChart3, BookOpen, Scale, DollarSign, FileText, CalendarDays, Layers, BookType, PieChart, Clock, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { getDashboardSummary } from "../../../api/accounts";
 
 const reportCards = [
   { label: "Trial Balance", desc: "Account-wise debit/credit balances", icon: Scale, color: "bg-blue-50 text-blue-600", path: "trial-balance" },
@@ -19,22 +17,6 @@ const reportCards = [
 
 export default function ReportsDashboard() {
   const navigate = useNavigate();
-  const { data: summary } = useQuery({
-    queryKey: ["reports-dashboard-summary"],
-    queryFn: getDashboardSummary,
-  });
-
-  const s = summary?.data?.data;
-  const widgets = s ? [
-    { label: "Total Assets", value: s.totalAssets, color: "text-blue-600" },
-    { label: "Total Liabilities", value: s.totalLiabilities, color: "text-red-600" },
-    { label: "Total Equity", value: s.totalEquity, color: "text-purple-600" },
-    { label: "P&L", value: s.currentProfitLoss, color: s.currentProfitLoss >= 0 ? "text-green-600" : "text-red-600" },
-    { label: "Journal Entries", value: s.totalJournalEntries, color: "text-gray-600" },
-    { label: "Recent (30d)", value: s.recentTransactions, color: "text-gray-600" },
-  ] : [];
-
-  const fmt = (v: number) => v.toLocaleString("en-BD", { minimumFractionDigits: 2 });
 
   return (
     <div>
@@ -42,17 +24,6 @@ export default function ReportsDashboard() {
         <h2 className="text-base font-medium text-gray-900">Accounting Reports</h2>
         <p className="text-xs text-gray-400">Financial reports, statements, and summaries</p>
       </div>
-
-      {widgets.length > 0 && (
-        <div className="grid grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-          {widgets.map((w) => (
-            <div key={w.label} className="bg-white border border-gray-200 rounded-lg px-4 py-3">
-              <p className="text-xs text-gray-500 mb-1">{w.label}</p>
-              <p className={`text-sm font-semibold ${w.color}`}>{fmt(w.value)}</p>
-            </div>
-          ))}
-        </div>
-      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {reportCards.map((card) => (
