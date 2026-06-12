@@ -20,8 +20,8 @@ public class CreateClientCommandHandler : IRequestHandler<CreateClientCommand, C
     public async Task<ClientResponseDto> Handle(CreateClientCommand request, CancellationToken ct)
     {
         var dto = request.Dto;
-        var count = await _context.Set<Client>().CountAsync(ct);
-        var code = $"CLT-{(count + 1):D4}";
+        var count = await _context.Set<Client>().IgnoreQueryFilters().CountAsync(ct);
+        var code = $"CLT-{DateTime.UtcNow.Year}-{(count + 1):D4}";
 
         var entity = new Client
         {

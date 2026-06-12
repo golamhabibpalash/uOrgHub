@@ -1,15 +1,20 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   HardHat,
   Users,
   Tag,
+  Plus,
 } from "lucide-react";
 import StatCard from "../../components/shared/StatCard";
+import Modal from "../../components/shared/Modal";
+import ProjectForm from "./ProjectForm";
 import { getProjects } from "../../api/projects";
 
 export default function ProjectsDashboard() {
   const navigate = useNavigate();
+  const [showForm, setShowForm] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["projects", 1, "", "projectName", false, ""],
@@ -54,9 +59,14 @@ export default function ProjectsDashboard() {
 
   return (
     <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Project Management</h1>
-        <p className="text-sm text-gray-400">Construction project management module</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Project Management</h1>
+          <p className="text-sm text-gray-400">Construction project management module</p>
+        </div>
+        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 bg-primary-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-primary-600">
+          <Plus size={15} /> New Project
+        </button>
       </div>
 
       {isLoading ? (
@@ -131,6 +141,10 @@ export default function ProjectsDashboard() {
           </div>
         </div>
       )}
+
+      <Modal title="New Project" open={showForm} onClose={() => setShowForm(false)} size="2xl">
+        <ProjectForm project={null} onClose={() => setShowForm(false)} />
+      </Modal>
     </div>
   );
 }

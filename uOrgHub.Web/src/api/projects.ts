@@ -199,6 +199,7 @@ export interface Expense {
   vendorId?: string;
   vendorName?: string;
   invoiceNumber?: string;
+  costCenterId?: string;
   notes?: string;
   status: string;
   approvedById?: string;
@@ -214,7 +215,7 @@ export interface Client {
   email: string;
   phone: string;
   address?: string;
-  type: string;
+  clientType: string;
   status: string;
   createdAt: string;
 }
@@ -415,8 +416,8 @@ export const createExpense = (projectId: string, data: Partial<Expense>) =>
 export const updateExpense = (projectId: string, expenseId: string, data: Partial<Expense>) =>
   apiClient.put<ApiResponse<Expense>>(`/projects/${projectId}/expenses/${expenseId}`, data);
 
-export const approveExpense = (projectId: string, expenseId: string) =>
-  apiClient.post<ApiResponse<Expense>>(`/projects/${projectId}/expenses/${expenseId}/approve`, {});
+export const approveExpense = (projectId: string, expenseId: string, data?: { approvedById: string; debitAccountId?: string; creditAccountId?: string }) =>
+  apiClient.post<ApiResponse<Expense>>(`/projects/${projectId}/expenses/${expenseId}/approve`, data ?? {});
 
 export const getClients = (params: PaginationRequest) =>
   apiClient.get<ApiResponse<PagedResult<Client>>>("/clients", { params });

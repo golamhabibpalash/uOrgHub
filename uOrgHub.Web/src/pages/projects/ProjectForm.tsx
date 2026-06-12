@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { AxiosError } from "axios";
-import { createProject, updateProject, getProjectCategories, Project } from "../../api/projects";
+import { createProject, updateProject, getProjectCategories, getClients, Project } from "../../api/projects";
+import { useEmployeeLookup } from "../../hooks/useEntityLookup";
 import SearchableDropdown from "../../components/shared/SearchableDropdown";
 
 interface ProjectFormProps {
@@ -27,8 +28,17 @@ export default function ProjectForm({ project, onClose }: ProjectFormProps) {
     description: "",
   });
 
-  const clientOptions = [{ value: "1", label: "Client 1" }];
-  const pmOptions = [{ value: "1", label: "PM 1" }];
+  const { data: clientData } = useQuery({
+    queryKey: ["clients"],
+    queryFn: () => getClients({ page: 1, pageSize: 200 }),
+    staleTime: 60000,
+  });
+  const clientOptions = useMemo(
+    () => (clientData?.data?.data?.items ?? []).map((c) => ({ value: c.id, label: `${c.clientCode} — ${c.companyName}` })),
+    [clientData],
+  );
+
+  const { options: pmOptions, isLoading: pmLoading } = useEmployeeLookup();
 
   const { data: catData, isLoading: catLoading } = useQuery({
     queryKey: ["project-categories"],
@@ -114,7 +124,7 @@ export default function ProjectForm({ project, onClose }: ProjectFormProps) {
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <SearchableDropdown label="Project Manager *" options={pmOptions} value={form.projectManagerId} onChange={(v) => setForm((f) => ({ ...f, projectManagerId: v ?? "" }))} placeholder="Select PM" searchPlaceholder="Search employees..." required />
+          <SearchableDropdown label="Project Manager *" options={pmOptions} value={form.projectManagerId} onChange={(v) => setForm((f) => ({ ...f, projectManagerId: v ?? "" }))} placeholder="Select PM" searchPlaceholder="Search employees..." loading={pmLoading} required />
         </div>
         <div>
           <label className="text-xs text-gray-500 mb-1 block">

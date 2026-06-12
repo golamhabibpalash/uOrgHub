@@ -56,7 +56,7 @@ export function useEmployeeLookup() {
   const options = useMemo(
     () => toOptions(query.data?.data?.data, (e) => ({
       value: e.id,
-      label: `${e.firstName} ${e.lastName}`,
+      label: `${e.firstName} ${e.lastName} (${e.employeeCode ?? ""})`,
       searchText: `${e.firstName} ${e.lastName} ${e.employeeCode ?? ""} ${e.email ?? ""}`,
     })),
     [query.data],

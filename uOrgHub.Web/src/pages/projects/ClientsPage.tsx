@@ -13,13 +13,12 @@ export default function ClientsPage() {
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Client | null>(null);
   const [form, setForm] = useState({
-    clientCode: "",
     companyName: "",
     contactPerson: "",
     email: "",
     phone: "",
     address: "",
-    type: "Private",
+    clientType: "Private",
     status: "Active",
   });
 
@@ -49,13 +48,12 @@ export default function ClientsPage() {
   function openAdd() {
     setEditing(null);
     setForm({
-      clientCode: "",
       companyName: "",
       contactPerson: "",
       email: "",
       phone: "",
       address: "",
-      type: "Private",
+      clientType: "Private",
       status: "Active",
     });
     setModal(true);
@@ -64,13 +62,12 @@ export default function ClientsPage() {
   function openEdit(client: Client) {
     setEditing(client);
     setForm({
-      clientCode: client.clientCode,
       companyName: client.companyName,
       contactPerson: client.contactPerson,
       email: client.email,
       phone: client.phone,
       address: client.address || "",
-      type: client.type,
+      clientType: client.clientType,
       status: client.status,
     });
     setModal(true);
@@ -81,14 +78,14 @@ export default function ClientsPage() {
     setEditing(null);
   }
 
-  const getTypeBadge = (type: string) => {
+  const getTypeBadge = (clientType: string) => {
     const styles: Record<string, string> = {
       Government: "bg-purple-50 text-purple-700",
       Private: "bg-blue-50 text-blue-700",
       NGO: "bg-green-50 text-green-700",
       International: "bg-amber-50 text-amber-700",
     };
-    return styles[type] || "bg-gray-100 text-gray-600";
+    return styles[clientType] || "bg-gray-100 text-gray-600";
   };
 
   const getStatusBadge = (status: string) => {
@@ -104,12 +101,12 @@ export default function ClientsPage() {
     { key: "companyName", label: "Company Name" },
     { key: "contactPerson", label: "Contact Person" },
     {
-      key: "type",
+      key: "clientType",
       label: "Type",
       sortable: false,
       render: (row: Client) => (
-        <span className={`text-xs px-2 py-0.5 rounded-full ${getTypeBadge(row.type)}`}>
-          {row.type}
+        <span className={`text-xs px-2 py-0.5 rounded-full ${getTypeBadge(row.clientType)}`}>
+          {row.clientType}
         </span>
       ),
     },
@@ -174,12 +171,10 @@ export default function ClientsPage() {
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Client Code *</label>
-              <input
-                value={form.clientCode}
-                onChange={(e) => setForm((f) => ({ ...f, clientCode: e.target.value }))}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
-              />
+              <label className="text-xs text-gray-500 mb-1 block">Client Code</label>
+              <div className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500">
+                {editing ? editing.clientCode : "Auto-generated on save"}
+              </div>
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Company Name *</label>
@@ -230,8 +225,8 @@ export default function ClientsPage() {
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Type</label>
               <select
-                value={form.type}
-                onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
+                value={form.clientType}
+                onChange={(e) => setForm((f) => ({ ...f, clientType: e.target.value }))}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
               >
                 <option value="Government">Government</option>
