@@ -21,7 +21,6 @@ export default function Vendors() {
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Vendor | null>(null);
   const [form, setForm] = useState({
-    vendorCode: "",
     name: "",
     contactPerson: "",
     email: "",
@@ -65,14 +64,14 @@ export default function Vendors() {
 
   function openAdd() {
     setEditing(null);
-    setForm({ vendorCode: "", name: "", contactPerson: "", email: "", phone: "", address: "", tin: "", bin: "", paymentTermsDays: 30, payableAccountId: coaOptions[0]?.value ?? "", isActive: true });
+    setForm({ name: "", contactPerson: "", email: "", phone: "", address: "", tin: "", bin: "", paymentTermsDays: 30, payableAccountId: coaOptions[0]?.value ?? "", isActive: true });
     setSaveError("");
     setModal(true);
   }
 
   function openEdit(v: Vendor) {
     setEditing(v);
-    setForm({ vendorCode: v.vendorCode, name: v.name, contactPerson: v.contactPerson ?? "", email: v.email ?? "", phone: v.phone ?? "", address: v.address ?? "", tin: v.tin ?? "", bin: v.bin ?? "", paymentTermsDays: v.paymentTermsDays, payableAccountId: v.payableAccountId, isActive: v.isActive });
+    setForm({ name: v.name, contactPerson: v.contactPerson ?? "", email: v.email ?? "", phone: v.phone ?? "", address: v.address ?? "", tin: v.tin ?? "", bin: v.bin ?? "", paymentTermsDays: v.paymentTermsDays, payableAccountId: v.payableAccountId, isActive: v.isActive });
     setSaveError("");
     setModal(true);
   }
@@ -145,8 +144,10 @@ export default function Vendors() {
           )}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Vendor Code *</label>
-              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.vendorCode} onChange={(e) => setForm((f) => ({ ...f, vendorCode: e.target.value }))} disabled={!!editing} />
+              <label className="text-xs text-gray-500 mb-1 block">Vendor Code</label>
+              <div className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500">
+                {editing ? editing.vendorCode : "Auto-generated on save"}
+              </div>
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Name *</label>

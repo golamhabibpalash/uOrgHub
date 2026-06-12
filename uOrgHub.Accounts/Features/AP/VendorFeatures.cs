@@ -71,12 +71,18 @@ public class CreateVendorCommandHandler : IRequestHandler<CreateVendorCommand, V
 
     public async Task<VendorResponseDto> Handle(CreateVendorCommand request, CancellationToken ct)
     {
-        if (await _context.Set<Models.Entities.Vendor>().AnyAsync(x => x.VendorCode == request.Dto.VendorCode && !x.IsDeleted, ct))
-            throw new AppException($"Vendor code '{request.Dto.VendorCode}' already exists.");
+        var code = request.Dto.VendorCode;
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            var count = await _context.Set<Models.Entities.Vendor>().IgnoreQueryFilters().CountAsync(ct);
+            code = $"VEND-{DateTime.UtcNow.Year}-{(count + 1):D4}";
+        }
+        if (await _context.Set<Models.Entities.Vendor>().AnyAsync(x => x.VendorCode == code && !x.IsDeleted, ct))
+            throw new AppException($"Vendor code '{code}' already exists.");
 
         var entity = new Models.Entities.Vendor
         {
-            VendorCode = request.Dto.VendorCode,
+            VendorCode = code,
             Name = request.Dto.Name,
             ContactPerson = request.Dto.ContactPerson,
             Email = request.Dto.Email,
