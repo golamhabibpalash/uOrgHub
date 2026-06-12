@@ -21,7 +21,6 @@ export default function Customers() {
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Customer | null>(null);
   const [form, setForm] = useState({
-    customerCode: "",
     name: "",
     contactPerson: "",
     email: "",
@@ -66,14 +65,14 @@ export default function Customers() {
 
   function openAdd() {
     setEditing(null);
-    setForm({ customerCode: "", name: "", contactPerson: "", email: "", phone: "", address: "", tin: "", bin: "", creditLimit: 0, paymentTermsDays: 30, receivableAccountId: coaOptions[0]?.value ?? "", isActive: true });
+    setForm({ name: "", contactPerson: "", email: "", phone: "", address: "", tin: "", bin: "", creditLimit: 0, paymentTermsDays: 30, receivableAccountId: coaOptions[0]?.value ?? "", isActive: true });
     setSaveError("");
     setModal(true);
   }
 
   function openEdit(c: Customer) {
     setEditing(c);
-    setForm({ customerCode: c.customerCode, name: c.name, contactPerson: c.contactPerson ?? "", email: c.email ?? "", phone: c.phone ?? "", address: c.address ?? "", tin: c.tin ?? "", bin: c.bin ?? "", creditLimit: c.creditLimit, paymentTermsDays: c.paymentTermsDays, receivableAccountId: c.receivableAccountId, isActive: c.isActive });
+    setForm({ name: c.name, contactPerson: c.contactPerson ?? "", email: c.email ?? "", phone: c.phone ?? "", address: c.address ?? "", tin: c.tin ?? "", bin: c.bin ?? "", creditLimit: c.creditLimit, paymentTermsDays: c.paymentTermsDays, receivableAccountId: c.receivableAccountId, isActive: c.isActive });
     setSaveError("");
     setModal(true);
   }
@@ -151,8 +150,10 @@ export default function Customers() {
           )}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Customer Code *</label>
-              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.customerCode} onChange={(e) => setForm((f) => ({ ...f, customerCode: e.target.value }))} disabled={!!editing} />
+              <label className="text-xs text-gray-500 mb-1 block">Customer Code</label>
+              <div className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500">
+                {editing ? editing.customerCode : "Auto-generated on save"}
+              </div>
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Name *</label>

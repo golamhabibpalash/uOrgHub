@@ -90,12 +90,18 @@ public class CreateCustomerCommandHandler : IRequestHandler<CreateCustomerComman
 
     public async Task<CustomerResponseDto> Handle(CreateCustomerCommand request, CancellationToken ct)
     {
-        if (await _context.Set<Models.Entities.Customer>().AnyAsync(x => x.CustomerCode == request.Dto.CustomerCode && !x.IsDeleted, ct))
-            throw new AppException($"Customer code '{request.Dto.CustomerCode}' already exists.");
+        var code = request.Dto.CustomerCode;
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            var count = await _context.Set<Models.Entities.Customer>().IgnoreQueryFilters().CountAsync(ct);
+            code = $"CUST-{DateTime.UtcNow.Year}-{(count + 1):D4}";
+        }
+        if (await _context.Set<Models.Entities.Customer>().AnyAsync(x => x.CustomerCode == code && !x.IsDeleted, ct))
+            throw new AppException($"Customer code '{code}' already exists.");
 
         var entity = new Models.Entities.Customer
         {
-            CustomerCode = request.Dto.CustomerCode,
+            CustomerCode = code,
             Name = request.Dto.Name,
             ContactPerson = request.Dto.ContactPerson,
             Email = request.Dto.Email,
