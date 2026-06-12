@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using uOrgHub.Accounts.Models.Entities;
 using uOrgHub.Projects.DTOs;
 using uOrgHub.Projects.Features._Common;
 using uOrgHub.Projects.Models.Entities;
@@ -51,6 +52,18 @@ public class CreateProjectCommandHandler : IRequestHandler<CreateProjectCommand,
             CreatedAt = DateTime.UtcNow
         };
         _context.Set<Project>().Add(entity);
+        await _context.SaveChangesAsync(ct);
+
+        var costCenter = new CostCenter
+        {
+            Code = code,
+            Name = dto.ProjectName,
+            Description = $"Auto-created for project {code}",
+            ProjectId = entity.Id,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+        _context.Set<CostCenter>().Add(costCenter);
         await _context.SaveChangesAsync(ct);
 
         return await ProjectMapper.ToDtoWithIncludes(_context, entity.Id, ct);

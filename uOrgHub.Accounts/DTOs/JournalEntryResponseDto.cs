@@ -28,4 +28,6 @@ public class JournalEntryLineResponseDto
     public decimal DebitAmount { get; set; }
     public decimal CreditAmount { get; set; }
     public int LineOrder { get; set; }
+    public Guid? CostCenterId { get; set; }
+    public string? CostCenterName { get; set; }
 }

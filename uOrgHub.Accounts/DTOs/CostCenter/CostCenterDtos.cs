@@ -7,6 +7,7 @@ public class CreateCostCenterDto
     public string? Description { get; set; }
     public Guid? ParentCostCenterId { get; set; }
     public Guid? DepartmentId { get; set; }
+    public Guid? ProjectId { get; set; }
 }
 
 public class UpdateCostCenterDto
@@ -15,6 +16,7 @@ public class UpdateCostCenterDto
     public string? Description { get; set; }
     public Guid? ParentCostCenterId { get; set; }
     public Guid? DepartmentId { get; set; }
+    public Guid? ProjectId { get; set; }
     public bool IsActive { get; set; }
 }
 
@@ -28,4 +30,5 @@ public class CostCenterResponseDto
     public Guid? ParentCostCenterId { get; set; }
     public string? ParentCostCenterName { get; set; }
     public Guid? DepartmentId { get; set; }
+    public Guid? ProjectId { get; set; }
 }

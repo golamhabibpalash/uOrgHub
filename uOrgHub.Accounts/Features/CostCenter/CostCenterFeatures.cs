@@ -9,7 +9,7 @@ using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Accounts.Features.CostCenter;
 
-public record GetCostCentersQuery(PaginationRequest Request) : IQuery<PagedResult<CostCenterResponseDto>>;
+public record GetCostCentersQuery(PaginationRequest Request, Guid? ProjectId = null) : IQuery<PagedResult<CostCenterResponseDto>>;
 public record GetCostCenterByIdQuery(Guid Id) : IQuery<CostCenterResponseDto>;
 public record CreateCostCenterCommand(CreateCostCenterDto Dto) : ICommand<CostCenterResponseDto>;
 public record UpdateCostCenterCommand(Guid Id, UpdateCostCenterDto Dto) : ICommand<CostCenterResponseDto>;
@@ -26,6 +26,9 @@ public class GetCostCentersQueryHandler : IRequestHandler<GetCostCentersQuery, P
         var query = _context.Set<Models.Entities.CostCenter>()
             .Include(x => x.ParentCostCenter)
             .Where(x => !x.IsDeleted);
+
+        if (request.ProjectId.HasValue)
+            query = query.Where(x => x.ProjectId == request.ProjectId.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
             query = query.WhereSearch(request.Request.Search, x => x.Name, x => x.Code);
@@ -74,16 +77,23 @@ public class CreateCostCenterCommandHandler : IRequestHandler<CreateCostCenterCo
 
     public async Task<CostCenterResponseDto> Handle(CreateCostCenterCommand request, CancellationToken ct)
     {
-        if (await _context.Set<Models.Entities.CostCenter>().AnyAsync(x => x.Code == request.Dto.Code && !x.IsDeleted, ct))
-            throw new AppException($"Cost center code '{request.Dto.Code}' already exists.");
+        var code = request.Dto.Code;
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            var count = await _context.Set<Models.Entities.CostCenter>().IgnoreQueryFilters().CountAsync(ct);
+            code = $"CC-{DateTime.UtcNow.Year}-{(count + 1):D4}";
+        }
+        if (await _context.Set<Models.Entities.CostCenter>().AnyAsync(x => x.Code == code && !x.IsDeleted, ct))
+            throw new AppException($"Cost center code '{code}' already exists.");
 
         var entity = new Models.Entities.CostCenter
         {
-            Code = request.Dto.Code,
+            Code = code,
             Name = request.Dto.Name,
             Description = request.Dto.Description,
             ParentCostCenterId = request.Dto.ParentCostCenterId,
             DepartmentId = request.Dto.DepartmentId,
+            ProjectId = request.Dto.ProjectId,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
@@ -113,6 +123,7 @@ public class UpdateCostCenterCommandHandler : IRequestHandler<UpdateCostCenterCo
         entity.Description = request.Dto.Description;
         entity.ParentCostCenterId = request.Dto.ParentCostCenterId;
         entity.DepartmentId = request.Dto.DepartmentId;
+        entity.ProjectId = request.Dto.ProjectId;
         entity.IsActive = request.Dto.IsActive;
         entity.UpdatedAt = DateTime.UtcNow;
 
@@ -167,6 +178,7 @@ file static class CostCenterMappingHelper
         IsActive = e.IsActive,
         ParentCostCenterId = e.ParentCostCenterId,
         ParentCostCenterName = e.ParentCostCenter?.Name,
-        DepartmentId = e.DepartmentId
+        DepartmentId = e.DepartmentId,
+        ProjectId = e.ProjectId
     };
 }

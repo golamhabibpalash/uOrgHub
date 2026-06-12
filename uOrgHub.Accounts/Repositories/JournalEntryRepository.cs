@@ -16,6 +16,8 @@ public class JournalEntryRepository : IJournalEntryRepository
         => _context.Set<JournalEntry>()
             .Include(x => x.Lines)
             .ThenInclude(l => l.Account)
+            .Include(x => x.Lines)
+            .ThenInclude(l => l.CostCenter)
             .Where(x => !x.IsDeleted);
 
     public async Task<JournalEntry?> GetByIdAsync(Guid id)

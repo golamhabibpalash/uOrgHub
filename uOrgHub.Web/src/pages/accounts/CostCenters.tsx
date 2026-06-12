@@ -6,6 +6,7 @@ import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
 import SearchableDropdown from "../../components/shared/SearchableDropdown";
+import { useProjectLookup } from "../../hooks/useEntityLookup";
 import {
   getCostCenters,
   createCostCenter,
@@ -19,11 +20,13 @@ export default function CostCenters() {
   const dg = useDataGrid({ defaultSortBy: "name" });
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<CostCenter | null>(null);
+  const { options: projectOptions, isLoading: projectLoading } = useProjectLookup();
+
   const [form, setForm] = useState({
-    code: "",
     name: "",
     description: "",
     parentCostCenterId: "",
+    projectId: "",
     isActive: true,
   });
 
@@ -49,6 +52,7 @@ export default function CostCenters() {
       const payload = {
         ...form,
         parentCostCenterId: form.parentCostCenterId || undefined,
+        projectId: form.projectId || undefined,
       };
       return editing ? updateCostCenter(editing.id, payload) : createCostCenter(payload);
     },
@@ -69,14 +73,14 @@ export default function CostCenters() {
 
   function openAdd() {
     setEditing(null);
-    setForm({ code: "", name: "", description: "", parentCostCenterId: "", isActive: true });
+    setForm({ name: "", description: "", parentCostCenterId: "", projectId: "", isActive: true });
     setSaveError("");
     setModal(true);
   }
 
   function openEdit(cc: CostCenter) {
     setEditing(cc);
-    setForm({ code: cc.code, name: cc.name, description: cc.description ?? "", parentCostCenterId: cc.parentCostCenterId ?? "", isActive: cc.isActive });
+    setForm({ name: cc.name, description: cc.description ?? "", parentCostCenterId: cc.parentCostCenterId ?? "", projectId: cc.projectId ?? "", isActive: cc.isActive });
     setSaveError("");
     setModal(true);
   }
@@ -88,6 +92,12 @@ export default function CostCenters() {
     { key: "name", label: "Name" },
     { key: "parentCostCenterName", label: "Parent" },
     { key: "description", label: "Description" },
+    {
+      key: "projectId",
+      label: "Project",
+      sortable: false,
+      render: (row: CostCenter) => row.projectId ? <span className="text-xs text-primary-600 font-mono">{row.projectId.slice(0, 8)}…</span> : <span className="text-xs text-gray-400">—</span>,
+    },
     {
       key: "isActive",
       label: "Status",
@@ -143,8 +153,10 @@ export default function CostCenters() {
           )}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Code *</label>
-              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.code} onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))} disabled={!!editing} />
+              <label className="text-xs text-gray-500 mb-1 block">Code</label>
+              <div className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500">
+                {editing ? editing.code : "Auto-generated on save"}
+              </div>
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Name *</label>
@@ -159,6 +171,17 @@ export default function CostCenters() {
               onChange={(v) => setForm((f) => ({ ...f, parentCostCenterId: v ?? "" }))}
               placeholder="None (Top Level)"
               clearable
+            />
+          </div>
+          <div>
+            <SearchableDropdown
+              label="Project"
+              options={projectOptions}
+              value={form.projectId}
+              onChange={(v) => setForm((f) => ({ ...f, projectId: v ?? "" }))}
+              placeholder="None (General)"
+              clearable
+              loading={projectLoading}
             />
           </div>
           <div>

@@ -1,13 +1,11 @@
 import { useParams, Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   ArrowLeft,
   MapPin,
   Calendar,
-  FileText,
-  Package,
-  Receipt,
-  TrendingUp,
+  Banknote,
+  Plus,
 } from "lucide-react";
 import {
   getProjectById,
@@ -16,6 +14,10 @@ import {
   getMilestones,
   getProjectProgress,
 } from "../../api/projects";
+import {
+  getCostCenterByProjectId,
+  createCostCenter,
+} from "../../api/accounts";
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -56,6 +58,24 @@ export default function ProjectDetail() {
   const milestones = milestonesData?.data?.data ?? [];
   const progress = progressData?.data?.data;
 
+  const { data: ccData, refetch: refetchCostCenter } = useQuery({
+    queryKey: ["costCenterByProject", id],
+    queryFn: () => getCostCenterByProjectId(id!),
+    enabled: !!id,
+  });
+  const costCenter = ccData?.data?.data?.items?.[0];
+
+  const createCCMutation = useMutation({
+    mutationFn: () =>
+      createCostCenter({
+        code: project?.projectCode ?? "",
+        name: project?.projectName ?? "",
+        description: `Auto-created for project ${project?.projectCode}`,
+        projectId: id,
+      }),
+    onSuccess: () => refetchCostCenter(),
+  });
+
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
       Active: "bg-green-50 text-green-700",
@@ -86,23 +106,6 @@ export default function ProjectDetail() {
   if (!project) {
     return <div className="text-center py-10 text-gray-500">Project not found</div>;
   }
-
-  const quickLinks = [
-    { label: "WBS", path: `/projects/${id}/wbs`, icon: FileText },
-    { label: "BOQ", path: `/projects/${id}/boq`, icon: FileText },
-    { label: "DPR", path: `/projects/${id}/dpr`, icon: Receipt },
-    { label: "Materials", path: `/projects/${id}/materials`, icon: Package },
-    { label: "Expenses", path: `/projects/${id}/expenses`, icon: Receipt },
-    { label: "Milestones", path: `/projects/${id}/milestones`, icon: TrendingUp },
-    { label: "Drawings", path: `/projects/${id}/drawings`, icon: FileText },
-    { label: "RFIs", path: `/projects/${id}/rfis`, icon: FileText },
-    { label: "Submittals", path: `/projects/${id}/submittals`, icon: Package },
-    { label: "Resources", path: `/projects/${id}/resource-allocations`, icon: Package },
-    { label: "QA Checklists", path: `/projects/${id}/qa-checklists`, icon: Receipt },
-    { label: "NCRs", path: `/projects/${id}/ncrs`, icon: FileText },
-    { label: "Safety", path: `/projects/${id}/safety-incidents`, icon: Receipt },
-    { label: "RA Bills", path: `/projects/${id}/ra-bills`, icon: TrendingUp },
-  ];
 
   return (
     <div>
@@ -320,20 +323,34 @@ export default function ProjectDetail() {
         </div>
 
         <div className="bg-white border border-gray-200 rounded-xl p-5">
-          <h3 className="text-sm font-medium text-gray-900 mb-4">
-            Quick Links
+          <h3 className="text-sm font-medium text-gray-900 mb-4 flex items-center justify-between">
+            <span>Cost Center</span>
+            <Banknote size={16} className="text-gray-400" />
           </h3>
-          <div className="space-y-2">
-            {quickLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                className="flex items-center gap-2 text-sm text-gray-600 hover:text-primary-600"
+          {costCenter ? (
+            <div>
+              <p className="text-sm font-medium text-gray-900">{costCenter.code}</p>
+              <p className="text-xs text-gray-500">{costCenter.name}</p>
+              <p className="text-xs text-gray-400 mt-1">
+                {costCenter.isActive ? (
+                  <span className="text-green-600">Active</span>
+                ) : (
+                  <span className="text-red-600">Inactive</span>
+                )}
+              </p>
+            </div>
+          ) : (
+            <div>
+              <p className="text-sm text-gray-400 mb-3">No cost center linked</p>
+              <button
+                onClick={() => createCCMutation.mutate()}
+                disabled={createCCMutation.isPending}
+                className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-700 font-medium disabled:opacity-50"
               >
-                <link.icon size={14} /> {link.label}
-              </Link>
-            ))}
-          </div>
+                <Plus size={14} /> {createCCMutation.isPending ? "Creating..." : "Create Cost Center"}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

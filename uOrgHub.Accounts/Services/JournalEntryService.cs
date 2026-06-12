@@ -32,12 +32,31 @@ public class JournalEntryService : IJournalEntryService
         _updateValidator = updateValidator;
     }
 
+    private static void PopulateLineNames(JournalEntryResponseDto dto, JournalEntry entity)
+    {
+        foreach (var lineDto in dto.Lines)
+        {
+            var line = entity.Lines.FirstOrDefault(l => l.Id == lineDto.Id);
+            if (line is null) continue;
+            if (line.Account is not null)
+                lineDto.AccountName = line.Account.AccountName;
+            if (line.CostCenter is not null)
+                lineDto.CostCenterName = line.CostCenter.Name;
+        }
+    }
+
     public async Task<PagedResult<JournalEntryResponseDto>> GetAllAsync(PaginationRequest request)
     {
         var result = await _repository.GetAllAsync(request);
+        var items = result.Items.Select(x =>
+        {
+            var dto = _mapper.ToDto(x);
+            PopulateLineNames(dto, x);
+            return dto;
+        }).ToList();
         return new PagedResult<JournalEntryResponseDto>
         {
-            Items = result.Items.Select(_mapper.ToDto).ToList(),
+            Items = items,
             TotalCount = result.TotalCount,
             Page = result.Page,
             PageSize = result.PageSize
@@ -48,7 +67,9 @@ public class JournalEntryService : IJournalEntryService
     {
         var entity = await _repository.GetByIdAsync(id)
             ?? throw new NotFoundException(nameof(Models.Entities.JournalEntry), id);
-        return _mapper.ToDto(entity);
+        var dto = _mapper.ToDto(entity);
+        PopulateLineNames(dto, entity);
+        return dto;
     }
 
     public async Task<JournalEntryResponseDto> CreateAsync(CreateJournalEntryDto dto)
@@ -74,7 +95,9 @@ public class JournalEntryService : IJournalEntryService
         entity.CreatedBy = "System";
 
         var created = await _repository.CreateAsync(entity);
-        return _mapper.ToDto(created);
+        var createdDto = _mapper.ToDto(created);
+        PopulateLineNames(createdDto, created);
+        return createdDto;
     }
 
     public async Task<JournalEntryResponseDto> UpdateAsync(Guid id, UpdateJournalEntryDto dto)
@@ -113,12 +136,15 @@ public class JournalEntryService : IJournalEntryService
                 DebitAmount = line.DebitAmount,
                 CreditAmount = line.CreditAmount,
                 LineOrder = line.LineOrder,
+                CostCenterId = line.CostCenterId,
                 CreatedAt = DateTime.UtcNow
             });
         }
 
         await _context.SaveChangesAsync();
-        return _mapper.ToDto(entity);
+        var updateDto = _mapper.ToDto(entity);
+        PopulateLineNames(updateDto, entity);
+        return updateDto;
     }
 
     public async Task DeleteAsync(Guid id)
@@ -171,7 +197,9 @@ public class JournalEntryService : IJournalEntryService
         entity.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
-        return _mapper.ToDto(entity);
+        var postDto = _mapper.ToDto(entity);
+        PopulateLineNames(postDto, entity);
+        return postDto;
     }
 
     public async Task<JournalEntryResponseDto> CancelAsync(Guid id)
@@ -208,6 +236,8 @@ public class JournalEntryService : IJournalEntryService
         entity.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
-        return _mapper.ToDto(entity);
+        var cancelDto = _mapper.ToDto(entity);
+        PopulateLineNames(cancelDto, entity);
+        return cancelDto;
     }
 }

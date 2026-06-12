@@ -12,5 +12,6 @@ public static class CostCenterExportColumns
         new("description", "Description", x => x.Description),
         new("parentCostCenter", "Parent Cost Center", x => x.ParentCostCenterName),
         new("isActive", "Active", x => x.IsActive ? "Yes" : "No"),
+        new("projectId", "Project Id", x => x.ProjectId.HasValue ? x.ProjectId.Value.ToString() : null),
     ];
 }

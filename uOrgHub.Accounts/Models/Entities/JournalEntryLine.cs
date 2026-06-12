@@ -23,4 +23,7 @@ public class JournalEntryLine : BaseEntity
     public decimal CreditAmount { get; set; } = 0;
 
     public int LineOrder { get; set; }
+
+    public Guid? CostCenterId { get; set; }
+    public CostCenter? CostCenter { get; set; }
 }

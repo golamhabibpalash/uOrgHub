@@ -17,6 +17,8 @@ public class CostCenter : BaseEntity
 
     public Guid? DepartmentId { get; set; }
 
+    public Guid? ProjectId { get; set; }
+
     public ICollection<CostCenter> Children { get; set; } = new List<CostCenter>();
     public ICollection<InvoiceLine> InvoiceLines { get; set; } = new List<InvoiceLine>();
     public ICollection<BillLine> BillLines { get; set; } = new List<BillLine>();

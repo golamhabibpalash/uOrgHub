@@ -109,6 +109,8 @@ export interface JournalEntryLineResponse {
   debitAmount: number;
   creditAmount: number;
   lineOrder: number;
+  costCenterId?: string;
+  costCenterName?: string;
 }
 
 export const getChartOfAccounts = (params: PaginationRequest) =>
@@ -187,10 +189,14 @@ export interface CostCenter {
   parentCostCenterId?: string;
   parentCostCenterName?: string;
   departmentId?: string;
+  projectId?: string;
 }
 
-export const getCostCenters = (params: PaginationRequest) =>
-  apiClient.get<ApiResponse<PagedResult<CostCenter>>>("/accounts/cost-centers", { params });
+export const getCostCenters = (params: PaginationRequest, projectId?: string) =>
+  apiClient.get<ApiResponse<PagedResult<CostCenter>>>("/accounts/cost-centers", { params: { ...params, projectId } });
+
+export const getCostCenterByProjectId = (projectId: string) =>
+  apiClient.get<ApiResponse<PagedResult<CostCenter>>>("/accounts/cost-centers", { params: { page: 1, pageSize: 1, projectId } });
 
 export const createCostCenter = (data: Partial<CostCenter>) =>
   apiClient.post<ApiResponse<CostCenter>>("/accounts/cost-centers", data);

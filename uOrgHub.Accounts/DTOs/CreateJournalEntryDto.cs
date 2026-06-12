@@ -17,4 +17,5 @@ public class CreateJournalEntryLineDto
     public decimal DebitAmount { get; set; } = 0;
     public decimal CreditAmount { get; set; } = 0;
     public int LineOrder { get; set; }
+    public Guid? CostCenterId { get; set; }
 }

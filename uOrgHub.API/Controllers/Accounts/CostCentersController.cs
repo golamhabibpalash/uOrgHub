@@ -25,9 +25,9 @@ public class CostCentersController : BaseController
 
     [HttpGet]
     [RequireClaim(Claims.Accounts.CostCenters.View)]
-    public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request)
+    public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request, [FromQuery] Guid? projectId = null)
     {
-        var result = await _mediator.Send(new GetCostCentersQuery(request));
+        var result = await _mediator.Send(new GetCostCentersQuery(request, projectId));
         return Ok(ApiResponse<PagedResult<CostCenterResponseDto>>.Ok(result));
     }
 

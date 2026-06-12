@@ -12,5 +12,7 @@ public class CostCenterConfiguration : IEntityTypeConfiguration<CostCenter>
         b.HasIndex(x => x.Code).IsUnique();
         b.HasOne(x => x.ParentCostCenter).WithMany(x => x.Children)
          .HasForeignKey(x => x.ParentCostCenterId).OnDelete(DeleteBehavior.Restrict);
+
+        b.HasIndex(x => x.ProjectId);
     }
 }
