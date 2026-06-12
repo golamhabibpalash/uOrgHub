@@ -57,6 +57,9 @@ public class ChartOfAccountService : IChartOfAccountService
 
         var accountCode = await _repository.GetNextAccountCodeAsync(dto.AccountGroupId);
 
+        var accountType = await _repository.GetAccountGroupTypeAsync(dto.AccountGroupId)
+            ?? throw new ValidationException(new List<string> { "Selected account group does not exist." });
+
         if (!string.IsNullOrWhiteSpace(dto.CustomCode))
         {
             if (await _repository.CustomCodeExistsAsync(dto.CustomCode))
@@ -67,6 +70,8 @@ public class ChartOfAccountService : IChartOfAccountService
 
         var entity = _mapper.ToEntity(dto);
         entity.AccountCode = accountCode;
+        // Account type always follows the selected account group — never trust the caller's value.
+        entity.AccountType = accountType;
         entity.CurrentBalance = dto.OpeningBalance;
         entity.CreatedAt = DateTime.UtcNow;
 
@@ -96,6 +101,9 @@ public class ChartOfAccountService : IChartOfAccountService
 
         dto.Id = id;
         _mapper.UpdateEntity(dto, entity);
+        // Account type always follows the selected account group — never trust the caller's value.
+        entity.AccountType = await _repository.GetAccountGroupTypeAsync(dto.AccountGroupId)
+            ?? throw new ValidationException(new List<string> { "Selected account group does not exist." });
         entity.UpdatedAt = DateTime.UtcNow;
 
         var updated = await _repository.UpdateAsync(entity);

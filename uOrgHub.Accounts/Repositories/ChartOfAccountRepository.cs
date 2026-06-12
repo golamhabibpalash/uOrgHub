@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using uOrgHub.Accounts.Models.Entities;
+using uOrgHub.Accounts.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
@@ -100,6 +101,14 @@ public class ChartOfAccountRepository : IChartOfAccountRepository
         }
 
         return $"{prefix}99";
+    }
+
+    public async Task<AccountGroupType?> GetAccountGroupTypeAsync(Guid accountGroupId)
+    {
+        return await _context.Set<AccountGroup>()
+            .Where(x => x.Id == accountGroupId && !x.IsDeleted)
+            .Select(x => (AccountGroupType?)x.Type)
+            .FirstOrDefaultAsync();
     }
 
     public async Task<List<JournalEntryLine>> GetLedgerAsync(Guid accountId)
