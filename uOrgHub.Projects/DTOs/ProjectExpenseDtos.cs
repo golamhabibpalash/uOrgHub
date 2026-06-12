@@ -14,6 +14,7 @@ public class CreateProjectExpenseDto
     public Guid? POId { get; set; }
     public string? InvoiceNumber { get; set; }
     public Guid RecordedById { get; set; }
+    public Guid? CostCenterId { get; set; }
     public string? Notes { get; set; }
 }
 
@@ -27,12 +28,15 @@ public class UpdateProjectExpenseDto
     public Guid? VendorId { get; set; }
     public Guid? POId { get; set; }
     public string? InvoiceNumber { get; set; }
+    public Guid? CostCenterId { get; set; }
     public string? Notes { get; set; }
 }
 
 public class ApproveExpenseDto
 {
     public Guid ApprovedById { get; set; }
+    public Guid? DebitAccountId { get; set; }
+    public Guid? CreditAccountId { get; set; }
 }
 
 public class ProjectExpenseResponseDto
@@ -49,6 +53,7 @@ public class ProjectExpenseResponseDto
     public Guid? POId { get; set; }
     public string? InvoiceNumber { get; set; }
     public Guid RecordedById { get; set; }
+    public Guid? CostCenterId { get; set; }
     public ExpenseStatus Status { get; set; }
     public Guid? ApprovedById { get; set; }
     public string? Notes { get; set; }

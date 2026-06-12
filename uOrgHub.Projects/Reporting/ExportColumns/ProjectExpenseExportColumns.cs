@@ -14,6 +14,7 @@ public static class ProjectExpenseExportColumns
         new("amount", "Amount", x => x.Amount),
         new("invoiceNumber", "Invoice Number", x => x.InvoiceNumber),
         new("status", "Status", x => x.Status.ToString()),
+        new("costCenterId", "Cost Center ID", x => x.CostCenterId.HasValue ? x.CostCenterId.Value.ToString() : null),
         new("createdAt", "Created At", x => x.CreatedAt),
     ];
 }

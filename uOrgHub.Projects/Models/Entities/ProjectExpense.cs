@@ -29,6 +29,8 @@ public class ProjectExpense : BaseEntity
     [MaxLength(100)] public string? InvoiceNumber { get; set; }
     public Guid RecordedById { get; set; }
 
+    public Guid? CostCenterId { get; set; }
+
     public ExpenseStatus Status { get; set; } = ExpenseStatus.Draft;
     public Guid? ApprovedById { get; set; }
 

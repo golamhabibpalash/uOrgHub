@@ -59,6 +59,17 @@ public class CreateProjectExpenseDtoValidator : AbstractValidator<CreateProjectE
     }
 }
 
+public class UpdateProjectExpenseDtoValidator : AbstractValidator<UpdateProjectExpenseDto>
+{
+    public UpdateProjectExpenseDtoValidator()
+    {
+        RuleFor(x => x.Description).NotEmpty().MaximumLength(500);
+        RuleFor(x => x.Amount).GreaterThan(0);
+        RuleFor(x => x.InvoiceNumber).MaximumLength(100);
+        RuleFor(x => x.Notes).MaximumLength(500);
+    }
+}
+
 public class CreateProjectBudgetDtoValidator : AbstractValidator<CreateProjectBudgetDto>
 {
     public CreateProjectBudgetDtoValidator()
