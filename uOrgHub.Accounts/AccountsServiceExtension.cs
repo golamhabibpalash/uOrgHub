@@ -26,6 +26,8 @@ public static class AccountsServiceExtension
 
         services.AddScoped<IAccountingReportService, AccountingReportService>();
 
+        services.AddScoped<IDocumentNumberingService, DocumentNumberingService>();
+
         return services;
     }
 }

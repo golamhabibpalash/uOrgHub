@@ -37,7 +37,7 @@ public class CreateInvoiceValidator : AbstractValidator<CreateInvoiceDto>
 {
     public CreateInvoiceValidator()
     {
-        RuleFor(x => x.InvoiceNumber).NotEmpty().MaximumLength(30);
+        RuleFor(x => x.InvoiceNumber).MaximumLength(30);
         RuleFor(x => x.CustomerId).NotEmpty().WithMessage("Customer is required");
         RuleFor(x => x.FiscalYearId).NotEmpty().WithMessage("Fiscal year is required");
         RuleFor(x => x.InvoiceDate).NotEmpty();

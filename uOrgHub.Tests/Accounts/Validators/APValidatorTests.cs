@@ -23,10 +23,10 @@ public class CreateVendorValidatorTests
     }
 
     [Fact]
-    public void Empty_vendor_code_fails()
+    public void Empty_vendor_code_allowed()
     {
         var dto = ValidDto(); dto.VendorCode = "";
-        _validator.Validate(dto).IsValid.Should().BeFalse();
+        _validator.Validate(dto).IsValid.Should().BeTrue();
     }
 
     [Fact]

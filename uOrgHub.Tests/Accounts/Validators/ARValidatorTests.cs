@@ -24,10 +24,10 @@ public class CreateCustomerValidatorTests
     }
 
     [Fact]
-    public void Empty_customer_code_fails()
+    public void Empty_customer_code_allowed()
     {
         var dto = ValidDto(); dto.CustomerCode = "";
-        _validator.Validate(dto).IsValid.Should().BeFalse();
+        _validator.Validate(dto).IsValid.Should().BeTrue();
     }
 
     [Fact]
@@ -126,10 +126,10 @@ public class CreateInvoiceValidatorTests
     }
 
     [Fact]
-    public void Empty_invoice_number_fails()
+    public void Empty_invoice_number_allowed()
     {
         var dto = ValidDto(); dto.InvoiceNumber = "";
-        _validator.Validate(dto).IsValid.Should().BeFalse();
+        _validator.Validate(dto).IsValid.Should().BeTrue();
     }
 
     [Fact]

@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using uOrgHub.Accounts.DTOs.AR;
 using uOrgHub.Accounts.Features._Common;
+using uOrgHub.Accounts.Services;
 using uOrgHub.Accounts.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
@@ -80,16 +81,26 @@ public class GetInvoiceByIdQueryHandler : IRequestHandler<GetInvoiceByIdQuery, I
 public class CreateInvoiceCommandHandler : IRequestHandler<CreateInvoiceCommand, InvoiceResponseDto>
 {
     private readonly AppDbContext _context;
-    public CreateInvoiceCommandHandler(AppDbContext context) => _context = context;
+    private readonly IDocumentNumberingService _numbering;
+
+    public CreateInvoiceCommandHandler(AppDbContext context, IDocumentNumberingService numbering)
+    {
+        _context = context;
+        _numbering = numbering;
+    }
 
     public async Task<InvoiceResponseDto> Handle(CreateInvoiceCommand request, CancellationToken ct)
     {
-        if (await _context.Set<Models.Entities.Invoice>().AnyAsync(x => x.InvoiceNumber == request.Dto.InvoiceNumber && !x.IsDeleted, ct))
-            throw new AppException($"Invoice number '{request.Dto.InvoiceNumber}' already exists.");
+        var invoiceNumber = request.Dto.InvoiceNumber;
+        if (string.IsNullOrWhiteSpace(invoiceNumber))
+            invoiceNumber = await _numbering.GenerateNextAsync("Invoice", "INV");
+
+        if (await _context.Set<Models.Entities.Invoice>().AnyAsync(x => x.InvoiceNumber == invoiceNumber && !x.IsDeleted, ct))
+            throw new AppException($"Invoice number '{invoiceNumber}' already exists.");
 
         var entity = new Models.Entities.Invoice
         {
-            InvoiceNumber = request.Dto.InvoiceNumber,
+            InvoiceNumber = invoiceNumber,
             CustomerId = request.Dto.CustomerId,
             FiscalYearId = request.Dto.FiscalYearId,
             InvoiceDate = request.Dto.InvoiceDate,

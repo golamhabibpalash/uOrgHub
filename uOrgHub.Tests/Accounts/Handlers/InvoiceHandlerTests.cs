@@ -1,9 +1,11 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using uOrgHub.Accounts.DTOs.AR;
 using uOrgHub.Accounts.Features.AR;
 using uOrgHub.Accounts.Models.Entities;
 using uOrgHub.Accounts.Models.Enums;
+using uOrgHub.Accounts.Services;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
 using uOrgHub.Shared.Models;
@@ -23,6 +25,14 @@ public class InvoiceHandlerTests : IDisposable
     }
 
     public void Dispose() => _context.Dispose();
+
+    private CreateInvoiceCommandHandler CreateHandler()
+    {
+        var numbering = new Mock<IDocumentNumberingService>();
+        numbering.Setup(x => x.GenerateNextAsync("Invoice", "INV", null, null))
+            .ReturnsAsync("INV-2506-000001");
+        return new CreateInvoiceCommandHandler(_context, numbering.Object);
+    }
 
     private Customer SeedCustomer(string code = "C001")
     {
@@ -74,7 +84,7 @@ public class InvoiceHandlerTests : IDisposable
     public async Task Create_saves_invoice_with_draft_status()
     {
         var customer = SeedCustomer();
-        var handler = new CreateInvoiceCommandHandler(_context);
+        var handler = CreateHandler();
 
         var result = await handler.Handle(new CreateInvoiceCommand(ValidCreateDto(customer.Id)), default);
 
@@ -93,7 +103,7 @@ public class InvoiceHandlerTests : IDisposable
             new() { Description = "Service A", Quantity = 4, UnitPrice = 250, DiscountPercent = 0, RevenueAccountId = Guid.NewGuid() },
             new() { Description = "Service B", Quantity = 2, UnitPrice = 300, DiscountPercent = 0, RevenueAccountId = Guid.NewGuid() }
         };
-        var handler = new CreateInvoiceCommandHandler(_context);
+        var handler = CreateHandler();
 
         var result = await handler.Handle(new CreateInvoiceCommand(dto), default);
 
@@ -109,7 +119,7 @@ public class InvoiceHandlerTests : IDisposable
         {
             new() { Description = "Item", Quantity = 10, UnitPrice = 100, DiscountPercent = 20, RevenueAccountId = Guid.NewGuid() }
         };
-        var handler = new CreateInvoiceCommandHandler(_context);
+        var handler = CreateHandler();
 
         var result = await handler.Handle(new CreateInvoiceCommand(dto), default);
 
@@ -121,7 +131,7 @@ public class InvoiceHandlerTests : IDisposable
     {
         var customer = SeedCustomer();
         SeedInvoice(customer, "INV-001");
-        var handler = new CreateInvoiceCommandHandler(_context);
+        var handler = CreateHandler();
 
         var act = () => handler.Handle(new CreateInvoiceCommand(ValidCreateDto(customer.Id, "INV-001")), default);
 
@@ -133,7 +143,7 @@ public class InvoiceHandlerTests : IDisposable
     {
         var customer = SeedCustomer();
         SeedInvoice(customer, "INV-001", isDeleted: true);
-        var handler = new CreateInvoiceCommandHandler(_context);
+        var handler = CreateHandler();
 
         var result = await handler.Handle(new CreateInvoiceCommand(ValidCreateDto(customer.Id, "INV-001")), default);
         result.InvoiceNumber.Should().Be("INV-001");
