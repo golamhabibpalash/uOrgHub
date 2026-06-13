@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, CheckCircle, XCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Pencil, CheckCircle, XCircle, ChevronDown, ChevronUp } from "lucide-react";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
 import SearchableDropdown from "../../components/shared/SearchableDropdown";
@@ -12,7 +12,9 @@ import {
 } from "../../hooks/useEntityLookup";
 import {
   getBills,
+  getBillById,
   createBill,
+  updateBill,
   approveBill,
   voidBill,
   getTaxRates,
@@ -36,6 +38,7 @@ export default function Bills() {
   const [statusFilter, setStatusFilter] = useState("");
   const [modal, setModal] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     vendorBillNumber: "",
     vendorId: "",
@@ -97,13 +100,79 @@ export default function Bills() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["bills"] }),
   });
 
+  const updateMutation = useMutation({
+    mutationFn: () => {
+      if (!editingId) throw new Error("No bill selected for edit");
+      const payload = {
+        billDate: form.billDate,
+        dueDate: form.dueDate,
+        notes: form.notes || undefined,
+        costCenterId: form.costCenterId || undefined,
+        lines: form.lines.map((l, i) => ({
+          description: l.description,
+          quantity: l.quantity,
+          unitPrice: l.unitPrice,
+          discountPercent: l.discountPercent,
+          lineOrder: i + 1,
+          taxRateId: l.taxRateId || undefined,
+          expenseAccountId: l.expenseAccountId,
+          costCenterId: l.costCenterId || undefined,
+        })),
+      };
+      return updateBill(editingId, payload as Parameters<typeof updateBill>[1]);
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["bills"] }); closeModal(); },
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { message?: string; errors?: string[] } } };
+      const msg = axiosErr?.response?.data?.message
+        ?? axiosErr?.response?.data?.errors?.[0]
+        ?? "Failed to update bill.";
+      setSaveError(msg);
+    },
+  });
+
   function openAdd() {
+    setEditingId(null);
     setForm({ vendorBillNumber: "", vendorId: "", fiscalYearId: "", billDate: new Date().toISOString().split("T")[0], dueDate: "", notes: "", costCenterId: "", lines: [{ description: "", quantity: 1, unitPrice: 0, discountPercent: 0, lineOrder: 1, taxRateId: "", expenseAccountId: "", costCenterId: "" }] });
     setSaveError("");
     setModal(true);
   }
 
-  function closeModal() { setModal(false); setSaveError(""); }
+  async function openEdit(id: string) {
+    setEditingId(id);
+    setSaveError("");
+    try {
+      const res = await getBillById(id);
+      const bill = res.data.data;
+      if (!bill) { setSaveError("Bill not found."); return; }
+      setForm({
+        vendorBillNumber: bill.vendorBillNumber ?? "",
+        vendorId: bill.vendorId,
+        fiscalYearId: bill.fiscalYearId,
+        billDate: bill.billDate.split("T")[0],
+        dueDate: bill.dueDate.split("T")[0],
+        notes: bill.notes ?? "",
+        costCenterId: bill.costCenterId ?? "",
+        lines: bill.lines.length > 0
+          ? bill.lines.map((l) => ({
+              description: l.description,
+              quantity: l.quantity,
+              unitPrice: l.unitPrice,
+              discountPercent: l.discountPercent,
+              lineOrder: l.lineOrder,
+              taxRateId: l.taxRateId ?? "",
+              expenseAccountId: l.expenseAccountId,
+              costCenterId: l.costCenterId ?? "",
+            }))
+          : [{ description: "", quantity: 1, unitPrice: 0, discountPercent: 0, lineOrder: 1, taxRateId: "", expenseAccountId: "", costCenterId: "" }],
+      });
+      setModal(true);
+    } catch {
+      setSaveError("Failed to load bill data.");
+    }
+  }
+
+  function closeModal() { setModal(false); setSaveError(""); setEditingId(null); }
 
   function addLine() {
     setForm((f) => ({ ...f, lines: [...f.lines, { description: "", quantity: 1, unitPrice: 0, discountPercent: 0, lineOrder: f.lines.length + 1, taxRateId: "", expenseAccountId: "", costCenterId: "" }] }));
@@ -184,11 +253,14 @@ export default function Bills() {
                       <td className="px-4 py-2.5 font-medium text-red-600">{(bill.totalAmount - bill.paidAmount).toLocaleString("en-BD", { minimumFractionDigits: 2 })}</td>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-2">
-                          <button onClick={() => setExpandedId(expandedId === bill.id ? null : bill.id)} className="text-gray-400 hover:text-primary-600">
+                          <button onClick={() => setExpandedId(expandedId === bill.id ? null : bill.id)} className="text-gray-400 hover:text-primary-600" title="View Details">
                             {expandedId === bill.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                           </button>
                           {bill.status === "Draft" && (
-                            <button onClick={() => approveMutation.mutate(bill.id)} className="text-green-500 hover:text-green-700" title="Approve"><CheckCircle size={13} /></button>
+                            <>
+                              <button onClick={() => openEdit(bill.id)} className="text-gray-500 hover:text-primary-600" title="Edit Bill"><Pencil size={13} /></button>
+                              <button onClick={() => approveMutation.mutate(bill.id)} className="text-green-500 hover:text-green-700" title="Approve"><CheckCircle size={13} /></button>
+                            </>
                           )}
                           {(bill.status === "Draft" || bill.status === "Received") && (
                             <button onClick={() => voidMutation.mutate(bill.id)} className="text-red-400 hover:text-red-600" title="Void"><XCircle size={13} /></button>
@@ -235,7 +307,7 @@ export default function Bills() {
         <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
       </div>
 
-      <Modal title="New Bill" open={modal} onClose={closeModal} size="4xl">
+      <Modal title={editingId ? "Edit Bill" : "New Bill"} open={modal} onClose={closeModal} size="4xl">
         <div className="space-y-3">
           {saveError && (
             <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
@@ -365,9 +437,15 @@ export default function Bills() {
 
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={closeModal} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-            <button onClick={() => createMutation.mutate()} disabled={createMutation.isPending} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">
-              {createMutation.isPending ? "Saving..." : "Create Bill"}
-            </button>
+            {editingId ? (
+              <button onClick={() => updateMutation.mutate()} disabled={updateMutation.isPending} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">
+                {updateMutation.isPending ? "Saving..." : "Update Bill"}
+              </button>
+            ) : (
+              <button onClick={() => createMutation.mutate()} disabled={createMutation.isPending} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">
+                {createMutation.isPending ? "Saving..." : "Create Bill"}
+              </button>
+            )}
           </div>
         </div>
       </Modal>
