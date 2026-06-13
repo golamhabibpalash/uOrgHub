@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using uOrgHub.Accounts.DTOs.Banking;
 using uOrgHub.Accounts.Features._Common;
+using uOrgHub.Accounts.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
 using uOrgHub.Shared.Extensions;
@@ -92,6 +93,66 @@ public class CreateBankAccountCommandHandler : IRequestHandler<CreateBankAccount
         };
 
         _context.Set<Models.Entities.BankAccount>().Add(entity);
+
+        if (request.Dto.OpeningBalance > 0 && request.Dto.OpeningBalanceEquityAccountId.HasValue)
+        {
+            var coa = await _context.Set<Models.Entities.ChartOfAccount>()
+                .FirstAsync(a => a.Id == request.Dto.ChartOfAccountId, ct);
+            var equityAccount = await _context.Set<Models.Entities.ChartOfAccount>()
+                .FirstAsync(a => a.Id == request.Dto.OpeningBalanceEquityAccountId.Value, ct);
+
+            var year = DateTime.UtcNow.Year;
+            var prefix = $"JV-{year}-";
+            var lastEntry = await _context.Set<Models.Entities.JournalEntry>()
+                .Where(x => x.EntryNumber.StartsWith(prefix))
+                .OrderByDescending(x => x.EntryNumber)
+                .FirstOrDefaultAsync(ct);
+            var sequence = 1;
+            if (lastEntry != null && int.TryParse(lastEntry.EntryNumber.Split('-').Last(), out var lastNum))
+                sequence = lastNum + 1;
+
+            var journalEntry = new Models.Entities.JournalEntry
+            {
+                EntryNumber = $"{prefix}{sequence:D4}",
+                EntryDate = DateTime.UtcNow,
+                Description = $"Opening balance for bank account {entity.AccountNumber} - {entity.AccountName}",
+                Status = JournalEntryStatus.Posted,
+                TotalDebit = request.Dto.OpeningBalance,
+                TotalCredit = request.Dto.OpeningBalance,
+                PostedBy = entity.CreatedBy,
+                PostedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = entity.CreatedBy,
+            };
+
+            journalEntry.Lines.Add(new Models.Entities.JournalEntryLine
+            {
+                JournalEntryId = journalEntry.Id,
+                AccountId = request.Dto.ChartOfAccountId,
+                Description = $"Opening balance - {entity.AccountName}",
+                DebitAmount = request.Dto.OpeningBalance,
+                CreditAmount = 0,
+                LineOrder = 1,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            journalEntry.Lines.Add(new Models.Entities.JournalEntryLine
+            {
+                JournalEntryId = journalEntry.Id,
+                AccountId = request.Dto.OpeningBalanceEquityAccountId.Value,
+                Description = $"Opening balance offset - {entity.AccountName}",
+                DebitAmount = 0,
+                CreditAmount = request.Dto.OpeningBalance,
+                LineOrder = 2,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            _context.Set<Models.Entities.JournalEntry>().Add(journalEntry);
+
+            coa.CurrentBalance += request.Dto.OpeningBalance;
+            equityAccount.CurrentBalance += request.Dto.OpeningBalance;
+        }
+
         await _context.SaveChangesAsync(ct);
         return BankingMappingHelper.ToBankAccountDto(entity);
     }

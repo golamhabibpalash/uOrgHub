@@ -12,6 +12,7 @@ public class CreateBankAccountDto
     public string Currency { get; set; } = "BDT";
     public decimal OpeningBalance { get; set; } = 0;
     public Guid ChartOfAccountId { get; set; }
+    public Guid? OpeningBalanceEquityAccountId { get; set; }
 }
 
 public class UpdateBankAccountDto

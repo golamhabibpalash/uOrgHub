@@ -14,6 +14,9 @@ public class CreateBankAccountValidator : AbstractValidator<CreateBankAccountDto
         RuleFor(x => x.RoutingNumber).MaximumLength(30);
         RuleFor(x => x.Currency).NotEmpty().MaximumLength(10);
         RuleFor(x => x.ChartOfAccountId).NotEmpty().WithMessage("Chart of account is required");
+        RuleFor(x => x.OpeningBalanceEquityAccountId)
+            .NotEmpty().WithMessage("Opening balance equity account is required when opening balance > 0")
+            .When(x => x.OpeningBalance > 0);
     }
 }
 
