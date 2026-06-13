@@ -68,7 +68,7 @@ export default function BankAccounts() {
     queryFn: () => getBankAccounts(dg.queryParams),
   });
 
-  const { options: coaOptions } = useChartOfAccountsLookup();
+  const { options: coaOptions } = useChartOfAccountsLookup("Asset");
 
   const { data: txnData, isLoading: txnLoading } = useQuery({
     queryKey: ["bank-transactions", selectedAccount?.id, txnPage],
