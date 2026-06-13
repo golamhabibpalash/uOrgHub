@@ -118,10 +118,10 @@ public class CreateBillValidatorTests
     }
 
     [Fact]
-    public void Empty_bill_number_fails()
+    public void Empty_bill_number_allowed()
     {
         var dto = ValidDto(); dto.BillNumber = "";
-        _validator.Validate(dto).IsValid.Should().BeFalse();
+        _validator.Validate(dto).IsValid.Should().BeTrue();
     }
 
     [Fact]

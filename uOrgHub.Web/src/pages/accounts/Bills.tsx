@@ -37,7 +37,6 @@ export default function Bills() {
   const [modal, setModal] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [form, setForm] = useState({
-    billNumber: "",
     vendorBillNumber: "",
     vendorId: "",
     fiscalYearId: "",
@@ -99,7 +98,7 @@ export default function Bills() {
   });
 
   function openAdd() {
-    setForm({ billNumber: "", vendorBillNumber: "", vendorId: "", fiscalYearId: "", billDate: new Date().toISOString().split("T")[0], dueDate: "", notes: "", costCenterId: "", lines: [{ description: "", quantity: 1, unitPrice: 0, discountPercent: 0, lineOrder: 1, taxRateId: "", expenseAccountId: "", costCenterId: "" }] });
+    setForm({ vendorBillNumber: "", vendorId: "", fiscalYearId: "", billDate: new Date().toISOString().split("T")[0], dueDate: "", notes: "", costCenterId: "", lines: [{ description: "", quantity: 1, unitPrice: 0, discountPercent: 0, lineOrder: 1, taxRateId: "", expenseAccountId: "", costCenterId: "" }] });
     setSaveError("");
     setModal(true);
   }
@@ -236,7 +235,7 @@ export default function Bills() {
         <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
       </div>
 
-      <Modal title="New Bill" open={modal} onClose={closeModal}>
+      <Modal title="New Bill" open={modal} onClose={closeModal} size="4xl">
         <div className="space-y-3">
           {saveError && (
             <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
@@ -245,8 +244,8 @@ export default function Bills() {
           )}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Bill Number *</label>
-              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.billNumber} onChange={(e) => setForm((f) => ({ ...f, billNumber: e.target.value }))} placeholder="BL-2026-001" />
+              <label className="text-xs text-gray-500 mb-1 block">Bill Number</label>
+              <div className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500">Auto-generated on save</div>
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Vendor Bill Number</label>
@@ -303,8 +302,18 @@ export default function Bills() {
               <label className="text-xs text-gray-500">Line Items</label>
               <button onClick={addLine} className="text-xs text-primary-600 hover:underline">+ Add Line</button>
             </div>
-            <div className="border border-gray-200 rounded-lg">
-              <table className="w-full text-xs">
+            <div className="border border-gray-200 rounded-lg overflow-x-auto">
+              <table className="w-full text-xs" style={{ tableLayout: "fixed" }}>
+                <colgroup>
+                  <col style={{ width: "28%" }} />
+                  <col style={{ width: "8%" }} />
+                  <col style={{ width: "12%" }} />
+                  <col style={{ width: "8%" }} />
+                  <col style={{ width: "12%" }} />
+                  <col style={{ width: "18%" }} />
+                  <col style={{ width: "10%" }} />
+                  <col style={{ width: "4%" }} />
+                </colgroup>
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="text-left px-2 py-1.5 text-gray-500">Description</th>
@@ -320,17 +329,18 @@ export default function Bills() {
                 <tbody>
                   {form.lines.map((line, idx) => (
                     <tr key={idx} className="border-t border-gray-100">
-                      <td className="px-2 py-1"><input className="w-28 border border-gray-200 rounded px-1 py-1 text-xs" value={line.description} onChange={(e) => updateLine(idx, "description", e.target.value)} /></td>
-                      <td className="px-2 py-1"><input type="number" min={0} className="w-12 border border-gray-200 rounded px-1 py-1 text-xs text-right" value={line.quantity} onChange={(e) => updateLine(idx, "quantity", parseFloat(e.target.value) || 0)} /></td>
-                      <td className="px-2 py-1"><input type="number" min={0} className="w-20 border border-gray-200 rounded px-1 py-1 text-xs text-right" value={line.unitPrice || ""} onChange={(e) => updateLine(idx, "unitPrice", parseFloat(e.target.value) || 0)} /></td>
-                      <td className="px-2 py-1"><input type="number" min={0} max={100} className="w-12 border border-gray-200 rounded px-1 py-1 text-xs text-right" value={line.discountPercent || ""} onChange={(e) => updateLine(idx, "discountPercent", parseFloat(e.target.value) || 0)} /></td>
-                      <td className="px-2 py-1"><SearchableDropdown options={taxRateOptions} value={line.taxRateId} onChange={(v) => updateLine(idx, "taxRateId", v ?? "")} placeholder="None" searchPlaceholder="Search tax rates..." className="w-20" /></td>
+                      <td className="px-2 py-1"><input className="w-full border border-gray-200 rounded px-1 py-1 text-xs focus:outline-none" value={line.description} onChange={(e) => updateLine(idx, "description", e.target.value)} /></td>
+                      <td className="px-2 py-1"><input type="number" min={0} className="w-full border border-gray-200 rounded px-1 py-1 text-xs text-right focus:outline-none" value={line.quantity} onChange={(e) => updateLine(idx, "quantity", parseFloat(e.target.value) || 0)} /></td>
+                      <td className="px-2 py-1"><input type="number" min={0} className="w-full border border-gray-200 rounded px-1 py-1 text-xs text-right focus:outline-none" value={line.unitPrice || ""} onChange={(e) => updateLine(idx, "unitPrice", parseFloat(e.target.value) || 0)} /></td>
+                      <td className="px-2 py-1"><input type="number" min={0} max={100} className="w-full border border-gray-200 rounded px-1 py-1 text-xs text-right focus:outline-none" value={line.discountPercent || ""} onChange={(e) => updateLine(idx, "discountPercent", parseFloat(e.target.value) || 0)} /></td>
+                      <td className="px-2 py-1"><SearchableDropdown options={taxRateOptions} value={line.taxRateId} onChange={(v) => updateLine(idx, "taxRateId", v ?? "")} placeholder="None" searchPlaceholder="Search tax rates..." className="w-full" /></td>
                       <td className="px-2 py-1"><SearchableDropdown
                           options={coaOptions}
                           value={line.expenseAccountId}
                           onChange={(v) => updateLine(idx, "expenseAccountId", v ?? "")}
                           placeholder="Select"
                           searchPlaceholder="Search accounts..."
+                          className="w-full"
                         /></td>
                       <td className="px-2 py-1 text-right font-medium">{lineSubtotal(line).toLocaleString("en-BD", { minimumFractionDigits: 2 })}</td>
                       <td className="px-2 py-1">{form.lines.length > 1 && <button onClick={() => removeLine(idx)} className="text-red-400 hover:text-red-600">×</button>}</td>

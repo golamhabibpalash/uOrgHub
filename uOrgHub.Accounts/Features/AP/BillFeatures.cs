@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using uOrgHub.Accounts.DTOs.AP;
 using uOrgHub.Accounts.Features._Common;
 using uOrgHub.Accounts.Models.Enums;
+using uOrgHub.Accounts.Services;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
 using uOrgHub.Shared.Extensions;
@@ -80,16 +81,24 @@ public class GetBillByIdQueryHandler : IRequestHandler<GetBillByIdQuery, BillRes
 public class CreateBillCommandHandler : IRequestHandler<CreateBillCommand, BillResponseDto>
 {
     private readonly AppDbContext _context;
-    public CreateBillCommandHandler(AppDbContext context) => _context = context;
+    private readonly IDocumentNumberingService _numbering;
+    public CreateBillCommandHandler(AppDbContext context, IDocumentNumberingService numbering)
+    {
+        _context = context;
+        _numbering = numbering;
+    }
 
     public async Task<BillResponseDto> Handle(CreateBillCommand request, CancellationToken ct)
     {
-        if (await _context.Set<Models.Entities.Bill>().AnyAsync(x => x.BillNumber == request.Dto.BillNumber && !x.IsDeleted, ct))
-            throw new AppException($"Bill number '{request.Dto.BillNumber}' already exists.");
+        var billNumber = request.Dto.BillNumber;
+        if (string.IsNullOrWhiteSpace(billNumber))
+            billNumber = await _numbering.GenerateNextAsync("Bill", "BL");
+        else if (await _context.Set<Models.Entities.Bill>().AnyAsync(x => x.BillNumber == billNumber && !x.IsDeleted, ct))
+            throw new AppException($"Bill number '{billNumber}' already exists.");
 
         var entity = new Models.Entities.Bill
         {
-            BillNumber = request.Dto.BillNumber,
+            BillNumber = billNumber,
             VendorBillNumber = request.Dto.VendorBillNumber,
             VendorId = request.Dto.VendorId,
             FiscalYearId = request.Dto.FiscalYearId,

@@ -35,7 +35,7 @@ public class CreateBillValidator : AbstractValidator<CreateBillDto>
 {
     public CreateBillValidator()
     {
-        RuleFor(x => x.BillNumber).NotEmpty().MaximumLength(30);
+        RuleFor(x => x.BillNumber).MaximumLength(30);
         RuleFor(x => x.VendorBillNumber).MaximumLength(50);
         RuleFor(x => x.VendorId).NotEmpty().WithMessage("Vendor is required");
         RuleFor(x => x.FiscalYearId).NotEmpty().WithMessage("Fiscal year is required");

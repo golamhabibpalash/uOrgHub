@@ -1,9 +1,11 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using uOrgHub.Accounts.DTOs.AP;
 using uOrgHub.Accounts.Features.AP;
 using uOrgHub.Accounts.Models.Entities;
 using uOrgHub.Accounts.Models.Enums;
+using uOrgHub.Accounts.Services;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
 using uOrgHub.Shared.Models;
@@ -54,6 +56,14 @@ public class BillHandlerTests : IDisposable
         return bill;
     }
 
+    private CreateBillCommandHandler CreateHandler()
+    {
+        var numbering = new Mock<IDocumentNumberingService>();
+        numbering.Setup(x => x.GenerateNextAsync("Bill", "BL", null, null))
+            .ReturnsAsync("BL-2506-000001");
+        return new CreateBillCommandHandler(_context, numbering.Object);
+    }
+
     private CreateBillDto ValidCreateDto(Guid vendorId, string billNumber = "BILL-001") => new()
     {
         BillNumber = billNumber,
@@ -73,7 +83,7 @@ public class BillHandlerTests : IDisposable
     public async Task Create_saves_bill_with_draft_status()
     {
         var vendor = SeedVendor();
-        var handler = new CreateBillCommandHandler(_context);
+        var handler = CreateHandler();
 
         var result = await handler.Handle(new CreateBillCommand(ValidCreateDto(vendor.Id)), default);
 
@@ -92,7 +102,7 @@ public class BillHandlerTests : IDisposable
             new() { Description = "Item A", Quantity = 10, UnitPrice = 50, DiscountPercent = 0, ExpenseAccountId = Guid.NewGuid() },
             new() { Description = "Item B", Quantity = 2, UnitPrice = 200, DiscountPercent = 0, ExpenseAccountId = Guid.NewGuid() }
         };
-        var handler = new CreateBillCommandHandler(_context);
+        var handler = CreateHandler();
 
         var result = await handler.Handle(new CreateBillCommand(dto), default);
 
@@ -108,7 +118,7 @@ public class BillHandlerTests : IDisposable
         {
             new() { Description = "Item", Quantity = 10, UnitPrice = 100, DiscountPercent = 10, ExpenseAccountId = Guid.NewGuid() }
         };
-        var handler = new CreateBillCommandHandler(_context);
+        var handler = CreateHandler();
 
         var result = await handler.Handle(new CreateBillCommand(dto), default);
 
@@ -120,7 +130,7 @@ public class BillHandlerTests : IDisposable
     {
         var vendor = SeedVendor();
         SeedBill(vendor, "BILL-001");
-        var handler = new CreateBillCommandHandler(_context);
+        var handler = CreateHandler();
 
         var act = () => handler.Handle(new CreateBillCommand(ValidCreateDto(vendor.Id, "BILL-001")), default);
 
@@ -132,7 +142,7 @@ public class BillHandlerTests : IDisposable
     {
         var vendor = SeedVendor();
         SeedBill(vendor, "BILL-001", isDeleted: true);
-        var handler = new CreateBillCommandHandler(_context);
+        var handler = CreateHandler();
 
         var result = await handler.Handle(new CreateBillCommand(ValidCreateDto(vendor.Id, "BILL-001")), default);
         result.BillNumber.Should().Be("BILL-001");
