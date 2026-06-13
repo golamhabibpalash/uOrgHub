@@ -8,7 +8,7 @@ import {
   getActiveLeaveTypes,
   getAllSalaryGrades,
 } from "../api/hr";
-import { getChartOfAccounts, getAllAccountGroups, getCostCenters, getCustomers, getVendors, getFiscalYears, getBankAccounts } from "../api/accounts";
+import { getChartOfAccounts, getAllAccountGroups, getCostCenters, getCustomers, getVendors, getFiscalYears, getBankAccounts, AccountGroupType } from "../api/accounts";
 import { getInventoryTypes, getInventoryCategories, getUnitsOfMeasure, getWarehouses } from "../api/inventory";
 import { getProjectCategories, getClients, getProjects } from "../api/projects";
 
@@ -96,19 +96,22 @@ export function useSalaryGradeLookup() {
 
 // --- Accounts Lookups ---
 
-export function useChartOfAccountsLookup() {
+export function useChartOfAccountsLookup(accountType?: AccountGroupType) {
   const query = useQuery({
     queryKey: ["chart-of-accounts"],
     queryFn: () => getChartOfAccounts({ page: 1, pageSize: 500 }),
     staleTime: 60000,
   });
   const options = useMemo(
-    () => toOptions(query.data?.data?.data?.items, (a) => ({
-      value: a.id,
-      label: `${a.accountCode} — ${a.accountName}`,
-      searchText: `${a.accountName} ${a.accountCode}`,
-    })),
-    [query.data],
+    () => toOptions(
+      (query.data?.data?.data?.items ?? []).filter((a) => !accountType || a.accountType === accountType),
+      (a) => ({
+        value: a.id,
+        label: `${a.accountCode} — ${a.accountName}`,
+        searchText: `${a.accountName} ${a.accountCode}`,
+      }),
+    ),
+    [query.data, accountType],
   );
   return { options, isLoading: query.isLoading };
 }

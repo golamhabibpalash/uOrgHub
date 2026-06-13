@@ -39,7 +39,7 @@ export default function Customers() {
     queryFn: () => getCustomers(dg.queryParams),
   });
 
-  const { options: coaOptions } = useChartOfAccountsLookup();
+  const { options: coaOptions } = useChartOfAccountsLookup("Asset");
 
   const customers = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;

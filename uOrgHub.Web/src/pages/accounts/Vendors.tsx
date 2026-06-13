@@ -38,7 +38,7 @@ export default function Vendors() {
     queryFn: () => getVendors(dg.queryParams),
   });
 
-  const { options: coaOptions } = useChartOfAccountsLookup();
+  const { options: coaOptions } = useChartOfAccountsLookup("Liability");
 
   const vendors = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
