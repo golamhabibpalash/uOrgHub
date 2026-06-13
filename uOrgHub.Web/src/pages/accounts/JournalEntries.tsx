@@ -9,7 +9,6 @@ import {
   getJournalEntries,
   createJournalEntry,
   updateJournalEntry,
-  getJournalEntryById,
   postJournalEntry,
   cancelJournalEntry,
   JournalEntry,

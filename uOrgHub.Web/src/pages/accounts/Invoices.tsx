@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Send, XCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Send, XCircle, ChevronDown, ChevronUp, Pencil } from "lucide-react";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
 import SearchableDropdown from "../../components/shared/SearchableDropdown";
@@ -12,7 +12,9 @@ import {
 } from "../../hooks/useEntityLookup";
 import {
   getInvoices,
+  getInvoiceById,
   createInvoice,
+  updateInvoice,
   postInvoice,
   voidInvoice,
   getTaxRates,
@@ -36,6 +38,7 @@ export default function Invoices() {
   const [statusFilter, setStatusFilter] = useState("");
   const [modal, setModal] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     customerId: "",
     fiscalYearId: "",
@@ -100,7 +103,39 @@ export default function Invoices() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["invoices"] }),
   });
 
+  const updateMutation = useMutation({
+    mutationFn: () => {
+      if (!editingId) throw new Error("No invoice selected for edit");
+      const payload = {
+        invoiceDate: form.invoiceDate,
+        dueDate: form.dueDate,
+        notes: form.notes || undefined,
+        costCenterId: form.costCenterId || undefined,
+        lines: form.lines.map((l, i) => ({
+          description: l.description,
+          quantity: l.quantity,
+          unitPrice: l.unitPrice,
+          discountPercent: l.discountPercent,
+          lineOrder: i + 1,
+          taxRateId: l.taxRateId || undefined,
+          revenueAccountId: l.revenueAccountId,
+          costCenterId: l.costCenterId || undefined,
+        })),
+      };
+      return updateInvoice(editingId, payload as Parameters<typeof updateInvoice>[1]);
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["invoices"] }); closeModal(); },
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { message?: string; errors?: string[] } } };
+      const msg = axiosErr?.response?.data?.message
+        ?? axiosErr?.response?.data?.errors?.[0]
+        ?? "Failed to update invoice.";
+      setSaveError(msg);
+    },
+  });
+
   function openAdd() {
+    setEditingId(null);
     setForm({
       customerId: "",
       fiscalYearId: "",
@@ -114,7 +149,40 @@ export default function Invoices() {
     setModal(true);
   }
 
-  function closeModal() { setModal(false); setSaveError(""); }
+  async function openEdit(id: string) {
+    setEditingId(id);
+    setSaveError("");
+    try {
+      const res = await getInvoiceById(id);
+      const inv = res.data.data;
+      if (!inv) { setSaveError("Invoice not found."); return; }
+      setForm({
+        customerId: inv.customerId,
+        fiscalYearId: inv.fiscalYearId,
+        invoiceDate: inv.invoiceDate.split("T")[0],
+        dueDate: inv.dueDate.split("T")[0],
+        notes: inv.notes ?? "",
+        costCenterId: inv.costCenterId ?? "",
+        lines: inv.lines.length > 0
+          ? inv.lines.map((l) => ({
+              description: l.description,
+              quantity: l.quantity,
+              unitPrice: l.unitPrice,
+              discountPercent: l.discountPercent,
+              lineOrder: l.lineOrder,
+              taxRateId: l.taxRateId ?? "",
+              revenueAccountId: l.revenueAccountId,
+              costCenterId: l.costCenterId ?? "",
+            }))
+          : [{ description: "", quantity: 1, unitPrice: 0, discountPercent: 0, lineOrder: 1, taxRateId: "", revenueAccountId: "", costCenterId: "" }],
+      });
+      setModal(true);
+    } catch {
+      setSaveError("Failed to load invoice data.");
+    }
+  }
+
+  function closeModal() { setModal(false); setSaveError(""); setEditingId(null); }
 
   function addLine() {
     setForm((f) => ({
@@ -197,11 +265,14 @@ export default function Invoices() {
                       <td className="px-4 py-2.5 font-medium text-red-600">{(inv.totalAmount - inv.paidAmount).toLocaleString("en-BD", { minimumFractionDigits: 2 })}</td>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-2">
-                          <button onClick={() => setExpandedId(expandedId === inv.id ? null : inv.id)} className="text-gray-400 hover:text-primary-600">
+                          <button onClick={() => setExpandedId(expandedId === inv.id ? null : inv.id)} className="text-gray-400 hover:text-primary-600" title="View Details">
                             {expandedId === inv.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                           </button>
                           {inv.status === "Draft" && (
-                            <button onClick={() => postMutation.mutate(inv.id)} className="text-blue-500 hover:text-blue-700" title="Post Invoice"><Send size={13} /></button>
+                            <>
+                              <button onClick={() => openEdit(inv.id)} className="text-gray-500 hover:text-primary-600" title="Edit Invoice"><Pencil size={13} /></button>
+                              <button onClick={() => postMutation.mutate(inv.id)} className="text-blue-500 hover:text-blue-700" title="Post Invoice"><Send size={13} /></button>
+                            </>
                           )}
                           {(inv.status === "Draft" || inv.status === "Sent") && (
                             <button onClick={() => voidMutation.mutate(inv.id)} className="text-red-400 hover:text-red-600" title="Void Invoice"><XCircle size={13} /></button>
@@ -248,7 +319,7 @@ export default function Invoices() {
         <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
       </div>
 
-      <Modal title="New Invoice" open={modal} onClose={closeModal}>
+      <Modal title={editingId ? "Edit Invoice" : "New Invoice"} open={modal} onClose={closeModal} size="4xl">
         <div className="space-y-3">
           {saveError && (
             <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
@@ -309,8 +380,18 @@ export default function Invoices() {
               <label className="text-xs text-gray-500">Line Items</label>
               <button onClick={addLine} className="text-xs text-primary-600 hover:underline">+ Add Line</button>
             </div>
-            <div className="border border-gray-200 rounded-lg">
-              <table className="w-full text-xs">
+            <div className="border border-gray-200 rounded-lg overflow-x-auto">
+              <table className="w-full text-xs" style={{ tableLayout: "fixed" }}>
+                <colgroup>
+                  <col style={{ width: "28%" }} />
+                  <col style={{ width: "8%" }} />
+                  <col style={{ width: "12%" }} />
+                  <col style={{ width: "8%" }} />
+                  <col style={{ width: "12%" }} />
+                  <col style={{ width: "18%" }} />
+                  <col style={{ width: "10%" }} />
+                  <col style={{ width: "4%" }} />
+                </colgroup>
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="text-left px-2 py-1.5 text-gray-500">Description</th>
@@ -327,19 +408,19 @@ export default function Invoices() {
                   {form.lines.map((line, idx) => (
                     <tr key={idx} className="border-t border-gray-100">
                       <td className="px-2 py-1">
-                        <input className="w-28 border border-gray-200 rounded px-1 py-1 text-xs focus:outline-none" value={line.description} onChange={(e) => updateLine(idx, "description", e.target.value)} />
+                        <input className="w-full border border-gray-200 rounded px-1 py-1 text-xs focus:outline-none" value={line.description} onChange={(e) => updateLine(idx, "description", e.target.value)} />
                       </td>
                       <td className="px-2 py-1">
-                        <input type="number" min={0} className="w-12 border border-gray-200 rounded px-1 py-1 text-xs text-right focus:outline-none" value={line.quantity} onChange={(e) => updateLine(idx, "quantity", parseFloat(e.target.value) || 0)} />
+                        <input type="number" min={0} className="w-full border border-gray-200 rounded px-1 py-1 text-xs text-right focus:outline-none" value={line.quantity} onChange={(e) => updateLine(idx, "quantity", parseFloat(e.target.value) || 0)} />
                       </td>
                       <td className="px-2 py-1">
-                        <input type="number" min={0} className="w-20 border border-gray-200 rounded px-1 py-1 text-xs text-right focus:outline-none" value={line.unitPrice || ""} onChange={(e) => updateLine(idx, "unitPrice", parseFloat(e.target.value) || 0)} />
+                        <input type="number" min={0} className="w-full border border-gray-200 rounded px-1 py-1 text-xs text-right focus:outline-none" value={line.unitPrice || ""} onChange={(e) => updateLine(idx, "unitPrice", parseFloat(e.target.value) || 0)} />
                       </td>
                       <td className="px-2 py-1">
-                        <input type="number" min={0} max={100} className="w-12 border border-gray-200 rounded px-1 py-1 text-xs text-right focus:outline-none" value={line.discountPercent || ""} onChange={(e) => updateLine(idx, "discountPercent", parseFloat(e.target.value) || 0)} />
+                        <input type="number" min={0} max={100} className="w-full border border-gray-200 rounded px-1 py-1 text-xs text-right focus:outline-none" value={line.discountPercent || ""} onChange={(e) => updateLine(idx, "discountPercent", parseFloat(e.target.value) || 0)} />
                       </td>
                       <td className="px-2 py-1">
-                        <SearchableDropdown options={taxRateOptions} value={line.taxRateId} onChange={(v) => updateLine(idx, "taxRateId", v ?? "")} placeholder="None" searchPlaceholder="Search tax rates..." className="w-20" />
+                        <SearchableDropdown options={taxRateOptions} value={line.taxRateId} onChange={(v) => updateLine(idx, "taxRateId", v ?? "")} placeholder="None" searchPlaceholder="Search tax rates..." className="w-full" />
                       </td>
                       <td className="px-2 py-1">
                         <SearchableDropdown
@@ -348,6 +429,7 @@ export default function Invoices() {
                           onChange={(v) => updateLine(idx, "revenueAccountId", v ?? "")}
                           placeholder="Select"
                           searchPlaceholder="Search accounts..."
+                          className="w-full"
                         />
                       </td>
                       <td className="px-2 py-1 text-right font-medium">{lineSubtotal(line).toLocaleString("en-BD", { minimumFractionDigits: 2 })}</td>
@@ -375,9 +457,15 @@ export default function Invoices() {
 
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={closeModal} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-            <button onClick={() => createMutation.mutate()} disabled={createMutation.isPending} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">
-              {createMutation.isPending ? "Saving..." : "Create Invoice"}
-            </button>
+            {editingId ? (
+              <button onClick={() => updateMutation.mutate()} disabled={updateMutation.isPending} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">
+                {updateMutation.isPending ? "Saving..." : "Update Invoice"}
+              </button>
+            ) : (
+              <button onClick={() => createMutation.mutate()} disabled={createMutation.isPending} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">
+                {createMutation.isPending ? "Saving..." : "Create Invoice"}
+              </button>
+            )}
           </div>
         </div>
       </Modal>
