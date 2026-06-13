@@ -50,6 +50,7 @@ export default function BankAccounts() {
     currency: "BDT",
     openingBalance: 0,
     chartOfAccountId: "",
+    openingBalanceEquityAccountId: "",
     isActive: true,
   });
 
@@ -69,6 +70,7 @@ export default function BankAccounts() {
   });
 
   const { options: coaOptions } = useChartOfAccountsLookup("Asset");
+  const { options: equityCoaOptions } = useChartOfAccountsLookup("Equity");
 
   const { data: txnData, isLoading: txnLoading } = useQuery({
     queryKey: ["bank-transactions", selectedAccount?.id, txnPage],
@@ -113,14 +115,14 @@ export default function BankAccounts() {
 
   function openAdd() {
     setEditing(null);
-    setForm({ accountNumber: "", accountName: "", bankName: "", branchName: "", routingNumber: "", currency: "BDT", openingBalance: 0, chartOfAccountId: coaOptions[0]?.value ?? "", isActive: true });
+    setForm({ accountNumber: "", accountName: "", bankName: "", branchName: "", routingNumber: "", currency: "BDT", openingBalance: 0, chartOfAccountId: coaOptions[0]?.value ?? "", openingBalanceEquityAccountId: "", isActive: true });
     setSaveError("");
     setModal(true);
   }
 
   function openEdit(ba: BankAccount) {
     setEditing(ba);
-    setForm({ accountNumber: ba.accountNumber, accountName: ba.accountName, bankName: ba.bankName, branchName: ba.branchName ?? "", routingNumber: ba.routingNumber ?? "", currency: ba.currency, openingBalance: ba.openingBalance, chartOfAccountId: ba.chartOfAccountId, isActive: ba.isActive });
+    setForm({ accountNumber: ba.accountNumber, accountName: ba.accountName, bankName: ba.bankName, branchName: ba.branchName ?? "", routingNumber: ba.routingNumber ?? "", currency: ba.currency, openingBalance: ba.openingBalance, chartOfAccountId: ba.chartOfAccountId, openingBalanceEquityAccountId: "", isActive: ba.isActive });
     setSaveError("");
     setModal(true);
   }
@@ -305,6 +307,20 @@ export default function BankAccounts() {
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Opening Balance</label>
               <input type="number" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.openingBalance} onChange={(e) => setForm((f) => ({ ...f, openingBalance: parseFloat(e.target.value) || 0 }))} />
+            </div>
+          )}
+          {!editing && form.openingBalance > 0 && (
+            <div>
+              <SearchableDropdown
+                label="Opening Balance Equity Account *"
+                options={equityCoaOptions}
+                value={form.openingBalanceEquityAccountId}
+                onChange={(v) => setForm((f) => ({ ...f, openingBalanceEquityAccountId: v ?? "" }))}
+                placeholder="Select equity account"
+                searchPlaceholder="Search equity accounts..."
+                required
+              />
+              <p className="text-xs text-amber-600 mt-1">A journal entry will be created: Debit (Bank Asset) / Credit (Equity)</p>
             </div>
           )}
           <div>

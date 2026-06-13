@@ -263,6 +263,7 @@ export interface BankAccount {
   currentBalance: number;
   isActive: boolean;
   chartOfAccountId: string;
+  openingBalanceEquityAccountId?: string;
 }
 
 export interface BankTransaction {
