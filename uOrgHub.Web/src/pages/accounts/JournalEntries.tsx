@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Send, XCircle, ChevronDown, ChevronUp, Check, AlertCircle } from "lucide-react";
+import { Plus, Send, XCircle, ChevronDown, ChevronUp, Pencil, Check, AlertCircle } from "lucide-react";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
 import SearchableDropdown from "../../components/shared/SearchableDropdown";
@@ -8,6 +8,8 @@ import { useChartOfAccountsLookup } from "../../hooks/useEntityLookup";
 import {
   getJournalEntries,
   createJournalEntry,
+  updateJournalEntry,
+  getJournalEntryById,
   postJournalEntry,
   cancelJournalEntry,
   JournalEntry,
@@ -26,6 +28,7 @@ export default function JournalEntries() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [modal, setModal] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [form, setForm] = useState({
     entryDate: new Date().toISOString().split("T")[0],
@@ -48,8 +51,22 @@ export default function JournalEntries() {
   const totalPages = data?.data?.data?.totalPages ?? 1;
   const [saveError, setSaveError] = useState("");
 
-  const createMutation = useMutation({
-    mutationFn: () => createJournalEntry(form),
+  const saveMutation = useMutation({
+    mutationFn: () => {
+      if (editingId) {
+        return updateJournalEntry(editingId, {
+          id: editingId,
+          entryDate: form.entryDate,
+          referenceNumber: form.referenceNumber || undefined,
+          description: form.description,
+          lines: form.lines.map((l, i) => ({ ...l, lineOrder: i + 1 })),
+        });
+      }
+      return createJournalEntry({
+        ...form,
+        lines: form.lines.map((l, i) => ({ ...l, lineOrder: i + 1 })),
+      });
+    },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["journal-entries"] }); closeModal(); },
     onError: (err: unknown) => {
       const axiosErr = err as { response?: { data?: { message?: string; errors?: string[] } } };
@@ -71,6 +88,7 @@ export default function JournalEntries() {
   });
 
   function openAdd() {
+    setEditingId(null);
     setForm({
       entryDate: new Date().toISOString().split("T")[0],
       referenceNumber: "",
@@ -84,7 +102,25 @@ export default function JournalEntries() {
     setModal(true);
   }
 
-  function closeModal() { setModal(false); setSaveError(""); }
+  function openEdit(entry: JournalEntry) {
+    setEditingId(entry.id);
+    setForm({
+      entryDate: entry.entryDate?.split("T")[0] ?? "",
+      referenceNumber: entry.referenceNumber ?? "",
+      description: entry.description,
+      lines: entry.lines.map((l) => ({
+        accountId: l.accountId,
+        description: l.description ?? "",
+        debitAmount: l.debitAmount,
+        creditAmount: l.creditAmount,
+        lineOrder: l.lineOrder,
+      })),
+    });
+    setSaveError("");
+    setModal(true);
+  }
+
+  function closeModal() { setModal(false); setEditingId(null); setSaveError(""); }
 
   function addLine() {
     setForm((f) => ({
@@ -144,6 +180,13 @@ export default function JournalEntries() {
           </button>
           {row.status === "Draft" && (
             <>
+              <button
+                onClick={() => openEdit(row)}
+                className="text-gray-400 hover:text-primary-600"
+                title="Edit"
+              >
+                <Pencil size={14} />
+              </button>
               <button
                 onClick={() => postMutation.mutate(row.id)}
                 className="text-green-500 hover:text-green-700"
@@ -247,7 +290,7 @@ export default function JournalEntries() {
         <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
       </div>
 
-      <Modal title="New Journal Entry" open={modal} onClose={closeModal} size="5xl">
+      <Modal title={editingId ? "Edit Journal Entry" : "New Journal Entry"} open={modal} onClose={closeModal} size="5xl">
         <div className="space-y-4">
           {saveError && (
             <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
@@ -381,11 +424,11 @@ export default function JournalEntries() {
           <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
             <button onClick={closeModal} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
             <button
-              onClick={() => createMutation.mutate()}
-              disabled={createMutation.isPending || !isBalanced}
+              onClick={() => saveMutation.mutate()}
+              disabled={saveMutation.isPending || !isBalanced}
               className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
             >
-              {createMutation.isPending ? "Saving…" : "Save Draft"}
+              {saveMutation.isPending ? "Saving…" : editingId ? "Update Draft" : "Save Draft"}
             </button>
           </div>
         </div>

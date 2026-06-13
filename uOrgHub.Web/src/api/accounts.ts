@@ -163,10 +163,27 @@ export const getJournalEntries = (params: PaginationRequest) =>
 export const getJournalEntryById = (id: string) =>
   apiClient.get<ApiResponse<JournalEntry>>(`/accounts/journal-entries/${id}`);
 
+export interface UpdateJournalEntryLineDto {
+  id?: string;
+  accountId: string;
+  description?: string;
+  debitAmount: number;
+  creditAmount: number;
+  lineOrder: number;
+}
+
+export interface UpdateJournalEntryPayload {
+  id: string;
+  entryDate: string;
+  referenceNumber?: string;
+  description: string;
+  lines: UpdateJournalEntryLineDto[];
+}
+
 export const createJournalEntry = (data: { entryDate: string; referenceNumber?: string; description: string; lines: CreateJournalEntryLineDto[] }) =>
   apiClient.post<ApiResponse<JournalEntry>>("/accounts/journal-entries", data);
 
-export const updateJournalEntry = (id: string, data: Partial<JournalEntry>) =>
+export const updateJournalEntry = (id: string, data: UpdateJournalEntryPayload) =>
   apiClient.put<ApiResponse<JournalEntry>>(`/accounts/journal-entries/${id}`, data);
 
 export const postJournalEntry = (id: string) =>
