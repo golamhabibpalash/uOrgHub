@@ -86,7 +86,14 @@ export default function BankAccounts() {
   const [saveError, setSaveError] = useState("");
 
   const saveMutation = useMutation({
-    mutationFn: () => editing ? updateBankAccount(editing.id, form) : createBankAccount(form),
+    mutationFn: () => {
+      const payload = {
+        ...form,
+        openingBalanceEquityAccountId: form.openingBalanceEquityAccountId || undefined,
+        chartOfAccountId: form.chartOfAccountId || undefined,
+      };
+      return editing ? updateBankAccount(editing.id, payload) : createBankAccount(payload);
+    },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["bank-accounts"] }); closeModal(); },
     onError: (err: unknown) => {
       const axiosErr = err as { response?: { data?: { message?: string; errors?: string[] } } };
