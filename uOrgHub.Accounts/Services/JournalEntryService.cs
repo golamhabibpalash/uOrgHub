@@ -212,6 +212,21 @@ public class JournalEntryService : IJournalEntryService
                 {
                     bankAccount.CurrentBalance += balanceChange;
                     bankAccount.UpdatedAt = DateTime.UtcNow;
+
+                    _context.Set<BankTransaction>().Add(new BankTransaction
+                    {
+                        Id = Guid.NewGuid(),
+                        BankAccountId = bankAccount.Id,
+                        JournalEntryId = entity.Id,
+                        TransactionType = balanceChange > 0 ? BankTransactionType.Deposit : BankTransactionType.Withdrawal,
+                        TransactionDate = entity.EntryDate,
+                        Amount = Math.Abs(balanceChange),
+                        ReferenceNumber = entity.EntryNumber,
+                        Description = $"{entity.Description} - {line.Description ?? account.AccountName}",
+                        Payee = balanceChange > 0 ? null : line.Description ?? account.AccountName,
+                        IsReconciled = false,
+                        CreatedAt = DateTime.UtcNow
+                    });
                 }
             }
         }
@@ -278,6 +293,21 @@ public class JournalEntryService : IJournalEntryService
                 {
                     bankAccount.CurrentBalance += balanceChange;
                     bankAccount.UpdatedAt = DateTime.UtcNow;
+
+                    _context.Set<BankTransaction>().Add(new BankTransaction
+                    {
+                        Id = Guid.NewGuid(),
+                        BankAccountId = bankAccount.Id,
+                        JournalEntryId = entity.Id,
+                        TransactionType = balanceChange > 0 ? BankTransactionType.Deposit : BankTransactionType.Withdrawal,
+                        TransactionDate = entity.EntryDate,
+                        Amount = Math.Abs(balanceChange),
+                        ReferenceNumber = entity.EntryNumber,
+                        Description = $"Cancelled: {entity.Description} - {line.Description ?? account.AccountName}",
+                        Payee = balanceChange > 0 ? null : line.Description ?? account.AccountName,
+                        IsReconciled = false,
+                        CreatedAt = DateTime.UtcNow
+                    });
                 }
             }
         }
