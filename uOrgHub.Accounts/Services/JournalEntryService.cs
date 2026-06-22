@@ -174,20 +174,45 @@ public class JournalEntryService : IJournalEntryService
             var account = await _context.Set<ChartOfAccount>().FindAsync(line.AccountId);
             if (account == null) continue;
 
+            var balanceChange = 0m;
+
             if (line.DebitAmount > 0)
             {
                 if (account.AccountType == AccountGroupType.Asset || account.AccountType == AccountGroupType.Expense)
+                {
                     account.CurrentBalance += line.DebitAmount;
+                    balanceChange = line.DebitAmount;
+                }
                 else
+                {
                     account.CurrentBalance -= line.DebitAmount;
+                    balanceChange = -line.DebitAmount;
+                }
             }
 
             if (line.CreditAmount > 0)
             {
                 if (account.AccountType == AccountGroupType.Asset || account.AccountType == AccountGroupType.Expense)
+                {
                     account.CurrentBalance -= line.CreditAmount;
+                    balanceChange = -line.CreditAmount;
+                }
                 else
+                {
                     account.CurrentBalance += line.CreditAmount;
+                    balanceChange = line.CreditAmount;
+                }
+            }
+
+            if (balanceChange != 0)
+            {
+                var bankAccount = await _context.Set<BankAccount>()
+                    .FirstOrDefaultAsync(ba => ba.ChartOfAccountId == line.AccountId && !ba.IsDeleted);
+                if (bankAccount is not null)
+                {
+                    bankAccount.CurrentBalance += balanceChange;
+                    bankAccount.UpdatedAt = DateTime.UtcNow;
+                }
             }
         }
 
@@ -215,20 +240,45 @@ public class JournalEntryService : IJournalEntryService
             var account = await _context.Set<ChartOfAccount>().FindAsync(line.AccountId);
             if (account == null) continue;
 
+            var balanceChange = 0m;
+
             if (line.DebitAmount > 0)
             {
                 if (account.AccountType == AccountGroupType.Asset || account.AccountType == AccountGroupType.Expense)
+                {
                     account.CurrentBalance -= line.DebitAmount;
+                    balanceChange = -line.DebitAmount;
+                }
                 else
+                {
                     account.CurrentBalance += line.DebitAmount;
+                    balanceChange = line.DebitAmount;
+                }
             }
 
             if (line.CreditAmount > 0)
             {
                 if (account.AccountType == AccountGroupType.Asset || account.AccountType == AccountGroupType.Expense)
+                {
                     account.CurrentBalance += line.CreditAmount;
+                    balanceChange = line.CreditAmount;
+                }
                 else
+                {
                     account.CurrentBalance -= line.CreditAmount;
+                    balanceChange = -line.CreditAmount;
+                }
+            }
+
+            if (balanceChange != 0)
+            {
+                var bankAccount = await _context.Set<BankAccount>()
+                    .FirstOrDefaultAsync(ba => ba.ChartOfAccountId == line.AccountId && !ba.IsDeleted);
+                if (bankAccount is not null)
+                {
+                    bankAccount.CurrentBalance += balanceChange;
+                    bankAccount.UpdatedAt = DateTime.UtcNow;
+                }
             }
         }
 
