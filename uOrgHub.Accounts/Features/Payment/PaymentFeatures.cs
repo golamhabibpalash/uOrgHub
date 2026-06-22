@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using uOrgHub.Accounts.DTOs.Payment;
 using uOrgHub.Accounts.Features._Common;
 using uOrgHub.Accounts.Models.Enums;
+using uOrgHub.Accounts.Services;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
 using uOrgHub.Shared.Extensions;
@@ -79,12 +80,21 @@ public class GetPaymentByIdQueryHandler : IRequestHandler<GetPaymentByIdQuery, P
 public class CreatePaymentCommandHandler : IRequestHandler<CreatePaymentCommand, PaymentResponseDto>
 {
     private readonly AppDbContext _context;
-    public CreatePaymentCommandHandler(AppDbContext context) => _context = context;
+    private readonly IDocumentNumberingService _numbering;
+    public CreatePaymentCommandHandler(AppDbContext context, IDocumentNumberingService numbering)
+    {
+        _context = context;
+        _numbering = numbering;
+    }
 
     public async Task<PaymentResponseDto> Handle(CreatePaymentCommand request, CancellationToken ct)
     {
-        if (await _context.Set<Models.Entities.Payment>().AnyAsync(x => x.PaymentNumber == request.Dto.PaymentNumber && !x.IsDeleted, ct))
-            throw new AppException($"Payment number '{request.Dto.PaymentNumber}' already exists.");
+        var paymentNumber = request.Dto.PaymentNumber;
+        if (string.IsNullOrWhiteSpace(paymentNumber))
+            paymentNumber = await _numbering.GenerateNextAsync("Payment", "PMT");
+
+        if (await _context.Set<Models.Entities.Payment>().AnyAsync(x => x.PaymentNumber == paymentNumber && !x.IsDeleted, ct))
+            throw new AppException($"Payment number '{paymentNumber}' already exists.");
 
         var totalAllocated = request.Dto.Allocations.Sum(a => a.AllocatedAmount);
         if (totalAllocated > request.Dto.Amount)
@@ -92,7 +102,7 @@ public class CreatePaymentCommandHandler : IRequestHandler<CreatePaymentCommand,
 
         var entity = new Models.Entities.Payment
         {
-            PaymentNumber = request.Dto.PaymentNumber,
+            PaymentNumber = paymentNumber,
             PaymentType = request.Dto.PaymentType,
             PaymentMethod = request.Dto.PaymentMethod,
             PaymentDate = request.Dto.PaymentDate,

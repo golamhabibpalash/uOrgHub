@@ -7,7 +7,7 @@ public class CreatePaymentValidator : AbstractValidator<CreatePaymentDto>
 {
     public CreatePaymentValidator()
     {
-        RuleFor(x => x.PaymentNumber).NotEmpty().MaximumLength(30);
+        RuleFor(x => x.PaymentNumber).MaximumLength(30);
         RuleFor(x => x.PaymentDate).NotEmpty();
         RuleFor(x => x.Amount).GreaterThan(0).WithMessage("Payment amount must be greater than 0");
         RuleFor(x => x.FiscalYearId).NotEmpty().WithMessage("Fiscal year is required");
