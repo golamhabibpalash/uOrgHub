@@ -33,8 +33,8 @@ builder.Services.AddJwtAuthentication(builder.Configuration);
 
 var app = builder.Build();
 
-// Enable Swagger in development
-if (app.Environment.IsDevelopment())
+// Enable Swagger in development / dev instances
+if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("CFLDev"))
 {
     app.UseSwagger();
     app.UseSwaggerUI(c =>
