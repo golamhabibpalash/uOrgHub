@@ -1,0 +1,72 @@
+services:
+  postgres-cfelbd:
+    image: postgres:16-alpine
+    container_name: postgres-cfelbd
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?}
+      POSTGRES_DB: ${DB_NAME:-orghub_cfl_live}
+    ports:
+      - "127.0.0.1:5437:5432"
+    volumes:
+      - postgres-cfelbd-data:/var/lib/postgresql/data
+    networks:
+      - orghub-cfl-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ${DB_NAME:-orghub_cfl_live}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  orghub-cfl-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    image: orghub-api:latest
+    container_name: orghub-cfl-api
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: CFLLive
+      ConnectionStrings__DefaultConnection: >-
+        Host=postgres-cfelbd;Port=5432;
+        Database=${DB_NAME:-orghub_cfl_live};
+        Username=postgres;
+        Password=${DB_PASSWORD:?}
+      JwtSettings__SecretKey: ${JWT_SECRET:?}
+      JwtSettings__Issuer: uOrgHubCFL
+      JwtSettings__Audience: uOrgHubCFL-clients
+      AllowedOrigins: https://cfelbd.hekzor.com
+    ports:
+      - "127.0.0.1:5178:8080"
+    volumes:
+      - uorghub-cfl-uploads:/app/wwwroot/uploads
+    depends_on:
+      postgres-cfelbd:
+        condition: service_healthy
+    networks:
+      - orghub-cfl-net
+
+  orghub-cfl-web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        VITE_API_URL: https://cfelbd.hekzor.com/api/v1
+    image: orghub-web:latest
+    container_name: orghub-cfl-web
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5179:80"
+    depends_on:
+      - orghub-cfl-api
+    networks:
+      - orghub-cfl-net
+
+networks:
+  orghub-cfl-net:
+    driver: bridge
+
+volumes:
+  postgres-cfelbd-data:
+  uorghub-cfl-uploads:
