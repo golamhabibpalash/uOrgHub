@@ -17,7 +17,7 @@ public class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
         var builder = new DbContextOptionsBuilder<AppDbContext>();
         var connectionString = configuration.GetConnectionString("DefaultConnection");
 
-        builder.UseSqlServer(connectionString);
+        builder.UseNpgsql(connectionString);
 
         // Create an instance of IHttpContextAccessor (or retrieve it from a service provider if needed)
         var httpContextAccessor = new HttpContextAccessor();

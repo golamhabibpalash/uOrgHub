@@ -120,7 +120,7 @@ namespace OrgHub.Infrastructure.Persistence
 
                 // identity / auto-increment
                 entity.Property(e => e.Id)
-                      .ValueGeneratedOnAdd();
+                        .ValueGeneratedOnAdd();
 
                 entity.Property(e => e.EmployeeCode).IsRequired().HasMaxLength(50);
 
@@ -135,7 +135,7 @@ namespace OrgHub.Infrastructure.Persistence
                 entity.HasKey(e => e.Id);
                 // identity / auto-increment
                 entity.Property(e => e.Id)
-                      .ValueGeneratedOnAdd();
+                        .ValueGeneratedOnAdd();
 
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.Type).IsRequired().HasMaxLength(50);
@@ -149,7 +149,7 @@ namespace OrgHub.Infrastructure.Persistence
                 entity.Property(e => e.TableName).HasMaxLength(128).IsRequired();
                 entity.Property(e => e.Action).HasMaxLength(20).IsRequired();
                 entity.Property(e => e.UserId).HasMaxLength(450);
-                entity.Property(e => e.Timestamp).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.Timestamp).HasDefaultValueSql("NOW()");
             });
             #endregion Others
         }

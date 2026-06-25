@@ -9,7 +9,6 @@ using OrgHub.Application.Mapping.Fixed_Assets;
 using OrgHub.Application.Mapping.HRM;
 using Serilog;
 using Serilog.Events;
-using Serilog.Sinks.MSSqlServer;
 using System.Diagnostics;
 using System.Reflection;
 using System.Text;
@@ -58,16 +57,7 @@ public static class ServiceCollectionExtensions
         Log.Logger = new LoggerConfiguration()
             .WriteTo.Console()
             .WriteTo.File(Path.Combine(logDirectory, "log-.txt"), rollingInterval: RollingInterval.Day)
-            .WriteTo.MSSqlServer(
-                connectionString: configuration.GetConnectionString("DefaultConnection"),
-                sinkOptions: new MSSqlServerSinkOptions
-                {
-                    TableName = "Logs",
-                    AutoCreateSqlTable = true
-                },
-                //columnOptions: columnOptions, // optionally include if you're customizing columns
-                restrictedToMinimumLevel: LogEventLevel.Information
-            )
+
             .CreateLogger();
 
         hostBuilder.UseSerilog();

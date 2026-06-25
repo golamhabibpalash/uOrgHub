@@ -36,7 +36,7 @@ namespace OrgHub.Infrastructure.DependencyInjection
         {
             // Register DbContext
             services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+                options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
 
             // Register Identity
             services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
