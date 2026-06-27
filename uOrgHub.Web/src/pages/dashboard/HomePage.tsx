@@ -1,20 +1,19 @@
 import { useNavigate } from 'react-router-dom';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, ComposedChart, Line, PieChart, Pie, Cell,
+  ResponsiveContainer, ComposedChart, Line,
 } from 'recharts';
 import {
-  HardHat, Users, Box, ShoppingCart, Receipt,
-  AlertTriangle, CheckCircle2, Clock, TrendingUp,
-  RefreshCw, ChevronRight, Plus,
-  LayoutDashboard, Wallet, FileText, Package,
+  HardHat, Users, Box, ShoppingCart, Wallet,
+  AlertTriangle, CheckCircle2, Plus,
+  RefreshCw, ChevronRight, LayoutDashboard,
 } from 'lucide-react';
 import { useDashboard } from '../../hooks/useDashboard';
 import { useAuthStore } from '../../store/authStore';
 import { formatBDT, timeAgo, formatDate } from '../../utils/format';
 import SkeletonCard from '../../components/shared/SkeletonCard';
 import type { DashboardStats, PendingApproval, LowStockAlert, RecentActivity, ProjectProgress, MonthlyExpenseData, BudgetUtilization } from '../../api/dashboard';
-import type { UserRole, ModuleAccess } from '../../hooks/useDashboard';
+import type { ModuleAccess } from '../../hooks/useDashboard';
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 
@@ -46,8 +45,6 @@ const URGENCY_DOT: Record<string, string> = {
   low: 'bg-green-400',
 };
 
-const PIE_COLORS = ['#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
-
 // Custom recharts tooltip
 interface TooltipProps { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }
 function BDTTooltip({ active, payload, label }: TooltipProps) {
@@ -69,10 +66,9 @@ interface WelcomeSectionProps {
   role: string;
   pendingCount: number;
   lowStockCount: number;
-  isProjectManager: boolean;
 }
 
-function WelcomeSection({ firstName, role, pendingCount, lowStockCount, isProjectManager }: WelcomeSectionProps) {
+function WelcomeSection({ firstName, role, pendingCount, lowStockCount }: WelcomeSectionProps) {
   const navigate = useNavigate();
   return (
     <div className="flex items-start justify-between flex-wrap gap-4 mb-6">
@@ -103,15 +99,6 @@ function WelcomeSection({ firstName, role, pendingCount, lowStockCount, isProjec
             {lowStockCount} low stock alerts
           </button>
         )}
-        {isProjectManager && (
-          <button
-            onClick={() => navigate('/projects')}
-            className="flex items-center gap-1.5 bg-red-50 border border-red-200 text-red-600 text-xs font-medium px-3 py-1.5 rounded-full hover:bg-red-100 transition-colors"
-          >
-            <FileText size={13} />
-            2 overdue DPRs
-          </button>
-        )}
       </div>
     </div>
   );
@@ -131,72 +118,20 @@ interface KpiCard {
 }
 
 function buildKpiCards(
-  role: UserRole,
   stats: { activeProjects: number; totalProjectValue: number; totalEmployees: number; newEmployeesThisMonth: number; inventoryItems: number; lowStockCount: number; openPOs: number; openPOValue: number; monthlyPayroll: number; payrollDueInDays: number },
 ): KpiCard[] {
-  switch (role) {
-    case 'ProjectManager':
-      return [
-        { label: 'Active Projects', value: String(stats.activeProjects), sub: formatBDT(stats.totalProjectValue) + ' total value', subColor: 'text-blue-600', iconBg: 'bg-blue-50', iconColor: 'text-blue-600', Icon: HardHat, link: '/projects' },
-        { label: 'Budget Used', value: '68%', sub: 'of allocated budget', subColor: 'text-amber-600', iconBg: 'bg-amber-50', iconColor: 'text-amber-600', Icon: TrendingUp, link: '/projects' },
-        { label: 'Pending DPRs', value: '4', sub: '2 overdue', subColor: 'text-red-600', iconBg: 'bg-red-50', iconColor: 'text-red-600', Icon: FileText, link: '/projects' },
-        { label: 'Material Requests', value: '7', sub: '3 awaiting approval', subColor: 'text-purple-600', iconBg: 'bg-purple-50', iconColor: 'text-purple-600', Icon: Package, link: '/procurement/purchase-requisitions' },
-        { label: 'Team Members', value: String(stats.totalEmployees), sub: `${stats.newEmployeesThisMonth} new this month`, subColor: 'text-green-600', iconBg: 'bg-green-50', iconColor: 'text-green-600', Icon: Users, link: '/hr/employees' },
-      ];
-    case 'SiteEngineer':
-      return [
-        { label: 'My Projects', value: '3', sub: '1 ahead of schedule', subColor: 'text-green-600', iconBg: 'bg-blue-50', iconColor: 'text-blue-600', Icon: HardHat, link: '/projects' },
-        { label: "Today's DPR", value: 'Pending', sub: 'Submit before 5 PM', subColor: 'text-red-600', iconBg: 'bg-red-50', iconColor: 'text-red-600', Icon: FileText, link: '/projects' },
-        { label: 'Material Requests', value: '2', sub: '1 approved', subColor: 'text-amber-600', iconBg: 'bg-amber-50', iconColor: 'text-amber-600', Icon: Package, link: '/procurement/purchase-requisitions' },
-        { label: 'Pending Issues', value: '5', sub: '1 critical', subColor: 'text-red-600', iconBg: 'bg-red-50', iconColor: 'text-red-600', Icon: AlertTriangle, link: '/projects' },
-        { label: 'Days to Deadline', value: '12', sub: 'Dhanmondi Tower', subColor: 'text-amber-600', iconBg: 'bg-amber-50', iconColor: 'text-amber-600', Icon: Clock, link: '/projects' },
-      ];
-    case 'Accountant':
-      return [
-        { label: 'Total Receivables', value: formatBDT(3_200_000), sub: '12 open invoices', subColor: 'text-green-600', iconBg: 'bg-green-50', iconColor: 'text-green-600', Icon: TrendingUp, link: '/accounts/invoices' },
-        { label: 'Total Payables', value: formatBDT(1_850_000), sub: '8 pending bills', subColor: 'text-red-600', iconBg: 'bg-red-50', iconColor: 'text-red-600', Icon: Wallet, link: '/accounts/bills' },
-        { label: 'This Month Expenses', value: formatBDT(3_350_000), sub: '96% of budget', subColor: 'text-amber-600', iconBg: 'bg-amber-50', iconColor: 'text-amber-600', Icon: Receipt, link: '/accounts/journal-entries' },
-        { label: 'Journal Entries', value: '24', sub: 'Today', subColor: 'text-blue-600', iconBg: 'bg-blue-50', iconColor: 'text-blue-600', Icon: FileText, link: '/accounts/journal-entries' },
-        { label: 'Cash Balance', value: formatBDT(12_500_000), sub: 'Across all accounts', subColor: 'text-green-600', iconBg: 'bg-green-50', iconColor: 'text-green-600', Icon: Wallet, link: '/accounts/bank-accounts' },
-      ];
-    case 'StoreKeeper':
-      return [
-        { label: 'Total Items', value: String(stats.inventoryItems), sub: 'In all warehouses', subColor: 'text-blue-600', iconBg: 'bg-blue-50', iconColor: 'text-blue-600', Icon: Box, link: '/inventory/items' },
-        { label: 'Low Stock Alerts', value: String(stats.lowStockCount), sub: '3 critical', subColor: 'text-red-600', iconBg: 'bg-red-50', iconColor: 'text-red-600', Icon: AlertTriangle, link: '/inventory/stock-balances' },
-        { label: 'Pending GRNs', value: '5', sub: '2 overdue', subColor: 'text-amber-600', iconBg: 'bg-amber-50', iconColor: 'text-amber-600', Icon: Package, link: '/procurement/grns' },
-        { label: "Today's Transactions", value: '18', sub: '10 in · 8 out', subColor: 'text-green-600', iconBg: 'bg-green-50', iconColor: 'text-green-600', Icon: TrendingUp, link: '/inventory/stock-transactions' },
-        { label: 'Warehouses', value: '3', sub: 'Active locations', subColor: 'text-purple-600', iconBg: 'bg-purple-50', iconColor: 'text-purple-600', Icon: Box, link: '/inventory/warehouses' },
-      ];
-    case 'HRManager':
-      return [
-        { label: 'Total Employees', value: String(stats.totalEmployees), sub: `${stats.newEmployeesThisMonth} new this month`, subColor: 'text-green-600', iconBg: 'bg-green-50', iconColor: 'text-green-600', Icon: Users, link: '/hr/employees' },
-        { label: 'On Leave Today', value: '8', sub: '3 approved today', subColor: 'text-amber-600', iconBg: 'bg-amber-50', iconColor: 'text-amber-600', Icon: Clock, link: '/hr/leave' },
-        { label: 'Pending Leaves', value: '6', sub: 'Awaiting approval', subColor: 'text-red-600', iconBg: 'bg-red-50', iconColor: 'text-red-600', Icon: AlertTriangle, link: '/hr/leave' },
-        { label: 'Payroll Status', value: 'Pending', sub: `Due in ${stats.payrollDueInDays} days`, subColor: 'text-amber-600', iconBg: 'bg-amber-50', iconColor: 'text-amber-600', Icon: Wallet, link: '/hr/payroll' },
-        { label: 'New Joiners', value: String(stats.newEmployeesThisMonth), sub: 'This month', subColor: 'text-blue-600', iconBg: 'bg-blue-50', iconColor: 'text-blue-600', Icon: Users, link: '/hr/employees' },
-      ];
-    case 'ProcurementOfficer':
-      return [
-        { label: 'Open PRs', value: '9', sub: '3 urgent', subColor: 'text-red-600', iconBg: 'bg-red-50', iconColor: 'text-red-600', Icon: FileText, link: '/procurement/purchase-requisitions' },
-        { label: 'Open RFQs', value: '4', sub: '2 closing today', subColor: 'text-amber-600', iconBg: 'bg-amber-50', iconColor: 'text-amber-600', Icon: FileText, link: '/procurement/rfqs' },
-        { label: 'Open POs', value: String(stats.openPOs), sub: formatBDT(stats.openPOValue) + ' value', subColor: 'text-purple-600', iconBg: 'bg-purple-50', iconColor: 'text-purple-600', Icon: ShoppingCart, link: '/procurement/purchase-orders' },
-        { label: 'Pending GRNs', value: '5', sub: '2 overdue', subColor: 'text-amber-600', iconBg: 'bg-amber-50', iconColor: 'text-amber-600', Icon: Package, link: '/procurement/grns' },
-        { label: 'This Month Spend', value: formatBDT(4_200_000), sub: '88% of budget', subColor: 'text-red-600', iconBg: 'bg-red-50', iconColor: 'text-red-600', Icon: Wallet, link: '/accounts/budgets' },
-      ];
-    default: // Admin
-      return [
-        { label: 'Active Projects', value: String(stats.activeProjects), sub: formatBDT(stats.totalProjectValue) + ' total value', subColor: 'text-blue-600', iconBg: 'bg-blue-50', iconColor: 'text-blue-600', Icon: HardHat, link: '/projects' },
-        { label: 'Total Employees', value: String(stats.totalEmployees), sub: `+${stats.newEmployeesThisMonth} this month`, subColor: 'text-green-600', iconBg: 'bg-green-50', iconColor: 'text-green-600', Icon: Users, link: '/hr' },
-        { label: 'Inventory Items', value: String(stats.inventoryItems), sub: `${stats.lowStockCount} low stock`, subColor: 'text-red-600', iconBg: 'bg-amber-50', iconColor: 'text-amber-600', Icon: Box, link: '/inventory' },
-        { label: 'Open POs', value: String(stats.openPOs), sub: formatBDT(stats.openPOValue) + ' value', subColor: 'text-purple-600', iconBg: 'bg-purple-50', iconColor: 'text-purple-600', Icon: ShoppingCart, link: '/procurement/purchase-orders' },
-        { label: 'Monthly Payroll', value: formatBDT(stats.monthlyPayroll), sub: `Due in ${stats.payrollDueInDays} days`, subColor: 'text-red-600', iconBg: 'bg-red-50', iconColor: 'text-red-600', Icon: Wallet, link: '/hr/payroll' },
-      ];
-  }
+  return [
+    { label: 'Active Projects', value: String(stats.activeProjects), sub: formatBDT(stats.totalProjectValue) + ' total value', subColor: 'text-blue-600', iconBg: 'bg-blue-50', iconColor: 'text-blue-600', Icon: HardHat, link: '/projects' },
+    { label: 'Total Employees', value: String(stats.totalEmployees), sub: `+${stats.newEmployeesThisMonth} this month`, subColor: 'text-green-600', iconBg: 'bg-green-50', iconColor: 'text-green-600', Icon: Users, link: '/hr' },
+    { label: 'Inventory Items', value: String(stats.inventoryItems), sub: `${stats.lowStockCount} low stock`, subColor: 'text-red-600', iconBg: 'bg-amber-50', iconColor: 'text-amber-600', Icon: Box, link: '/inventory' },
+    { label: 'Open POs', value: String(stats.openPOs), sub: formatBDT(stats.openPOValue) + ' value', subColor: 'text-purple-600', iconBg: 'bg-purple-50', iconColor: 'text-purple-600', Icon: ShoppingCart, link: '/procurement/purchase-orders' },
+    { label: 'Monthly Payroll', value: formatBDT(stats.monthlyPayroll), sub: `Due in ${stats.payrollDueInDays} days`, subColor: 'text-red-600', iconBg: 'bg-red-50', iconColor: 'text-red-600', Icon: Wallet, link: '/hr/payroll' },
+  ];
 }
 
-function KpiSection({ role, stats, isLoading }: { role: UserRole; stats: Parameters<typeof buildKpiCards>[1]; isLoading: boolean }) {
+function KpiSection({ stats, isLoading }: { stats: Parameters<typeof buildKpiCards>[0]; isLoading: boolean }) {
   const navigate = useNavigate();
-  const cards = buildKpiCards(role, stats);
+  const cards = buildKpiCards(stats);
 
   if (isLoading) {
     return (
@@ -345,35 +280,11 @@ function RightChartCard({
     );
   }
 
-  // stockByCategory donut
-  const donutData = [
-    { name: 'Materials', value: 45 },
-    { name: 'Tools', value: 20 },
-    { name: 'Electrical', value: 18 },
-    { name: 'Plumbing', value: 10 },
-    { name: 'Other', value: 7 },
-  ];
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4">
-      <h3 className="text-sm font-medium text-gray-800 mb-2">Stock Levels by Category</h3>
-      <div className="flex items-center gap-4">
-        <ResponsiveContainer width="50%" height={180}>
-          <PieChart>
-            <Pie data={donutData} cx="50%" cy="50%" innerRadius={45} outerRadius={70} dataKey="value" animationDuration={800}>
-              {donutData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-            </Pie>
-            <Tooltip formatter={(v) => `${v}%`} />
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="space-y-1.5 text-xs">
-          {donutData.map((d, i) => (
-            <div key={d.name} className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: PIE_COLORS[i] }} />
-              <span className="text-gray-600">{d.name}</span>
-              <span className="font-medium text-gray-800 ml-auto">{d.value}%</span>
-            </div>
-          ))}
-        </div>
+    <div className="bg-white border border-gray-200 rounded-xl p-4 flex items-center justify-center" style={{ height: 232 }}>
+      <div className="text-center text-gray-400">
+        <Box size={32} className="mx-auto mb-2" />
+        <p className="text-sm">No stock data available</p>
       </div>
     </div>
   );
@@ -526,107 +437,6 @@ function LowStockList({ items, isLoading }: { items: LowStockAlert[]; isLoading:
   );
 }
 
-function LeaveRequestsList({ isLoading }: { isLoading: boolean }) {
-  const navigate = useNavigate();
-  const mockLeaves = [
-    { id: '1', name: 'Sadia Islam', type: 'Annual', days: 5, from: '2026-05-18', status: 'Pending' },
-    { id: '2', name: 'Tariq Hasan', type: 'Sick', days: 2, from: '2026-05-15', status: 'Pending' },
-    { id: '3', name: 'Nasrin Akter', type: 'Casual', days: 1, from: '2026-05-14', status: 'Approved' },
-  ];
-  if (isLoading) return <SkeletonCard height="h-64" />;
-  return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col h-full">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium text-gray-800">Leave Requests</h3>
-        <span className="bg-amber-100 text-amber-700 text-xs font-medium px-2 py-0.5 rounded-full">2 pending</span>
-      </div>
-      <div className="space-y-2 flex-1">
-        {mockLeaves.map((l) => (
-          <button key={l.id} onClick={() => navigate('/hr/leave')} className="w-full text-left flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
-            <div className="w-7 h-7 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-xs font-medium flex-shrink-0">
-              {l.name.charAt(0)}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-gray-800 truncate">{l.name}</p>
-              <p className="text-[10px] text-gray-500">{l.type} · {l.days} day{l.days > 1 ? 's' : ''} from {l.from}</p>
-            </div>
-            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${l.status === 'Approved' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-              {l.status}
-            </span>
-          </button>
-        ))}
-      </div>
-      <button onClick={() => navigate('/hr/leave')} className="mt-3 text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
-        View all <ChevronRight size={12} />
-      </button>
-    </div>
-  );
-}
-
-function JournalEntriesList({ isLoading }: { isLoading: boolean }) {
-  const navigate = useNavigate();
-  const entries = [
-    { id: '1', ref: 'JE-2045', desc: 'Office supplies purchase', debit: 15000, credit: 15000, date: '2026-05-14' },
-    { id: '2', ref: 'JE-2044', desc: 'Vendor payment – ACI Ltd', debit: 280000, credit: 280000, date: '2026-05-14' },
-    { id: '3', ref: 'JE-2043', desc: 'Invoice receipt – Client A', debit: 450000, credit: 450000, date: '2026-05-13' },
-  ];
-  if (isLoading) return <SkeletonCard height="h-64" />;
-  return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col h-full">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium text-gray-800">Recent Journal Entries</h3>
-        <span className="bg-blue-100 text-blue-700 text-xs font-medium px-2 py-0.5 rounded-full">Today 24</span>
-      </div>
-      <div className="space-y-2 flex-1">
-        {entries.map((e) => (
-          <button key={e.id} onClick={() => navigate('/accounts/journal-entries')} className="w-full text-left flex items-start gap-2 p-2 rounded-lg hover:bg-gray-50">
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-gray-800">{e.ref}</p>
-              <p className="text-[10px] text-gray-500 truncate">{e.desc}</p>
-            </div>
-            <div className="text-right flex-shrink-0">
-              <p className="text-xs text-green-600 font-medium">{formatBDT(e.debit)}</p>
-              <p className="text-[10px] text-gray-400">{e.date}</p>
-            </div>
-          </button>
-        ))}
-      </div>
-      <button onClick={() => navigate('/accounts/journal-entries')} className="mt-3 text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
-        View all <ChevronRight size={12} />
-      </button>
-    </div>
-  );
-}
-
-function MyTasksList({ isLoading }: { isLoading: boolean }) {
-  const tasks = [
-    { id: '1', title: 'Submit DPR for Site A', due: 'Today 5 PM', priority: 'high' },
-    { id: '2', title: 'Review BOQ for PRJ-003', due: 'Tomorrow', priority: 'medium' },
-    { id: '3', title: 'Approve material request #MR-45', due: 'May 16', priority: 'low' },
-    { id: '4', title: 'Site inspection report upload', due: 'May 17', priority: 'medium' },
-  ];
-  if (isLoading) return <SkeletonCard height="h-64" />;
-  return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col h-full">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium text-gray-800">My Tasks Today</h3>
-        <span className="bg-red-100 text-red-700 text-xs font-medium px-2 py-0.5 rounded-full">1 urgent</span>
-      </div>
-      <div className="space-y-2 flex-1">
-        {tasks.map((t) => (
-          <div key={t.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50">
-            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${URGENCY_DOT[t.priority as keyof typeof URGENCY_DOT]}`} />
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-gray-800 truncate">{t.title}</p>
-              <p className="text-[10px] text-gray-500">{t.due}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ── Section 4 col 3: Recent Activity ─────────────────────────────────────────
 
 const ACTIVITY_DOT: Record<string, string> = {
@@ -695,28 +505,17 @@ function RecentActivityList({ items, isLoading }: { items: RecentActivity[]; isL
 }
 
 function ThreeColumnSection({
-  approvals, lowStockItems, activities, visibility, isLoading,
+  approvals, lowStockItems, activities, isLoading,
 }: {
   approvals: PendingApproval[];
   lowStockItems: LowStockAlert[];
   activities: RecentActivity[];
-  visibility: { showLowStock: boolean; showLeaveRequests: boolean; showJournalEntries: boolean; showMyTasks: boolean };
   isLoading: boolean;
 }) {
-  const mid = visibility.showLowStock
-    ? <LowStockList items={lowStockItems} isLoading={isLoading} />
-    : visibility.showLeaveRequests
-    ? <LeaveRequestsList isLoading={isLoading} />
-    : visibility.showJournalEntries
-    ? <JournalEntriesList isLoading={isLoading} />
-    : visibility.showMyTasks
-    ? <MyTasksList isLoading={isLoading} />
-    : <LowStockList items={lowStockItems} isLoading={isLoading} />;
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
       <PendingApprovalsList items={approvals} isLoading={isLoading} />
-      {mid}
+      <LowStockList items={lowStockItems} isLoading={isLoading} />
       <RecentActivityList items={activities} isLoading={isLoading} />
     </div>
   );
@@ -725,7 +524,7 @@ function ThreeColumnSection({
 // ── Section 5: Quick Access ───────────────────────────────────────────────────
 
 const MODULE_ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
-  HardHat, Users, Box, ShoppingCart, Receipt,
+  HardHat, Users, Box, ShoppingCart,
 };
 
 function QuickAccessSection({ modules }: { modules: ModuleAccess[] }) {
@@ -866,7 +665,6 @@ export default function HomePage() {
             role={role}
             pendingCount={stats.pendingApprovalsCount}
             lowStockCount={stats.lowStockCount}
-            isProjectManager={role === 'ProjectManager'}
           />
         </div>
         <div className="flex items-center gap-2 mt-1">
@@ -889,7 +687,6 @@ export default function HomePage() {
 
       {/* Section 2: KPI Cards */}
       <KpiSection
-        role={role}
         stats={{
           activeProjects: stats.activeProjects,
           totalProjectValue: stats.totalProjectValue,
@@ -920,7 +717,6 @@ export default function HomePage() {
         approvals={stats.pendingApprovalDetails}
         lowStockItems={stats.lowStockAlerts}
         activities={stats.recentActivities}
-        visibility={visibility}
         isLoading={isLoading}
       />
 
