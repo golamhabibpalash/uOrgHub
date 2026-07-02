@@ -155,6 +155,7 @@ export interface CreateJournalEntryLineDto {
   debitAmount: number;
   creditAmount: number;
   lineOrder: number;
+  costCenterId?: string;
 }
 
 export const getJournalEntries = (params: PaginationRequest) =>
@@ -170,6 +171,7 @@ export interface UpdateJournalEntryLineDto {
   debitAmount: number;
   creditAmount: number;
   lineOrder: number;
+  costCenterId?: string;
 }
 
 export interface UpdateJournalEntryPayload {

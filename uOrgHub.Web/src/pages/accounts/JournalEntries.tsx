@@ -1,16 +1,17 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Send, XCircle, ChevronDown, ChevronUp, Pencil, Check, AlertCircle } from "lucide-react";
+import { Plus, Send, XCircle, ChevronDown, ChevronUp, Pencil, Check, AlertCircle, Trash2 } from "lucide-react";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
 import SearchableDropdown from "../../components/shared/SearchableDropdown";
-import { useChartOfAccountsLookup } from "../../hooks/useEntityLookup";
+import { useChartOfAccountsLookup, useCostCenterLookup } from "../../hooks/useEntityLookup";
 import {
   getJournalEntries,
   createJournalEntry,
   updateJournalEntry,
   postJournalEntry,
   cancelJournalEntry,
+  deleteJournalEntry,
   JournalEntry,
   JournalEntryStatus,
   CreateJournalEntryLineDto,
@@ -34,8 +35,8 @@ export default function JournalEntries() {
     referenceNumber: "",
     description: "",
     lines: [
-      { accountId: "", description: "", debitAmount: 0, creditAmount: 0, lineOrder: 1 },
-      { accountId: "", description: "", debitAmount: 0, creditAmount: 0, lineOrder: 2 },
+      { accountId: "", description: "", debitAmount: 0, creditAmount: 0, lineOrder: 1, costCenterId: "" },
+      { accountId: "", description: "", debitAmount: 0, creditAmount: 0, lineOrder: 2, costCenterId: "" },
     ] as CreateJournalEntryLineDto[],
   });
 
@@ -45,6 +46,7 @@ export default function JournalEntries() {
   });
 
   const { options: coaOptions } = useChartOfAccountsLookup();
+  const { options: costCenterOptions } = useCostCenterLookup();
 
   const entries = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
@@ -58,12 +60,12 @@ export default function JournalEntries() {
           entryDate: form.entryDate,
           referenceNumber: form.referenceNumber || undefined,
           description: form.description,
-          lines: form.lines.map((l, i) => ({ ...l, lineOrder: i + 1 })),
+          lines: form.lines.map((l, i) => ({ ...l, lineOrder: i + 1, costCenterId: l.costCenterId || undefined })),
         });
       }
       return createJournalEntry({
         ...form,
-        lines: form.lines.map((l, i) => ({ ...l, lineOrder: i + 1 })),
+        lines: form.lines.map((l, i) => ({ ...l, lineOrder: i + 1, costCenterId: l.costCenterId || undefined })),
       });
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["journal-entries"] }); closeModal(); },
@@ -83,6 +85,11 @@ export default function JournalEntries() {
 
   const cancelMutation = useMutation({
     mutationFn: (id: string) => cancelJournalEntry(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["journal-entries"] }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteJournalEntry(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["journal-entries"] }),
   });
 
@@ -113,6 +120,7 @@ export default function JournalEntries() {
         debitAmount: l.debitAmount,
         creditAmount: l.creditAmount,
         lineOrder: l.lineOrder,
+        costCenterId: l.costCenterId ?? "",
       })),
     });
     setSaveError("");
@@ -124,7 +132,7 @@ export default function JournalEntries() {
   function addLine() {
     setForm((f) => ({
       ...f,
-      lines: [...f.lines, { accountId: "", description: "", debitAmount: 0, creditAmount: 0, lineOrder: f.lines.length + 1 }],
+      lines: [...f.lines, { accountId: "", description: "", debitAmount: 0, creditAmount: 0, lineOrder: f.lines.length + 1, costCenterId: "" }],
     }));
   }
 
@@ -194,13 +202,26 @@ export default function JournalEntries() {
                 <Send size={14} />
               </button>
               <button
-                onClick={() => cancelMutation.mutate(row.id)}
+                onClick={() => {
+                  if (window.confirm("Delete this draft journal entry?")) deleteMutation.mutate(row.id);
+                }}
                 className="text-red-400 hover:text-red-600"
-                title="Cancel"
+                title="Delete"
               >
-                <XCircle size={14} />
+                <Trash2 size={14} />
               </button>
             </>
+          )}
+          {row.status === "Posted" && (
+            <button
+              onClick={() => {
+                if (window.confirm("Cancel this posted entry? This reverses all balance changes.")) cancelMutation.mutate(row.id);
+              }}
+              className="text-red-400 hover:text-red-600"
+              title="Cancel"
+            >
+              <XCircle size={14} />
+            </button>
           )}
         </div>
       ),
@@ -262,6 +283,7 @@ export default function JournalEntries() {
                               <tr className="text-gray-500">
                                 <th className="text-left pb-1">Account</th>
                                 <th className="text-left pb-1">Description</th>
+                                <th className="text-left pb-1">Cost Center</th>
                                 <th className="text-right pb-1">Debit</th>
                                 <th className="text-right pb-1">Credit</th>
                               </tr>
@@ -271,6 +293,7 @@ export default function JournalEntries() {
                                 <tr key={line.id}>
                                   <td className="py-0.5">{line.accountName}</td>
                                   <td className="py-0.5 text-gray-500">{line.description}</td>
+                                  <td className="py-0.5 text-gray-500">{line.costCenterName}</td>
                                   <td className="py-0.5 text-right">{line.debitAmount > 0 ? line.debitAmount.toLocaleString("en-BD", { minimumFractionDigits: 2 }) : ""}</td>
                                   <td className="py-0.5 text-right">{line.creditAmount > 0 ? line.creditAmount.toLocaleString("en-BD", { minimumFractionDigits: 2 }) : ""}</td>
                                 </tr>
@@ -327,8 +350,9 @@ export default function JournalEntries() {
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="w-10 px-3 py-2.5 text-center text-xs font-medium text-gray-500">#</th>
-                    <th className="w-[38%] px-3 py-2.5 text-left text-xs font-medium text-gray-500">Account</th>
+                    <th className="w-[30%] px-3 py-2.5 text-left text-xs font-medium text-gray-500">Account</th>
                     <th className="px-3 py-2.5 text-left text-xs font-medium text-gray-500">Narration</th>
+                    <th className="w-44 px-3 py-2.5 text-left text-xs font-medium text-gray-500">Cost Center</th>
                     <th className="w-36 px-3 py-2.5 text-right text-xs font-medium text-gray-500">Debit</th>
                     <th className="w-36 px-3 py-2.5 text-right text-xs font-medium text-gray-500">Credit</th>
                     <th className="w-8 px-2 py-2.5"></th>
@@ -353,6 +377,15 @@ export default function JournalEntries() {
                           value={line.description ?? ""}
                           onChange={(e) => updateLine(idx, "description", e.target.value)}
                           placeholder="Narration…"
+                        />
+                      </td>
+                      <td className="px-2 py-2">
+                        <SearchableDropdown
+                          options={costCenterOptions}
+                          value={line.costCenterId ?? ""}
+                          onChange={(v) => updateLine(idx, "costCenterId", v ?? "")}
+                          placeholder="None"
+                          searchPlaceholder="Search cost center…"
                         />
                       </td>
                       <td className="px-2 py-2">
@@ -390,7 +423,7 @@ export default function JournalEntries() {
                 </tbody>
                 <tfoot className="bg-gray-50 border-t-2 border-gray-200">
                   <tr>
-                    <td colSpan={3} className="px-3 py-2.5 text-xs font-semibold text-gray-600">Totals</td>
+                    <td colSpan={4} className="px-3 py-2.5 text-xs font-semibold text-gray-600">Totals</td>
                     <td className="px-2 py-2.5 text-sm font-semibold text-right tabular-nums text-gray-800">
                       {totalDebit.toLocaleString("en-BD", { minimumFractionDigits: 2 })}
                     </td>
