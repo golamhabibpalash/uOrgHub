@@ -371,7 +371,7 @@ export default function Sidebar() {
         {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
       </button>
 
-      <nav className="flex-1 px-2 py-3 overflow-y-auto overflow-x-hidden">
+      <nav className="flex-1 px-2 py-3 overflow-y-auto overflow-x-hidden sidebar-scroll">
         {renderSection("main", "MODULES")}
         {renderSection("admin", "ADMIN")}
         {renderSection("profile", null)}

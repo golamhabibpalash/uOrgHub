@@ -40,3 +40,22 @@ body {
 .sidebar-active { color: var(--sidebar-active-text); }
 .sidebar-active-bg { background-color: var(--sidebar-active-bg); }
 .sidebar-hover:hover { color: var(--sidebar-text); background-color: rgba(255,255,255,0.05); }
+
+/* Sidebar scrollbar — track matches sidebar background instead of default white */
+.sidebar-scroll {
+  scrollbar-width: thin;                                      /* Firefox */
+  scrollbar-color: rgba(255, 255, 255, 0.2) var(--sidebar-bg); /* Firefox: thumb track */
+}
+.sidebar-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: var(--sidebar-bg);
+}
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
