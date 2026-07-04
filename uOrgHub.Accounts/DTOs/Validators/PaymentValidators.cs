@@ -19,8 +19,8 @@ public class CreatePaymentValidator : AbstractValidator<CreatePaymentDto>
             .WithMessage("Payment must be linked to either a customer or a vendor");
 
         RuleFor(x => x.Allocations)
-            .Must(a => a.All(x => x.InvoiceId.HasValue || x.BillId.HasValue))
-            .WithMessage("Each allocation must reference an invoice or bill")
+            .Must(a => a.All(x => x.InvoiceId.HasValue ^ x.BillId.HasValue))
+            .WithMessage("Each allocation must reference either an invoice or a bill, not both")
             .When(x => x.Allocations.Count > 0);
 
         RuleForEach(x => x.Allocations).SetValidator(new CreatePaymentAllocationValidator());
@@ -33,7 +33,7 @@ public class CreatePaymentAllocationValidator : AbstractValidator<CreatePaymentA
     {
         RuleFor(x => x.AllocatedAmount).GreaterThan(0).WithMessage("Allocated amount must be greater than 0");
         RuleFor(x => x)
-            .Must(x => x.InvoiceId.HasValue || x.BillId.HasValue)
-            .WithMessage("Allocation must reference an invoice or bill");
+            .Must(x => x.InvoiceId.HasValue ^ x.BillId.HasValue)
+            .WithMessage("Allocation must reference either an invoice or a bill, not both.");
     }
 }
