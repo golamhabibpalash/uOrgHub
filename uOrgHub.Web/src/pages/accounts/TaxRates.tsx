@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { Plus, RefreshCw } from "lucide-react";
 import DataGrid from "../../components/shared/DataGrid";
 import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
@@ -10,6 +10,7 @@ import {
   createTaxRate,
   updateTaxRate,
   deleteTaxRate,
+  getNextTaxRateCode,
   TaxRate,
   TaxType,
 } from "../../api/accounts";
@@ -30,17 +31,24 @@ export default function TaxRates() {
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<TaxRate | null>(null);
   const [form, setForm] = useState({
-    code: "",
     name: "",
     taxType: "VAT" as TaxType,
     rate: 0,
     description: "",
     isActive: true,
   });
+  const [generatedCode, setGeneratedCode] = useState("");
+  const [rateDisplay, setRateDisplay] = useState("0");
 
   const { data, isLoading } = useQuery({
     queryKey: ["tax-rates", ...dg.queryKey],
     queryFn: () => getTaxRates(dg.queryParams),
+  });
+
+  const codeQuery = useQuery({
+    queryKey: ["tax-rate-code", form.taxType],
+    queryFn: () => getNextTaxRateCode(form.taxType).then((r) => r.data.data ?? ""),
+    enabled: modal && !editing,
   });
 
   const taxRates = data?.data?.data?.items ?? [];
@@ -49,7 +57,11 @@ export default function TaxRates() {
   const [saveError, setSaveError] = useState("");
 
   const saveMutation = useMutation({
-    mutationFn: () => editing ? updateTaxRate(editing.id, form) : createTaxRate(form),
+    mutationFn: () => {
+      if (editing) return updateTaxRate(editing.id, form);
+      const code = codeQuery.data ?? generatedCode;
+      return createTaxRate({ ...form, customCode: code });
+    },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["tax-rates"] }); closeModal(); },
     onError: (err: unknown) => {
       const axiosErr = err as { response?: { data?: { message?: string; errors?: string[] } } };
@@ -67,14 +79,18 @@ export default function TaxRates() {
 
   function openAdd() {
     setEditing(null);
-    setForm({ code: "", name: "", taxType: "VAT", rate: 0, description: "", isActive: true });
+    setForm({ name: "", taxType: "VAT", rate: 0, description: "", isActive: true });
+    setGeneratedCode("");
+    setRateDisplay("0");
     setSaveError("");
     setModal(true);
   }
 
   function openEdit(tr: TaxRate) {
     setEditing(tr);
-    setForm({ code: tr.code, name: tr.name, taxType: tr.taxType, rate: tr.rate, description: tr.description ?? "", isActive: tr.isActive });
+    setForm({ name: tr.name, taxType: tr.taxType, rate: tr.rate, description: tr.description ?? "", isActive: tr.isActive });
+    setGeneratedCode(tr.code);
+    setRateDisplay(String(tr.rate));
     setSaveError("");
     setModal(true);
   }
@@ -151,8 +167,15 @@ export default function TaxRates() {
           )}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Code *</label>
-              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.code} onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))} disabled={!!editing} />
+              <label className="text-xs text-gray-500 mb-1 block">Code</label>
+              <div className="flex gap-2">
+                <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500" value={codeQuery.data ?? generatedCode} disabled readOnly />
+                {!editing && (
+                  <button type="button" onClick={() => codeQuery.refetch()} className="px-2 py-2 border border-gray-200 rounded-lg hover:bg-gray-50" title="Generate new code">
+                    <RefreshCw size={15} />
+                  </button>
+                )}
+              </div>
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Name *</label>
@@ -162,13 +185,26 @@ export default function TaxRates() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Tax Type *</label>
-              <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.taxType} onChange={(e) => setForm((f) => ({ ...f, taxType: e.target.value as TaxType }))}>
+              <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.taxType} onChange={(e) => setForm((f) => ({ ...f, taxType: e.target.value as TaxType }))} disabled={!!editing}>
                 {TAX_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Rate (%) *</label>
-              <input type="number" min={0} max={100} step={0.01} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.rate} onChange={(e) => setForm((f) => ({ ...f, rate: parseFloat(e.target.value) || 0 }))} />
+              <input
+                type="number"
+                min={0} max={100} step={0.01}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                value={rateDisplay}
+                onFocus={() => { if (form.rate === 0) setRateDisplay(""); }}
+                onBlur={() => { if (rateDisplay === "") { setRateDisplay("0"); setForm((f) => ({ ...f, rate: 0 })); } }}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  setRateDisplay(raw);
+                  const parsed = parseFloat(raw);
+                  if (!isNaN(parsed)) setForm((f) => ({ ...f, rate: parsed }));
+                }}
+              />
             </div>
           </div>
           <div>

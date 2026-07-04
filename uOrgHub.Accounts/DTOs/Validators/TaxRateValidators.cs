@@ -7,10 +7,10 @@ public class CreateTaxRateValidator : AbstractValidator<CreateTaxRateDto>
 {
     public CreateTaxRateValidator()
     {
-        RuleFor(x => x.Code).NotEmpty().MaximumLength(20);
         RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
         RuleFor(x => x.Rate).InclusiveBetween(0, 100).WithMessage("Rate must be between 0 and 100");
         RuleFor(x => x.Description).MaximumLength(500);
+        RuleFor(x => x.CustomCode).MaximumLength(20).When(x => !string.IsNullOrWhiteSpace(x.CustomCode));
     }
 }
 

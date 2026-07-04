@@ -242,7 +242,7 @@ export interface TaxRate {
 export const getTaxRates = (params: PaginationRequest) =>
   apiClient.get<ApiResponse<PagedResult<TaxRate>>>("/accounts/tax-rates", { params });
 
-export const createTaxRate = (data: Partial<TaxRate>) =>
+export const createTaxRate = (data: Partial<TaxRate> & { customCode?: string }) =>
   apiClient.post<ApiResponse<TaxRate>>("/accounts/tax-rates", data);
 
 export const updateTaxRate = (id: string, data: Partial<TaxRate>) =>
@@ -250,6 +250,9 @@ export const updateTaxRate = (id: string, data: Partial<TaxRate>) =>
 
 export const deleteTaxRate = (id: string) =>
   apiClient.delete<ApiResponse<null>>(`/accounts/tax-rates/${id}`);
+
+export const getNextTaxRateCode = (taxType: TaxType) =>
+  apiClient.get<ApiResponse<string>>("/accounts/tax-rates/generate-code", { params: { taxType } });
 
 // ── Bank Accounts ──────────────────────────────────────────────────────────
 

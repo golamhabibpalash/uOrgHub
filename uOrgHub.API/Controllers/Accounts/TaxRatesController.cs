@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Accounts.DTOs.TaxRate;
 using uOrgHub.Accounts.Features.TaxRate;
+using uOrgHub.Accounts.Models.Enums;
 using uOrgHub.Accounts.Reporting.ExportColumns;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
@@ -43,6 +44,14 @@ public class TaxRatesController : BaseController
             EntityName = "TaxRates"
         });
         return File(result.Content, result.MimeType, result.FileName);
+    }
+
+    [HttpGet("generate-code")]
+    [RequireClaim(Claims.Accounts.TaxRates.View)]
+    public async Task<IActionResult> GenerateCode([FromQuery] TaxType taxType)
+    {
+        var code = await _mediator.Send(new GetNextTaxRateCodeQuery(taxType));
+        return Ok(ApiResponse<string>.Ok(code));
     }
 
     [HttpGet("{id:guid}")]

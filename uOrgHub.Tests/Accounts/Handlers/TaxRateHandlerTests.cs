@@ -39,48 +39,117 @@ public class TaxRateHandlerTests : IDisposable
         return tr;
     }
 
-    private CreateTaxRateDto ValidCreateDto(string code = "VAT-15") => new()
+    private CreateTaxRateDto ValidCreateDto(string? customCode = null) => new()
     {
-        Code = code,
         Name = "Standard VAT",
         TaxType = TaxType.VAT,
-        Rate = 15m
+        Rate = 15m,
+        CustomCode = customCode
     };
+
+    // --- GetNextTaxRateCodeQueryHandler ---
+
+    [Fact]
+    public async Task GetNextCode_returns_first_code_when_none_exist()
+    {
+        var handler = new GetNextTaxRateCodeQueryHandler(_context);
+
+        var result = await handler.Handle(new GetNextTaxRateCodeQuery(TaxType.VAT), default);
+
+        result.Should().Be("VAT-001");
+    }
+
+    [Fact]
+    public async Task GetNextCode_increments_sequence()
+    {
+        SeedTaxRate("VAT-001", "Existing");
+        var handler = new GetNextTaxRateCodeQueryHandler(_context);
+
+        var result = await handler.Handle(new GetNextTaxRateCodeQuery(TaxType.VAT), default);
+
+        result.Should().Be("VAT-002");
+    }
+
+    [Fact]
+    public async Task GetNextCode_ignores_deleted_tax_rates()
+    {
+        SeedTaxRate("VAT-001", "Existing", isDeleted: true);
+        var handler = new GetNextTaxRateCodeQueryHandler(_context);
+
+        var result = await handler.Handle(new GetNextTaxRateCodeQuery(TaxType.VAT), default);
+
+        result.Should().Be("VAT-001");
+    }
+
+    [Fact]
+    public async Task GetNextCode_uses_correct_prefix_for_each_type()
+    {
+        var handler = new GetNextTaxRateCodeQueryHandler(_context);
+
+        var vat = await handler.Handle(new GetNextTaxRateCodeQuery(TaxType.VAT), default);
+        var wht = await handler.Handle(new GetNextTaxRateCodeQuery(TaxType.WithholdingTax), default);
+        var cd = await handler.Handle(new GetNextTaxRateCodeQuery(TaxType.CustomsDuty), default);
+
+        vat.Should().Be("VAT-001");
+        wht.Should().Be("WHT-001");
+        cd.Should().Be("CD-001");
+    }
 
     // --- CreateTaxRateCommandHandler ---
 
     [Fact]
-    public async Task Create_saves_tax_rate_and_returns_dto()
+    public async Task Create_auto_generates_code_and_returns_dto()
     {
         var handler = new CreateTaxRateCommandHandler(_context);
 
-        var result = await handler.Handle(new CreateTaxRateCommand(ValidCreateDto("VAT-15")), default);
+        var result = await handler.Handle(new CreateTaxRateCommand(ValidCreateDto()), default);
 
-        result.Code.Should().Be("VAT-15");
+        result.Code.Should().Be("VAT-001");
         result.Name.Should().Be("Standard VAT");
         result.Rate.Should().Be(15m);
         result.IsActive.Should().BeTrue();
     }
 
     [Fact]
-    public async Task Create_throws_when_code_already_exists()
+    public async Task Create_auto_generates_incremented_code()
     {
-        SeedTaxRate("VAT-15", "Existing");
+        SeedTaxRate("VAT-001", "Existing");
         var handler = new CreateTaxRateCommandHandler(_context);
 
-        var act = () => handler.Handle(new CreateTaxRateCommand(ValidCreateDto("VAT-15")), default);
+        var result = await handler.Handle(new CreateTaxRateCommand(ValidCreateDto()), default);
 
-        await act.Should().ThrowAsync<AppException>().WithMessage("*VAT-15*");
+        result.Code.Should().Be("VAT-002");
+    }
+
+    [Fact]
+    public async Task Create_uses_custom_code_when_provided()
+    {
+        var handler = new CreateTaxRateCommandHandler(_context);
+
+        var result = await handler.Handle(new CreateTaxRateCommand(ValidCreateDto("MY-VAT-01")), default);
+
+        result.Code.Should().Be("MY-VAT-01");
+    }
+
+    [Fact]
+    public async Task Create_throws_when_custom_code_already_exists()
+    {
+        SeedTaxRate("MY-VAT-01", "Existing");
+        var handler = new CreateTaxRateCommandHandler(_context);
+
+        var act = () => handler.Handle(new CreateTaxRateCommand(ValidCreateDto("MY-VAT-01")), default);
+
+        await act.Should().ThrowAsync<AppException>().WithMessage("*MY-VAT-01*");
     }
 
     [Fact]
     public async Task Create_allows_same_code_as_soft_deleted_tax_rate()
     {
-        SeedTaxRate("VAT-15", "Old", isDeleted: true);
+        SeedTaxRate("VAT-001", "Old", isDeleted: true);
         var handler = new CreateTaxRateCommandHandler(_context);
 
-        var result = await handler.Handle(new CreateTaxRateCommand(ValidCreateDto("VAT-15")), default);
-        result.Code.Should().Be("VAT-15");
+        var result = await handler.Handle(new CreateTaxRateCommand(ValidCreateDto()), default);
+        result.Code.Should().Be("VAT-001");
     }
 
     // --- UpdateTaxRateCommandHandler ---

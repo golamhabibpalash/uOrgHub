@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using uOrgHub.Accounts.DTOs.TaxRate;
 using uOrgHub.Accounts.Features._Common;
+using uOrgHub.Accounts.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
 using uOrgHub.Shared.Extensions;
@@ -11,6 +12,7 @@ namespace uOrgHub.Accounts.Features.TaxRate;
 
 public record GetTaxRatesQuery(PaginationRequest Request) : IQuery<PagedResult<TaxRateResponseDto>>;
 public record GetTaxRateByIdQuery(Guid Id) : IQuery<TaxRateResponseDto>;
+public record GetNextTaxRateCodeQuery(TaxType TaxType) : IQuery<string>;
 public record CreateTaxRateCommand(CreateTaxRateDto Dto) : ICommand<TaxRateResponseDto>;
 public record UpdateTaxRateCommand(Guid Id, UpdateTaxRateDto Dto) : ICommand<TaxRateResponseDto>;
 public record DeleteTaxRateCommand(Guid Id) : ICommand<Unit>;
@@ -65,6 +67,23 @@ public class GetTaxRateByIdQueryHandler : IRequestHandler<GetTaxRateByIdQuery, T
     }
 }
 
+public class GetNextTaxRateCodeQueryHandler : IRequestHandler<GetNextTaxRateCodeQuery, string>
+{
+    private readonly AppDbContext _context;
+    public GetNextTaxRateCodeQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<string> Handle(GetNextTaxRateCodeQuery request, CancellationToken ct)
+    {
+        var prefix = TaxRateMappingHelper.TaxTypePrefix[request.TaxType];
+        var existingCodes = await _context.Set<Models.Entities.TaxRate>()
+            .Where(x => !x.IsDeleted && x.Code.StartsWith(prefix + "-"))
+            .Select(x => x.Code)
+            .ToListAsync(ct);
+
+        return TaxRateMappingHelper.GetNextCode(existingCodes, request.TaxType);
+    }
+}
+
 public class CreateTaxRateCommandHandler : IRequestHandler<CreateTaxRateCommand, TaxRateResponseDto>
 {
     private readonly AppDbContext _context;
@@ -72,12 +91,24 @@ public class CreateTaxRateCommandHandler : IRequestHandler<CreateTaxRateCommand,
 
     public async Task<TaxRateResponseDto> Handle(CreateTaxRateCommand request, CancellationToken ct)
     {
-        if (await _context.Set<Models.Entities.TaxRate>().AnyAsync(x => x.Code == request.Dto.Code && !x.IsDeleted, ct))
-            throw new AppException($"Tax rate code '{request.Dto.Code}' already exists.");
+        var prefix = TaxRateMappingHelper.TaxTypePrefix[request.Dto.TaxType];
+
+        var code = request.Dto.CustomCode;
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            var existingCodes = await _context.Set<Models.Entities.TaxRate>()
+                .Where(x => !x.IsDeleted && x.Code.StartsWith(prefix + "-"))
+                .Select(x => x.Code)
+                .ToListAsync(ct);
+            code = TaxRateMappingHelper.GetNextCode(existingCodes, request.Dto.TaxType);
+        }
+
+        if (await _context.Set<Models.Entities.TaxRate>().AnyAsync(x => x.Code == code && !x.IsDeleted, ct))
+            throw new AppException($"Tax rate code '{code}' already exists.");
 
         var entity = new Models.Entities.TaxRate
         {
-            Code = request.Dto.Code,
+            Code = code,
             Name = request.Dto.Name,
             TaxType = request.Dto.TaxType,
             Rate = request.Dto.Rate,
@@ -154,6 +185,15 @@ public class GetAllTaxRatesForExportQueryHandler : IRequestHandler<GetAllTaxRate
 
 file static class TaxRateMappingHelper
 {
+    public static readonly Dictionary<TaxType, string> TaxTypePrefix = new()
+    {
+        { TaxType.VAT, "VAT" },
+        { TaxType.WithholdingTax, "WHT" },
+        { TaxType.CustomsDuty, "CD" },
+        { TaxType.ExciseDuty, "ED" },
+        { TaxType.SalesTax, "ST" },
+    };
+
     public static TaxRateResponseDto ToDto(Models.Entities.TaxRate e) => new()
     {
         Id = e.Id,
@@ -165,4 +205,15 @@ file static class TaxRateMappingHelper
         IsActive = e.IsActive,
         TaxAccountId = e.TaxAccountId
     };
+
+    public static string GetNextCode(IEnumerable<string> existingCodes, TaxType taxType)
+    {
+        var prefix = TaxTypePrefix[taxType];
+        var maxSeq = existingCodes
+            .Where(c => c.StartsWith(prefix + "-"))
+            .Select(c => int.TryParse(c[4..], out var n) ? n : 0)
+            .DefaultIfEmpty(0)
+            .Max();
+        return $"{prefix}-{maxSeq + 1:D3}";
+    }
 }
