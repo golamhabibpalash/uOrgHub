@@ -53,6 +53,7 @@ export default function BankAccounts() {
     openingBalanceEquityAccountId: "",
     isActive: true,
   });
+  const [openingBalanceDisplay, setOpeningBalanceDisplay] = useState("0");
 
   const [txnForm, setTxnForm] = useState({
     transactionType: "Deposit" as BankTransactionType,
@@ -123,6 +124,7 @@ export default function BankAccounts() {
   function openAdd() {
     setEditing(null);
     setForm({ accountNumber: "", accountName: "", bankName: "", branchName: "", routingNumber: "", currency: "BDT", openingBalance: 0, chartOfAccountId: coaOptions[0]?.value ?? "", openingBalanceEquityAccountId: "", isActive: true });
+    setOpeningBalanceDisplay("0");
     setSaveError("");
     setModal(true);
   }
@@ -313,7 +315,19 @@ export default function BankAccounts() {
           {!editing && (
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Opening Balance</label>
-              <input type="number" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.openingBalance} onChange={(e) => setForm((f) => ({ ...f, openingBalance: parseFloat(e.target.value) || 0 }))} />
+              <input
+                type="number"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                value={openingBalanceDisplay}
+                onFocus={() => { if (form.openingBalance === 0) setOpeningBalanceDisplay(""); }}
+                onBlur={() => { if (openingBalanceDisplay === "") { setOpeningBalanceDisplay("0"); setForm((f) => ({ ...f, openingBalance: 0 })); } }}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  setOpeningBalanceDisplay(raw);
+                  const parsed = parseFloat(raw);
+                  if (!isNaN(parsed)) setForm((f) => ({ ...f, openingBalance: parsed }));
+                }}
+              />
             </div>
           )}
           {!editing && form.openingBalance > 0 && (
