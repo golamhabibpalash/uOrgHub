@@ -87,7 +87,7 @@ export default function AccountGroups() {
     const excludeId = editing?.id;
     return allGroups
       .filter((g) => !excludeId || g.id !== excludeId)
-      .map((g) => ({ id: g.id, label: `${g.code} - ${g.name}` }));
+      .map((g) => ({ id: g.id, label: `${g.code} - ${g.name}`, type: g.type }));
   }, [allGroups, editing]);
 
   useEffect(() => {
@@ -136,7 +136,8 @@ export default function AccountGroups() {
   function openAdd(parentId?: string) {
     setEditing(null);
     setGeneratedCode("");
-    setForm({ name: "", type: "Asset", description: "", isActive: true, parentAccountGroupId: parentId ?? "", customCode: "" });
+    const parent = parentId ? allGroups.find((g) => g.id === parentId) : undefined;
+    setForm({ name: "", type: parent?.type ?? "Asset", description: "", isActive: true, parentAccountGroupId: parentId ?? "", customCode: "" });
     setSaveError("");
     setModal(true);
   }
@@ -273,13 +274,20 @@ export default function AccountGroups() {
           </div>
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Type *</label>
-            <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as AccountGroupType }))}>
+            <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:bg-gray-50 disabled:text-gray-500" value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as AccountGroupType }))} disabled={!!form.parentAccountGroupId}>
               {GROUP_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
+            {form.parentAccountGroupId && (
+              <p className="text-xs text-gray-400 mt-1">Inherited from selected parent group</p>
+            )}
           </div>
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Parent Group</label>
-            <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.parentAccountGroupId} onChange={(e) => setForm((f) => ({ ...f, parentAccountGroupId: e.target.value }))}>
+            <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.parentAccountGroupId} onChange={(e) => {
+              const parentId = e.target.value;
+              const parent = parentId ? allGroups.find((g) => g.id === parentId) : undefined;
+              setForm((f) => ({ ...f, parentAccountGroupId: parentId, type: parent?.type ?? f.type }));
+            }}>
               <option value="">-- None (Root Level) --</option>
               {parentOptions.map((opt) => (
                 <option key={opt.id} value={opt.id}>{opt.label}</option>
