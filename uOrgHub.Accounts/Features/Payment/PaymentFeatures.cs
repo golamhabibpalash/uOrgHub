@@ -2,7 +2,9 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using uOrgHub.Accounts.DTOs.Payment;
 using uOrgHub.Accounts.Features._Common;
+using uOrgHub.Accounts.Models.Entities;
 using uOrgHub.Accounts.Models.Enums;
+using uOrgHub.Accounts.Repositories;
 using uOrgHub.Accounts.Services;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
@@ -14,6 +16,7 @@ namespace uOrgHub.Accounts.Features.Payment;
 public record GetPaymentsQuery(PaginationRequest Request, Guid? CustomerId = null, Guid? VendorId = null) : IQuery<PagedResult<PaymentResponseDto>>;
 public record GetPaymentByIdQuery(Guid Id) : IQuery<PaymentResponseDto>;
 public record CreatePaymentCommand(CreatePaymentDto Dto) : ICommand<PaymentResponseDto>;
+public record VoidPaymentCommand(Guid Id) : ICommand<PaymentResponseDto>;
 public record GetAllPaymentsForExportQuery : IQuery<List<PaymentResponseDto>>;
 
 public class GetPaymentsQueryHandler : IRequestHandler<GetPaymentsQuery, PagedResult<PaymentResponseDto>>
@@ -81,10 +84,15 @@ public class CreatePaymentCommandHandler : IRequestHandler<CreatePaymentCommand,
 {
     private readonly AppDbContext _context;
     private readonly IDocumentNumberingService _numbering;
-    public CreatePaymentCommandHandler(AppDbContext context, IDocumentNumberingService numbering)
+    private readonly IJournalEntryService _jeService;
+    private readonly IJournalEntryRepository _jeRepository;
+
+    public CreatePaymentCommandHandler(AppDbContext context, IDocumentNumberingService numbering, IJournalEntryService jeService, IJournalEntryRepository jeRepository)
     {
         _context = context;
         _numbering = numbering;
+        _jeService = jeService;
+        _jeRepository = jeRepository;
     }
 
     public async Task<PaymentResponseDto> Handle(CreatePaymentCommand request, CancellationToken ct)
@@ -129,36 +137,168 @@ public class CreatePaymentCommandHandler : IRequestHandler<CreatePaymentCommand,
 
             if (alloc.InvoiceId.HasValue)
             {
-                var invoice = await _context.Set<Models.Entities.Invoice>().FindAsync(new object[] { alloc.InvoiceId.Value }, ct);
-                if (invoice != null)
-                {
-                    invoice.PaidAmount += alloc.AllocatedAmount;
-                    invoice.Status = invoice.PaidAmount >= invoice.TotalAmount
-                        ? InvoiceStatus.Paid
-                        : InvoiceStatus.PartiallyPaid;
-                    invoice.UpdatedAt = DateTime.UtcNow;
-                }
+                var invoice = await _context.Set<Models.Entities.Invoice>().FindAsync(new object[] { alloc.InvoiceId.Value }, ct)
+                    ?? throw new NotFoundException(nameof(Models.Entities.Invoice), alloc.InvoiceId.Value);
+
+                if (invoice.PaidAmount + alloc.AllocatedAmount > invoice.TotalAmount)
+                    throw new AppException($"Allocation of {alloc.AllocatedAmount} exceeds remaining balance of {invoice.TotalAmount - invoice.PaidAmount} on invoice {invoice.InvoiceNumber}.");
+
+                invoice.PaidAmount += alloc.AllocatedAmount;
+                invoice.Status = invoice.PaidAmount >= invoice.TotalAmount
+                    ? InvoiceStatus.Paid
+                    : InvoiceStatus.PartiallyPaid;
+                invoice.UpdatedAt = DateTime.UtcNow;
             }
 
             if (alloc.BillId.HasValue)
             {
-                var bill = await _context.Set<Models.Entities.Bill>().FindAsync(new object[] { alloc.BillId.Value }, ct);
-                if (bill != null)
-                {
-                    bill.PaidAmount += alloc.AllocatedAmount;
-                    bill.Status = bill.PaidAmount >= bill.TotalAmount
-                        ? BillStatus.Paid
-                        : BillStatus.PartiallyPaid;
-                    bill.UpdatedAt = DateTime.UtcNow;
-                }
+                var bill = await _context.Set<Models.Entities.Bill>().FindAsync(new object[] { alloc.BillId.Value }, ct)
+                    ?? throw new NotFoundException(nameof(Models.Entities.Bill), alloc.BillId.Value);
+
+                if (bill.PaidAmount + alloc.AllocatedAmount > bill.TotalAmount)
+                    throw new AppException($"Allocation of {alloc.AllocatedAmount} exceeds remaining balance of {bill.TotalAmount - bill.PaidAmount} on bill {bill.BillNumber}.");
+
+                bill.PaidAmount += alloc.AllocatedAmount;
+                bill.Status = bill.PaidAmount >= bill.TotalAmount
+                    ? BillStatus.Paid
+                    : BillStatus.PartiallyPaid;
+                bill.UpdatedAt = DateTime.UtcNow;
             }
         }
 
         _context.Set<Models.Entities.Payment>().Add(entity);
         await _context.SaveChangesAsync(ct);
 
+        if (request.Dto.BankAccountId.HasValue)
+        {
+            var bankAccount = await _context.Set<Models.Entities.BankAccount>()
+                .FirstOrDefaultAsync(b => b.Id == request.Dto.BankAccountId.Value && !b.IsDeleted, ct);
+
+            if (bankAccount != null)
+            {
+                var arApAccountId = await ResolveArApAccountIdAsync(request.Dto, ct);
+                if (arApAccountId != Guid.Empty)
+                {
+                    var je = await BuildAndSavePaymentJeAsync(entity, bankAccount.ChartOfAccountId, arApAccountId, ct);
+                    await _jeService.PostAsync(je.Id, "System");
+                    entity.JournalEntryId = je.Id;
+                    await _context.SaveChangesAsync(ct);
+                }
+            }
+        }
+
         await _context.Entry(entity).Reference(x => x.Customer).LoadAsync(ct);
         await _context.Entry(entity).Reference(x => x.Vendor).LoadAsync(ct);
+        return PaymentMappingHelper.ToDto(entity);
+    }
+
+    private async Task<Guid> ResolveArApAccountIdAsync(CreatePaymentDto dto, CancellationToken ct)
+    {
+        if (dto.CustomerId.HasValue)
+        {
+            var customer = await _context.Set<Models.Entities.Customer>().FindAsync(new object[] { dto.CustomerId.Value }, ct);
+            return customer?.ReceivableAccountId ?? Guid.Empty;
+        }
+        if (dto.VendorId.HasValue)
+        {
+            var vendor = await _context.Set<Models.Entities.Vendor>().FindAsync(new object[] { dto.VendorId.Value }, ct);
+            return vendor?.PayableAccountId ?? Guid.Empty;
+        }
+        return Guid.Empty;
+    }
+
+    private async Task<Models.Entities.JournalEntry> BuildAndSavePaymentJeAsync(Models.Entities.Payment payment, Guid bankCoaId, Guid arApAccountId, CancellationToken ct)
+    {
+        var entryNumber = await _jeRepository.GenerateEntryNumberAsync();
+
+        // Inflow: CustomerPayment, AdvanceFromCustomer, or a vendor-side Refund (vendor refunds us)
+        var isInflow = payment.PaymentType is PaymentType.CustomerPayment or PaymentType.AdvanceFromCustomer
+            || (payment.PaymentType == PaymentType.Refund && payment.VendorId.HasValue);
+
+        var je = new Models.Entities.JournalEntry
+        {
+            EntryNumber = entryNumber,
+            EntryDate = payment.PaymentDate,
+            Description = $"Payment {payment.PaymentNumber}",
+            ReferenceNumber = payment.ReferenceNumber ?? payment.PaymentNumber,
+            Status = JournalEntryStatus.Draft,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "System"
+        };
+
+        if (isInflow)
+        {
+            je.Lines.Add(new Models.Entities.JournalEntryLine { AccountId = bankCoaId, DebitAmount = payment.Amount, Description = $"Payment received - {payment.PaymentNumber}", LineOrder = 1, CreatedAt = DateTime.UtcNow });
+            je.Lines.Add(new Models.Entities.JournalEntryLine { AccountId = arApAccountId, CreditAmount = payment.Amount, Description = $"AR settlement - {payment.PaymentNumber}", LineOrder = 2, CreatedAt = DateTime.UtcNow });
+        }
+        else
+        {
+            je.Lines.Add(new Models.Entities.JournalEntryLine { AccountId = arApAccountId, DebitAmount = payment.Amount, Description = $"AP settlement - {payment.PaymentNumber}", LineOrder = 1, CreatedAt = DateTime.UtcNow });
+            je.Lines.Add(new Models.Entities.JournalEntryLine { AccountId = bankCoaId, CreditAmount = payment.Amount, Description = $"Payment made - {payment.PaymentNumber}", LineOrder = 2, CreatedAt = DateTime.UtcNow });
+        }
+
+        je.TotalDebit = je.Lines.Sum(l => l.DebitAmount);
+        je.TotalCredit = je.Lines.Sum(l => l.CreditAmount);
+
+        _context.Set<Models.Entities.JournalEntry>().Add(je);
+        await _context.SaveChangesAsync(ct);
+        return je;
+    }
+}
+
+public class VoidPaymentCommandHandler : IRequestHandler<VoidPaymentCommand, PaymentResponseDto>
+{
+    private readonly AppDbContext _context;
+    private readonly IJournalEntryService _jeService;
+
+    public VoidPaymentCommandHandler(AppDbContext context, IJournalEntryService jeService)
+    {
+        _context = context;
+        _jeService = jeService;
+    }
+
+    public async Task<PaymentResponseDto> Handle(VoidPaymentCommand request, CancellationToken ct)
+    {
+        var entity = await _context.Set<Models.Entities.Payment>()
+            .Include(x => x.Customer)
+            .Include(x => x.Vendor)
+            .Include(x => x.Allocations)
+            .Where(x => !x.IsDeleted && x.Id == request.Id)
+            .FirstOrDefaultAsync(ct)
+            ?? throw new NotFoundException(nameof(Models.Entities.Payment), request.Id);
+
+        foreach (var alloc in entity.Allocations.Where(a => !a.IsDeleted))
+        {
+            if (alloc.InvoiceId.HasValue)
+            {
+                var invoice = await _context.Set<Models.Entities.Invoice>().FindAsync(new object[] { alloc.InvoiceId.Value }, ct);
+                if (invoice != null)
+                {
+                    invoice.PaidAmount = Math.Max(0, invoice.PaidAmount - alloc.AllocatedAmount);
+                    invoice.Status = invoice.PaidAmount <= 0 ? InvoiceStatus.Sent : InvoiceStatus.PartiallyPaid;
+                    invoice.UpdatedAt = DateTime.UtcNow;
+                }
+            }
+            if (alloc.BillId.HasValue)
+            {
+                var bill = await _context.Set<Models.Entities.Bill>().FindAsync(new object[] { alloc.BillId.Value }, ct);
+                if (bill != null)
+                {
+                    bill.PaidAmount = Math.Max(0, bill.PaidAmount - alloc.AllocatedAmount);
+                    bill.Status = bill.PaidAmount <= 0 ? BillStatus.Received : BillStatus.PartiallyPaid;
+                    bill.UpdatedAt = DateTime.UtcNow;
+                }
+            }
+            alloc.IsDeleted = true;
+            alloc.DeletedAt = DateTime.UtcNow;
+        }
+
+        if (entity.JournalEntryId.HasValue)
+            await _jeService.CancelAsync(entity.JournalEntryId.Value);
+
+        entity.IsDeleted = true;
+        entity.DeletedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync(ct);
         return PaymentMappingHelper.ToDto(entity);
     }
 }
@@ -201,7 +341,7 @@ file static class PaymentMappingHelper
         BankAccountId = e.BankAccountId,
         FiscalYearId = e.FiscalYearId,
         JournalEntryId = e.JournalEntryId,
-        Allocations = e.Allocations.Select(a => new PaymentAllocationResponseDto
+        Allocations = e.Allocations.Where(a => !a.IsDeleted).Select(a => new PaymentAllocationResponseDto
         {
             Id = a.Id,
             InvoiceId = a.InvoiceId,

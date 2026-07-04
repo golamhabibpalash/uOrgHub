@@ -1,10 +1,12 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Moq;
+using uOrgHub.Accounts.DTOs;
 using uOrgHub.Accounts.DTOs.Payment;
 using uOrgHub.Accounts.Features.Payment;
 using uOrgHub.Accounts.Models.Entities;
 using uOrgHub.Accounts.Models.Enums;
+using uOrgHub.Accounts.Repositories;
 using uOrgHub.Accounts.Services;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
@@ -16,6 +18,8 @@ public class PaymentHandlerTests : IDisposable
 {
     private readonly AppDbContext _context;
     private readonly IDocumentNumberingService _numbering;
+    private readonly IJournalEntryService _jeService;
+    private readonly IJournalEntryRepository _jeRepository;
 
     public PaymentHandlerTests()
     {
@@ -28,6 +32,18 @@ public class PaymentHandlerTests : IDisposable
         mockNumbering.Setup(x => x.GenerateNextAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int?>(), It.IsAny<int?>()))
             .ReturnsAsync((string type, string prefix, int? year, int? month) => $"{prefix}-{DateTime.UtcNow:yyyyMM}-000001");
         _numbering = mockNumbering.Object;
+
+        var mockJeService = new Mock<IJournalEntryService>();
+        mockJeService.Setup(x => x.PostAsync(It.IsAny<Guid>(), It.IsAny<string>()))
+            .ReturnsAsync(new JournalEntryResponseDto());
+        mockJeService.Setup(x => x.CancelAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(new JournalEntryResponseDto());
+        _jeService = mockJeService.Object;
+
+        var mockJeRepo = new Mock<IJournalEntryRepository>();
+        mockJeRepo.Setup(x => x.GenerateEntryNumberAsync())
+            .ReturnsAsync("JV-2026-0001");
+        _jeRepository = mockJeRepo.Object;
     }
 
     public void Dispose() => _context.Dispose();
@@ -152,7 +168,7 @@ public class PaymentHandlerTests : IDisposable
     [Fact]
     public async Task Create_saves_payment_with_correct_fields()
     {
-        var handler = new CreatePaymentCommandHandler(_context, _numbering);
+        var handler = new CreatePaymentCommandHandler(_context, _numbering, _jeService, _jeRepository);
         var dto = new CreatePaymentDto
         {
             PaymentNumber = "PAY-001",
@@ -179,7 +195,7 @@ public class PaymentHandlerTests : IDisposable
     public async Task Create_throws_when_payment_number_already_exists()
     {
         SeedPayment("PAY-DUP");
-        var handler = new CreatePaymentCommandHandler(_context, _numbering);
+        var handler = new CreatePaymentCommandHandler(_context, _numbering, _jeService, _jeRepository);
 
         var act = () => handler.Handle(new CreatePaymentCommand(ValidCreateDto("PAY-DUP")), default);
 
@@ -190,7 +206,7 @@ public class PaymentHandlerTests : IDisposable
     public async Task Create_allows_same_number_as_soft_deleted_payment()
     {
         SeedPayment("PAY-001", isDeleted: true);
-        var handler = new CreatePaymentCommandHandler(_context, _numbering);
+        var handler = new CreatePaymentCommandHandler(_context, _numbering, _jeService, _jeRepository);
 
         var result = await handler.Handle(new CreatePaymentCommand(ValidCreateDto("PAY-001")), default);
 
@@ -201,7 +217,7 @@ public class PaymentHandlerTests : IDisposable
     [Fact]
     public async Task Create_throws_when_total_allocated_exceeds_payment_amount()
     {
-        var handler = new CreatePaymentCommandHandler(_context, _numbering);
+        var handler = new CreatePaymentCommandHandler(_context, _numbering, _jeService, _jeRepository);
         var dto = new CreatePaymentDto
         {
             PaymentNumber = "PAY-002",
@@ -227,7 +243,7 @@ public class PaymentHandlerTests : IDisposable
     public async Task Create_with_invoice_allocation_updates_invoice_paid_amount()
     {
         var invoice = SeedInvoice(totalAmount: 1000);
-        var handler = new CreatePaymentCommandHandler(_context, _numbering);
+        var handler = new CreatePaymentCommandHandler(_context, _numbering, _jeService, _jeRepository);
         var dto = new CreatePaymentDto
         {
             PaymentNumber = "PAY-003",
@@ -252,7 +268,7 @@ public class PaymentHandlerTests : IDisposable
     public async Task Create_marks_invoice_as_paid_when_fully_paid()
     {
         var invoice = SeedInvoice(totalAmount: 800);
-        var handler = new CreatePaymentCommandHandler(_context, _numbering);
+        var handler = new CreatePaymentCommandHandler(_context, _numbering, _jeService, _jeRepository);
         var dto = new CreatePaymentDto
         {
             PaymentNumber = "PAY-004",
@@ -278,7 +294,7 @@ public class PaymentHandlerTests : IDisposable
     public async Task Create_marks_invoice_as_partially_paid_when_partially_allocated()
     {
         var invoice = SeedInvoice(totalAmount: 1200);
-        var handler = new CreatePaymentCommandHandler(_context, _numbering);
+        var handler = new CreatePaymentCommandHandler(_context, _numbering, _jeService, _jeRepository);
         var dto = new CreatePaymentDto
         {
             PaymentNumber = "PAY-005",
@@ -304,7 +320,7 @@ public class PaymentHandlerTests : IDisposable
     public async Task Create_with_bill_allocation_updates_bill_paid_amount_and_sets_partially_paid()
     {
         var bill = SeedBill(totalAmount: 2000);
-        var handler = new CreatePaymentCommandHandler(_context, _numbering);
+        var handler = new CreatePaymentCommandHandler(_context, _numbering, _jeService, _jeRepository);
         var dto = new CreatePaymentDto
         {
             PaymentNumber = "PAY-006",
@@ -329,7 +345,7 @@ public class PaymentHandlerTests : IDisposable
     [Fact]
     public async Task Create_with_no_allocations_succeeds()
     {
-        var handler = new CreatePaymentCommandHandler(_context, _numbering);
+        var handler = new CreatePaymentCommandHandler(_context, _numbering, _jeService, _jeRepository);
         var dto = ValidCreateDto("PAY-007");
 
         var result = await handler.Handle(new CreatePaymentCommand(dto), default);

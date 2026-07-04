@@ -2,9 +2,11 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using uOrgHub.Accounts.DTOs.AR;
+using uOrgHub.Accounts.DTOs;
 using uOrgHub.Accounts.Features.AR;
 using uOrgHub.Accounts.Models.Entities;
 using uOrgHub.Accounts.Models.Enums;
+using uOrgHub.Accounts.Repositories;
 using uOrgHub.Accounts.Services;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
@@ -15,6 +17,8 @@ namespace uOrgHub.Tests.Accounts.Handlers;
 public class InvoiceHandlerTests : IDisposable
 {
     private readonly AppDbContext _context;
+    private readonly IJournalEntryService _jeService;
+    private readonly IJournalEntryRepository _jeRepository;
 
     public InvoiceHandlerTests()
     {
@@ -22,6 +26,18 @@ public class InvoiceHandlerTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _context = new AppDbContext(opts);
+
+        var mockJeService = new Mock<IJournalEntryService>();
+        mockJeService.Setup(x => x.PostAsync(It.IsAny<Guid>(), It.IsAny<string>()))
+            .ReturnsAsync(new JournalEntryResponseDto());
+        mockJeService.Setup(x => x.CancelAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(new JournalEntryResponseDto());
+        _jeService = mockJeService.Object;
+
+        var mockJeRepo = new Mock<IJournalEntryRepository>();
+        mockJeRepo.Setup(x => x.GenerateEntryNumberAsync())
+            .ReturnsAsync("JV-2026-0001");
+        _jeRepository = mockJeRepo.Object;
     }
 
     public void Dispose() => _context.Dispose();
@@ -211,7 +227,7 @@ public class InvoiceHandlerTests : IDisposable
     {
         var customer = SeedCustomer();
         var invoice = SeedInvoice(customer, "INV-004", InvoiceStatus.Draft);
-        var handler = new PostInvoiceCommandHandler(_context);
+        var handler = new PostInvoiceCommandHandler(_context, _jeService, _jeRepository);
 
         var result = await handler.Handle(new PostInvoiceCommand(invoice.Id), default);
 
@@ -223,7 +239,7 @@ public class InvoiceHandlerTests : IDisposable
     {
         var customer = SeedCustomer();
         var invoice = SeedInvoice(customer, "INV-005", InvoiceStatus.Sent);
-        var handler = new PostInvoiceCommandHandler(_context);
+        var handler = new PostInvoiceCommandHandler(_context, _jeService, _jeRepository);
 
         var act = () => handler.Handle(new PostInvoiceCommand(invoice.Id), default);
 
@@ -233,7 +249,7 @@ public class InvoiceHandlerTests : IDisposable
     [Fact]
     public async Task Post_throws_NotFoundException_for_missing_invoice()
     {
-        var handler = new PostInvoiceCommandHandler(_context);
+        var handler = new PostInvoiceCommandHandler(_context, _jeService, _jeRepository);
         var act = () => handler.Handle(new PostInvoiceCommand(Guid.NewGuid()), default);
 
         await act.Should().ThrowAsync<NotFoundException>();
@@ -246,7 +262,7 @@ public class InvoiceHandlerTests : IDisposable
     {
         var customer = SeedCustomer();
         var invoice = SeedInvoice(customer, "INV-006", InvoiceStatus.Draft);
-        var handler = new VoidInvoiceCommandHandler(_context);
+        var handler = new VoidInvoiceCommandHandler(_context, _jeService);
 
         var result = await handler.Handle(new VoidInvoiceCommand(invoice.Id), default);
 
@@ -258,7 +274,7 @@ public class InvoiceHandlerTests : IDisposable
     {
         var customer = SeedCustomer();
         var invoice = SeedInvoice(customer, "INV-007", InvoiceStatus.Sent);
-        var handler = new VoidInvoiceCommandHandler(_context);
+        var handler = new VoidInvoiceCommandHandler(_context, _jeService);
 
         var result = await handler.Handle(new VoidInvoiceCommand(invoice.Id), default);
 
@@ -270,7 +286,7 @@ public class InvoiceHandlerTests : IDisposable
     {
         var customer = SeedCustomer();
         var invoice = SeedInvoice(customer, "INV-008", InvoiceStatus.Paid);
-        var handler = new VoidInvoiceCommandHandler(_context);
+        var handler = new VoidInvoiceCommandHandler(_context, _jeService);
 
         var act = () => handler.Handle(new VoidInvoiceCommand(invoice.Id), default);
 
@@ -282,7 +298,7 @@ public class InvoiceHandlerTests : IDisposable
     {
         var customer = SeedCustomer();
         var invoice = SeedInvoice(customer, "INV-009", InvoiceStatus.Void);
-        var handler = new VoidInvoiceCommandHandler(_context);
+        var handler = new VoidInvoiceCommandHandler(_context, _jeService);
 
         var act = () => handler.Handle(new VoidInvoiceCommand(invoice.Id), default);
 
@@ -292,7 +308,7 @@ public class InvoiceHandlerTests : IDisposable
     [Fact]
     public async Task Void_throws_NotFoundException_for_missing_invoice()
     {
-        var handler = new VoidInvoiceCommandHandler(_context);
+        var handler = new VoidInvoiceCommandHandler(_context, _jeService);
         var act = () => handler.Handle(new VoidInvoiceCommand(Guid.NewGuid()), default);
 
         await act.Should().ThrowAsync<NotFoundException>();

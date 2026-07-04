@@ -2,7 +2,9 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using uOrgHub.Accounts.DTOs.AP;
 using uOrgHub.Accounts.Features._Common;
+using uOrgHub.Accounts.Models.Entities;
 using uOrgHub.Accounts.Models.Enums;
+using uOrgHub.Accounts.Repositories;
 using uOrgHub.Accounts.Services;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
@@ -211,13 +213,21 @@ public class UpdateBillCommandHandler : IRequestHandler<UpdateBillCommand, BillR
 public class ApproveBillCommandHandler : IRequestHandler<ApproveBillCommand, BillResponseDto>
 {
     private readonly AppDbContext _context;
-    public ApproveBillCommandHandler(AppDbContext context) => _context = context;
+    private readonly IJournalEntryService _jeService;
+    private readonly IJournalEntryRepository _jeRepository;
+
+    public ApproveBillCommandHandler(AppDbContext context, IJournalEntryService jeService, IJournalEntryRepository jeRepository)
+    {
+        _context = context;
+        _jeService = jeService;
+        _jeRepository = jeRepository;
+    }
 
     public async Task<BillResponseDto> Handle(ApproveBillCommand request, CancellationToken ct)
     {
         var entity = await _context.Set<Models.Entities.Bill>()
             .Include(x => x.Vendor)
-            .Include(x => x.Lines)
+            .Include(x => x.Lines).ThenInclude(l => l.TaxRate)
             .Where(x => !x.IsDeleted && x.Id == request.Id)
             .FirstOrDefaultAsync(ct)
             ?? throw new NotFoundException(nameof(Models.Entities.Bill), request.Id);
@@ -225,17 +235,64 @@ public class ApproveBillCommandHandler : IRequestHandler<ApproveBillCommand, Bil
         if (entity.Status != BillStatus.Draft)
             throw new AppException("Only draft bills can be approved.");
 
+        var je = await BuildAndSaveBillJeAsync(entity, ct);
+        await _jeService.PostAsync(je.Id, "System");
+
+        entity.JournalEntryId = je.Id;
         entity.Status = BillStatus.Received;
         entity.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(ct);
         return BillMappingHelper.ToDto(entity);
+    }
+
+    private async Task<Models.Entities.JournalEntry> BuildAndSaveBillJeAsync(Models.Entities.Bill bill, CancellationToken ct)
+    {
+        var entryNumber = await _jeRepository.GenerateEntryNumberAsync();
+        var je = new Models.Entities.JournalEntry
+        {
+            EntryNumber = entryNumber,
+            EntryDate = bill.BillDate,
+            Description = $"Bill {bill.BillNumber}",
+            ReferenceNumber = bill.BillNumber,
+            Status = JournalEntryStatus.Draft,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "System"
+        };
+
+        int order = 1;
+        foreach (var line in bill.Lines)
+        {
+            if (line.TaxAmount > 0 && line.TaxRate?.TaxAccountId.HasValue == true)
+            {
+                je.Lines.Add(new Models.Entities.JournalEntryLine { AccountId = line.ExpenseAccountId, DebitAmount = line.LineTotal - line.TaxAmount, Description = line.Description, LineOrder = order++, CostCenterId = line.CostCenterId, CreatedAt = DateTime.UtcNow });
+                je.Lines.Add(new Models.Entities.JournalEntryLine { AccountId = line.TaxRate.TaxAccountId!.Value, DebitAmount = line.TaxAmount, Description = $"Tax - {line.Description}", LineOrder = order++, CostCenterId = line.CostCenterId, CreatedAt = DateTime.UtcNow });
+            }
+            else
+            {
+                je.Lines.Add(new Models.Entities.JournalEntryLine { AccountId = line.ExpenseAccountId, DebitAmount = line.LineTotal, Description = line.Description, LineOrder = order++, CostCenterId = line.CostCenterId, CreatedAt = DateTime.UtcNow });
+            }
+        }
+        je.Lines.Add(new Models.Entities.JournalEntryLine { AccountId = bill.Vendor.PayableAccountId, CreditAmount = bill.TotalAmount, Description = $"AP - {bill.BillNumber}", LineOrder = order, CreatedAt = DateTime.UtcNow });
+
+        je.TotalDebit = je.Lines.Sum(l => l.DebitAmount);
+        je.TotalCredit = je.Lines.Sum(l => l.CreditAmount);
+
+        _context.Set<Models.Entities.JournalEntry>().Add(je);
+        await _context.SaveChangesAsync(ct);
+        return je;
     }
 }
 
 public class VoidBillCommandHandler : IRequestHandler<VoidBillCommand, BillResponseDto>
 {
     private readonly AppDbContext _context;
-    public VoidBillCommandHandler(AppDbContext context) => _context = context;
+    private readonly IJournalEntryService _jeService;
+
+    public VoidBillCommandHandler(AppDbContext context, IJournalEntryService jeService)
+    {
+        _context = context;
+        _jeService = jeService;
+    }
 
     public async Task<BillResponseDto> Handle(VoidBillCommand request, CancellationToken ct)
     {
@@ -248,6 +305,12 @@ public class VoidBillCommandHandler : IRequestHandler<VoidBillCommand, BillRespo
 
         if (entity.Status == BillStatus.Paid || entity.Status == BillStatus.Void)
             throw new AppException($"Cannot void a bill with status '{entity.Status}'.");
+
+        if (entity.PaidAmount > 0)
+            throw new AppException("Cannot void a bill with existing payments. Please void the payments first.");
+
+        if (entity.JournalEntryId.HasValue)
+            await _jeService.CancelAsync(entity.JournalEntryId.Value);
 
         entity.Status = BillStatus.Void;
         entity.UpdatedAt = DateTime.UtcNow;

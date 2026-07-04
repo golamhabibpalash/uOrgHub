@@ -1,10 +1,12 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Moq;
+using uOrgHub.Accounts.DTOs;
 using uOrgHub.Accounts.DTOs.AP;
 using uOrgHub.Accounts.Features.AP;
 using uOrgHub.Accounts.Models.Entities;
 using uOrgHub.Accounts.Models.Enums;
+using uOrgHub.Accounts.Repositories;
 using uOrgHub.Accounts.Services;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
@@ -15,6 +17,8 @@ namespace uOrgHub.Tests.Accounts.Handlers;
 public class BillHandlerTests : IDisposable
 {
     private readonly AppDbContext _context;
+    private readonly IJournalEntryService _jeService;
+    private readonly IJournalEntryRepository _jeRepository;
 
     public BillHandlerTests()
     {
@@ -22,6 +26,18 @@ public class BillHandlerTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _context = new AppDbContext(opts);
+
+        var mockJeService = new Mock<IJournalEntryService>();
+        mockJeService.Setup(x => x.PostAsync(It.IsAny<Guid>(), It.IsAny<string>()))
+            .ReturnsAsync(new JournalEntryResponseDto());
+        mockJeService.Setup(x => x.CancelAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(new JournalEntryResponseDto());
+        _jeService = mockJeService.Object;
+
+        var mockJeRepo = new Mock<IJournalEntryRepository>();
+        mockJeRepo.Setup(x => x.GenerateEntryNumberAsync())
+            .ReturnsAsync("JV-2026-0001");
+        _jeRepository = mockJeRepo.Object;
     }
 
     public void Dispose() => _context.Dispose();
@@ -210,7 +226,7 @@ public class BillHandlerTests : IDisposable
     {
         var vendor = SeedVendor();
         var bill = SeedBill(vendor, "BILL-004", BillStatus.Draft);
-        var handler = new ApproveBillCommandHandler(_context);
+        var handler = new ApproveBillCommandHandler(_context, _jeService, _jeRepository);
 
         var result = await handler.Handle(new ApproveBillCommand(bill.Id), default);
 
@@ -222,7 +238,7 @@ public class BillHandlerTests : IDisposable
     {
         var vendor = SeedVendor();
         var bill = SeedBill(vendor, "BILL-005", BillStatus.Received);
-        var handler = new ApproveBillCommandHandler(_context);
+        var handler = new ApproveBillCommandHandler(_context, _jeService, _jeRepository);
 
         var act = () => handler.Handle(new ApproveBillCommand(bill.Id), default);
 
@@ -232,7 +248,7 @@ public class BillHandlerTests : IDisposable
     [Fact]
     public async Task Approve_throws_NotFoundException_for_missing_bill()
     {
-        var handler = new ApproveBillCommandHandler(_context);
+        var handler = new ApproveBillCommandHandler(_context, _jeService, _jeRepository);
         var act = () => handler.Handle(new ApproveBillCommand(Guid.NewGuid()), default);
 
         await act.Should().ThrowAsync<NotFoundException>();
@@ -245,7 +261,7 @@ public class BillHandlerTests : IDisposable
     {
         var vendor = SeedVendor();
         var bill = SeedBill(vendor, "BILL-006", BillStatus.Draft);
-        var handler = new VoidBillCommandHandler(_context);
+        var handler = new VoidBillCommandHandler(_context, _jeService);
 
         var result = await handler.Handle(new VoidBillCommand(bill.Id), default);
 
@@ -257,7 +273,7 @@ public class BillHandlerTests : IDisposable
     {
         var vendor = SeedVendor();
         var bill = SeedBill(vendor, "BILL-007", BillStatus.Received);
-        var handler = new VoidBillCommandHandler(_context);
+        var handler = new VoidBillCommandHandler(_context, _jeService);
 
         var result = await handler.Handle(new VoidBillCommand(bill.Id), default);
 
@@ -269,7 +285,7 @@ public class BillHandlerTests : IDisposable
     {
         var vendor = SeedVendor();
         var bill = SeedBill(vendor, "BILL-008", BillStatus.Paid);
-        var handler = new VoidBillCommandHandler(_context);
+        var handler = new VoidBillCommandHandler(_context, _jeService);
 
         var act = () => handler.Handle(new VoidBillCommand(bill.Id), default);
 
@@ -281,7 +297,7 @@ public class BillHandlerTests : IDisposable
     {
         var vendor = SeedVendor();
         var bill = SeedBill(vendor, "BILL-009", BillStatus.Void);
-        var handler = new VoidBillCommandHandler(_context);
+        var handler = new VoidBillCommandHandler(_context, _jeService);
 
         var act = () => handler.Handle(new VoidBillCommand(bill.Id), default);
 
@@ -291,7 +307,7 @@ public class BillHandlerTests : IDisposable
     [Fact]
     public async Task Void_throws_NotFoundException_for_missing_bill()
     {
-        var handler = new VoidBillCommandHandler(_context);
+        var handler = new VoidBillCommandHandler(_context, _jeService);
         var act = () => handler.Handle(new VoidBillCommand(Guid.NewGuid()), default);
 
         await act.Should().ThrowAsync<NotFoundException>();

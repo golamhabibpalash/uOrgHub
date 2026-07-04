@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using uOrgHub.Accounts.DTOs.Payment;
 using uOrgHub.Accounts.Features.Payment;
+using uOrgHub.Accounts.Models.Enums;
 using uOrgHub.Accounts.Reporting.ExportColumns;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
@@ -59,5 +60,13 @@ public class PaymentsController : BaseController
     {
         var result = await _mediator.Send(new CreatePaymentCommand(dto));
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, ApiResponse<PaymentResponseDto>.Ok(result, "Payment recorded successfully."));
+    }
+
+    [HttpPost("{id:guid}/void")]
+    [RequireClaim(Claims.Accounts.Payments.Delete)]
+    public async Task<IActionResult> Void(Guid id)
+    {
+        var result = await _mediator.Send(new VoidPaymentCommand(id));
+        return Ok(ApiResponse<PaymentResponseDto>.Ok(result, "Payment voided successfully."));
     }
 }

@@ -2,8 +2,10 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using uOrgHub.Accounts.DTOs.AR;
 using uOrgHub.Accounts.Features._Common;
-using uOrgHub.Accounts.Services;
+using uOrgHub.Accounts.Models.Entities;
 using uOrgHub.Accounts.Models.Enums;
+using uOrgHub.Accounts.Repositories;
+using uOrgHub.Accounts.Services;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
 using uOrgHub.Shared.Extensions;
@@ -211,13 +213,21 @@ public class UpdateInvoiceCommandHandler : IRequestHandler<UpdateInvoiceCommand,
 public class PostInvoiceCommandHandler : IRequestHandler<PostInvoiceCommand, InvoiceResponseDto>
 {
     private readonly AppDbContext _context;
-    public PostInvoiceCommandHandler(AppDbContext context) => _context = context;
+    private readonly IJournalEntryService _jeService;
+    private readonly IJournalEntryRepository _jeRepository;
+
+    public PostInvoiceCommandHandler(AppDbContext context, IJournalEntryService jeService, IJournalEntryRepository jeRepository)
+    {
+        _context = context;
+        _jeService = jeService;
+        _jeRepository = jeRepository;
+    }
 
     public async Task<InvoiceResponseDto> Handle(PostInvoiceCommand request, CancellationToken ct)
     {
         var entity = await _context.Set<Models.Entities.Invoice>()
             .Include(x => x.Customer)
-            .Include(x => x.Lines)
+            .Include(x => x.Lines).ThenInclude(l => l.TaxRate)
             .Where(x => !x.IsDeleted && x.Id == request.Id)
             .FirstOrDefaultAsync(ct)
             ?? throw new NotFoundException(nameof(Models.Entities.Invoice), request.Id);
@@ -225,17 +235,64 @@ public class PostInvoiceCommandHandler : IRequestHandler<PostInvoiceCommand, Inv
         if (entity.Status != InvoiceStatus.Draft)
             throw new AppException("Only draft invoices can be posted.");
 
+        var je = await BuildAndSaveInvoiceJeAsync(entity, ct);
+        await _jeService.PostAsync(je.Id, "System");
+
+        entity.JournalEntryId = je.Id;
         entity.Status = InvoiceStatus.Sent;
         entity.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(ct);
         return InvoiceMappingHelper.ToDto(entity);
+    }
+
+    private async Task<Models.Entities.JournalEntry> BuildAndSaveInvoiceJeAsync(Models.Entities.Invoice invoice, CancellationToken ct)
+    {
+        var entryNumber = await _jeRepository.GenerateEntryNumberAsync();
+        var je = new Models.Entities.JournalEntry
+        {
+            EntryNumber = entryNumber,
+            EntryDate = invoice.InvoiceDate,
+            Description = $"Invoice {invoice.InvoiceNumber}",
+            ReferenceNumber = invoice.InvoiceNumber,
+            Status = JournalEntryStatus.Draft,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "System"
+        };
+
+        int order = 1;
+        foreach (var line in invoice.Lines)
+        {
+            if (line.TaxAmount > 0 && line.TaxRate?.TaxAccountId.HasValue == true)
+            {
+                je.Lines.Add(new Models.Entities.JournalEntryLine { AccountId = line.RevenueAccountId, CreditAmount = line.LineTotal - line.TaxAmount, Description = line.Description, LineOrder = order++, CostCenterId = line.CostCenterId, CreatedAt = DateTime.UtcNow });
+                je.Lines.Add(new Models.Entities.JournalEntryLine { AccountId = line.TaxRate.TaxAccountId!.Value, CreditAmount = line.TaxAmount, Description = $"Tax - {line.Description}", LineOrder = order++, CostCenterId = line.CostCenterId, CreatedAt = DateTime.UtcNow });
+            }
+            else
+            {
+                je.Lines.Add(new Models.Entities.JournalEntryLine { AccountId = line.RevenueAccountId, CreditAmount = line.LineTotal, Description = line.Description, LineOrder = order++, CostCenterId = line.CostCenterId, CreatedAt = DateTime.UtcNow });
+            }
+        }
+        je.Lines.Add(new Models.Entities.JournalEntryLine { AccountId = invoice.Customer.ReceivableAccountId, DebitAmount = invoice.TotalAmount, Description = $"AR - {invoice.InvoiceNumber}", LineOrder = order, CreatedAt = DateTime.UtcNow });
+
+        je.TotalDebit = je.Lines.Sum(l => l.DebitAmount);
+        je.TotalCredit = je.Lines.Sum(l => l.CreditAmount);
+
+        _context.Set<Models.Entities.JournalEntry>().Add(je);
+        await _context.SaveChangesAsync(ct);
+        return je;
     }
 }
 
 public class VoidInvoiceCommandHandler : IRequestHandler<VoidInvoiceCommand, InvoiceResponseDto>
 {
     private readonly AppDbContext _context;
-    public VoidInvoiceCommandHandler(AppDbContext context) => _context = context;
+    private readonly IJournalEntryService _jeService;
+
+    public VoidInvoiceCommandHandler(AppDbContext context, IJournalEntryService jeService)
+    {
+        _context = context;
+        _jeService = jeService;
+    }
 
     public async Task<InvoiceResponseDto> Handle(VoidInvoiceCommand request, CancellationToken ct)
     {
@@ -248,6 +305,12 @@ public class VoidInvoiceCommandHandler : IRequestHandler<VoidInvoiceCommand, Inv
 
         if (entity.Status == InvoiceStatus.Paid || entity.Status == InvoiceStatus.Void)
             throw new AppException($"Cannot void an invoice with status '{entity.Status}'.");
+
+        if (entity.PaidAmount > 0)
+            throw new AppException("Cannot void an invoice with existing payments. Please void the payments first.");
+
+        if (entity.JournalEntryId.HasValue)
+            await _jeService.CancelAsync(entity.JournalEntryId.Value);
 
         entity.Status = InvoiceStatus.Void;
         entity.UpdatedAt = DateTime.UtcNow;
