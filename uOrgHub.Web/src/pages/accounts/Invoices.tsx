@@ -377,76 +377,84 @@ export default function Invoices() {
 
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs text-gray-500">Line Items</label>
-              <button onClick={addLine} className="text-xs text-primary-600 hover:underline">+ Add Line</button>
+              <label className="text-xs font-medium text-gray-600">Line Items</label>
+              <button onClick={addLine} className="text-xs text-primary-600 hover:underline flex items-center gap-1">+ Add Line</button>
             </div>
-            <div className="border border-gray-200 rounded-lg overflow-x-auto">
-              <table className="w-full text-xs" style={{ tableLayout: "fixed" }}>
-                <colgroup>
-                  <col style={{ width: "28%" }} />
-                  <col style={{ width: "8%" }} />
-                  <col style={{ width: "12%" }} />
-                  <col style={{ width: "8%" }} />
-                  <col style={{ width: "12%" }} />
-                  <col style={{ width: "18%" }} />
-                  <col style={{ width: "10%" }} />
-                  <col style={{ width: "4%" }} />
-                </colgroup>
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="text-left px-2 py-1.5 text-gray-500">Description</th>
-                    <th className="text-right px-2 py-1.5 text-gray-500">Qty</th>
-                    <th className="text-right px-2 py-1.5 text-gray-500">Price</th>
-                    <th className="text-right px-2 py-1.5 text-gray-500">Disc%</th>
-                    <th className="text-left px-2 py-1.5 text-gray-500">Tax</th>
-                    <th className="text-left px-2 py-1.5 text-gray-500">Account</th>
-                    <th className="text-right px-2 py-1.5 text-gray-500">Total</th>
-                    <th className="px-2 py-1.5"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {form.lines.map((line, idx) => (
-                    <tr key={idx} className="border-t border-gray-100">
-                      <td className="px-2 py-1">
-                        <input className="w-full border border-gray-200 rounded px-1 py-1 text-xs focus:outline-none" value={line.description} onChange={(e) => updateLine(idx, "description", e.target.value)} />
-                      </td>
-                      <td className="px-2 py-1">
-                        <input type="number" min={0} className="w-full border border-gray-200 rounded px-1 py-1 text-xs text-right focus:outline-none" value={line.quantity} onChange={(e) => updateLine(idx, "quantity", parseFloat(e.target.value) || 0)} />
-                      </td>
-                      <td className="px-2 py-1">
-                        <input type="number" min={0} className="w-full border border-gray-200 rounded px-1 py-1 text-xs text-right focus:outline-none" value={line.unitPrice || ""} onChange={(e) => updateLine(idx, "unitPrice", parseFloat(e.target.value) || 0)} />
-                      </td>
-                      <td className="px-2 py-1">
-                        <input type="number" min={0} max={100} className="w-full border border-gray-200 rounded px-1 py-1 text-xs text-right focus:outline-none" value={line.discountPercent || ""} onChange={(e) => updateLine(idx, "discountPercent", parseFloat(e.target.value) || 0)} />
-                      </td>
-                      <td className="px-2 py-1">
-                        <SearchableDropdown options={taxRateOptions} value={line.taxRateId} onChange={(v) => updateLine(idx, "taxRateId", v ?? "")} placeholder="None" searchPlaceholder="Search tax rates..." className="w-full" />
-                      </td>
-                      <td className="px-2 py-1">
-                        <SearchableDropdown
-                          options={coaOptions}
-                          value={line.revenueAccountId}
-                          onChange={(v) => updateLine(idx, "revenueAccountId", v ?? "")}
-                          placeholder="Select"
-                          searchPlaceholder="Search accounts..."
-                          className="w-full"
-                        />
-                      </td>
-                      <td className="px-2 py-1 text-right font-medium">{lineSubtotal(line).toLocaleString("en-BD", { minimumFractionDigits: 2 })}</td>
-                      <td className="px-2 py-1">
-                        {form.lines.length > 1 && <button onClick={() => removeLine(idx)} className="text-red-400 hover:text-red-600">×</button>}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot className="bg-gray-50 border-t border-gray-200">
-                  <tr>
-                    <td colSpan={6} className="px-2 py-1.5 text-xs text-gray-500 font-medium text-right">Subtotal</td>
-                    <td className="px-2 py-1.5 text-xs font-medium text-right">{totalAmount.toLocaleString("en-BD", { minimumFractionDigits: 2 })}</td>
-                    <td />
-                  </tr>
-                </tfoot>
-              </table>
+            <div className="space-y-2">
+              {form.lines.map((line, idx) => (
+                <div key={idx} className="border border-gray-200 rounded-lg p-3 bg-white">
+                  <div className="flex items-start gap-2 mb-2">
+                    <div className="flex-1">
+                      <label className="text-[11px] text-gray-400 mb-0.5 block">Description</label>
+                      <input
+                        className="w-full border border-gray-200 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                        value={line.description}
+                        onChange={(e) => updateLine(idx, "description", e.target.value)}
+                        placeholder="Item description"
+                      />
+                    </div>
+                    {form.lines.length > 1 && (
+                      <button onClick={() => removeLine(idx)} className="mt-5 text-red-400 hover:text-red-600 p-1 rounded hover:bg-red-50 shrink-0" title="Remove line">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                      </button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-12 gap-2 items-end">
+                    <div className="col-span-2">
+                      <label className="text-[11px] text-gray-400 mb-0.5 block">Qty</label>
+                      <input type="number" min={0}
+                        className="w-full border border-gray-200 rounded-md px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-1 focus:ring-primary-500"
+                        value={line.quantity}
+                        onChange={(e) => updateLine(idx, "quantity", parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="text-[11px] text-gray-400 mb-0.5 block">Unit Price</label>
+                      <input type="number" min={0}
+                        className="w-full border border-gray-200 rounded-md px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-1 focus:ring-primary-500"
+                        value={line.unitPrice || ""}
+                        onChange={(e) => updateLine(idx, "unitPrice", parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="text-[11px] text-gray-400 mb-0.5 block">Disc %</label>
+                      <input type="number" min={0} max={100}
+                        className="w-full border border-gray-200 rounded-md px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-1 focus:ring-primary-500"
+                        value={line.discountPercent || ""}
+                        onChange={(e) => updateLine(idx, "discountPercent", parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
+                    <div className="col-span-3">
+                      <SearchableDropdown
+                        options={taxRateOptions}
+                        value={line.taxRateId}
+                        onChange={(v) => updateLine(idx, "taxRateId", v ?? "")}
+                        placeholder="Tax rate"
+                        searchPlaceholder="Search tax rates..."
+                        buttonClassName="py-1.5 text-sm"
+                      />
+                    </div>
+                    <div className="col-span-3">
+                      <SearchableDropdown
+                        options={coaOptions}
+                        value={line.revenueAccountId}
+                        onChange={(v) => updateLine(idx, "revenueAccountId", v ?? "")}
+                        placeholder="Revenue account"
+                        searchPlaceholder="Search accounts..."
+                        buttonClassName="py-1.5 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-2 text-right">
+                    <span className="text-xs text-gray-500">Line total: </span>
+                    <span className="text-sm font-semibold text-gray-900">{lineSubtotal(line).toLocaleString("en-BD", { minimumFractionDigits: 2 })}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-end items-center gap-2 mt-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
+              <span className="text-sm text-gray-600 font-medium">Subtotal</span>
+              <span className="text-base font-bold text-gray-900">{totalAmount.toLocaleString("en-BD", { minimumFractionDigits: 2 })}</span>
             </div>
           </div>
 
