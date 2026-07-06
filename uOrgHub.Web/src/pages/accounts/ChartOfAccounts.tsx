@@ -40,6 +40,7 @@ export default function ChartOfAccounts() {
     isActive: true,
     customCode: "",
   });
+  const [obDisplay, setObDisplay] = useState("0");
   const [generatedCode, setGeneratedCode] = useState("");
 
   const { data, isLoading } = useQuery({
@@ -88,6 +89,7 @@ export default function ChartOfAccounts() {
   function openAdd() {
     setEditing(null);
     setForm({ accountName: "", accountGroupId: groupOptions[0]?.value ?? "", accountType: "Asset", openingBalance: 0, description: "", allowDirectEntry: true, isActive: true, customCode: "" });
+    setObDisplay("0");
     setGeneratedCode("");
     setSaveError("");
     setModal(true);
@@ -105,6 +107,7 @@ export default function ChartOfAccounts() {
       isActive: acc.isActive,
       customCode: acc.customCode ?? "",
     });
+    setObDisplay(String(acc.openingBalance));
     setGeneratedCode(acc.accountCode);
     setSaveError("");
     setModal(true);
@@ -230,8 +233,15 @@ export default function ChartOfAccounts() {
                 <input
                   type="number"
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
-                  value={form.openingBalance}
-                  onChange={(e) => setForm((f) => ({ ...f, openingBalance: parseFloat(e.target.value) || 0 }))}
+                  value={obDisplay}
+                  onFocus={() => { if (form.openingBalance === 0) setObDisplay(""); }}
+                  onBlur={() => { if (obDisplay === "") { setObDisplay("0"); setForm((f) => ({ ...f, openingBalance: 0 })); } }}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    setObDisplay(raw);
+                    const parsed = parseFloat(raw);
+                    if (!isNaN(parsed)) setForm((f) => ({ ...f, openingBalance: parsed }));
+                  }}
                 />
               </div>
             )}

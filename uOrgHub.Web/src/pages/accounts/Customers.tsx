@@ -39,6 +39,7 @@ export default function Customers() {
     queryFn: () => getCustomers(dg.queryParams),
   });
 
+  const [clDisplay, setClDisplay] = useState("0");
   const { options: coaOptions } = useChartOfAccountsLookup("Asset");
 
   const customers = data?.data?.data?.items ?? [];
@@ -66,6 +67,7 @@ export default function Customers() {
   function openAdd() {
     setEditing(null);
     setForm({ name: "", contactPerson: "", email: "", phone: "", address: "", tin: "", bin: "", creditLimit: 0, paymentTermsDays: 30, receivableAccountId: coaOptions[0]?.value ?? "", isActive: true });
+    setClDisplay("0");
     setSaveError("");
     setModal(true);
   }
@@ -73,6 +75,7 @@ export default function Customers() {
   function openEdit(c: Customer) {
     setEditing(c);
     setForm({ name: c.name, contactPerson: c.contactPerson ?? "", email: c.email ?? "", phone: c.phone ?? "", address: c.address ?? "", tin: c.tin ?? "", bin: c.bin ?? "", creditLimit: c.creditLimit, paymentTermsDays: c.paymentTermsDays, receivableAccountId: c.receivableAccountId, isActive: c.isActive });
+    setClDisplay(String(c.creditLimit));
     setSaveError("");
     setModal(true);
   }
@@ -191,7 +194,7 @@ export default function Customers() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Credit Limit</label>
-              <input type="number" min={0} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.creditLimit} onChange={(e) => setForm((f) => ({ ...f, creditLimit: parseFloat(e.target.value) || 0 }))} />
+              <input type="number" min={0} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={clDisplay} onFocus={() => { if (form.creditLimit === 0) setClDisplay(""); }} onBlur={() => { if (clDisplay === "") { setClDisplay("0"); setForm((f) => ({ ...f, creditLimit: 0 })); } }} onChange={(e) => { const raw = e.target.value; setClDisplay(raw); const parsed = parseFloat(raw); if (!isNaN(parsed)) setForm((f) => ({ ...f, creditLimit: parsed })); }} />
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Payment Terms (Days)</label>
