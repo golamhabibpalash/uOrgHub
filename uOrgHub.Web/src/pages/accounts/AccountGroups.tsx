@@ -261,7 +261,7 @@ export default function AccountGroups() {
         )}
       </div>
 
-      <Modal title={editing ? "Edit Account Group" : "Add Account Group"} open={modal} onClose={closeModal}>
+      <Modal title={editing ? "Edit Account Group" : "Add Account Group"} open={modal} onClose={closeModal} draggable>
         <div className="space-y-3">
           {saveError && (
             <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
