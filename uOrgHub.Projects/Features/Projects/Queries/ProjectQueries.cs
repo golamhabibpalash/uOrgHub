@@ -11,6 +11,7 @@ using uOrgHub.Projects.Features.Projects.Commands;
 using uOrgHub.Projects.Features.WBS.Commands;
 using uOrgHub.Projects.Models.Entities;
 using uOrgHub.Projects.Models.Enums;
+using uOrgHub.Projects.Services;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
 using uOrgHub.Shared.Extensions;
@@ -90,7 +91,12 @@ public class GetProjectByIdQueryHandler : IRequestHandler<GetProjectByIdQuery, P
 public class GetProjectDashboardQueryHandler : IRequestHandler<GetProjectDashboardQuery, ProjectDashboardDto>
 {
     private readonly AppDbContext _context;
-    public GetProjectDashboardQueryHandler(AppDbContext context) => _context = context;
+    private readonly IProjectFinancialService _financials;
+    public GetProjectDashboardQueryHandler(AppDbContext context, IProjectFinancialService financials)
+    {
+        _context = context;
+        _financials = financials;
+    }
 
     public async Task<ProjectDashboardDto> Handle(GetProjectDashboardQuery request, CancellationToken ct)
     {
@@ -121,7 +127,8 @@ public class GetProjectDashboardQueryHandler : IRequestHandler<GetProjectDashboa
             .CountAsync(x => !x.IsDeleted && x.ProjectId == request.ProjectId, ct);
 
         var totalBudget = budgets.Sum(b => b.RevisedAmount ?? b.AllocatedAmount);
-        var totalSpent = budgets.Sum(b => b.SpentAmount);
+        // Derived from posted GL — ProjectBudget.SpentAmount is never written to.
+        var totalSpent = await _financials.GetActualSpendAsync(request.ProjectId, ct);
         var completedWBS = wbsItems.Count(w => w.Status == WBSStatus.Completed);
         var overallCompletion = wbsItems.Count > 0
             ? wbsItems.Average(w => (double)w.CompletionPercent)
@@ -155,7 +162,12 @@ public class GetProjectDashboardQueryHandler : IRequestHandler<GetProjectDashboa
 public class GetProjectBudgetSummaryQueryHandler : IRequestHandler<GetProjectBudgetSummaryQuery, ProjectBudgetSummaryDto>
 {
     private readonly AppDbContext _context;
-    public GetProjectBudgetSummaryQueryHandler(AppDbContext context) => _context = context;
+    private readonly IProjectFinancialService _financials;
+    public GetProjectBudgetSummaryQueryHandler(AppDbContext context, IProjectFinancialService financials)
+    {
+        _context = context;
+        _financials = financials;
+    }
 
     public async Task<ProjectBudgetSummaryDto> Handle(GetProjectBudgetSummaryQuery request, CancellationToken ct)
     {
@@ -169,7 +181,8 @@ public class GetProjectBudgetSummaryQueryHandler : IRequestHandler<GetProjectBud
 
         var totalAllocated = budgets.Sum(b => b.AllocatedAmount);
         var totalRevised = budgets.Sum(b => b.RevisedAmount ?? 0);
-        var totalSpent = budgets.Sum(b => b.SpentAmount);
+        // Derived from posted GL — ProjectBudget.SpentAmount is never written to.
+        var totalSpent = await _financials.GetActualSpendAsync(request.ProjectId, ct);
         var effective = budgets.Sum(b => b.RevisedAmount ?? b.AllocatedAmount);
 
         return new ProjectBudgetSummaryDto

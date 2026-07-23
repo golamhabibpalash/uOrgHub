@@ -246,6 +246,41 @@ export const getProjectWBS = (projectId: string) =>
 export const getProjectBudgetSummary = (projectId: string) =>
   apiClient.get<ApiResponse<ProjectBudgetSummary>>(`/projects/${projectId}/budget-summary`);
 
+export interface ProjectSpendByAccount {
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  amount: number;
+}
+
+export interface ProjectFinancialSummary {
+  projectId: string;
+  projectCode: string;
+  projectName: string;
+  contractValue: number;
+
+  raBilledCertified: number;
+  raBilledPending: number;
+  remainingToBill: number;
+  contractUtilizationPercent: number;
+  isOverContractValue: boolean;
+
+  costCeiling: number;
+  ceilingSource: "Budget" | "ContractValue";
+  actualSpend: number;
+  remainingBudget: number;
+  budgetUtilizationPercent: number;
+  isOverBudget: boolean;
+
+  margin: number;
+  marginPercent: number;
+
+  spendByAccount: ProjectSpendByAccount[];
+}
+
+export const getProjectFinancialSummary = (projectId: string) =>
+  apiClient.get<ApiResponse<ProjectFinancialSummary>>(`/projects/${projectId}/financial-summary`);
+
 export const getProjectBudgets = (projectId: string, params: PaginationRequest) =>
   apiClient.get<ApiResponse<PagedResult<ProjectBudget>>>("/projectbudgets", { params: { ...params, projectId } });
 

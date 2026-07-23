@@ -174,9 +174,35 @@ public class CertifyRABillCommandHandler : IRequestHandler<CertifyRABillCommand,
         entity.CertifiedById = dto.CertifiedById;
         entity.CertifiedDate = dto.CertifiedDate;
         entity.Status = RABillStatus.Certified;
+
+        // The draft-time figures were an estimate taken before this bill's amounts were known;
+        // certification is what fixes the running total.
+        var previouslyCertified = await _context.Set<RABill>()
+            .Where(x => x.ProjectId == entity.ProjectId && !x.IsDeleted && x.Id != entity.Id
+                && (x.Status == RABillStatus.Certified || x.Status == RABillStatus.Paid))
+            .SumAsync(x => x.NetAmount, ct);
+
+        entity.PreviousBilledAmount = previouslyCertified;
+        entity.CumulativeBilledAmount = previouslyCertified + entity.NetAmount;
         entity.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(ct);
-        return RABillMapper.ToDto(entity);
+
+        var result = RABillMapper.ToDto(entity);
+
+        var contractValue = await _context.Set<Project>()
+            .Where(x => x.Id == entity.ProjectId)
+            .Select(x => x.ContractValue)
+            .FirstOrDefaultAsync(ct);
+
+        if (contractValue > 0 && entity.CumulativeBilledAmount > contractValue)
+        {
+            var over = entity.CumulativeBilledAmount - contractValue;
+            result.Warning =
+                $"Cumulative billing of {entity.CumulativeBilledAmount:N2} exceeds the contract value "
+                + $"of {contractValue:N2} by {over:N2}.";
+        }
+
+        return result;
     }
 }
 

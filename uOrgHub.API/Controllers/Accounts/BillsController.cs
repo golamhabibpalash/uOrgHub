@@ -75,7 +75,10 @@ public class BillsController : BaseController
     public async Task<IActionResult> Approve(Guid id)
     {
         var result = await _mediator.Send(new ApproveBillCommand(id));
-        return Ok(ApiResponse<BillResponseDto>.Ok(result, "Bill approved successfully."));
+        var message = result.Warning is null
+            ? "Bill approved successfully."
+            : $"Bill approved. {result.Warning}";
+        return Ok(ApiResponse<BillResponseDto>.Ok(result, message));
     }
 
     [HttpPost("{id:guid}/void")]

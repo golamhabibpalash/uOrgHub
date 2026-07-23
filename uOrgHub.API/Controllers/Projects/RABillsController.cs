@@ -84,7 +84,10 @@ public class RABillsController : BaseController
     public async Task<IActionResult> Certify(Guid id, [FromBody] CertifyRABillDto dto)
     {
         var result = await _mediator.Send(new CertifyRABillCommand(id, dto));
-        return Ok(ApiResponse<RABillResponseDto>.Ok(result, "RA Bill certified successfully."));
+        var message = result.Warning is null
+            ? "RA Bill certified successfully."
+            : $"RA Bill certified. {result.Warning}";
+        return Ok(ApiResponse<RABillResponseDto>.Ok(result, message));
     }
 
     [HttpPost("{id:guid}/mark-paid")]

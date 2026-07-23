@@ -6,6 +6,7 @@ using uOrgHub.Projects.Features.Projects.Commands;
 using uOrgHub.Projects.Features.Projects.Queries;
 using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Projects.Reporting.ExportColumns;
+using uOrgHub.Projects.Services;
 using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 using uOrgHub.API.Middleware;
@@ -18,10 +19,12 @@ public class ProjectsController : BaseController
 {
     private readonly IMediator _mediator;
     private readonly IExportService _exportService;
-    public ProjectsController(IMediator mediator, IExportService exportService)
+    private readonly IProjectFinancialService _financials;
+    public ProjectsController(IMediator mediator, IExportService exportService, IProjectFinancialService financials)
     {
         _mediator = mediator;
         _exportService = exportService;
+        _financials = financials;
     }
 
     [HttpGet]
@@ -107,6 +110,16 @@ public class ProjectsController : BaseController
     {
         var result = await _mediator.Send(new GetProjectBudgetSummaryQuery(id));
         return Ok(ApiResponse<ProjectBudgetSummaryDto>.Ok(result));
+    }
+
+    // --- Financial Summary ---
+
+    [HttpGet("{id:guid}/financial-summary")]
+    [RequireClaim(Claims.Projects.Projects_.View)]
+    public async Task<IActionResult> GetFinancialSummary(Guid id, CancellationToken ct)
+    {
+        var result = await _financials.GetSummaryAsync(id, ct);
+        return Ok(ApiResponse<ProjectFinancialSummaryDto>.Ok(result));
     }
 
     // --- Progress ---

@@ -10,6 +10,7 @@ import {
 import {
   getProjectById,
   getProjectBudgetSummary,
+  getProjectFinancialSummary,
   getProjectTeam,
   getMilestones,
   getProjectProgress,
@@ -52,8 +53,15 @@ export default function ProjectDetail() {
     enabled: !!id,
   });
 
+  const { data: financialsData } = useQuery({
+    queryKey: ["projectFinancials", id],
+    queryFn: () => getProjectFinancialSummary(id!),
+    enabled: !!id,
+  });
+
   const project = projectData?.data?.data;
   const budget = budgetData?.data?.data;
+  const financials = financialsData?.data?.data;
   const team = teamData?.data?.data ?? [];
   const milestones = milestonesData?.data?.data ?? [];
   const progress = progressData?.data?.data;
@@ -262,6 +270,81 @@ export default function ProjectDetail() {
         </div>
       </div>
 
+      {financials && (
+        <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium text-gray-900">Financial Position</h3>
+            <span className="text-xs text-gray-400">
+              Spend from posted journal entries · billing from certified RA bills
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6">
+            <FinancialBar
+              label="Billed to client"
+              used={financials.raBilledCertified}
+              ceiling={financials.contractValue}
+              percent={financials.contractUtilizationPercent}
+              over={financials.isOverContractValue}
+              ceilingLabel="contract value"
+              remainingLabel="Remaining to bill"
+              remaining={financials.remainingToBill}
+              note={
+                financials.raBilledPending > 0
+                  ? `BDT ${financials.raBilledPending.toLocaleString()} submitted, awaiting certification`
+                  : undefined
+              }
+            />
+            <FinancialBar
+              label="Spent on project"
+              used={financials.actualSpend}
+              ceiling={financials.costCeiling}
+              percent={financials.budgetUtilizationPercent}
+              over={financials.isOverBudget}
+              ceilingLabel={
+                financials.ceilingSource === "Budget" ? "budget" : "contract value (no budget set)"
+              }
+              remainingLabel="Remaining"
+              remaining={financials.remainingBudget}
+            />
+          </div>
+
+          <div className="border-t border-gray-100 mt-5 pt-4 flex justify-between items-center">
+            <span className="text-xs text-gray-500">
+              Margin (billed − spent)
+            </span>
+            <span
+              className={`text-sm font-medium ${
+                financials.margin < 0 ? "text-red-600" : "text-green-600"
+              }`}
+            >
+              BDT {financials.margin.toLocaleString()}
+              <span className="text-xs text-gray-400 ml-2">
+                {financials.marginPercent}%
+              </span>
+            </span>
+          </div>
+
+          {financials.spendByAccount.length > 0 && (
+            <div className="mt-4">
+              <p className="text-xs text-gray-500 mb-2">Spend by account</p>
+              <div className="space-y-1.5">
+                {financials.spendByAccount.map((row) => (
+                  <div key={row.accountId} className="flex justify-between">
+                    <span className="text-xs text-gray-600">
+                      [{row.accountCode}] {row.accountName}
+                    </span>
+                    <span className="text-xs font-medium text-gray-900">
+                      BDT {row.amount.toLocaleString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-white border border-gray-200 rounded-xl p-5">
           <h3 className="text-sm font-medium text-gray-900 mb-4">
@@ -408,6 +491,66 @@ export default function ProjectDetail() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+function FinancialBar({
+  label,
+  used,
+  ceiling,
+  percent,
+  over,
+  ceilingLabel,
+  remainingLabel,
+  remaining,
+  note,
+}: {
+  label: string;
+  used: number;
+  ceiling: number;
+  percent: number;
+  over: boolean;
+  ceilingLabel: string;
+  remainingLabel: string;
+  remaining: number;
+  note?: string;
+}) {
+  return (
+    <div>
+      <div className="flex justify-between items-baseline mb-1">
+        <span className="text-xs text-gray-500">{label}</span>
+        <span className="text-sm font-medium text-gray-900">
+          BDT {used.toLocaleString()}
+          <span className="text-xs text-gray-400 font-normal">
+            {" "}
+            of {ceiling.toLocaleString()}
+          </span>
+        </span>
+      </div>
+
+      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full ${over ? "bg-red-500" : "bg-primary-500"}`}
+          style={{ width: `${Math.min(percent, 100)}%` }}
+        />
+      </div>
+
+      <div className="flex justify-between mt-1.5">
+        <span className="text-xs text-gray-400">
+          {percent}% of {ceilingLabel}
+        </span>
+        {over ? (
+          <span className="text-xs font-medium text-red-600">
+            Over by BDT {Math.abs(remaining).toLocaleString()}
+          </span>
+        ) : (
+          <span className="text-xs text-gray-500">
+            {remainingLabel}: BDT {remaining.toLocaleString()}
+          </span>
+        )}
+      </div>
+
+      {note && <p className="text-xs text-gray-400 mt-1">{note}</p>}
     </div>
   );
 }

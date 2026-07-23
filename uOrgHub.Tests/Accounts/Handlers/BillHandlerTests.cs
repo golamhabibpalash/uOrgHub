@@ -11,6 +11,7 @@ using uOrgHub.Accounts.Services;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
 using uOrgHub.Shared.Models;
+using uOrgHub.Shared.Services;
 
 namespace uOrgHub.Tests.Accounts.Handlers;
 
@@ -19,6 +20,7 @@ public class BillHandlerTests : IDisposable
     private readonly AppDbContext _context;
     private readonly IJournalEntryService _jeService;
     private readonly IJournalEntryRepository _jeRepository;
+    private readonly IProjectCostLimitChecker _costLimits;
 
     public BillHandlerTests()
     {
@@ -38,6 +40,12 @@ public class BillHandlerTests : IDisposable
         mockJeRepo.Setup(x => x.GenerateEntryNumberAsync())
             .ReturnsAsync("JV-2026-0001");
         _jeRepository = mockJeRepo.Object;
+
+        var mockCostLimits = new Mock<IProjectCostLimitChecker>();
+        mockCostLimits
+            .Setup(x => x.CheckAsync(It.IsAny<IEnumerable<ProjectCostAllocation>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null);
+        _costLimits = mockCostLimits.Object;
     }
 
     public void Dispose() => _context.Dispose();
@@ -226,7 +234,7 @@ public class BillHandlerTests : IDisposable
     {
         var vendor = SeedVendor();
         var bill = SeedBill(vendor, "BILL-004", BillStatus.Draft);
-        var handler = new ApproveBillCommandHandler(_context, _jeService, _jeRepository);
+        var handler = new ApproveBillCommandHandler(_context, _jeService, _jeRepository, _costLimits);
 
         var result = await handler.Handle(new ApproveBillCommand(bill.Id), default);
 
@@ -238,7 +246,7 @@ public class BillHandlerTests : IDisposable
     {
         var vendor = SeedVendor();
         var bill = SeedBill(vendor, "BILL-005", BillStatus.Received);
-        var handler = new ApproveBillCommandHandler(_context, _jeService, _jeRepository);
+        var handler = new ApproveBillCommandHandler(_context, _jeService, _jeRepository, _costLimits);
 
         var act = () => handler.Handle(new ApproveBillCommand(bill.Id), default);
 
@@ -248,7 +256,7 @@ public class BillHandlerTests : IDisposable
     [Fact]
     public async Task Approve_throws_NotFoundException_for_missing_bill()
     {
-        var handler = new ApproveBillCommandHandler(_context, _jeService, _jeRepository);
+        var handler = new ApproveBillCommandHandler(_context, _jeService, _jeRepository, _costLimits);
         var act = () => handler.Handle(new ApproveBillCommand(Guid.NewGuid()), default);
 
         await act.Should().ThrowAsync<NotFoundException>();

@@ -101,6 +101,9 @@ public class BillResponseDto
     public Guid? CostCenterId { get; set; }
     public Guid? JournalEntryId { get; set; }
     public List<BillLineResponseDto> Lines { get; set; } = new();
+
+    /// <summary>Set when approving takes a linked project past its cost ceiling.</summary>
+    public string? Warning { get; set; }
 }
 
 public class BillLineResponseDto

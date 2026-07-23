@@ -10,6 +10,7 @@ using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
 using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
+using uOrgHub.Shared.Services;
 
 namespace uOrgHub.Accounts.Features.AP;
 
@@ -215,12 +216,14 @@ public class ApproveBillCommandHandler : IRequestHandler<ApproveBillCommand, Bil
     private readonly AppDbContext _context;
     private readonly IJournalEntryService _jeService;
     private readonly IJournalEntryRepository _jeRepository;
+    private readonly IProjectCostLimitChecker _costLimits;
 
-    public ApproveBillCommandHandler(AppDbContext context, IJournalEntryService jeService, IJournalEntryRepository jeRepository)
+    public ApproveBillCommandHandler(AppDbContext context, IJournalEntryService jeService, IJournalEntryRepository jeRepository, IProjectCostLimitChecker costLimits)
     {
         _context = context;
         _jeService = jeService;
         _jeRepository = jeRepository;
+        _costLimits = costLimits;
     }
 
     public async Task<BillResponseDto> Handle(ApproveBillCommand request, CancellationToken ct)
@@ -235,6 +238,14 @@ public class ApproveBillCommandHandler : IRequestHandler<ApproveBillCommand, Bil
         if (entity.Status != BillStatus.Draft)
             throw new AppException("Only draft bills can be approved.");
 
+        // Checked before posting, so the projection is "already on the books plus this bill".
+        // A project overrun is reported, never blocked.
+        var warning = await _costLimits.CheckAsync(
+            entity.Lines
+                .Where(l => !l.IsDeleted && l.CostCenterId.HasValue)
+                .Select(l => new ProjectCostAllocation(l.CostCenterId!.Value, l.LineTotal)),
+            ct);
+
         var je = await BuildAndSaveBillJeAsync(entity, ct);
         await _jeService.PostAsync(je.Id, "System");
 
@@ -242,7 +253,10 @@ public class ApproveBillCommandHandler : IRequestHandler<ApproveBillCommand, Bil
         entity.Status = BillStatus.Received;
         entity.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(ct);
-        return BillMappingHelper.ToDto(entity);
+
+        var result = BillMappingHelper.ToDto(entity);
+        result.Warning = warning;
+        return result;
     }
 
     private async Task<Models.Entities.JournalEntry> BuildAndSaveBillJeAsync(Models.Entities.Bill bill, CancellationToken ct)

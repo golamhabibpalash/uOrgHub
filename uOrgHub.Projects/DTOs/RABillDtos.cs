@@ -69,6 +69,9 @@ public class RABillResponseDto
     public string? Notes { get; set; }
     public List<RABillItemResponseDto> Items { get; set; } = new();
     public DateTime CreatedAt { get; set; }
+
+    /// <summary>Set when certifying takes cumulative billing past the project's contract value.</summary>
+    public string? Warning { get; set; }
 }
 
 public class RABillItemResponseDto
