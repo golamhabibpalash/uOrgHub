@@ -32,7 +32,7 @@ public class UpdateEmployeeDto
     public string? Upazila { get; set; }
 
     public EmploymentType EmploymentType { get; set; }
-    public EmployeeStatus Status { get; set; }
+    public EmployeeStatus? Status { get; set; }
     public DateTime? ConfirmationDate { get; set; }
     public DateTime? LastWorkingDate { get; set; }
 

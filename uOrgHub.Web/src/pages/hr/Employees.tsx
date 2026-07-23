@@ -65,6 +65,7 @@ export default function Employees() {
     departmentId: "",
     designationId: "",
     employmentType: "Permanent",
+    status: "Active",
     basicSalary: 0,
     joiningDate: "",
     managerId: "",
@@ -109,7 +110,9 @@ export default function Employees() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const body = { ...form };
+      // Status is edit-only — new employees always start Active.
+      const { status, ...rest } = form;
+      const body = { ...rest };
       if (!body.joiningDate) delete (body as any).joiningDate;
       if (!body.managerId) delete (body as any).managerId;
       if (!body.bloodGroup) delete (body as any).bloodGroup;
@@ -117,7 +120,7 @@ export default function Employees() {
       if (!body.passportExpiry) delete (body as any).passportExpiry;
 
       if (editing) {
-        return updateEmployee(editing.id, body);
+        return updateEmployee(editing.id, { ...body, status });
       }
 
       if (createUser) {
@@ -212,7 +215,26 @@ export default function Employees() {
       const deps = res.data.data;
       if (!deps) { toast.error("Could not check dependencies."); return; }
       if (!deps.canDelete) {
-        toast.error(deps.blockingReason || "This employee cannot be deleted.");
+        toast.error(deps.blockingReason || "This employee cannot be deleted.", { duration: 8000 });
+        if (deps.hasUserAccount) {
+          toast(
+            (t) => (
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-gray-700">Set this employee to Inactive instead?</span>
+                <button
+                  className="text-sm font-medium text-primary-600 hover:text-primary-700"
+                  onClick={() => {
+                    toast.dismiss(t.id);
+                    openEdit(emp);
+                  }}
+                >
+                  Open
+                </button>
+              </div>
+            ),
+            { duration: 8000 }
+          );
+        }
         return;
       }
       setDeleteTarget(emp);
@@ -314,6 +336,7 @@ export default function Employees() {
       departmentId: "",
       designationId: "",
       employmentType: "Permanent",
+      status: "Active",
       basicSalary: 0,
       joiningDate: "",
       managerId: "",
@@ -349,6 +372,7 @@ export default function Employees() {
       departmentId: emp.departmentId,
       designationId: emp.designationId,
       employmentType: emp.employmentType,
+      status: emp.status || "Active",
       basicSalary: emp.basicSalary,
       joiningDate: emp.joiningDate.split("T")[0],
       managerId: emp.managerId || "",
@@ -407,8 +431,10 @@ export default function Employees() {
           className={`text-xs px-2 py-0.5 rounded-full ${
             row.status === "Active"
               ? "bg-green-50 text-green-700"
-              : row.status === "OnLeave"
+              : row.status === "Inactive"
               ? "bg-yellow-50 text-yellow-700"
+              : row.status === "Terminated"
+              ? "bg-red-50 text-red-700"
               : "bg-gray-50 text-gray-600"
           }`}
         >
@@ -1004,6 +1030,23 @@ export default function Employees() {
                 onChange={(e) => setForm((f) => ({ ...f, basicSalary: Number(e.target.value) }))}
               />
             </div>
+            {editing && (
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Status</label>
+                <select
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  value={form.status}
+                  onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                  <option value="Terminated">Terminated</option>
+                </select>
+                <p className="text-xs text-gray-400 mt-1">
+                  Set to Inactive or Terminated instead of deleting an employee who has records.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Create User Account Section */}

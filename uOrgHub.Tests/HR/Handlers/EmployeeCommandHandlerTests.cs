@@ -168,6 +168,40 @@ public class UpdateEmployeeCommandHandlerTests
         result.Should().NotBeNull();
         _repo.Verify(r => r.UpdateAsync(It.IsAny<Employee>()), Times.Once);
     }
+
+    [Fact]
+    public async Task Preserves_existing_status_when_dto_omits_it()
+    {
+        var id = Guid.NewGuid();
+        var entity = ExistingEmployee(id);
+        entity.Status = EmployeeStatus.Inactive;
+        var dto = new UpdateEmployeeDto { Email = "new@test.com", Status = null };
+
+        _repo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(entity);
+        _repo.Setup(r => r.EmailExistsAsync(dto.Email, id)).ReturnsAsync(false);
+        _repo.Setup(r => r.UpdateAsync(It.IsAny<Employee>())).ReturnsAsync(entity);
+
+        await _handler.Handle(new UpdateEmployeeCommand(id, dto), CancellationToken.None);
+
+        entity.Status.Should().Be(EmployeeStatus.Inactive);
+    }
+
+    [Fact]
+    public async Task Applies_status_when_dto_supplies_it()
+    {
+        var id = Guid.NewGuid();
+        var entity = ExistingEmployee(id);
+        entity.Status = EmployeeStatus.Active;
+        var dto = new UpdateEmployeeDto { Email = "new@test.com", Status = EmployeeStatus.Terminated };
+
+        _repo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(entity);
+        _repo.Setup(r => r.EmailExistsAsync(dto.Email, id)).ReturnsAsync(false);
+        _repo.Setup(r => r.UpdateAsync(It.IsAny<Employee>())).ReturnsAsync(entity);
+
+        await _handler.Handle(new UpdateEmployeeCommand(id, dto), CancellationToken.None);
+
+        entity.Status.Should().Be(EmployeeStatus.Terminated);
+    }
 }
 
 public class DeleteEmployeeCommandHandlerTests

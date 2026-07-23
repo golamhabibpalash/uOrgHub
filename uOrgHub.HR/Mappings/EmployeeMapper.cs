@@ -31,5 +31,8 @@ public partial class EmployeeMapper
     [MapperIgnoreTarget(nameof(Employee.DeletedBy))]
     [MapperIgnoreTarget(nameof(Employee.Designation))]
     [MapperIgnoreTarget(nameof(Employee.Department))]
+    // Status is applied by the handler so an omitted value preserves the stored status.
+    [MapperIgnoreTarget(nameof(Employee.Status))]
+    [MapperIgnoreSource(nameof(UpdateEmployeeDto.Status))]
     public partial void UpdateEntity(UpdateEmployeeDto dto, Employee entity);
 }

@@ -120,7 +120,7 @@ public class EmployeeRepository : IEmployeeRepository
             .CountAsync(e => !e.IsDeleted && e.ManagerId == id, ct);
 
         var parts = new List<string>();
-        if (hasUser) parts.Add("a linked user account (deactivate instead)");
+        if (hasUser) parts.Add("a linked user account (remove it under Admin → Users, or set the employee to Inactive instead of deleting)");
         if (leaves > 0) parts.Add($"{leaves} leave request{(leaves == 1 ? "" : "s")}");
         if (attendance > 0) parts.Add($"{attendance} attendance record{(attendance == 1 ? "" : "s")}");
         if (payrollEntries > 0) parts.Add($"{payrollEntries} payroll entr{(payrollEntries == 1 ? "y" : "ies")}");
@@ -130,7 +130,7 @@ public class EmployeeRepository : IEmployeeRepository
         if (directReports > 0) parts.Add($"{directReports} direct report{(directReports == 1 ? "" : "s")}");
 
         var canDelete = parts.Count == 0;
-        var reason = canDelete ? null : $"Cannot delete employee: {string.Join(", ", parts)} exist.";
+        var reason = canDelete ? null : $"Cannot delete employee — linked records exist: {string.Join(", ", parts)}.";
 
         return new EmployeeDependenciesDto
         {

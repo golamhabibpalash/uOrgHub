@@ -68,6 +68,7 @@ public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeComman
             await EnsureNoCircularReference(request.Id, request.Dto.ManagerId.Value, ct);
 
         _mapper.UpdateEntity(request.Dto, entity);
+        entity.Status = request.Dto.Status ?? entity.Status;
         entity.UpdatedAt = DateTime.UtcNow;
         var updated = await _repo.UpdateAsync(entity);
         var dto = _mapper.ToDto(updated);
