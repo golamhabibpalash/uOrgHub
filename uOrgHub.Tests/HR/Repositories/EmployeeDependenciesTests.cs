@@ -10,17 +10,7 @@ namespace uOrgHub.Tests.HR.Repositories;
 public class EmployeeDependenciesTests
 {
     private static AppDbContext NewContext()
-    {
-        // AppDbContext builds its model from the loaded uOrgHub.* assemblies. In the API the
-        // modules are all registered up front; in a test process uOrgHub.Auth is only loaded on
-        // first use, so touch it before the model is built or ApplicationUser is missing from it.
-        _ = typeof(ApplicationUser).FullName;
-
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase("TestDb_EmployeeDeps_" + Guid.NewGuid())
-            .Options;
-        return new AppDbContext(options);
-    }
+        => TestDb.NewContext("TestDb_EmployeeDeps_" + Guid.NewGuid());
 
     private static Employee SeedEmployee(AppDbContext ctx)
     {
