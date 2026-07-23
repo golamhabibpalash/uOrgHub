@@ -27,6 +27,7 @@ export default function ProjectForm({ project, onClose }: ProjectFormProps) {
     priority: "Medium",
     description: "",
   });
+  const [cvDisplay, setCvDisplay] = useState("0");
 
   const { data: clientData } = useQuery({
     queryKey: ["clients"],
@@ -66,6 +67,7 @@ export default function ProjectForm({ project, onClose }: ProjectFormProps) {
         priority: project.priority,
         description: project.description || "",
       });
+      setCvDisplay(String(project.contractValue));
     }
   }, [project]);
 
@@ -93,10 +95,7 @@ export default function ProjectForm({ project, onClose }: ProjectFormProps) {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setForm((f) => ({
-      ...f,
-      [name]: name === "contractValue" ? parseFloat(value) || 0 : value,
-    }));
+    setForm((f) => ({ ...f, [name]: value }));
   };
 
   return (
@@ -133,8 +132,15 @@ export default function ProjectForm({ project, onClose }: ProjectFormProps) {
           <input
             type="number"
             name="contractValue"
-            value={form.contractValue}
-            onChange={handleChange}
+            value={cvDisplay}
+            onFocus={() => { if (form.contractValue === 0) setCvDisplay(""); }}
+            onBlur={() => { if (cvDisplay === "") { setCvDisplay("0"); setForm((f) => ({ ...f, contractValue: 0 })); } }}
+            onChange={(e) => {
+              const raw = e.target.value;
+              setCvDisplay(raw);
+              const parsed = parseFloat(raw);
+              if (!isNaN(parsed)) setForm((f) => ({ ...f, contractValue: parsed }));
+            }}
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
           />
         </div>
