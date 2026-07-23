@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using uOrgHub.Accounts;
@@ -15,6 +16,7 @@ using uOrgHub.Procurement;
 using uOrgHub.Projects;
 using uOrgHub.Settings;
 using uOrgHub.Shared.Data;
+using uOrgHub.Shared.Models;
 using uOrgHub.Shared.Services;
 using uOrgHub.Shared.Export;
 using uOrgHub.API.Services.Storage;
@@ -112,6 +114,41 @@ builder.Services.AddScoped<IMenuService, MenuService>();
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+// Model binding / validation failures return ApiResponse<T> like every other endpoint, and name
+// the offending field. Without this the framework answers a malformed body with the useless
+// "The dto field is required."
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var modelErrors = context.ModelState
+            .Where(entry => entry.Value is not null && entry.Value.Errors.Count > 0)
+            .SelectMany(entry => entry.Value!.Errors.Select(error => new
+            {
+                Field = entry.Key,
+                Message = string.IsNullOrWhiteSpace(error.ErrorMessage)
+                    ? error.Exception?.Message ?? "Invalid value."
+                    : error.ErrorMessage,
+            }))
+            .ToList();
+
+        // A body that fails to deserialize yields both a precise JSON-path error (e.g. "$.status")
+        // and a generic "The dto field is required." — keep the precise ones when present.
+        var precise = modelErrors.Where(e => e.Field.StartsWith('$')).ToList();
+        var selected = precise.Count > 0 ? precise : modelErrors;
+
+        var errors = selected
+            .Select(e => string.IsNullOrWhiteSpace(e.Field) ? e.Message : $"{e.Field}: {e.Message}")
+            .ToList();
+
+        var response = ApiResponse<object>.Fail(
+            errors.FirstOrDefault() ?? "The request payload is invalid.",
+            errors);
+
+        return new BadRequestObjectResult(response);
+    };
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {

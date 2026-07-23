@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { AxiosError } from "axios";
 import { createProject, updateProject, getProjectCategories, getClients, Project } from "../../api/projects";
+import { extractApiError } from "../../utils/apiError";
 import { useEmployeeLookup } from "../../hooks/useEntityLookup";
 import SearchableDropdown from "../../components/shared/SearchableDropdown";
 
@@ -23,7 +23,7 @@ export default function ProjectForm({ project, onClose }: ProjectFormProps) {
     startDate: "",
     plannedEndDate: "",
     contractValue: 0,
-    status: "Draft",
+    status: "Inquiry",
     priority: "Medium",
     description: "",
   });
@@ -81,14 +81,7 @@ export default function ProjectForm({ project, onClose }: ProjectFormProps) {
       qc.invalidateQueries({ queryKey: ["projectDashboard"] });
       onClose();
     },
-    onError: (err: Error) => {
-      const axiosErr = err as AxiosError<{ message?: string; errors?: string[] }>;
-      const msg = axiosErr.response?.data?.message
-        || axiosErr.response?.data?.errors?.[0]
-        || err.message
-        || "An error occurred while saving the project.";
-      setError(msg);
-    },
+    onError: (err: Error) => setError(extractApiError(err)),
   });
 
   const handleChange = (
@@ -200,10 +193,12 @@ export default function ProjectForm({ project, onClose }: ProjectFormProps) {
             onChange={handleChange}
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
           >
-            <option value="Draft">Draft</option>
+            <option value="Inquiry">Inquiry</option>
+            <option value="Tender">Tender</option>
+            <option value="Planning">Planning</option>
             <option value="Active">Active</option>
-            <option value="InProgress">In Progress</option>
             <option value="OnHold">On Hold</option>
+            <option value="Handover">Handover</option>
             <option value="Completed">Completed</option>
             <option value="Cancelled">Cancelled</option>
           </select>
