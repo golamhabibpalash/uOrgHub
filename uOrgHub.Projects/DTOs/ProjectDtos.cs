@@ -79,13 +79,12 @@ public class ProjectDashboardDto
 
 public class ProjectBudgetSummaryDto
 {
-    public Guid ProjectId { get; set; }
-    public string ProjectCode { get; set; } = string.Empty;
-    public decimal TotalAllocated { get; set; }
-    public decimal TotalSpent { get; set; }
-    public decimal TotalRevised { get; set; }
+    public decimal ContractValue { get; set; }
+    public decimal BoqEstimated { get; set; }
+    public decimal BoqApproved { get; set; }
+    public decimal TotalExpenses { get; set; }
     public decimal RemainingBudget { get; set; }
-    public List<ProjectBudgetResponseDto> Budgets { get; set; } = new();
+    public decimal PercentUsed { get; set; }
 }
 
 public class ProjectProgressDto

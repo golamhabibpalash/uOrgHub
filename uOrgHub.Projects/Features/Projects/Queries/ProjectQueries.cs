@@ -175,25 +175,26 @@ public class GetProjectBudgetSummaryQueryHandler : IRequestHandler<GetProjectBud
             .FirstOrDefaultAsync(x => !x.IsDeleted && x.Id == request.ProjectId, ct)
             ?? throw new NotFoundException(nameof(Project), request.ProjectId);
 
-        var budgets = await _context.Set<ProjectBudget>()
+        var boqList = await _context.Set<BillOfQuantity>()
             .Where(x => !x.IsDeleted && x.ProjectId == request.ProjectId)
             .ToListAsync(ct);
 
-        var totalAllocated = budgets.Sum(b => b.AllocatedAmount);
-        var totalRevised = budgets.Sum(b => b.RevisedAmount ?? 0);
-        // Derived from posted GL — ProjectBudget.SpentAmount is never written to.
-        var totalSpent = await _financials.GetActualSpendAsync(request.ProjectId, ct);
-        var effective = budgets.Sum(b => b.RevisedAmount ?? b.AllocatedAmount);
+        var boqEstimated = boqList.Sum(x => x.TotalEstimatedCost);
+        var boqApproved = boqList.Where(x => x.Status == BOQStatus.Approved).Sum(x => x.TotalEstimatedCost);
+        var totalExpenses = await _financials.GetActualSpendAsync(request.ProjectId, ct);
+        var remainingBudget = project.ContractValue - totalExpenses;
+        var percentUsed = project.ContractValue > 0
+            ? Math.Round(totalExpenses / project.ContractValue * 100, 2)
+            : 0;
 
         return new ProjectBudgetSummaryDto
         {
-            ProjectId = project.Id,
-            ProjectCode = project.ProjectCode,
-            TotalAllocated = totalAllocated,
-            TotalRevised = totalRevised,
-            TotalSpent = totalSpent,
-            RemainingBudget = effective - totalSpent,
-            Budgets = budgets.Select(BudgetMapper.ToDto).ToList()
+            ContractValue = project.ContractValue,
+            BoqEstimated = boqEstimated,
+            BoqApproved = boqApproved,
+            TotalExpenses = totalExpenses,
+            RemainingBudget = remainingBudget < 0 ? 0 : remainingBudget,
+            PercentUsed = percentUsed > 100 ? 100 : percentUsed
         };
     }
 }
