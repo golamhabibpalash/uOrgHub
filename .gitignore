@@ -81,6 +81,10 @@ appsettings.*.json
 .env
 .env.*
 !.env.example
+
+# Per-instance deploy env files hold real secrets — never commit them.
+# Only the *.env.example templates are tracked.
+deploy/instances/*.env
 appsettings.Development.json
 
 # Claude

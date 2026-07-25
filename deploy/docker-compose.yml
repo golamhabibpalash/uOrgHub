@@ -1,0 +1,83 @@
+# =============================================================================
+#  Generic, instance-agnostic compose file.
+#
+#  Nothing instance-specific lives here — every value comes from the
+#  --env-file passed by deploy.sh (deploy/instances/<instance>.env).
+#  The same file runs every instance; `deploy.sh <instance>` picks the env.
+#
+#  Never run this directly. Use:  sudo ./deploy/deploy.sh <instance>
+# =============================================================================
+
+# Project name namespaces this instance's network and volumes, so several
+# instances share one host and one checkout without colliding.
+name: ${COMPOSE_PROJECT_NAME:?set COMPOSE_PROJECT_NAME in the env file}
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ${DB_CONTAINER:?}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?}
+      POSTGRES_DB: ${DB_NAME:?}
+    ports:
+      # Host-side port is for admin/psql access only; the API reaches the DB
+      # over the compose network by the service name `db`.
+      - "127.0.0.1:${DB_PORT:?}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile.api
+    image: ${API_IMAGE:?}
+    container_name: ${API_CONTAINER:?}
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:?}
+      # Host=db → the compose service above, resolved on this instance's network.
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=${DB_NAME};Username=postgres;Password=${DB_PASSWORD}"
+      JwtSettings__SecretKey: ${JWT_SECRET:?}
+      JwtSettings__Issuer: ${JWT_ISSUER:?}
+      JwtSettings__Audience: ${JWT_AUDIENCE:?}
+      AllowedOrigins: ${ALLOWED_ORIGINS:?}
+    ports:
+      - "127.0.0.1:${API_PORT:?}:8080"
+    volumes:
+      - uploads:/app/wwwroot/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ..
+      dockerfile: Dockerfile.web
+      args:
+        # Baked into the JS bundle at build time — this is why each instance
+        # needs its own image tag (see WEB_IMAGE in the env file).
+        VITE_API_URL: ${VITE_API_URL:?}
+    image: ${WEB_IMAGE:?}
+    container_name: ${WEB_CONTAINER:?}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${WEB_PORT:?}:80"
+    volumes:
+      - ../nginx-web.cfelbd.conf:/etc/nginx/templates/default.conf.template:ro
+    environment:
+      # nginx-web.cfelbd.conf proxies /uploads/ to http://${API_HOST}:8080.
+      # `api` is the compose service name, resolved on this instance's network.
+      - API_HOST=api
+    depends_on:
+      - api
+
+volumes:
+  db-data:
+  uploads:
