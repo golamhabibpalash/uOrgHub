@@ -79,5 +79,10 @@ services:
       - api
 
 volumes:
+  # Default to a project-scoped name for new instances. An instance migrated
+  # from an older compose sets DB_VOLUME / UPLOADS_VOLUME in its env file to the
+  # name of the volume already holding its data, so no data is left behind.
   db-data:
+    name: ${DB_VOLUME:-${COMPOSE_PROJECT_NAME}_db-data}
   uploads:
+    name: ${UPLOADS_VOLUME:-${COMPOSE_PROJECT_NAME}_uploads}
