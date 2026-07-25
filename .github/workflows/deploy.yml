@@ -1,0 +1,58 @@
+name: Deploy
+
+# Manual, one instance at a time. Actions → Deploy → Run workflow → pick the
+# instance. The runner SSHes into the VPS and runs the same deploy.sh you would
+# run by hand, so there is one deploy path, not two.
+#
+# What actually deploys is whatever GIT_BRANCH the instance's env file points at
+# (deploy/instances/<instance>.env on the server) — this workflow just triggers it.
+on:
+  workflow_dispatch:
+    inputs:
+      instance:
+        description: "Instance to deploy"
+        required: true
+        type: choice
+        options:
+          - cfelbd-dev
+          - cfelbd-live
+          - uorghub
+
+# Names a GitHub Environment per instance. Add required reviewers to the
+# cfelbd-live / uorghub environments (repo Settings → Environments) to turn the
+# live deploys into approval-gated ones — the run pauses until someone approves.
+concurrency:
+  group: deploy-${{ inputs.instance }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy ${{ inputs.instance }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.instance }}
+    steps:
+      - name: Deploy over SSH
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_CHECKOUT: ${{ secrets.VPS_CHECKOUT }}
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          INSTANCE: ${{ inputs.instance }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+          echo "Deploying '$INSTANCE' on $VPS_HOST:$VPS_CHECKOUT"
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes \
+            "$VPS_USER@$VPS_HOST" \
+            "cd '$VPS_CHECKOUT' && ./deploy/deploy.sh '$INSTANCE'"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### Deploy: ${{ inputs.instance }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Result: ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Triggered by: @${{ github.actor }}" >> "$GITHUB_STEP_SUMMARY"

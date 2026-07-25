@@ -7,6 +7,9 @@ instance:
 sudo ./deploy/deploy.sh <instance>
 ```
 
+> Prefer a button? The same deploy runs from **GitHub → Actions → Deploy**.
+> Setup and details: [`.github/workflows/README.md`](../.github/workflows/README.md).
+
 That is the whole workflow. Everything that differs between instances lives in
 **`deploy/instances/<instance>.env`** — the single source of truth for that
 instance. You never edit the compose file or the script to add or change an
