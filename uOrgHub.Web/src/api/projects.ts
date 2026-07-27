@@ -439,6 +439,30 @@ export const updateMaterialRequestItem = (projectId: string, requestId: string, 
 export const deleteMaterialRequestItem = (projectId: string, requestId: string, itemId: string) =>
   apiClient.delete<ApiResponse<null>>(`/projects/${projectId}/material-requests/${requestId}/items/${itemId}`);
 
+export interface ProjectStatusLog {
+  id: string;
+  projectId: string;
+  fromStatus: string;
+  toStatus: string;
+  reason?: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+export const getProjectStatusLogs = (projectId: string) =>
+  apiClient.get<ApiResponse<ProjectStatusLog[]>>(`/projects/${projectId}/status-logs`);
+
+export const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
+  Inquiry: ["Inquiry", "Planning", "Tender", "Cancelled"],
+  Planning: ["Planning", "Active", "OnHold", "Cancelled"],
+  Tender: ["Tender", "Planning", "Active", "Cancelled"],
+  Active: ["Active", "OnHold", "Completed", "Handover", "Cancelled"],
+  OnHold: ["OnHold", "Active", "Cancelled"],
+  Handover: ["Handover", "Completed"],
+  Completed: ["Completed"],
+  Cancelled: ["Cancelled"],
+};
+
 export const getExpenses = (projectId: string, params: PaginationRequest) =>
   apiClient.get<ApiResponse<PagedResult<Expense>>>(`/projects/${projectId}/expenses`, { params });
 

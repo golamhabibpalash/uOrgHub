@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { createProject, updateProject, getProjectCategories, getClients, createClient, createProjectCategory, Project } from "../../api/projects";
+import { createProject, updateProject, getProjectCategories, getClients, createClient, createProjectCategory, Project, VALID_STATUS_TRANSITIONS } from "../../api/projects";
 import { extractApiError } from "../../utils/apiError";
 import { useEmployeeLookup } from "../../hooks/useEntityLookup";
 import SearchableDropdown from "../../components/shared/SearchableDropdown";
@@ -55,6 +55,12 @@ export default function ProjectForm({ project, onClose }: ProjectFormProps) {
     () => (catData?.data?.data?.items ?? []).map((c) => ({ value: c.id, label: `${c.code} — ${c.name}` })),
     [catData],
   );
+
+  const allowedStatuses = useMemo(
+    () => VALID_STATUS_TRANSITIONS[project?.status ?? "Inquiry"] ?? ["Inquiry"],
+    [project],
+  );
+  const isTerminal = project && (project.status === "Completed" || project.status === "Cancelled");
 
   const createClientMutation = useMutation({
     mutationFn: (data: { companyName: string; contactPerson?: string; email?: string; phone?: string }) =>
@@ -222,17 +228,19 @@ export default function ProjectForm({ project, onClose }: ProjectFormProps) {
             name="status"
             value={form.status}
             onChange={handleChange}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+            disabled={!!isTerminal}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <option value="Inquiry">Inquiry</option>
-            <option value="Tender">Tender</option>
-            <option value="Planning">Planning</option>
-            <option value="Active">Active</option>
-            <option value="OnHold">On Hold</option>
-            <option value="Handover">Handover</option>
-            <option value="Completed">Completed</option>
-            <option value="Cancelled">Cancelled</option>
+            {allowedStatuses.map((s) => (
+              <option key={s} value={s}>{s === "OnHold" ? "On Hold" : s}</option>
+            ))}
           </select>
+          {project && !isTerminal && (
+            <p className="text-xs text-gray-400 mt-1">Current: {project.status}</p>
+          )}
+          {!!isTerminal && (
+            <p className="text-xs text-amber-600 mt-1">Terminal state — status cannot be changed.</p>
+          )}
         </div>
         <div>
           <label className="text-xs text-gray-500 mb-1 block">Priority</label>

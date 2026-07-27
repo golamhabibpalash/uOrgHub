@@ -49,4 +49,5 @@ public class Project : BaseEntity
     public ICollection<NonConformanceReport> NCRs { get; set; } = new List<NonConformanceReport>();
     public ICollection<SafetyIncident> SafetyIncidents { get; set; } = new List<SafetyIncident>();
     public ICollection<RABill> RABills { get; set; } = new List<RABill>();
+    public ICollection<ProjectStatusLog> StatusLogs { get; set; } = new List<ProjectStatusLog>();
 }

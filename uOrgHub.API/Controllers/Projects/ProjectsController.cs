@@ -70,7 +70,7 @@ public class ProjectsController : BaseController
     [RequireClaim(Claims.Projects.Projects_.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProjectDto dto)
     {
-        var result = await _mediator.Send(new UpdateProjectCommand(id, dto));
+        var result = await _mediator.Send(new UpdateProjectCommand(id, dto, GetUserId().ToString()));
         return Ok(ApiResponse<ProjectResponseDto>.Ok(result, "Project updated successfully."));
     }
 
@@ -176,6 +176,16 @@ public class ProjectsController : BaseController
     {
         var result = await _mediator.Send(new GetProjectDPRsQuery(id, request));
         return Ok(ApiResponse<PagedResult<DPRResponseDto>>.Ok(result));
+    }
+
+    // --- Status Logs ---
+
+    [HttpGet("{id:guid}/status-logs")]
+    [RequireClaim(Claims.Projects.Projects_.View)]
+    public async Task<IActionResult> GetStatusLogs(Guid id)
+    {
+        var result = await _mediator.Send(new GetProjectStatusLogsQuery(id));
+        return Ok(ApiResponse<List<ProjectStatusLogResponseDto>>.Ok(result));
     }
 
     // --- Expenses ---

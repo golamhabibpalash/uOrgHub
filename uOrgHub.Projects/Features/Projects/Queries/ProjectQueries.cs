@@ -387,6 +387,32 @@ public class GetProjectWBSTreeQueryHandler : IRequestHandler<GetProjectWBSTreeQu
     }
 }
 
+public record GetProjectStatusLogsQuery(Guid ProjectId) : IQuery<List<ProjectStatusLogResponseDto>>;
+
+public class GetProjectStatusLogsQueryHandler : IRequestHandler<GetProjectStatusLogsQuery, List<ProjectStatusLogResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetProjectStatusLogsQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<List<ProjectStatusLogResponseDto>> Handle(GetProjectStatusLogsQuery request, CancellationToken ct)
+    {
+        return await _context.Set<ProjectStatusLog>()
+            .Where(x => !x.IsDeleted && x.ProjectId == request.ProjectId)
+            .OrderByDescending(x => x.CreatedAt)
+            .Select(x => new ProjectStatusLogResponseDto
+            {
+                Id = x.Id,
+                ProjectId = x.ProjectId,
+                FromStatus = x.FromStatus.ToString(),
+                ToStatus = x.ToStatus.ToString(),
+                Reason = x.Reason,
+                CreatedBy = x.CreatedBy,
+                CreatedAt = x.CreatedAt
+            })
+            .ToListAsync(ct);
+    }
+}
+
 public class GetAllProjectsForExportQueryHandler : IRequestHandler<GetAllProjectsForExportQuery, List<ProjectResponseDto>>
 {
     private readonly AppDbContext _context;

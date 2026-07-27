@@ -7,11 +7,12 @@ using uOrgHub.Projects.Models.Entities;
 using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Services;
 
 namespace uOrgHub.Projects.Features.Projects.Commands;
 
 public record CreateProjectCommand(CreateProjectDto Dto) : ICommand<ProjectResponseDto>;
-public record UpdateProjectCommand(Guid Id, UpdateProjectDto Dto) : ICommand<ProjectResponseDto>;
+public record UpdateProjectCommand(Guid Id, UpdateProjectDto Dto, string? ChangedBy = null) : ICommand<ProjectResponseDto>;
 public record DeleteProjectCommand(Guid Id) : ICommand<Unit>;
 public record AddProjectTeamMemberCommand(Guid ProjectId, AddProjectTeamMemberDto Dto) : ICommand<ProjectTeamResponseDto>;
 public record UpdateProjectTeamMemberCommand(Guid ProjectId, Guid MemberId, UpdateProjectTeamMemberDto Dto) : ICommand<ProjectTeamResponseDto>;
@@ -87,10 +88,16 @@ public class UpdateProjectCommandHandler : IRequestHandler<UpdateProjectCommand,
             .FirstOrDefaultAsync(x => !x.IsDeleted && x.Id == request.Id, ct)
             ?? throw new NotFoundException(nameof(Project), request.Id);
 
-        if (dto.Status == ProjectStatus.Active && entity.StartDate == default)
+        var oldStatus = entity.Status;
+        var newStatus = dto.Status;
+
+        if (oldStatus != newStatus && !ProjectStatusTransition.IsValid(oldStatus, newStatus))
+            throw new AppException($"Cannot transition project from {oldStatus} to {newStatus}.");
+
+        if (newStatus == ProjectStatus.Active && entity.StartDate == default)
             throw new AppException("Start date must be set before activating the project.");
 
-        if (dto.Status == ProjectStatus.Completed && !dto.ActualEndDate.HasValue)
+        if (newStatus == ProjectStatus.Completed && !dto.ActualEndDate.HasValue)
             entity.ActualEndDate = DateTime.UtcNow;
         else
             entity.ActualEndDate = dto.ActualEndDate;
@@ -104,11 +111,26 @@ public class UpdateProjectCommandHandler : IRequestHandler<UpdateProjectCommand,
         entity.StartDate = dto.StartDate;
         entity.PlannedEndDate = dto.PlannedEndDate;
         entity.ContractValue = dto.ContractValue;
-        entity.Status = dto.Status;
+        entity.Status = newStatus;
         entity.Priority = dto.Priority;
         entity.Description = dto.Description;
         entity.Notes = dto.Notes;
         entity.UpdatedAt = DateTime.UtcNow;
+        entity.UpdatedBy = request.ChangedBy;
+
+        if (oldStatus != newStatus)
+        {
+            _context.Set<ProjectStatusLog>().Add(new ProjectStatusLog
+            {
+                ProjectId = entity.Id,
+                FromStatus = oldStatus,
+                ToStatus = newStatus,
+                Reason = dto.Notes,
+                CreatedBy = request.ChangedBy ?? string.Empty,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
         await _context.SaveChangesAsync(ct);
 
         return await ProjectMapper.ToDtoWithIncludes(_context, entity.Id, ct);
