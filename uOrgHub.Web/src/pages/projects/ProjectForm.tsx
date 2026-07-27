@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { createProject, updateProject, getProjectCategories, getClients, Project } from "../../api/projects";
+import { createProject, updateProject, getProjectCategories, getClients, createClient, createProjectCategory, Project } from "../../api/projects";
 import { extractApiError } from "../../utils/apiError";
 import { useEmployeeLookup } from "../../hooks/useEntityLookup";
 import SearchableDropdown from "../../components/shared/SearchableDropdown";
+import Modal from "../../components/shared/Modal";
 
 interface ProjectFormProps {
   project: Project | null;
@@ -28,6 +29,10 @@ export default function ProjectForm({ project, onClose }: ProjectFormProps) {
     description: "",
   });
   const [cvDisplay, setCvDisplay] = useState("0");
+  const [quickCreate, setQuickCreate] = useState<{ type: "client" | "category" } | null>(null);
+  const [newClientForm, setNewClientForm] = useState({ companyName: "", contactPerson: "", email: "", phone: "" });
+  const [newCategoryForm, setNewCategoryForm] = useState({ name: "", code: "", description: "" });
+  const [quickCreateError, setQuickCreateError] = useState("");
 
   const { data: clientData } = useQuery({
     queryKey: ["clients"],
@@ -50,6 +55,32 @@ export default function ProjectForm({ project, onClose }: ProjectFormProps) {
     () => (catData?.data?.data?.items ?? []).map((c) => ({ value: c.id, label: `${c.code} — ${c.name}` })),
     [catData],
   );
+
+  const createClientMutation = useMutation({
+    mutationFn: (data: { companyName: string; contactPerson?: string; email?: string; phone?: string }) =>
+      createClient(data),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["clients"] });
+      const client = res.data.data;
+      if (client) setForm((f) => ({ ...f, clientId: client.id }));
+      setQuickCreate(null);
+      setQuickCreateError("");
+    },
+    onError: (err: Error) => setQuickCreateError(extractApiError(err)),
+  });
+
+  const createCategoryMutation = useMutation({
+    mutationFn: (data: { name: string; code: string; description?: string }) =>
+      createProjectCategory(data),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["project-categories"] });
+      const cat = res.data.data;
+      if (cat) setForm((f) => ({ ...f, categoryId: cat.id }));
+      setQuickCreate(null);
+      setQuickCreateError("");
+    },
+    onError: (err: Error) => setQuickCreateError(extractApiError(err)),
+  });
 
   useEffect(() => {
     if (project) {
@@ -107,10 +138,10 @@ export default function ProjectForm({ project, onClose }: ProjectFormProps) {
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <SearchableDropdown label="Client *" options={clientOptions} value={form.clientId} onChange={(v) => setForm((f) => ({ ...f, clientId: v ?? "" }))} placeholder="Select Client" searchPlaceholder="Search clients..." required />
+          <SearchableDropdown label="Client *" options={clientOptions} value={form.clientId} onChange={(v) => setForm((f) => ({ ...f, clientId: v ?? "" }))} placeholder="Select Client" searchPlaceholder="Search clients..." required creatable onCreate={(label) => { setNewClientForm({ companyName: label, contactPerson: "", email: "", phone: "" }); setQuickCreate({ type: "client" }); setQuickCreateError(""); }} />
         </div>
         <div>
-          <SearchableDropdown label="Category *" options={categoryOptions} value={form.categoryId} onChange={(v) => setForm((f) => ({ ...f, categoryId: v ?? "" }))} placeholder="Select Category" searchPlaceholder="Search categories..." loading={catLoading} required />
+          <SearchableDropdown label="Category *" options={categoryOptions} value={form.categoryId} onChange={(v) => setForm((f) => ({ ...f, categoryId: v ?? "" }))} placeholder="Select Category" searchPlaceholder="Search categories..." loading={catLoading} required creatable onCreate={(label) => { const code = label.replace(/[^a-zA-Z0-9]/g, "").substring(0, 4).toUpperCase(); setNewCategoryForm({ name: label, code, description: "" }); setQuickCreate({ type: "category" }); setQuickCreateError(""); }} />
         </div>
       </div>
 
@@ -229,6 +260,56 @@ export default function ProjectForm({ project, onClose }: ProjectFormProps) {
           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
         />
       </div>
+
+      <Modal title="New Client" open={quickCreate?.type === "client"} onClose={() => setQuickCreate(null)} size="sm">
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Company Name *</label>
+            <input value={newClientForm.companyName} onChange={(e) => setNewClientForm((f) => ({ ...f, companyName: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Contact Person</label>
+            <input value={newClientForm.contactPerson} onChange={(e) => setNewClientForm((f) => ({ ...f, contactPerson: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Email</label>
+              <input value={newClientForm.email} onChange={(e) => setNewClientForm((f) => ({ ...f, email: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Phone</label>
+              <input value={newClientForm.phone} onChange={(e) => setNewClientForm((f) => ({ ...f, phone: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" />
+            </div>
+          </div>
+          {quickCreateError && <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{quickCreateError}</div>}
+          <div className="flex justify-end gap-2 pt-1">
+            <button onClick={() => setQuickCreate(null)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
+            <button onClick={() => createClientMutation.mutate(newClientForm)} disabled={createClientMutation.isPending || !newClientForm.companyName.trim()} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">{createClientMutation.isPending ? "Creating..." : "Create"}</button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal title="New Category" open={quickCreate?.type === "category"} onClose={() => setQuickCreate(null)} size="sm">
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Name *</label>
+            <input value={newCategoryForm.name} onChange={(e) => setNewCategoryForm((f) => ({ ...f, name: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Code *</label>
+            <input value={newCategoryForm.code} onChange={(e) => setNewCategoryForm((f) => ({ ...f, code: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Description</label>
+            <textarea value={newCategoryForm.description} onChange={(e) => setNewCategoryForm((f) => ({ ...f, description: e.target.value }))} rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" />
+          </div>
+          {quickCreateError && <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{quickCreateError}</div>}
+          <div className="flex justify-end gap-2 pt-1">
+            <button onClick={() => setQuickCreate(null)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
+            <button onClick={() => createCategoryMutation.mutate(newCategoryForm)} disabled={createCategoryMutation.isPending || !newCategoryForm.name.trim() || !newCategoryForm.code.trim()} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">{createCategoryMutation.isPending ? "Creating..." : "Create"}</button>
+          </div>
+        </div>
+      </Modal>
 
       {error && (
         <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
