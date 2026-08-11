@@ -158,7 +158,7 @@ public class CreateVoucherCommandHandler : IRequestHandler<CreateVoucherCommand,
         if (request.Dto.FiscalYearId.HasValue)
             await VoucherGuard.ValidateFiscalYearAsync(_context, request.Dto.FiscalYearId.Value, request.Dto.VoucherDate, ct);
 
-        var prefix = request.Dto.VoucherType == VoucherType.Debit ? "DR" : "CR";
+        var prefix = VoucherAccountRules.NumberPrefix(request.Dto.VoucherType);
         var voucherNumber = await _numbering.GenerateNextAsync("Voucher", prefix);
 
         if (await _context.Set<Models.Entities.Voucher>().AnyAsync(x => x.VoucherNumber == voucherNumber && !x.IsDeleted, ct))
@@ -464,9 +464,9 @@ public class GetVoucherAccountOptionsQueryHandler : IRequestHandler<GetVoucherAc
 
     public async Task<VoucherAccountOptionsDto> Handle(GetVoucherAccountOptionsQuery request, CancellationToken ct)
     {
-        var moneyTypes = VoucherAccountRules.MoneyAccountTypes.ToList();
-        var partyTypes = VoucherAccountRules.PartyAccountTypes(request.VoucherType).ToList();
-        var wanted = moneyTypes.Union(partyTypes).ToList();
+        var debitTypes = VoucherAccountRules.TypesForSide(request.VoucherType, isDebitSide: true).ToList();
+        var creditTypes = VoucherAccountRules.TypesForSide(request.VoucherType, isDebitSide: false).ToList();
+        var wanted = debitTypes.Union(creditTypes).ToList();
 
         var accounts = await _context.Set<Models.Entities.ChartOfAccount>()
             .Include(x => x.AccountGroup)
@@ -497,42 +497,39 @@ public class GetVoucherAccountOptionsQueryHandler : IRequestHandler<GetVoucherAc
             return dto;
         }
 
-        // Bank-backed accounts first: on the money side they are what the user reaches for most.
-        var money = accounts
-            .Where(a => moneyTypes.Contains(a.AccountType))
-            .Select(a =>
-            {
-                var dto = ToOption(a);
-                dto.GroupLabel = dto.IsBankLinked ? "Bank accounts" : "Cash and other asset accounts";
-                return dto;
-            })
-            .OrderByDescending(o => o.IsBankLinked)
-            .ThenBy(o => o.AccountCode)
-            .ToList();
+        // On the party side four of the five account types qualify, so the list is close to the
+        // whole chart of accounts. Grouping by type in relevance order — and sinking bank
+        // accounts, which belong on the money side — is what keeps it navigable. On the money
+        // side the ordering simply puts bank-backed accounts first.
+        List<VoucherAccountOptionDto> OptionsForSide(bool isDebitSide)
+        {
+            var role = isDebitSide
+                ? VoucherAccountRules.RoleOfDebitSide(request.VoucherType)
+                : VoucherAccountRules.RoleOfCreditSide(request.VoucherType);
+            var types = isDebitSide ? debitTypes : creditTypes;
 
-        // Four of the five account types are valid party accounts, so this list is close to the
-        // whole chart of accounts. Grouping it by type in relevance order — and sinking bank
-        // accounts, which belong on the money side — is what keeps it navigable.
-        var party = accounts
-            .Where(a => partyTypes.Contains(a.AccountType))
-            .Select(a =>
-            {
-                var dto = ToOption(a);
-                dto.GroupLabel = VoucherAccountRules.PartyGroupLabel(request.VoucherType, a.AccountType);
-                return dto;
-            })
-            .OrderBy(o => partyTypes.IndexOf(o.AccountType))
-            .ThenBy(o => o.IsBankLinked)
-            .ThenBy(o => o.AccountCode)
-            .ToList();
+            return accounts
+                .Where(a => types.Contains(a.AccountType))
+                .Select(a =>
+                {
+                    var dto = ToOption(a);
+                    dto.GroupLabel = VoucherAccountRules.GroupLabel(request.VoucherType, a.AccountType, role, dto.IsBankLinked);
+                    return dto;
+                })
+                .OrderBy(o => types.IndexOf(o.AccountType))
+                .ThenBy(o => role == VoucherAccountRole.Money ? (o.IsBankLinked ? 0 : 1) : (o.IsBankLinked ? 1 : 0))
+                .ThenBy(o => o.AccountCode)
+                .ToList();
+        }
 
         return new VoucherAccountOptionsDto
         {
             VoucherType = request.VoucherType,
-            MoneyAccounts = money,
-            PartyAccounts = party,
-            MoneyIsOnDebitSide = VoucherAccountRules.MoneyIsOnDebitSide(request.VoucherType),
-            MoneyFieldLabel = VoucherAccountRules.FieldLabel(request.VoucherType, VoucherAccountRole.Money)
+            DebitAccounts = OptionsForSide(isDebitSide: true),
+            CreditAccounts = OptionsForSide(isDebitSide: false),
+            DebitFieldLabel = VoucherAccountRules.SideLabel(request.VoucherType, isDebitSide: true),
+            CreditFieldLabel = VoucherAccountRules.SideLabel(request.VoucherType, isDebitSide: false),
+            IsOwnAccountTransfer = VoucherAccountRules.IsOwnAccountTransfer(request.VoucherType)
         };
     }
 }
@@ -557,6 +554,7 @@ file static class VoucherGuard
     ///
     /// Credit Voucher (money in):  debit the receiving cash/bank account, credit the source.
     /// Debit Voucher  (money out): debit the expense/payable, credit the paying cash/bank account.
+    /// Contra Voucher (transfer):  both sides are the organisation's own money accounts.
     /// </summary>
     public static async Task ValidateAccountsAsync(
         AppDbContext context,
@@ -571,19 +569,23 @@ file static class VoucherGuard
         var debit = await LoadPostableAccountAsync(context, debitAccountId, "Debit", ct);
         var credit = await LoadPostableAccountAsync(context, creditAccountId, "Credit", ct);
 
-        Check(debit, VoucherAccountRules.RoleOfDebitSide(voucherType));
-        Check(credit, VoucherAccountRules.RoleOfCreditSide(voucherType));
+        Check(debit, isDebitSide: true);
+        Check(credit, isDebitSide: false);
 
-        void Check(Models.Entities.ChartOfAccount account, VoucherAccountRole role)
+        void Check(Models.Entities.ChartOfAccount account, bool isDebitSide)
         {
+            var role = isDebitSide
+                ? VoucherAccountRules.RoleOfDebitSide(voucherType)
+                : VoucherAccountRules.RoleOfCreditSide(voucherType);
+
             if (VoucherAccountRules.IsEligible(account, voucherType, role))
                 return;
 
-            var label = VoucherAccountRules.FieldLabel(voucherType, role);
-            var allowed = string.Join(", ", VoucherAccountRules.TypesFor(voucherType, role));
+            var label = VoucherAccountRules.SideLabel(voucherType, isDebitSide);
+            var allowed = string.Join(", ", VoucherAccountRules.TypesForSide(voucherType, isDebitSide));
 
             var reason = role == VoucherAccountRole.Money
-                ? "money can only be received into or paid from an asset account such as cash or a bank account"
+                ? "money can only move through an asset account such as cash or a bank account"
                 : $"a {voucherType} Voucher cannot be booked against an account of type {account.AccountType}";
 
             throw new ValidationException(new List<string>

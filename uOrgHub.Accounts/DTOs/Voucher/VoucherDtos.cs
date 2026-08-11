@@ -75,23 +75,26 @@ public class VoucherAccountOptionDto
 }
 
 /// <summary>
-/// The accounts a given voucher type may use, split by the side they belong on. Returned as one
-/// payload so the form cannot pair a stale money list with a fresh party list.
+/// The accounts a given voucher type may use on each side, with the label each side carries.
+/// Expressed per side rather than per role so a Contra voucher — which has money on both sides
+/// and no party side — needs no special case. Returned as one payload so the form cannot pair a
+/// stale list for one side with a fresh list for the other.
 /// </summary>
 public class VoucherAccountOptionsDto
 {
     public VoucherType VoucherType { get; set; }
 
-    /// <summary>Where money is received into (Credit Voucher) or paid from (Debit Voucher).</summary>
-    public List<VoucherAccountOptionDto> MoneyAccounts { get; set; } = new();
+    public List<VoucherAccountOptionDto> DebitAccounts { get; set; } = new();
+    public List<VoucherAccountOptionDto> CreditAccounts { get; set; } = new();
 
-    /// <summary>Who or what the money came from, or went to.</summary>
-    public List<VoucherAccountOptionDto> PartyAccounts { get; set; } = new();
+    /// <summary>e.g. "Receive Into", "Party Account", "Transfer To".</summary>
+    public string DebitFieldLabel { get; set; } = string.Empty;
+    public string CreditFieldLabel { get; set; } = string.Empty;
 
-    /// <summary>True when the money account belongs on the debit side for this voucher type.</summary>
-    public bool MoneyIsOnDebitSide { get; set; }
-
-    public string MoneyFieldLabel { get; set; } = string.Empty;
+    /// <summary>
+    /// True for a Contra voucher, where money only moves between the organisation's own accounts.
+    /// </summary>
+    public bool IsOwnAccountTransfer { get; set; }
 }
 
 public class VoucherResponseDto

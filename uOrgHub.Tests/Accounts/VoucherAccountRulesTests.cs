@@ -27,7 +27,6 @@ public class VoucherAccountRulesTests
     [Fact]
     public void Credit_voucher_takes_money_in_so_cash_sits_on_the_debit_side()
     {
-        VoucherAccountRules.MoneyIsOnDebitSide(VoucherType.Credit).Should().BeTrue();
         VoucherAccountRules.RoleOfDebitSide(VoucherType.Credit).Should().Be(VoucherAccountRole.Money);
         VoucherAccountRules.RoleOfCreditSide(VoucherType.Credit).Should().Be(VoucherAccountRole.Party);
     }
@@ -35,9 +34,68 @@ public class VoucherAccountRulesTests
     [Fact]
     public void Debit_voucher_pays_money_out_so_cash_sits_on_the_credit_side()
     {
-        VoucherAccountRules.MoneyIsOnDebitSide(VoucherType.Debit).Should().BeFalse();
         VoucherAccountRules.RoleOfCreditSide(VoucherType.Debit).Should().Be(VoucherAccountRole.Money);
         VoucherAccountRules.RoleOfDebitSide(VoucherType.Debit).Should().Be(VoucherAccountRole.Party);
+    }
+
+    // --- Contra: money on both sides, so no party side at all ---
+
+    [Fact]
+    public void Contra_voucher_has_money_accounts_on_both_sides()
+    {
+        VoucherAccountRules.RoleOfDebitSide(VoucherType.Contra).Should().Be(VoucherAccountRole.Money);
+        VoucherAccountRules.RoleOfCreditSide(VoucherType.Contra).Should().Be(VoucherAccountRole.Money);
+    }
+
+    [Fact]
+    public void Contra_voucher_is_the_only_own_account_transfer()
+    {
+        VoucherAccountRules.IsOwnAccountTransfer(VoucherType.Contra).Should().BeTrue();
+        VoucherAccountRules.IsOwnAccountTransfer(VoucherType.Credit).Should().BeFalse();
+        VoucherAccountRules.IsOwnAccountTransfer(VoucherType.Debit).Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(AccountGroupType.Income)]
+    [InlineData(AccountGroupType.Expense)]
+    [InlineData(AccountGroupType.Liability)]
+    [InlineData(AccountGroupType.Equity)]
+    public void Contra_voucher_rejects_anything_that_is_not_an_asset_on_either_side(AccountGroupType type)
+    {
+        VoucherAccountRules
+            .IsEligible(Account(type), VoucherType.Contra, VoucherAccountRole.Money)
+            .Should().BeFalse();
+
+        VoucherAccountRules.TypesForSide(VoucherType.Contra, isDebitSide: true)
+            .Should().NotContain(type);
+        VoucherAccountRules.TypesForSide(VoucherType.Contra, isDebitSide: false)
+            .Should().NotContain(type);
+    }
+
+    [Fact]
+    public void Contra_voucher_accepts_asset_accounts_on_both_sides()
+    {
+        VoucherAccountRules.TypesForSide(VoucherType.Contra, isDebitSide: true)
+            .Should().Equal(AccountGroupType.Asset);
+        VoucherAccountRules.TypesForSide(VoucherType.Contra, isDebitSide: false)
+            .Should().Equal(AccountGroupType.Asset);
+    }
+
+    [Fact]
+    public void Each_voucher_type_has_its_own_number_series()
+    {
+        VoucherAccountRules.NumberPrefix(VoucherType.Debit).Should().Be("DR");
+        VoucherAccountRules.NumberPrefix(VoucherType.Credit).Should().Be("CR");
+        VoucherAccountRules.NumberPrefix(VoucherType.Contra).Should().Be("CN");
+    }
+
+    [Fact]
+    public void Persisted_voucher_type_values_are_pinned()
+    {
+        // Stored as integers, so reordering would silently re-label existing vouchers.
+        ((int)VoucherType.Debit).Should().Be(0);
+        ((int)VoucherType.Credit).Should().Be(1);
+        ((int)VoucherType.Contra).Should().Be(2);
     }
 
     // --- Money side: only assets, whatever the voucher type ---
@@ -157,19 +215,38 @@ public class VoucherAccountRulesTests
     {
         foreach (var type in VoucherAccountRules.PartyAccountTypes(voucherType))
         {
-            VoucherAccountRules.PartyGroupLabel(voucherType, type)
+            VoucherAccountRules.GroupLabel(voucherType, type, VoucherAccountRole.Party, isBankLinked: false)
                 .Should().NotBeNullOrWhiteSpace()
                 .And.NotBe(type.ToString(), "each party type needs a plain-language heading");
         }
     }
 
+    [Fact]
+    public void Money_side_is_grouped_by_whether_a_bank_account_is_attached()
+    {
+        VoucherAccountRules
+            .GroupLabel(VoucherType.Credit, AccountGroupType.Asset, VoucherAccountRole.Money, isBankLinked: true)
+            .Should().Be("Bank accounts");
+        VoucherAccountRules
+            .GroupLabel(VoucherType.Credit, AccountGroupType.Asset, VoucherAccountRole.Money, isBankLinked: false)
+            .Should().Be("Cash and other asset accounts");
+    }
+
     // --- Labels the user sees ---
 
     [Fact]
-    public void Money_field_is_labelled_for_the_direction_of_the_voucher()
+    public void Each_side_is_labelled_for_the_direction_of_the_voucher()
     {
-        VoucherAccountRules.FieldLabel(VoucherType.Credit, VoucherAccountRole.Money).Should().Be("Receive Into");
-        VoucherAccountRules.FieldLabel(VoucherType.Debit, VoucherAccountRole.Money).Should().Be("Pay From");
-        VoucherAccountRules.FieldLabel(VoucherType.Credit, VoucherAccountRole.Party).Should().Be("Party Account");
+        VoucherAccountRules.SideLabel(VoucherType.Credit, isDebitSide: true).Should().Be("Receive Into");
+        VoucherAccountRules.SideLabel(VoucherType.Credit, isDebitSide: false).Should().Be("Party Account");
+        VoucherAccountRules.SideLabel(VoucherType.Debit, isDebitSide: true).Should().Be("Party Account");
+        VoucherAccountRules.SideLabel(VoucherType.Debit, isDebitSide: false).Should().Be("Pay From");
+    }
+
+    [Fact]
+    public void Contra_sides_are_named_by_direction_of_travel()
+    {
+        VoucherAccountRules.SideLabel(VoucherType.Contra, isDebitSide: true).Should().Be("Transfer To");
+        VoucherAccountRules.SideLabel(VoucherType.Contra, isDebitSide: false).Should().Be("Transfer From");
     }
 }

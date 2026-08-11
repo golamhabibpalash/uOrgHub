@@ -15,9 +15,12 @@ interface VoucherPrintViewProps {
  */
 const VoucherPrintView = forwardRef<HTMLDivElement, VoucherPrintViewProps>(
   ({ voucher, companyName, companyAddress }, ref) => {
-    const isDebit = voucher.voucherType === "Debit";
     const theme = voucherThemes[voucher.voucherType];
-    const nameLabel = isDebit ? "Paid To" : "Received From";
+    // A Contra voucher has no counterparty — money stays inside the organisation — so the field
+    // carries the transfer's reference rather than a person's name.
+    const nameLabel = { Debit: "Paid To", Credit: "Received From", Contra: "Reference" }[
+      voucher.voucherType
+    ];
 
     return (
       <div ref={ref} className="bg-white text-gray-900" style={{ fontSize: "12px" }}>

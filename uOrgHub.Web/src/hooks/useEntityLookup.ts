@@ -330,17 +330,16 @@ export function useVoucherAccountOptions(voucherType: VoucherType) {
 
   const data = query.data?.data?.data;
 
-  const moneyOptions = useMemo(() => toOptions(data?.moneyAccounts, toAccountOption), [data]);
-  const partyOptions = useMemo(() => toOptions(data?.partyAccounts, toAccountOption), [data]);
+  const debitOptions = useMemo(() => toOptions(data?.debitAccounts, toAccountOption), [data]);
+  const creditOptions = useMemo(() => toOptions(data?.creditAccounts, toAccountOption), [data]);
 
   return {
-    moneyOptions,
-    partyOptions,
-    // A Credit Voucher takes money in, so cash/bank sits on the debit side; a Debit Voucher pays
-    // money out, so it sits on the credit side. The server states which, rather than the form
-    // re-deriving it.
-    moneyIsOnDebitSide: data?.moneyIsOnDebitSide ?? voucherType === "Credit",
-    moneyFieldLabel: data?.moneyFieldLabel ?? (voucherType === "Credit" ? "Receive Into" : "Pay From"),
+    debitOptions,
+    creditOptions,
+    // Side labels come from the server so the form and the validation messages always agree.
+    debitFieldLabel: data?.debitFieldLabel ?? "Debit Account",
+    creditFieldLabel: data?.creditFieldLabel ?? "Credit Account",
+    isOwnAccountTransfer: data?.isOwnAccountTransfer ?? voucherType === "Contra",
     isLoading: query.isLoading,
   };
 }

@@ -114,13 +114,18 @@ public class ProjectFinancialService : IProjectFinancialService
     /// Money in and money out for the project, taken from posted vouchers. A Credit Voucher is a
     /// receipt and a Debit Voucher a payment, so the split needs no account-type reasoning —
     /// the voucher type already states the direction.
+    ///
+    /// Contra vouchers are deliberately excluded from both: they move money between the
+    /// organisation's own accounts, so counting one would inflate the project's cash flow with
+    /// money that never entered or left it.
     /// </summary>
     private async Task<(decimal Receipts, decimal Payments)> GetVoucherCashFlowAsync(Guid projectId, CancellationToken ct)
     {
         var rows = await _db.Set<Voucher>()
             .Where(v => !v.IsDeleted
                 && v.ProjectId == projectId
-                && v.Status == VoucherStatus.Posted)
+                && v.Status == VoucherStatus.Posted
+                && (v.VoucherType == VoucherType.Credit || v.VoucherType == VoucherType.Debit))
             .GroupBy(v => v.VoucherType)
             .Select(g => new { VoucherType = g.Key, Total = g.Sum(v => v.Amount) })
             .ToListAsync(ct);

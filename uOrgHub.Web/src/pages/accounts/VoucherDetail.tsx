@@ -126,8 +126,17 @@ export default function VoucherDetail() {
   if (isLoading) return <div className="p-6 text-sm text-gray-400">Loading voucher…</div>;
   if (!voucher) return <div className="p-6 text-sm text-gray-400">Voucher not found.</div>;
 
-  const isDebit = voucher.voucherType === "Debit";
   const theme = voucherThemes[voucher.voucherType];
+  // A Contra voucher moves money between own accounts, so there is no paying or receiving party.
+  const nameLabel = { Debit: "Paid To", Credit: "Received From", Contra: "Reference" }[
+    voucher.voucherType
+  ];
+  const debitLabel = { Debit: "Party Account", Credit: "Receive Into", Contra: "Transfer To" }[
+    voucher.voucherType
+  ];
+  const creditLabel = { Debit: "Pay From", Credit: "Party Account", Contra: "Transfer From" }[
+    voucher.voucherType
+  ];
   const currentStep = workflow.indexOf(voucher.status);
   const isClosed = voucher.status === "Rejected" || voucher.status === "Cancelled";
 
@@ -281,7 +290,7 @@ export default function VoucherDetail() {
 
       {/* Summary */}
       <div className="bg-white border border-gray-200 rounded-xl p-5 mb-4 grid grid-cols-2 md:grid-cols-4 gap-5">
-        <Field label={isDebit ? "Paid To" : "Received From"} value={voucher.name} />
+        <Field label={nameLabel} value={voucher.name} />
         <Field label="Section" value={voucher.section} />
         <Field
           label={voucher.projectId ? "Project" : "Charged To"}
@@ -291,11 +300,11 @@ export default function VoucherDetail() {
         <Field label="Prepared By" value={voucher.preparedBy} />
 
         <div className="col-span-2">
-          <p className="text-xs text-gray-400">Debit Account</p>
+          <p className="text-xs text-gray-400">{debitLabel} — Debit</p>
           <p className="text-sm text-gray-800 mt-0.5">{voucher.debitAccountName}</p>
         </div>
         <div className="col-span-2">
-          <p className="text-xs text-gray-400">Credit Account</p>
+          <p className="text-xs text-gray-400">{creditLabel} — Credit</p>
           <p className="text-sm text-gray-800 mt-0.5">{voucher.creditAccountName}</p>
         </div>
 

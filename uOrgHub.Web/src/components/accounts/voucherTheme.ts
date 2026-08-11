@@ -1,17 +1,18 @@
 import { VoucherType } from "../../api/accounts";
 
 /**
- * Colour identity for the two voucher types, kept in one place so the entry screen,
+ * Colour identity for the voucher types, kept in one place so the entry screen,
  * form, list, detail page and printed voucher all read the same way.
  *
- * Debit Voucher  = money paid out    → red
- * Credit Voucher = money received    → green
+ * Debit Voucher  = money paid out            → red
+ * Credit Voucher = money received            → green
+ * Contra Voucher = moved between own accounts → blue (neither in nor out)
  *
  * Class names are written out in full: Tailwind only picks up literal strings.
  */
 export interface VoucherTheme {
   label: string;
-  code: "DR" | "CR";
+  code: "DR" | "CR" | "CN";
   meaning: string;
   effect: string;
   /** Solid fill for icon tiles. */
@@ -64,6 +65,21 @@ export const voucherThemes: Record<VoucherType, VoucherTheme> = {
     printBorder: "border-emerald-700",
     printHeader: "bg-emerald-50",
     printText: "text-emerald-700",
+  },
+  Contra: {
+    label: "Contra Voucher",
+    code: "CN",
+    meaning: "Transfer between own accounts",
+    effect: "Total cash and bank is unchanged",
+    solid: "bg-sky-600",
+    badge: "bg-sky-50 text-sky-700",
+    chip: "text-sky-700 bg-sky-50 border-sky-300",
+    banner: "bg-sky-50 border-sky-200",
+    bar: "bg-sky-600",
+    hover: "hover:border-sky-400 hover:ring-sky-100",
+    printBorder: "border-sky-700",
+    printHeader: "bg-sky-50",
+    printText: "text-sky-700",
   },
 };
 

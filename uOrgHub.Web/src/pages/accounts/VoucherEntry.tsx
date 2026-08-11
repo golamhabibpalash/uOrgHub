@@ -1,16 +1,17 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowDownLeft, ArrowUpRight, List } from "lucide-react";
+import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, List } from "lucide-react";
 import { VoucherType } from "../../api/accounts";
 import { voucherThemes } from "../../components/accounts/voucherTheme";
 
 const icons: Record<VoucherType, typeof ArrowUpRight> = {
   Debit: ArrowUpRight,
   Credit: ArrowDownLeft,
+  Contra: ArrowLeftRight,
 };
 
 export default function VoucherEntry() {
   const navigate = useNavigate();
-  const types: VoucherType[] = ["Debit", "Credit"];
+  const types: VoucherType[] = ["Debit", "Credit", "Contra"];
 
   return (
     <div className="p-6">
@@ -29,7 +30,7 @@ export default function VoucherEntry() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-4xl">
         {types.map((type) => {
           const theme = voucherThemes[type];
           const Icon = icons[type];
@@ -59,9 +60,14 @@ export default function VoucherEntry() {
         })}
       </div>
 
-      <p className="text-xs text-gray-400 mt-6 max-w-3xl">
+      <p className="text-xs text-gray-400 mt-6 max-w-4xl">
         Every voucher you save is recorded as a balanced accounting transaction — the system prepares the
-        journal entry for you, so the debit and credit sides always match.
+        journal entry for you, so the debit and credit sides always match. To move an amount between two
+        non-cash heads, or to record anything needing more than one debit and one credit, use{" "}
+        <button onClick={() => navigate("/accounts/journal-entries")} className="underline hover:text-gray-600">
+          Journal Entries
+        </button>{" "}
+        instead.
       </p>
     </div>
   );

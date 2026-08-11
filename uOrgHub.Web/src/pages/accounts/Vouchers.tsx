@@ -210,6 +210,7 @@ export default function Vouchers() {
               <option value="">All types</option>
               <option value="Debit">Debit (DR)</option>
               <option value="Credit">Credit (CR)</option>
+              <option value="Contra">Contra (CN)</option>
             </select>
             <select
               className={selectClass}

@@ -13,7 +13,7 @@ export type BillStatus = "Draft" | "Received" | "PartiallyPaid" | "Paid" | "Over
 export type PaymentType = "CustomerPayment" | "VendorPayment" | "AdvanceToVendor" | "AdvanceFromCustomer" | "Refund";
 export type PaymentMethod = "Cash" | "BankTransfer" | "Cheque" | "CreditCard" | "DebitCard" | "MobileBanking" | "OnlineTransfer";
 export type BudgetStatus = "Draft" | "Approved" | "Active" | "Closed" | "Cancelled";
-export type VoucherType = "Debit" | "Credit";
+export type VoucherType = "Debit" | "Credit" | "Contra";
 export type VoucherStatus = "Draft" | "Submitted" | "Approved" | "Posted" | "Rejected" | "Cancelled";
 
 // ── Account Groups ─────────────────────────────────────────────────────────
@@ -254,17 +254,20 @@ export interface VoucherAccountOption {
 }
 
 /**
- * The accounts valid for each side of one voucher type. Both lists come from the server in a
- * single call so the form cannot pair a stale money list with a fresh party list.
+ * The accounts valid for each side of one voucher type, with the label each side carries. Keyed
+ * by side rather than by role, so a Contra voucher — money on both sides — needs no special case.
+ * Both lists come from the server in a single call so the form cannot pair a stale list for one
+ * side with a fresh list for the other.
  */
 export interface VoucherAccountOptions {
   voucherType: VoucherType;
-  /** Where money is received into (Credit Voucher) or paid from (Debit Voucher). */
-  moneyAccounts: VoucherAccountOption[];
-  /** Who or what the money came from, or went to. */
-  partyAccounts: VoucherAccountOption[];
-  moneyIsOnDebitSide: boolean;
-  moneyFieldLabel: string;
+  debitAccounts: VoucherAccountOption[];
+  creditAccounts: VoucherAccountOption[];
+  /** e.g. "Receive Into", "Party Account", "Transfer To". */
+  debitFieldLabel: string;
+  creditFieldLabel: string;
+  /** True for a Contra voucher: money moved between the organisation's own accounts. */
+  isOwnAccountTransfer: boolean;
 }
 
 export interface CreateVoucherPayload {

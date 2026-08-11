@@ -34,6 +34,11 @@ function withTypedValue(options: SelectOption[], value: string): SelectOption[] 
   return [...options, { value, label: value }];
 }
 
+/** Falls back to Debit for a missing or unrecognised ?type=, rather than trusting the URL. */
+function parseVoucherType(raw: string | null): VoucherType {
+  return raw === "Credit" || raw === "Contra" ? raw : "Debit";
+}
+
 interface FormState {
   voucherDate: string;
   fiscalYearId: string;
@@ -96,7 +101,7 @@ export default function VoucherForm() {
       key={id ?? "new"}
       voucherId={id}
       voucherNumber={voucher?.voucherNumber}
-      voucherType={voucher?.voucherType ?? (searchParams.get("type") === "Credit" ? "Credit" : "Debit")}
+      voucherType={voucher?.voucherType ?? parseVoucherType(searchParams.get("type"))}
       initialForm={
         voucher
           ? {
@@ -135,8 +140,14 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
   const [form, setForm] = useState<FormState>(initialForm);
   const [error, setError] = useState("");
 
-  const { moneyOptions, partyOptions, moneyIsOnDebitSide, moneyFieldLabel, isLoading: loadingAccounts } =
-    useVoucherAccountOptions(voucherType);
+  const {
+    debitOptions,
+    creditOptions,
+    debitFieldLabel,
+    creditFieldLabel,
+    isOwnAccountTransfer,
+    isLoading: loadingAccounts,
+  } = useVoucherAccountOptions(voucherType);
   const { options: projects, isLoading: loadingProjects } = useProjectLookup();
   const { options: overheadCostCenters, isLoading: loadingCostCenters } = useOverheadCostCenterLookup();
   const { options: fiscalYears, findByDate } = useFiscalYearLookup();
@@ -149,22 +160,15 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
   const fiscalYearIsAutomatic = form.fiscalYearId === "" && fiscalYearId !== "";
   const noFiscalYearForDate = form.voucherDate !== "" && fiscalYearId === "";
 
-  const isDebitVoucher = voucherType === "Debit";
   const theme = voucherThemes[voucherType];
 
-  // The server says which side holds the money account for this voucher type; the form only
-  // decides which of the two dropdowns writes to debitAccountId and which to creditAccountId.
-  type AccountField = "debitAccountId" | "creditAccountId";
-  const moneyField: AccountField = moneyIsOnDebitSide ? "debitAccountId" : "creditAccountId";
-  const partyField: AccountField = moneyIsOnDebitSide ? "creditAccountId" : "debitAccountId";
-
-  const partyFieldLabel = isDebitVoucher
-    ? "Party Account — Expense / Payable (Debit)"
-    : "Party Account — Income / Investor / Receivable (Credit)";
-
-  const labels = isDebitVoucher
-    ? { nameLabel: "Paid To", namePlaceholder: "Name of person or party receiving the money" }
-    : { nameLabel: "Received From", namePlaceholder: "Name of person or party paying the money" };
+  // "Paid To" / "Received From" only make sense when money crosses the organisation's boundary.
+  // A Contra voucher moves it internally, so the field names the reason instead of a party.
+  const labels = {
+    Debit: { nameLabel: "Paid To", namePlaceholder: "Name of person or party receiving the money" },
+    Credit: { nameLabel: "Received From", namePlaceholder: "Name of person or party paying the money" },
+    Contra: { nameLabel: "Reference", namePlaceholder: "Cheque number, slip number or similar" },
+  }[voucherType];
 
   const amountValue = Number(form.amount) || 0;
   const words = useMemo(() => (amountValue > 0 ? amountInWords(amountValue) : ""), [amountValue]);
@@ -240,31 +244,33 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
         : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
     }`;
 
-  const moneyDropdown = (
+  const noMoneyAccounts = debitOptions.length === 0 || creditOptions.length === 0;
+
+  const debitDropdown = (
     <SearchableDropdown
-      label={`${moneyFieldLabel} — Cash / Bank / Asset (${moneyIsOnDebitSide ? "Debit" : "Credit"})`}
+      label={`${debitFieldLabel} (Debit)`}
       required
-      options={moneyOptions}
+      options={debitOptions}
       loading={loadingAccounts}
-      value={form[moneyField]}
-      onChange={(v) => update(moneyField, v ?? "")}
+      value={form.debitAccountId}
+      onChange={(v) => update("debitAccountId", v ?? "")}
       placeholder="Select account"
       searchPlaceholder="Search by code or name…"
-      noResultsMessage={moneyOptions.length === 0 ? "No asset accounts set up yet" : "No results found"}
+      noResultsMessage={debitOptions.length === 0 ? "No eligible accounts set up yet" : "No results found"}
     />
   );
 
-  const partyDropdown = (
+  const creditDropdown = (
     <SearchableDropdown
-      label={partyFieldLabel}
+      label={`${creditFieldLabel} (Credit)`}
       required
-      options={partyOptions}
+      options={creditOptions}
       loading={loadingAccounts}
-      value={form[partyField]}
-      onChange={(v) => update(partyField, v ?? "")}
+      value={form.creditAccountId}
+      onChange={(v) => update("creditAccountId", v ?? "")}
       placeholder="Select account"
       searchPlaceholder="Search by code or name…"
-      noResultsMessage="No results found"
+      noResultsMessage={creditOptions.length === 0 ? "No eligible accounts set up yet" : "No results found"}
     />
   );
 
@@ -398,17 +404,27 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
           </p>
         </div>
 
-        {/* Accounts — money side and party side, ordered debit-first to match the ledger */}
+        {/* Accounts — always debit first, matching the order they appear in the ledger */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-          {moneyIsOnDebitSide ? moneyDropdown : partyDropdown}
-          {moneyIsOnDebitSide ? partyDropdown : moneyDropdown}
+          {debitDropdown}
+          {creditDropdown}
         </div>
 
-        {moneyOptions.length === 0 && !loadingAccounts && (
+        {isOwnAccountTransfer && (
+          <div className="flex items-start gap-2 text-xs text-sky-800 bg-sky-50 border border-sky-200 rounded-lg px-3 py-2">
+            <Info size={14} className="mt-0.5 shrink-0" />
+            <span>
+              Both sides must be your own cash or bank accounts. Nothing enters or leaves the
+              organisation, so this is counted as neither a receipt nor a payment.
+            </span>
+          </div>
+        )}
+
+        {noMoneyAccounts && !loadingAccounts && (
           <div className="flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
             <Info size={14} className="mt-0.5 shrink-0" />
             <span>
-              No asset accounts are available for {moneyFieldLabel.toLowerCase()}. Add a cash or bank
+              No eligible accounts are available for one side of this voucher. Add a cash or bank
               account under{" "}
               <button onClick={() => navigate("/accounts/chart-of-accounts")} className="underline font-medium">
                 Chart of Accounts
