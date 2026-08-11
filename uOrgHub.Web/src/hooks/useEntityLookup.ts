@@ -8,7 +8,7 @@ import {
   getActiveLeaveTypes,
   getAllSalaryGrades,
 } from "../api/hr";
-import { getChartOfAccounts, getAllAccountGroups, getCostCenters, getCustomers, getVendors, getFiscalYears, getBankAccounts, AccountGroupType } from "../api/accounts";
+import { getChartOfAccounts, getAllAccountGroups, getCostCenters, getCustomers, getVendors, getFiscalYears, getBankAccounts, getVoucherCashAccounts, AccountGroupType } from "../api/accounts";
 import { getInventoryTypes, getInventoryCategories, getUnitsOfMeasure, getWarehouses } from "../api/inventory";
 import { getProjectCategories, getClients, getProjects } from "../api/projects";
 
@@ -228,6 +228,27 @@ export function useBankAccountLookup() {
       value: b.id,
       label: `${b.accountName} (${b.bankName ?? ""})`,
       searchText: `${b.accountName} ${b.bankName ?? ""} ${b.accountNumber ?? ""}`,
+    })),
+    [query.data],
+  );
+  return { options, isLoading: query.isLoading };
+}
+
+/**
+ * Chart-of-account entries money can physically move through (backed by an active
+ * bank account). One side of every voucher must come from this list.
+ */
+export function useVoucherCashAccountLookup() {
+  const query = useQuery({
+    queryKey: ["voucher-cash-accounts"],
+    queryFn: getVoucherCashAccounts,
+    staleTime: 60000,
+  });
+  const options = useMemo(
+    () => toOptions(query.data?.data?.data, (a) => ({
+      value: a.id,
+      label: `${a.accountCode} — ${a.accountName}`,
+      searchText: `${a.accountName} ${a.accountCode} ${a.bankName} ${a.accountNumber}`,
     })),
     [query.data],
   );

@@ -33,6 +33,10 @@ import AccountGroups from "./pages/accounts/AccountGroups";
 import FiscalYears from "./pages/accounts/FiscalYears";
 import ChartOfAccounts from "./pages/accounts/ChartOfAccounts";
 import JournalEntries from "./pages/accounts/JournalEntries";
+import VoucherEntry from "./pages/accounts/VoucherEntry";
+import Vouchers from "./pages/accounts/Vouchers";
+import VoucherForm from "./pages/accounts/VoucherForm";
+import VoucherDetail from "./pages/accounts/VoucherDetail";
 import CostCenters from "./pages/accounts/CostCenters";
 import TaxRates from "./pages/accounts/TaxRates";
 import BankAccounts from "./pages/accounts/BankAccounts";
@@ -164,6 +168,11 @@ export default function App() {
             <Route path="accounts/fiscal-years" element={<FiscalYears />} />
             <Route path="accounts/chart-of-accounts" element={<ChartOfAccounts />} />
             <Route path="accounts/journal-entries" element={<JournalEntries />} />
+            <Route path="accounts/voucher-entry" element={<ProtectedRoute requiredClaim="Accounts.Vouchers.Create"><VoucherEntry /></ProtectedRoute>} />
+            <Route path="accounts/vouchers" element={<ProtectedRoute requiredClaim="Accounts.Vouchers.View"><Vouchers /></ProtectedRoute>} />
+            <Route path="accounts/vouchers/new" element={<ProtectedRoute requiredClaim="Accounts.Vouchers.Create"><VoucherForm /></ProtectedRoute>} />
+            <Route path="accounts/vouchers/:id" element={<ProtectedRoute requiredClaim="Accounts.Vouchers.View"><VoucherDetail /></ProtectedRoute>} />
+            <Route path="accounts/vouchers/:id/edit" element={<ProtectedRoute requiredClaim="Accounts.Vouchers.Edit"><VoucherForm /></ProtectedRoute>} />
             <Route path="accounts/cost-centers" element={<CostCenters />} />
             <Route path="accounts/tax-rates" element={<TaxRates />} />
             <Route path="accounts/bank-accounts" element={<BankAccounts />} />

@@ -30,6 +30,8 @@ public class MenuService : IMenuService
             new("acc-fiscal-years", "Fiscal Years", "Calendar", "/accounts/fiscal-years", Claims.Accounts.FiscalYears.View, null, null, null),
             new("acc-chart-of-accounts", "Chart of Accounts", "BookOpen", "/accounts/chart-of-accounts", Claims.Accounts.ChartOfAccounts.View, null, null, null),
             new("acc-journal-entries", "Journal Entries", "FileSpreadsheet", "/accounts/journal-entries", Claims.Accounts.JournalEntries.View, null, null, null),
+            new("acc-voucher-entry", "Voucher Entry", "Receipt", "/accounts/voucher-entry", Claims.Accounts.Vouchers.Create, null, null, null),
+            new("acc-vouchers", "Vouchers", "ScrollText", "/accounts/vouchers", Claims.Accounts.Vouchers.View, null, null, null),
             new("acc-cost-centers", "Cost Centers", "MapPin", "/accounts/cost-centers", Claims.Accounts.CostCenters.View, null, null, null),
             new("acc-tax-rates", "Tax Rates", "Percent", "/accounts/tax-rates", Claims.Accounts.TaxRates.View, null, null, null),
             new("acc-bank-accounts", "Bank Accounts", "Landmark", "/accounts/bank-accounts", Claims.Accounts.BankAccounts.View, null, null, null),

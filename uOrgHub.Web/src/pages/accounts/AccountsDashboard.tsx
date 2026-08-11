@@ -12,6 +12,8 @@ import {
   CreditCard,
   PiggyBank,
   FileSpreadsheet,
+  Receipt,
+  ScrollText,
 } from "lucide-react";
 
 export default function AccountsDashboard() {
@@ -21,6 +23,8 @@ export default function AccountsDashboard() {
     { name: "Account Groups", path: "/accounts/account-groups", icon: Layers, color: "bg-slate-500" },
     { name: "Fiscal Years", path: "/accounts/fiscal-years", icon: Calendar, color: "bg-indigo-500" },
     { name: "Chart of Accounts", path: "/accounts/chart-of-accounts", icon: BookOpen, color: "bg-blue-500" },
+    { name: "Voucher Entry", path: "/accounts/voucher-entry", icon: Receipt, color: "bg-fuchsia-500" },
+    { name: "Vouchers", path: "/accounts/vouchers", icon: ScrollText, color: "bg-sky-500" },
     { name: "Journal Entries", path: "/accounts/journal-entries", icon: FileSpreadsheet, color: "bg-violet-500" },
     { name: "Cost Centers", path: "/accounts/cost-centers", icon: MapPin, color: "bg-teal-500" },
     { name: "Tax Rates", path: "/accounts/tax-rates", icon: Percent, color: "bg-orange-500" },

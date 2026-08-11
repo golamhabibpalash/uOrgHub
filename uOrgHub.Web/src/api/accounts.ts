@@ -13,6 +13,8 @@ export type BillStatus = "Draft" | "Received" | "PartiallyPaid" | "Paid" | "Over
 export type PaymentType = "CustomerPayment" | "VendorPayment" | "AdvanceToVendor" | "AdvanceFromCustomer" | "Refund";
 export type PaymentMethod = "Cash" | "BankTransfer" | "Cheque" | "CreditCard" | "DebitCard" | "MobileBanking" | "OnlineTransfer";
 export type BudgetStatus = "Draft" | "Approved" | "Active" | "Closed" | "Cancelled";
+export type VoucherType = "Debit" | "Credit";
+export type VoucherStatus = "Draft" | "Submitted" | "Approved" | "Posted" | "Rejected" | "Cancelled";
 
 // ── Account Groups ─────────────────────────────────────────────────────────
 
@@ -196,6 +198,107 @@ export const cancelJournalEntry = (id: string) =>
 
 export const deleteJournalEntry = (id: string) =>
   apiClient.delete<ApiResponse<null>>(`/accounts/journal-entries/${id}`);
+
+// ── Vouchers ───────────────────────────────────────────────────────────────
+
+export interface Voucher {
+  id: string;
+  voucherNumber: string;
+  voucherType: VoucherType;
+  voucherDate: string;
+  fiscalYearId?: string;
+  fiscalYearName?: string;
+  name?: string;
+  section?: string;
+  description: string;
+  debitAccountId: string;
+  debitAccountName: string;
+  creditAccountId: string;
+  creditAccountName: string;
+  amount: number;
+  status: VoucherStatus;
+  journalEntryId?: string;
+  journalEntryNumber?: string;
+  preparedBy?: string;
+  receivedBy?: string;
+  submittedBy?: string;
+  submittedAt?: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  rejectedBy?: string;
+  rejectedAt?: string;
+  rejectReason?: string;
+  postedBy?: string;
+  postedAt?: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+/** A GL account money can physically move through — backed by an active bank account. */
+export interface VoucherCashAccount {
+  id: string;
+  accountCode: string;
+  accountName: string;
+  bankName: string;
+  accountNumber: string;
+}
+
+export interface CreateVoucherPayload {
+  voucherType: VoucherType;
+  voucherDate: string;
+  fiscalYearId?: string;
+  name?: string;
+  section?: string;
+  description: string;
+  debitAccountId: string;
+  creditAccountId: string;
+  amount: number;
+  preparedBy?: string;
+  receivedBy?: string;
+}
+
+export type UpdateVoucherPayload = Omit<CreateVoucherPayload, "voucherType">;
+
+export interface VoucherFilters {
+  type?: VoucherType;
+  status?: VoucherStatus;
+  fromDate?: string;
+  toDate?: string;
+  accountId?: string;
+}
+
+export const getVouchers = (params: PaginationRequest, filters: VoucherFilters = {}) =>
+  apiClient.get<ApiResponse<PagedResult<Voucher>>>("/accounts/vouchers", { params: { ...params, ...filters } });
+
+export const getVoucherById = (id: string) =>
+  apiClient.get<ApiResponse<Voucher>>(`/accounts/vouchers/${id}`);
+
+export const getVoucherJournalEntry = (id: string) =>
+  apiClient.get<ApiResponse<JournalEntry>>(`/accounts/vouchers/${id}/journal-entry`);
+
+export const getVoucherCashAccounts = () =>
+  apiClient.get<ApiResponse<VoucherCashAccount[]>>("/accounts/vouchers/cash-accounts");
+
+export const createVoucher = (data: CreateVoucherPayload) =>
+  apiClient.post<ApiResponse<Voucher>>("/accounts/vouchers", data);
+
+export const updateVoucher = (id: string, data: UpdateVoucherPayload) =>
+  apiClient.put<ApiResponse<Voucher>>(`/accounts/vouchers/${id}`, data);
+
+export const submitVoucher = (id: string) =>
+  apiClient.post<ApiResponse<Voucher>>(`/accounts/vouchers/${id}/submit`, {});
+
+export const approveVoucher = (id: string) =>
+  apiClient.post<ApiResponse<Voucher>>(`/accounts/vouchers/${id}/approve`, {});
+
+export const postVoucher = (id: string) =>
+  apiClient.post<ApiResponse<Voucher>>(`/accounts/vouchers/${id}/post`, {});
+
+export const rejectVoucher = (id: string, reason: string) =>
+  apiClient.post<ApiResponse<Voucher>>(`/accounts/vouchers/${id}/reject`, { reason });
+
+export const cancelVoucher = (id: string) =>
+  apiClient.post<ApiResponse<Voucher>>(`/accounts/vouchers/${id}/cancel`, {});
 
 // ── Cost Centers ───────────────────────────────────────────────────────────
 
