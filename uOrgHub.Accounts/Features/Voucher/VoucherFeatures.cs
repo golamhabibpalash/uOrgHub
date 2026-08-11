@@ -500,14 +500,30 @@ public class GetVoucherAccountOptionsQueryHandler : IRequestHandler<GetVoucherAc
         // Bank-backed accounts first: on the money side they are what the user reaches for most.
         var money = accounts
             .Where(a => moneyTypes.Contains(a.AccountType))
-            .Select(ToOption)
+            .Select(a =>
+            {
+                var dto = ToOption(a);
+                dto.GroupLabel = dto.IsBankLinked ? "Bank accounts" : "Cash and other asset accounts";
+                return dto;
+            })
             .OrderByDescending(o => o.IsBankLinked)
             .ThenBy(o => o.AccountCode)
             .ToList();
 
+        // Four of the five account types are valid party accounts, so this list is close to the
+        // whole chart of accounts. Grouping it by type in relevance order — and sinking bank
+        // accounts, which belong on the money side — is what keeps it navigable.
         var party = accounts
             .Where(a => partyTypes.Contains(a.AccountType))
-            .Select(ToOption)
+            .Select(a =>
+            {
+                var dto = ToOption(a);
+                dto.GroupLabel = VoucherAccountRules.PartyGroupLabel(request.VoucherType, a.AccountType);
+                return dto;
+            })
+            .OrderBy(o => partyTypes.IndexOf(o.AccountType))
+            .ThenBy(o => o.IsBankLinked)
+            .ThenBy(o => o.AccountCode)
             .ToList();
 
         return new VoucherAccountOptionsDto

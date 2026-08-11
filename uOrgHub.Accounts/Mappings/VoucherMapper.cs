@@ -51,5 +51,6 @@ public partial class VoucherMapper
     [MapperIgnoreTarget(nameof(VoucherAccountOptionDto.IsBankLinked))]
     [MapperIgnoreTarget(nameof(VoucherAccountOptionDto.BankName))]
     [MapperIgnoreTarget(nameof(VoucherAccountOptionDto.AccountNumber))]
+    [MapperIgnoreTarget(nameof(VoucherAccountOptionDto.GroupLabel))]
     public partial VoucherAccountOptionDto ToAccountOptionDto(ChartOfAccount entity);
 }

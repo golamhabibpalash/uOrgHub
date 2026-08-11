@@ -62,6 +62,12 @@ public class VoucherAccountOptionDto
     public AccountGroupType AccountType { get; set; }
     public string AccountGroupName { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Section heading for this option in the dropdown, e.g. "Income — revenue earned". Groups
+    /// arrive in relevance order so the user reaches the likely accounts first.
+    /// </summary>
+    public string GroupLabel { get; set; } = string.Empty;
+
     /// <summary>True when a bank account record is attached, i.e. real cash moves through it.</summary>
     public bool IsBankLinked { get; set; }
     public string? BankName { get; set; }

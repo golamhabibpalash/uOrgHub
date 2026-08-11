@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { SelectOption } from "../components/shared/SearchableDropdown";
 import {
@@ -61,6 +61,35 @@ export function useEmployeeLookup() {
     })),
     [query.data],
   );
+  return { options, isLoading: query.isLoading };
+}
+
+/**
+ * Employees keyed by name rather than id, for fields that store a person's name as free text —
+ * a voucher's "Prepared By" and "Received By" are printed as signature lines, so the name is the
+ * value. Names are de-duplicated: two employees sharing one name collapse to a single option,
+ * which is harmless when the stored artifact is only ever the name itself.
+ */
+export function useEmployeeNameLookup() {
+  const query = useQuery({
+    queryKey: ["employees-all"],
+    queryFn: () => getAllEmployees(),
+    staleTime: 60000,
+  });
+  const options = useMemo(() => {
+    const seen = new Set<string>();
+    return (query.data?.data?.data ?? []).reduce<SelectOption[]>((acc, e) => {
+      const name = `${e.firstName} ${e.lastName}`.trim();
+      if (!name || seen.has(name)) return acc;
+      seen.add(name);
+      acc.push({
+        value: name,
+        label: e.employeeCode ? `${name} (${e.employeeCode})` : name,
+        searchText: `${name} ${e.employeeCode ?? ""} ${e.designationName ?? ""}`,
+      });
+      return acc;
+    }, []);
+  }, [query.data]);
   return { options, isLoading: query.isLoading };
 }
 
@@ -230,11 +259,33 @@ export function useFiscalYearLookup() {
     queryFn: () => getFiscalYears({ page: 1, pageSize: 50 }),
     staleTime: 60000,
   });
+
+  const fiscalYears = useMemo(() => query.data?.data?.data?.items ?? [], [query.data]);
+
   const options = useMemo(
-    () => toOptions(query.data?.data?.data?.items, (f) => ({ value: f.id, label: f.name })),
-    [query.data],
+    () => toOptions(fiscalYears, (f) => ({ value: f.id, label: f.name })),
+    [fiscalYears],
   );
-  return { options, isLoading: query.isLoading };
+
+  /**
+   * The open fiscal year containing the given date. Closed years are skipped — a voucher dated
+   * into one would be rejected server-side anyway, so offering it would only mislead.
+   */
+  const findByDate = useCallback(
+    (date: string): string | undefined => {
+      if (!date) return undefined;
+      const match = fiscalYears.find(
+        (f) =>
+          f.status !== "Closed" &&
+          date >= f.startDate.split("T")[0] &&
+          date <= f.endDate.split("T")[0],
+      );
+      return match?.id;
+    },
+    [fiscalYears],
+  );
+
+  return { options, fiscalYears, findByDate, isLoading: query.isLoading };
 }
 
 export function useBankAccountLookup() {
@@ -262,6 +313,7 @@ function toAccountOption(a: VoucherAccountOption): SelectOption {
       ? `${a.accountCode} — ${a.accountName} (${a.bankName})`
       : `${a.accountCode} — ${a.accountName}`,
     searchText: `${a.accountName} ${a.accountCode} ${a.accountGroupName} ${a.bankName ?? ""} ${a.accountNumber ?? ""}`,
+    group: a.groupLabel || undefined,
   };
 }
 

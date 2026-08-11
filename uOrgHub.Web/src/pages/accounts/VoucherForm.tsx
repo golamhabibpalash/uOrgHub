@@ -2,8 +2,9 @@ import { useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Info } from "lucide-react";
-import SearchableDropdown from "../../components/shared/SearchableDropdown";
+import SearchableDropdown, { SelectOption } from "../../components/shared/SearchableDropdown";
 import {
+  useEmployeeNameLookup,
   useFiscalYearLookup,
   useOverheadCostCenterLookup,
   useProjectLookup,
@@ -22,6 +23,16 @@ import { extractApiError } from "../../utils/apiError";
 
 /** What the voucher is charged to. Every voucher is one or the other, never both. */
 type ChargeMode = "project" | "overhead";
+
+/**
+ * Keeps a free-typed name selectable in a creatable dropdown. Without this the closed control
+ * falls back to its placeholder whenever the stored value is not one of the employees — which is
+ * the normal case for an external payee, or for a voucher saved before that person was hired.
+ */
+function withTypedValue(options: SelectOption[], value: string): SelectOption[] {
+  if (!value || options.some((o) => o.value === value)) return options;
+  return [...options, { value, label: value }];
+}
 
 interface FormState {
   voucherDate: string;
@@ -128,7 +139,15 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
     useVoucherAccountOptions(voucherType);
   const { options: projects, isLoading: loadingProjects } = useProjectLookup();
   const { options: overheadCostCenters, isLoading: loadingCostCenters } = useOverheadCostCenterLookup();
-  const { options: fiscalYears } = useFiscalYearLookup();
+  const { options: fiscalYears, findByDate } = useFiscalYearLookup();
+  const { options: employees, isLoading: loadingEmployees } = useEmployeeNameLookup();
+
+  // The fiscal year follows the voucher date: an explicit pick wins, otherwise the year covering
+  // the date is used. Derived at render rather than in an effect, so it also fills itself in once
+  // the fiscal year list finishes loading.
+  const fiscalYearId = form.fiscalYearId || findByDate(form.voucherDate) || "";
+  const fiscalYearIsAutomatic = form.fiscalYearId === "" && fiscalYearId !== "";
+  const noFiscalYearForDate = form.voucherDate !== "" && fiscalYearId === "";
 
   const isDebitVoucher = voucherType === "Debit";
   const theme = voucherThemes[voucherType];
@@ -167,7 +186,7 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
       // Voucher type is fixed at creation — the update endpoint does not accept it.
       const common: UpdateVoucherPayload = {
         voucherDate: form.voucherDate,
-        fiscalYearId: form.fiscalYearId || undefined,
+        fiscalYearId: fiscalYearId || undefined,
         // Exactly one of these goes to the server; sending both is a validation error.
         projectId: form.chargeMode === "project" ? form.projectId : undefined,
         costCenterId: form.chargeMode === "overhead" ? form.costCenterId : undefined,
@@ -200,6 +219,15 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
   /** Switching charge mode clears the other side, so only one ever reaches the server. */
   function setChargeMode(mode: ChargeMode) {
     setForm((f) => ({ ...f, chargeMode: mode, projectId: "", costCenterId: "" }));
+  }
+
+  /**
+   * Changing the date drops any manual fiscal-year pick, letting the date decide again. The
+   * fiscal year is a function of the date, so a stale override would put the voucher in a year
+   * that no longer contains it — which the server rejects anyway.
+   */
+  function setVoucherDate(date: string) {
+    setForm((f) => ({ ...f, voucherDate: date, fiscalYearId: "" }));
   }
 
   const inputClass =
@@ -287,8 +315,13 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
               type="date"
               className={inputClass}
               value={form.voucherDate}
-              onChange={(e) => update("voucherDate", e.target.value)}
+              onChange={(e) => setVoucherDate(e.target.value)}
             />
+            {noFiscalYearForDate && (
+              <p className="text-[11px] text-amber-600 mt-1">
+                No open fiscal year covers this date.
+              </p>
+            )}
           </div>
           <div>
             <label className="text-xs text-gray-500 mb-1 block">{labels.nameLabel}</label>
@@ -429,32 +462,47 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
         {/* Preparation details */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1 border-t border-gray-100">
           <div className="pt-4">
-            <label className="text-xs text-gray-500 mb-1 block">Prepared By</label>
-            <input
-              className={inputClass}
+            {/* Creatable: "Received By" is often someone outside the company, such as a
+                supplier's representative, so a typed name has to remain possible. */}
+            <SearchableDropdown
+              label="Prepared By"
+              options={withTypedValue(employees, form.preparedBy)}
+              loading={loadingEmployees}
               value={form.preparedBy}
-              onChange={(e) => update("preparedBy", e.target.value)}
-              placeholder="Name"
+              onChange={(v) => update("preparedBy", v ?? "")}
+              creatable
+              onCreate={(name) => update("preparedBy", name)}
+              placeholder="Select employee"
+              searchPlaceholder="Search employee or type a name…"
+              noResultsMessage="No employees found"
             />
           </div>
           <div className="pt-4">
-            <label className="text-xs text-gray-500 mb-1 block">Received By</label>
-            <input
-              className={inputClass}
+            <SearchableDropdown
+              label="Received By"
+              options={withTypedValue(employees, form.receivedBy)}
+              loading={loadingEmployees}
               value={form.receivedBy}
-              onChange={(e) => update("receivedBy", e.target.value)}
-              placeholder="Name"
+              onChange={(v) => update("receivedBy", v ?? "")}
+              creatable
+              onCreate={(name) => update("receivedBy", name)}
+              placeholder="Select employee"
+              searchPlaceholder="Search employee or type a name…"
+              noResultsMessage="No employees found"
             />
           </div>
           <div className="pt-4">
             <SearchableDropdown
               label="Fiscal Year"
               options={fiscalYears}
-              value={form.fiscalYearId}
+              value={fiscalYearId}
               onChange={(v) => update("fiscalYearId", v ?? "")}
-              placeholder="Optional"
+              placeholder="Set from the voucher date"
               searchPlaceholder="Search fiscal year…"
             />
+            {fiscalYearIsAutomatic && (
+              <p className="text-[11px] text-gray-400 mt-1">Selected from the voucher date.</p>
+            )}
           </div>
         </div>
 

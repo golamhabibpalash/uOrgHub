@@ -5,6 +5,11 @@ export interface SelectOption {
   value: string;
   label: string;
   searchText?: string;
+  /**
+   * Optional section heading. Consecutive options sharing a group render under one header, so
+   * callers control ordering by ordering the options — this component never re-sorts them.
+   */
+  group?: string;
 }
 
 interface SearchableDropdownProps {
@@ -152,7 +157,9 @@ export default function SearchableDropdown({
 
   useEffect(() => {
     if (listRef.current && highlightedIndex >= 0) {
-      const el = listRef.current.children[highlightedIndex] as HTMLElement;
+      // Looked up by index rather than child position: group headers are children too, so
+      // positional lookup would scroll to the wrong row in a grouped list.
+      const el = listRef.current.querySelector<HTMLElement>(`[data-option-index="${highlightedIndex}"]`);
       el?.scrollIntoView({ block: "nearest" });
     }
   }, [highlightedIndex]);
@@ -224,22 +231,33 @@ export default function SearchableDropdown({
                   {noResultsMessage}
                 </div>
               )}
-              {filtered.map((option, i) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onMouseEnter={() => setHighlightedIndex(i)}
-                  onClick={() => handleSelect(option.value)}
-                  className={`w-full text-left px-3 py-2 text-sm transition-colors ${
-                    highlightedIndex === i ? "bg-primary-50 text-primary-700" : "text-gray-700 hover:bg-gray-50"
-                  } ${option.value === value ? "font-medium" : ""}`}
-                >
-                  {option.label}
-                </button>
-              ))}
+              {filtered.map((option, i) => {
+                const startsGroup = Boolean(option.group) && option.group !== filtered[i - 1]?.group;
+                return (
+                  <div key={option.value}>
+                    {startsGroup && (
+                      <div className="sticky top-0 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400 bg-gray-50 border-y border-gray-100">
+                        {option.group}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      data-option-index={i}
+                      onMouseEnter={() => setHighlightedIndex(i)}
+                      onClick={() => handleSelect(option.value)}
+                      className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                        highlightedIndex === i ? "bg-primary-50 text-primary-700" : "text-gray-700 hover:bg-gray-50"
+                      } ${option.value === value ? "font-medium" : ""}`}
+                    >
+                      {option.label}
+                    </button>
+                  </div>
+                );
+              })}
               {showCreate && (
                 <button
                   type="button"
+                  data-option-index={filtered.length}
                   onMouseEnter={() => setHighlightedIndex(filtered.length)}
                   onClick={() => { onCreate?.(search); close(); }}
                   className={`w-full text-left px-3 py-2 text-sm transition-colors border-t border-dashed border-gray-200 ${

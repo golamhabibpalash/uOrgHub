@@ -55,11 +55,33 @@ public static class VoucherAccountRules
     /// (Expense), a payable being settled (Liability), an asset acquired or advance given (Asset),
     /// or drawings against capital (Equity). Booking a payment against Income would mean revenue
     /// was created by spending, so Income is out.
+    ///
+    /// Order matters: it is the order the dropdown groups appear in, most-likely first. Four of
+    /// the five types qualify, so without that ordering the user faces a flat list of nearly the
+    /// whole chart of accounts.
     /// </summary>
     public static IReadOnlyList<AccountGroupType> PartyAccountTypes(VoucherType voucherType)
         => voucherType == VoucherType.Credit
-            ? new[] { AccountGroupType.Income, AccountGroupType.Liability, AccountGroupType.Equity, AccountGroupType.Asset }
-            : new[] { AccountGroupType.Expense, AccountGroupType.Liability, AccountGroupType.Equity, AccountGroupType.Asset };
+            ? new[] { AccountGroupType.Income, AccountGroupType.Asset, AccountGroupType.Liability, AccountGroupType.Equity }
+            : new[] { AccountGroupType.Expense, AccountGroupType.Liability, AccountGroupType.Asset, AccountGroupType.Equity };
+
+    /// <summary>
+    /// What each account type means on the party side, in the user's terms — shown as the group
+    /// heading in the dropdown so the list reads as sections rather than one long roll.
+    /// </summary>
+    public static string PartyGroupLabel(VoucherType voucherType, AccountGroupType accountType)
+        => (voucherType, accountType) switch
+        {
+            (VoucherType.Credit, AccountGroupType.Income) => "Income — revenue earned",
+            (VoucherType.Credit, AccountGroupType.Asset) => "Receivable — money owed to us",
+            (VoucherType.Credit, AccountGroupType.Liability) => "Liability — loan or advance received",
+            (VoucherType.Credit, AccountGroupType.Equity) => "Equity — capital introduced",
+            (VoucherType.Debit, AccountGroupType.Expense) => "Expense — cost incurred",
+            (VoucherType.Debit, AccountGroupType.Liability) => "Payable — settling what we owe",
+            (VoucherType.Debit, AccountGroupType.Asset) => "Asset — purchase or advance given",
+            (VoucherType.Debit, AccountGroupType.Equity) => "Equity — drawings against capital",
+            _ => accountType.ToString()
+        };
 
     public static IReadOnlyList<AccountGroupType> TypesFor(VoucherType voucherType, VoucherAccountRole role)
         => role == VoucherAccountRole.Money ? MoneyAccountTypes : PartyAccountTypes(voucherType);

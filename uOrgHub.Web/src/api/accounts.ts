@@ -245,6 +245,8 @@ export interface VoucherAccountOption {
   accountName: string;
   accountType: AccountGroupType;
   accountGroupName: string;
+  /** Section heading, e.g. "Income — revenue earned". Options arrive in relevance order. */
+  groupLabel: string;
   /** True when a bank account is attached, i.e. real cash moves through it. */
   isBankLinked: boolean;
   bankName?: string;

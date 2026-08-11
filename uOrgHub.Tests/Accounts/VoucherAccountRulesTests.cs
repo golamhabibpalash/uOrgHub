@@ -134,6 +134,35 @@ public class VoucherAccountRulesTests
             .Should().BeFalse();
     }
 
+    // --- Party ordering drives the dropdown grouping, so the order itself is behaviour ---
+
+    [Fact]
+    public void Receipt_lists_income_first_since_that_is_the_usual_source()
+    {
+        VoucherAccountRules.PartyAccountTypes(VoucherType.Credit)
+            .Should().StartWith(new[] { AccountGroupType.Income });
+    }
+
+    [Fact]
+    public void Payment_lists_expense_first_since_that_is_the_usual_destination()
+    {
+        VoucherAccountRules.PartyAccountTypes(VoucherType.Debit)
+            .Should().StartWith(new[] { AccountGroupType.Expense });
+    }
+
+    [Theory]
+    [InlineData(VoucherType.Credit)]
+    [InlineData(VoucherType.Debit)]
+    public void Every_party_type_has_a_group_label(VoucherType voucherType)
+    {
+        foreach (var type in VoucherAccountRules.PartyAccountTypes(voucherType))
+        {
+            VoucherAccountRules.PartyGroupLabel(voucherType, type)
+                .Should().NotBeNullOrWhiteSpace()
+                .And.NotBe(type.ToString(), "each party type needs a plain-language heading");
+        }
+    }
+
     // --- Labels the user sees ---
 
     [Fact]
