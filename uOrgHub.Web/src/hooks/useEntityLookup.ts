@@ -8,7 +8,7 @@ import {
   getActiveLeaveTypes,
   getAllSalaryGrades,
 } from "../api/hr";
-import { getChartOfAccounts, getAllAccountGroups, getCostCenters, getCustomers, getVendors, getFiscalYears, getBankAccounts, getVoucherCashAccounts, AccountGroupType } from "../api/accounts";
+import { getChartOfAccounts, getAllAccountGroups, getCostCenters, getCustomers, getVendors, getFiscalYears, getBankAccounts, getVoucherAccountOptions, AccountGroupType, VoucherAccountOption, VoucherType } from "../api/accounts";
 import { getInventoryTypes, getInventoryCategories, getUnitsOfMeasure, getWarehouses } from "../api/inventory";
 import { getProjectCategories, getClients, getProjects } from "../api/projects";
 
@@ -170,6 +170,26 @@ export function useCostCenterLookup() {
   return { options, isLoading: query.isLoading };
 }
 
+/**
+ * Cost centers not tied to a project — head office, admin, and the like. These are what an
+ * overhead voucher is charged to, since picking a project is not an option for that spend.
+ */
+export function useOverheadCostCenterLookup() {
+  const query = useQuery({
+    queryKey: ["cost-centers"],
+    queryFn: () => getCostCenters({ page: 1, pageSize: 200 }),
+    staleTime: 60000,
+  });
+  const options = useMemo(
+    () => toOptions(
+      (query.data?.data?.data?.items ?? []).filter((c) => !c.projectId && c.isActive),
+      (c) => ({ value: c.id, label: `${c.code} — ${c.name}`, searchText: `${c.name} ${c.code}` }),
+    ),
+    [query.data],
+  );
+  return { options, isLoading: query.isLoading };
+}
+
 export function useCustomerLookup() {
   const query = useQuery({
     queryKey: ["customers"],
@@ -234,25 +254,43 @@ export function useBankAccountLookup() {
   return { options, isLoading: query.isLoading };
 }
 
+function toAccountOption(a: VoucherAccountOption): SelectOption {
+  return {
+    value: a.id,
+    // Bank-linked accounts show their bank so two similarly named accounts stay distinguishable.
+    label: a.isBankLinked
+      ? `${a.accountCode} — ${a.accountName} (${a.bankName})`
+      : `${a.accountCode} — ${a.accountName}`,
+    searchText: `${a.accountName} ${a.accountCode} ${a.accountGroupName} ${a.bankName ?? ""} ${a.accountNumber ?? ""}`,
+  };
+}
+
 /**
- * Chart-of-account entries money can physically move through (backed by an active
- * bank account). One side of every voucher must come from this list.
+ * The accounts valid for each side of a voucher, decided server-side by the same rules the save
+ * endpoint enforces — so the form never offers something the server will reject.
  */
-export function useVoucherCashAccountLookup() {
+export function useVoucherAccountOptions(voucherType: VoucherType) {
   const query = useQuery({
-    queryKey: ["voucher-cash-accounts"],
-    queryFn: getVoucherCashAccounts,
+    queryKey: ["voucher-account-options", voucherType],
+    queryFn: () => getVoucherAccountOptions(voucherType),
     staleTime: 60000,
   });
-  const options = useMemo(
-    () => toOptions(query.data?.data?.data, (a) => ({
-      value: a.id,
-      label: `${a.accountCode} — ${a.accountName}`,
-      searchText: `${a.accountName} ${a.accountCode} ${a.bankName} ${a.accountNumber}`,
-    })),
-    [query.data],
-  );
-  return { options, isLoading: query.isLoading };
+
+  const data = query.data?.data?.data;
+
+  const moneyOptions = useMemo(() => toOptions(data?.moneyAccounts, toAccountOption), [data]);
+  const partyOptions = useMemo(() => toOptions(data?.partyAccounts, toAccountOption), [data]);
+
+  return {
+    moneyOptions,
+    partyOptions,
+    // A Credit Voucher takes money in, so cash/bank sits on the debit side; a Debit Voucher pays
+    // money out, so it sits on the credit side. The server states which, rather than the form
+    // re-deriving it.
+    moneyIsOnDebitSide: data?.moneyIsOnDebitSide ?? voucherType === "Credit",
+    moneyFieldLabel: data?.moneyFieldLabel ?? (voucherType === "Credit" ? "Receive Into" : "Pay From"),
+    isLoading: query.isLoading,
+  };
 }
 
 // --- Inventory Lookups ---

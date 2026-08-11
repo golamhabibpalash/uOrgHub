@@ -33,6 +33,8 @@ public class ProjectFinancialService : IProjectFinancialService
 
         var actualSpend = await GetActualSpendAsync(projectId, ct);
         var spendByAccount = await GetSpendByAccountAsync(projectId, ct);
+        var (receipts, payments) = await GetVoucherCashFlowAsync(projectId, ct);
+        var incomeRecognised = await GetIncomeRecognisedAsync(projectId, ct);
 
         var raBills = await _db.Set<RABill>()
             .Where(x => !x.IsDeleted && x.ProjectId == projectId)
@@ -67,6 +69,11 @@ public class ProjectFinancialService : IProjectFinancialService
             RemainingBudget = costCeiling - actualSpend,
             BudgetUtilizationPercent = Percent(actualSpend, costCeiling),
             IsOverBudget = actualSpend > costCeiling,
+
+            VoucherReceipts = receipts,
+            VoucherPayments = payments,
+            NetCashPosition = receipts - payments,
+            IncomeRecognised = incomeRecognised,
 
             Margin = margin,
             MarginPercent = Percent(margin, certified),
@@ -104,6 +111,40 @@ public class ProjectFinancialService : IProjectFinancialService
     }
 
     /// <summary>
+    /// Money in and money out for the project, taken from posted vouchers. A Credit Voucher is a
+    /// receipt and a Debit Voucher a payment, so the split needs no account-type reasoning —
+    /// the voucher type already states the direction.
+    /// </summary>
+    private async Task<(decimal Receipts, decimal Payments)> GetVoucherCashFlowAsync(Guid projectId, CancellationToken ct)
+    {
+        var rows = await _db.Set<Voucher>()
+            .Where(v => !v.IsDeleted
+                && v.ProjectId == projectId
+                && v.Status == VoucherStatus.Posted)
+            .GroupBy(v => v.VoucherType)
+            .Select(g => new { VoucherType = g.Key, Total = g.Sum(v => v.Amount) })
+            .ToListAsync(ct);
+
+        return (
+            rows.Where(r => r.VoucherType == VoucherType.Credit).Sum(r => r.Total),
+            rows.Where(r => r.VoucherType == VoucherType.Debit).Sum(r => r.Total));
+    }
+
+    /// <summary>
+    /// Income booked against the project. Credits raise income and debits reduce it, so the sign
+    /// is the mirror of <see cref="GetActualSpendAsync"/>.
+    /// </summary>
+    private async Task<decimal> GetIncomeRecognisedAsync(Guid projectId, CancellationToken ct)
+    {
+        var costCenterIds = await GetCostCenterIdsAsync(projectId, ct);
+        if (costCenterIds.Count == 0) return 0;
+
+        return await PostedLines(costCenterIds)
+            .Where(l => l.Account.AccountType == AccountGroupType.Income)
+            .SumAsync(l => l.CreditAmount - l.DebitAmount, ct);
+    }
+
+    /// <summary>
     /// A project can carry more than one cost center — one is auto-created with the project
     /// (ProjectCommands), and others may be added by hand.
     /// </summary>
@@ -119,12 +160,18 @@ public class ProjectFinancialService : IProjectFinancialService
     /// no expense account.
     /// </summary>
     private IQueryable<JournalEntryLine> SpendLines(List<Guid> costCenterIds)
+        => PostedLines(costCenterIds)
+            .Where(l => l.Account.AccountType == AccountGroupType.Expense);
+
+    /// <summary>
+    /// Every posted journal entry line attributed to the project, whatever the account type.
+    /// </summary>
+    private IQueryable<JournalEntryLine> PostedLines(List<Guid> costCenterIds)
         => _db.Set<JournalEntryLine>()
             .Where(l => !l.IsDeleted
                 && l.CostCenterId != null
                 && costCenterIds.Contains(l.CostCenterId.Value)
-                && l.JournalEntry.Status == JournalEntryStatus.Posted
-                && l.Account.AccountType == AccountGroupType.Expense);
+                && l.JournalEntry.Status == JournalEntryStatus.Posted);
 
     private static decimal Percent(decimal amount, decimal total)
         => total == 0 ? 0 : Math.Round(amount / total * 100, 2);

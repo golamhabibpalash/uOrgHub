@@ -208,6 +208,10 @@ export interface Voucher {
   voucherDate: string;
   fiscalYearId?: string;
   fiscalYearName?: string;
+  projectId?: string;
+  costCenterId?: string;
+  costCenterName?: string;
+  costCenterCode?: string;
   name?: string;
   section?: string;
   description: string;
@@ -234,19 +238,41 @@ export interface Voucher {
   createdAt: string;
 }
 
-/** A GL account money can physically move through — backed by an active bank account. */
-export interface VoucherCashAccount {
+/** A chart-of-account offered for one side of a voucher, with why it qualifies. */
+export interface VoucherAccountOption {
   id: string;
   accountCode: string;
   accountName: string;
-  bankName: string;
-  accountNumber: string;
+  accountType: AccountGroupType;
+  accountGroupName: string;
+  /** True when a bank account is attached, i.e. real cash moves through it. */
+  isBankLinked: boolean;
+  bankName?: string;
+  accountNumber?: string;
+}
+
+/**
+ * The accounts valid for each side of one voucher type. Both lists come from the server in a
+ * single call so the form cannot pair a stale money list with a fresh party list.
+ */
+export interface VoucherAccountOptions {
+  voucherType: VoucherType;
+  /** Where money is received into (Credit Voucher) or paid from (Debit Voucher). */
+  moneyAccounts: VoucherAccountOption[];
+  /** Who or what the money came from, or went to. */
+  partyAccounts: VoucherAccountOption[];
+  moneyIsOnDebitSide: boolean;
+  moneyFieldLabel: string;
 }
 
 export interface CreateVoucherPayload {
   voucherType: VoucherType;
   voucherDate: string;
   fiscalYearId?: string;
+  /** Set for a project voucher. Mutually exclusive with costCenterId. */
+  projectId?: string;
+  /** Set for a head-office / overhead voucher. Mutually exclusive with projectId. */
+  costCenterId?: string;
   name?: string;
   section?: string;
   description: string;
@@ -265,6 +291,8 @@ export interface VoucherFilters {
   fromDate?: string;
   toDate?: string;
   accountId?: string;
+  projectId?: string;
+  costCenterId?: string;
 }
 
 export const getVouchers = (params: PaginationRequest, filters: VoucherFilters = {}) =>
@@ -276,8 +304,8 @@ export const getVoucherById = (id: string) =>
 export const getVoucherJournalEntry = (id: string) =>
   apiClient.get<ApiResponse<JournalEntry>>(`/accounts/vouchers/${id}/journal-entry`);
 
-export const getVoucherCashAccounts = () =>
-  apiClient.get<ApiResponse<VoucherCashAccount[]>>("/accounts/vouchers/cash-accounts");
+export const getVoucherAccountOptions = (type: VoucherType) =>
+  apiClient.get<ApiResponse<VoucherAccountOptions>>("/accounts/vouchers/account-options", { params: { type } });
 
 export const createVoucher = (data: CreateVoucherPayload) =>
   apiClient.post<ApiResponse<Voucher>>("/accounts/vouchers", data);

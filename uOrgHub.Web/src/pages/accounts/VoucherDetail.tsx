@@ -283,6 +283,10 @@ export default function VoucherDetail() {
       <div className="bg-white border border-gray-200 rounded-xl p-5 mb-4 grid grid-cols-2 md:grid-cols-4 gap-5">
         <Field label={isDebit ? "Paid To" : "Received From"} value={voucher.name} />
         <Field label="Section" value={voucher.section} />
+        <Field
+          label={voucher.projectId ? "Project" : "Charged To"}
+          value={voucher.costCenterName}
+        />
         <Field label="Fiscal Year" value={voucher.fiscalYearName} />
         <Field label="Prepared By" value={voucher.preparedBy} />
 

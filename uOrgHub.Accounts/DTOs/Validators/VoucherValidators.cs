@@ -30,6 +30,10 @@ public class CreateVoucherValidator : AbstractValidator<CreateVoucherDto>
             .Must(x => x.DebitAccountId != x.CreditAccountId)
             .WithMessage("Debit and credit accounts must be different");
 
+        RuleFor(x => x)
+            .Must(VoucherChargeTarget.IsExactlyOneSet)
+            .WithMessage(VoucherChargeTarget.Message);
+
         RuleFor(x => x.Amount)
             .GreaterThan(0).WithMessage("Amount must be greater than zero");
 
@@ -62,6 +66,10 @@ public class UpdateVoucherValidator : AbstractValidator<UpdateVoucherDto>
             .Must(x => x.DebitAccountId != x.CreditAccountId)
             .WithMessage("Debit and credit accounts must be different");
 
+        RuleFor(x => x)
+            .Must(VoucherChargeTarget.IsExactlyOneSet)
+            .WithMessage(VoucherChargeTarget.Message);
+
         RuleFor(x => x.Amount)
             .GreaterThan(0).WithMessage("Amount must be greater than zero");
 
@@ -77,5 +85,29 @@ public class RejectVoucherValidator : AbstractValidator<RejectVoucherDto>
         RuleFor(x => x.Reason)
             .NotEmpty().WithMessage("Rejection reason is required")
             .MaximumLength(500);
+    }
+}
+
+/// <summary>
+/// Every voucher has to say what it is charged to, and there is exactly one answer: a project, or
+/// — for head-office and other overhead spend — a cost center. Requiring a positive choice is
+/// what stops a project voucher silently being filed as overhead because the field was skipped.
+/// </summary>
+internal static class VoucherChargeTarget
+{
+    public const string Message =
+        "Select either a project or, for head-office / overhead vouchers, a cost center — not both.";
+
+    public static bool IsExactlyOneSet(CreateVoucherDto dto)
+        => IsExactlyOneSet(dto.ProjectId, dto.CostCenterId);
+
+    public static bool IsExactlyOneSet(UpdateVoucherDto dto)
+        => IsExactlyOneSet(dto.ProjectId, dto.CostCenterId);
+
+    private static bool IsExactlyOneSet(Guid? projectId, Guid? costCenterId)
+    {
+        var hasProject = projectId.HasValue && projectId.Value != Guid.Empty;
+        var hasCostCenter = costCenterId.HasValue && costCenterId.Value != Guid.Empty;
+        return hasProject ^ hasCostCenter;
     }
 }

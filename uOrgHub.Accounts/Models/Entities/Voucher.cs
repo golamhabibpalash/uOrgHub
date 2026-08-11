@@ -19,6 +19,21 @@ public class Voucher : BaseEntity
     public Guid? FiscalYearId { get; set; }
     public FiscalYear? FiscalYear { get; set; }
 
+    /// <summary>
+    /// The project this voucher is charged to, or null for head-office / overhead vouchers.
+    /// Held as a bare key rather than a navigation because uOrgHub.Accounts cannot reference
+    /// uOrgHub.Projects — same arrangement as <see cref="CostCenter.ProjectId"/>.
+    /// </summary>
+    public Guid? ProjectId { get; set; }
+
+    /// <summary>
+    /// Where the voucher's cost or receipt is attributed in the GL. For a project voucher this is
+    /// the project's cost center; for an overhead voucher it is chosen directly. Copied onto the
+    /// generated journal entry lines, which is what makes the amount visible to project reporting.
+    /// </summary>
+    public Guid? CostCenterId { get; set; }
+    public CostCenter? CostCenter { get; set; }
+
     [MaxLength(200)]
     public string? Name { get; set; }
 

@@ -22,7 +22,9 @@ public record GetVouchersQuery(
     VoucherStatus? Status = null,
     DateTime? FromDate = null,
     DateTime? ToDate = null,
-    Guid? AccountId = null) : IQuery<PagedResult<VoucherResponseDto>>;
+    Guid? AccountId = null,
+    Guid? ProjectId = null,
+    Guid? CostCenterId = null) : IQuery<PagedResult<VoucherResponseDto>>;
 
 public record GetVoucherByIdQuery(Guid Id) : IQuery<VoucherResponseDto>;
 public record GetVoucherJournalEntryQuery(Guid Id) : IQuery<JournalEntryResponseDto>;
@@ -34,7 +36,7 @@ public record PostVoucherCommand(Guid Id, string PostedBy) : ICommand<VoucherRes
 public record RejectVoucherCommand(Guid Id, string Reason, string RejectedBy) : ICommand<VoucherResponseDto>;
 public record CancelVoucherCommand(Guid Id) : ICommand<VoucherResponseDto>;
 public record GetAllVouchersForExportQuery : IQuery<List<VoucherResponseDto>>;
-public record GetVoucherCashAccountsQuery : IQuery<List<VoucherCashAccountDto>>;
+public record GetVoucherAccountOptionsQuery(VoucherType VoucherType) : IQuery<VoucherAccountOptionsDto>;
 
 public class GetVouchersQueryHandler : IRequestHandler<GetVouchersQuery, PagedResult<VoucherResponseDto>>
 {
@@ -61,6 +63,12 @@ public class GetVouchersQueryHandler : IRequestHandler<GetVouchersQuery, PagedRe
 
         if (request.AccountId.HasValue)
             query = query.Where(x => x.DebitAccountId == request.AccountId.Value || x.CreditAccountId == request.AccountId.Value);
+
+        if (request.ProjectId.HasValue)
+            query = query.Where(x => x.ProjectId == request.ProjectId.Value);
+
+        if (request.CostCenterId.HasValue)
+            query = query.Where(x => x.CostCenterId == request.CostCenterId.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
             query = query.WhereSearch(request.Request.Search, x => x.VoucherNumber, x => x.Description, x => x.Name);
@@ -146,6 +154,7 @@ public class CreateVoucherCommandHandler : IRequestHandler<CreateVoucherCommand,
             throw new ValidationException(validation.Errors.Select(e => e.ErrorMessage).ToList());
 
         await VoucherGuard.ValidateAccountsAsync(_context, request.Dto.VoucherType, request.Dto.DebitAccountId, request.Dto.CreditAccountId, ct);
+        var chargeTarget = await VoucherGuard.ResolveChargeTargetAsync(_context, request.Dto.ProjectId, request.Dto.CostCenterId, ct);
         if (request.Dto.FiscalYearId.HasValue)
             await VoucherGuard.ValidateFiscalYearAsync(_context, request.Dto.FiscalYearId.Value, request.Dto.VoucherDate, ct);
 
@@ -158,6 +167,8 @@ public class CreateVoucherCommandHandler : IRequestHandler<CreateVoucherCommand,
         var entity = _mapper.ToEntity(request.Dto);
         entity.VoucherNumber = voucherNumber;
         entity.Status = VoucherStatus.Draft;
+        entity.CostCenterId = chargeTarget.CostCenterId;
+        entity.ProjectId = chargeTarget.ProjectId;
         entity.CreatedAt = DateTime.UtcNow;
         entity.CreatedBy = request.CreatedBy;
 
@@ -195,10 +206,13 @@ public class UpdateVoucherCommandHandler : IRequestHandler<UpdateVoucherCommand,
             throw new AppException("Only draft vouchers can be edited.");
 
         await VoucherGuard.ValidateAccountsAsync(_context, entity.VoucherType, request.Dto.DebitAccountId, request.Dto.CreditAccountId, ct);
+        var chargeTarget = await VoucherGuard.ResolveChargeTargetAsync(_context, request.Dto.ProjectId, request.Dto.CostCenterId, ct);
         if (request.Dto.FiscalYearId.HasValue)
             await VoucherGuard.ValidateFiscalYearAsync(_context, request.Dto.FiscalYearId.Value, request.Dto.VoucherDate, ct);
 
         _mapper.UpdateEntity(request.Dto, entity);
+        entity.CostCenterId = chargeTarget.CostCenterId;
+        entity.ProjectId = chargeTarget.ProjectId;
         entity.UpdatedAt = DateTime.UtcNow;
         entity.UpdatedBy = request.UpdatedBy;
 
@@ -281,11 +295,15 @@ public class ApproveVoucherCommandHandler : IRequestHandler<ApproveVoucherComman
             Description = $"Voucher {voucher.VoucherNumber} - {voucher.Description}",
             Lines =
             [
+                // Both lines carry the voucher's cost center. That is the only thing tying the
+                // amount back to a project: ProjectFinancialService reads posted journal entry
+                // lines by cost center, so a line without one is invisible to project reporting.
                 new CreateJournalEntryLineDto
                 {
                     AccountId = voucher.DebitAccountId,
                     Description = voucher.Description,
                     DebitAmount = voucher.Amount,
+                    CostCenterId = voucher.CostCenterId,
                     LineOrder = 1
                 },
                 new CreateJournalEntryLineDto
@@ -293,6 +311,7 @@ public class ApproveVoucherCommandHandler : IRequestHandler<ApproveVoucherComman
                     AccountId = voucher.CreditAccountId,
                     Description = voucher.Description,
                     CreditAmount = voucher.Amount,
+                    CostCenterId = voucher.CostCenterId,
                     LineOrder = 2
                 }
             ]
@@ -432,22 +451,73 @@ public class GetAllVouchersForExportQueryHandler : IRequestHandler<GetAllVoucher
     }
 }
 
-public class GetVoucherCashAccountsQueryHandler : IRequestHandler<GetVoucherCashAccountsQuery, List<VoucherCashAccountDto>>
+/// <summary>
+/// Serves both dropdowns for one voucher type from <see cref="VoucherAccountRules"/> — the same
+/// rules the save-time guard applies, so the form can never offer an account the server rejects.
+/// </summary>
+public class GetVoucherAccountOptionsQueryHandler : IRequestHandler<GetVoucherAccountOptionsQuery, VoucherAccountOptionsDto>
 {
     private readonly AppDbContext _context;
     private readonly VoucherMapper _mapper = new();
 
-    public GetVoucherCashAccountsQueryHandler(AppDbContext context) => _context = context;
+    public GetVoucherAccountOptionsQueryHandler(AppDbContext context) => _context = context;
 
-    public async Task<List<VoucherCashAccountDto>> Handle(GetVoucherCashAccountsQuery request, CancellationToken ct)
+    public async Task<VoucherAccountOptionsDto> Handle(GetVoucherAccountOptionsQuery request, CancellationToken ct)
     {
-        var items = await _context.Set<Models.Entities.BankAccount>()
-            .Include(x => x.ChartOfAccount)
-            .Where(x => !x.IsDeleted && x.IsActive && !x.ChartOfAccount.IsDeleted && x.ChartOfAccount.IsActive)
-            .OrderBy(x => x.ChartOfAccount.AccountCode)
+        var moneyTypes = VoucherAccountRules.MoneyAccountTypes.ToList();
+        var partyTypes = VoucherAccountRules.PartyAccountTypes(request.VoucherType).ToList();
+        var wanted = moneyTypes.Union(partyTypes).ToList();
+
+        var accounts = await _context.Set<Models.Entities.ChartOfAccount>()
+            .Include(x => x.AccountGroup)
+            .Where(x => !x.IsDeleted && x.IsActive && x.AllowDirectEntry && wanted.Contains(x.AccountType))
+            .OrderBy(x => x.AccountCode)
             .ToListAsync(ct);
 
-        return items.Select(_mapper.ToCashAccountDto).ToList();
+        // Grouped rather than keyed directly: nothing stops two bank accounts pointing at the same
+        // GL account, and a duplicate key here would take the whole dropdown down.
+        var bankAccounts = await _context.Set<Models.Entities.BankAccount>()
+            .Where(x => !x.IsDeleted && x.IsActive)
+            .OrderBy(x => x.AccountNumber)
+            .ToListAsync(ct);
+
+        var banksByAccount = bankAccounts
+            .GroupBy(x => x.ChartOfAccountId)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        VoucherAccountOptionDto ToOption(Models.Entities.ChartOfAccount account)
+        {
+            var dto = _mapper.ToAccountOptionDto(account);
+            if (banksByAccount.TryGetValue(account.Id, out var bank))
+            {
+                dto.IsBankLinked = true;
+                dto.BankName = bank.BankName;
+                dto.AccountNumber = bank.AccountNumber;
+            }
+            return dto;
+        }
+
+        // Bank-backed accounts first: on the money side they are what the user reaches for most.
+        var money = accounts
+            .Where(a => moneyTypes.Contains(a.AccountType))
+            .Select(ToOption)
+            .OrderByDescending(o => o.IsBankLinked)
+            .ThenBy(o => o.AccountCode)
+            .ToList();
+
+        var party = accounts
+            .Where(a => partyTypes.Contains(a.AccountType))
+            .Select(ToOption)
+            .ToList();
+
+        return new VoucherAccountOptionsDto
+        {
+            VoucherType = request.VoucherType,
+            MoneyAccounts = money,
+            PartyAccounts = party,
+            MoneyIsOnDebitSide = VoucherAccountRules.MoneyIsOnDebitSide(request.VoucherType),
+            MoneyFieldLabel = VoucherAccountRules.FieldLabel(request.VoucherType, VoucherAccountRole.Money)
+        };
     }
 }
 
@@ -458,6 +528,7 @@ file static class VoucherQueryHelper
             .Include(x => x.DebitAccount)
             .Include(x => x.CreditAccount)
             .Include(x => x.FiscalYear)
+            .Include(x => x.CostCenter)
             .Include(x => x.JournalEntry)
             .Where(x => !x.IsDeleted);
 }
@@ -465,9 +536,11 @@ file static class VoucherQueryHelper
 file static class VoucherGuard
 {
     /// <summary>
-    /// Validates both GL accounts and enforces the voucher-type rule:
-    /// a Debit Voucher pays money out, so the credit side must be cash/bank;
-    /// a Credit Voucher takes money in, so the debit side must be cash/bank.
+    /// Checks both GL accounts against <see cref="VoucherAccountRules"/> — the same rules that
+    /// built the dropdowns — so the entry the voucher will generate is a valid double entry:
+    ///
+    /// Credit Voucher (money in):  debit the receiving cash/bank account, credit the source.
+    /// Debit Voucher  (money out): debit the expense/payable, credit the paying cash/bank account.
     /// </summary>
     public static async Task ValidateAccountsAsync(
         AppDbContext context,
@@ -476,24 +549,79 @@ file static class VoucherGuard
         Guid creditAccountId,
         CancellationToken ct)
     {
+        if (debitAccountId == creditAccountId)
+            throw new ValidationException(new List<string> { "Debit and credit accounts must be different." });
+
         var debit = await LoadPostableAccountAsync(context, debitAccountId, "Debit", ct);
         var credit = await LoadPostableAccountAsync(context, creditAccountId, "Credit", ct);
 
-        var (cashSide, sideLabel) = voucherType == VoucherType.Debit
-            ? (credit, "credit")
-            : (debit, "debit");
+        Check(debit, VoucherAccountRules.RoleOfDebitSide(voucherType));
+        Check(credit, VoucherAccountRules.RoleOfCreditSide(voucherType));
 
-        if (!await IsCashOrBankAccountAsync(context, cashSide.Id, ct))
+        void Check(Models.Entities.ChartOfAccount account, VoucherAccountRole role)
+        {
+            if (VoucherAccountRules.IsEligible(account, voucherType, role))
+                return;
+
+            var label = VoucherAccountRules.FieldLabel(voucherType, role);
+            var allowed = string.Join(", ", VoucherAccountRules.TypesFor(voucherType, role));
+
+            var reason = role == VoucherAccountRole.Money
+                ? "money can only be received into or paid from an asset account such as cash or a bank account"
+                : $"a {voucherType} Voucher cannot be booked against an account of type {account.AccountType}";
+
             throw new ValidationException(new List<string>
             {
-                $"The {sideLabel} side of a {voucherType} Voucher must be a cash or bank account. " +
-                $"'{cashSide.AccountName}' is not linked to an active bank account."
+                $"'{account.AccountName}' is not valid for {label} on a {voucherType} Voucher — {reason}. " +
+                $"Allowed account types: {allowed}."
             });
+        }
     }
 
-    public static Task<bool> IsCashOrBankAccountAsync(AppDbContext context, Guid accountId, CancellationToken ct)
-        => context.Set<Models.Entities.BankAccount>()
-            .AnyAsync(b => b.ChartOfAccountId == accountId && b.IsActive && !b.IsDeleted, ct);
+    /// <summary>
+    /// Turns the voucher's charge target into the cost center its journal entry lines will carry.
+    /// A project resolves to its own cost center — the one auto-created alongside the project.
+    /// An overhead voucher names a cost center directly; if that cost center happens to belong to
+    /// a project, the project is recorded too so the two never disagree.
+    /// </summary>
+    public static async Task<(Guid CostCenterId, Guid? ProjectId)> ResolveChargeTargetAsync(
+        AppDbContext context,
+        Guid? projectId,
+        Guid? costCenterId,
+        CancellationToken ct)
+    {
+        if (projectId.HasValue && projectId.Value != Guid.Empty)
+        {
+            var forProject = await context.Set<Models.Entities.CostCenter>()
+                .Where(c => !c.IsDeleted && c.IsActive && c.ProjectId == projectId.Value)
+                .OrderBy(c => c.CreatedAt)
+                .FirstOrDefaultAsync(ct)
+                ?? throw new ValidationException(new List<string>
+                {
+                    "The selected project has no active cost center, so the voucher cannot be charged to it. " +
+                    "Add a cost center for the project under Accounts › Cost Centers."
+                });
+
+            return (forProject.Id, projectId.Value);
+        }
+
+        if (costCenterId.HasValue && costCenterId.Value != Guid.Empty)
+        {
+            var costCenter = await context.Set<Models.Entities.CostCenter>()
+                .FirstOrDefaultAsync(c => c.Id == costCenterId.Value && !c.IsDeleted, ct)
+                ?? throw new ValidationException(new List<string> { "Cost center is not valid." });
+
+            if (!costCenter.IsActive)
+                throw new ValidationException(new List<string> { $"Cost center '{costCenter.Name}' is inactive." });
+
+            return (costCenter.Id, costCenter.ProjectId);
+        }
+
+        throw new ValidationException(new List<string>
+        {
+            "Select either a project or, for head-office / overhead vouchers, a cost center."
+        });
+    }
 
     private static async Task<Models.Entities.ChartOfAccount> LoadPostableAccountAsync(
         AppDbContext context,
@@ -531,6 +659,7 @@ file static class VoucherGuard
         await context.Entry(entity).Reference(x => x.DebitAccount).LoadAsync(ct);
         await context.Entry(entity).Reference(x => x.CreditAccount).LoadAsync(ct);
         await context.Entry(entity).Reference(x => x.FiscalYear).LoadAsync(ct);
+        await context.Entry(entity).Reference(x => x.CostCenter).LoadAsync(ct);
         await context.Entry(entity).Reference(x => x.JournalEntry).LoadAsync(ct);
     }
 }

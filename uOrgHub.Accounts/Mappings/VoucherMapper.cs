@@ -7,12 +7,14 @@ namespace uOrgHub.Accounts.Mappings;
 [Mapper]
 public partial class VoucherMapper
 {
+    [MapperIgnoreTarget(nameof(Voucher.CostCenter))]
     public partial Voucher ToEntity(CreateVoucherDto dto);
 
     [MapperIgnoreTarget(nameof(Voucher.Id))]
     [MapperIgnoreTarget(nameof(Voucher.VoucherNumber))]
     [MapperIgnoreTarget(nameof(Voucher.VoucherType))]
     [MapperIgnoreTarget(nameof(Voucher.Status))]
+    [MapperIgnoreTarget(nameof(Voucher.CostCenter))]
     [MapperIgnoreTarget(nameof(Voucher.JournalEntry))]
     [MapperIgnoreTarget(nameof(Voucher.JournalEntryId))]
     [MapperIgnoreTarget(nameof(Voucher.SubmittedBy))]
@@ -34,13 +36,20 @@ public partial class VoucherMapper
     public partial void UpdateEntity(UpdateVoucherDto dto, Voucher entity);
 
     [MapProperty([nameof(Voucher.FiscalYear), nameof(FiscalYear.Name)], [nameof(VoucherResponseDto.FiscalYearName)])]
+    [MapProperty([nameof(Voucher.CostCenter), nameof(CostCenter.Name)], [nameof(VoucherResponseDto.CostCenterName)])]
+    [MapProperty([nameof(Voucher.CostCenter), nameof(CostCenter.Code)], [nameof(VoucherResponseDto.CostCenterCode)])]
     [MapProperty([nameof(Voucher.DebitAccount), nameof(ChartOfAccount.AccountName)], [nameof(VoucherResponseDto.DebitAccountName)])]
     [MapProperty([nameof(Voucher.CreditAccount), nameof(ChartOfAccount.AccountName)], [nameof(VoucherResponseDto.CreditAccountName)])]
     [MapProperty([nameof(Voucher.JournalEntry), nameof(JournalEntry.EntryNumber)], [nameof(VoucherResponseDto.JournalEntryNumber)])]
     public partial VoucherResponseDto ToDto(Voucher entity);
 
-    [MapProperty([nameof(BankAccount.ChartOfAccount), nameof(ChartOfAccount.Id)], [nameof(VoucherCashAccountDto.Id)])]
-    [MapProperty([nameof(BankAccount.ChartOfAccount), nameof(ChartOfAccount.AccountCode)], [nameof(VoucherCashAccountDto.AccountCode)])]
-    [MapProperty([nameof(BankAccount.ChartOfAccount), nameof(ChartOfAccount.AccountName)], [nameof(VoucherCashAccountDto.AccountName)])]
-    public partial VoucherCashAccountDto ToCashAccountDto(BankAccount entity);
+    /// <summary>
+    /// Bank details are stamped on afterwards by the query handler — they come from the
+    /// <see cref="BankAccount"/> attached to the account, which is not reachable from here.
+    /// </summary>
+    [MapProperty([nameof(ChartOfAccount.AccountGroup), nameof(AccountGroup.Name)], [nameof(VoucherAccountOptionDto.AccountGroupName)])]
+    [MapperIgnoreTarget(nameof(VoucherAccountOptionDto.IsBankLinked))]
+    [MapperIgnoreTarget(nameof(VoucherAccountOptionDto.BankName))]
+    [MapperIgnoreTarget(nameof(VoucherAccountOptionDto.AccountNumber))]
+    public partial VoucherAccountOptionDto ToAccountOptionDto(ChartOfAccount entity);
 }

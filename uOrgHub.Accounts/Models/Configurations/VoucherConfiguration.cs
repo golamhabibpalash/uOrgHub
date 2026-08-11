@@ -10,6 +10,9 @@ public class VoucherConfiguration : IEntityTypeConfiguration<Voucher>
     {
         b.HasKey(x => x.Id);
         b.HasIndex(x => x.VoucherNumber).IsUnique();
+        b.HasIndex(x => x.ProjectId);
+        b.HasOne(x => x.CostCenter).WithMany()
+            .HasForeignKey(x => x.CostCenterId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne(x => x.FiscalYear).WithMany()
             .HasForeignKey(x => x.FiscalYearId).OnDelete(DeleteBehavior.SetNull);
         b.HasOne(x => x.DebitAccount).WithMany()

@@ -70,6 +70,14 @@ const VoucherPrintView = forwardRef<HTMLDivElement, VoucherPrintViewProps>(
                 <span className="border-b border-dotted border-gray-500 px-1">{voucher.section ?? ""}</span>
               </td>
             </tr>
+            <tr>
+              <td className="py-1" colSpan={2}>
+                <span className="font-semibold">{voucher.projectId ? "Project" : "Charged To"}: </span>
+                <span className="border-b border-dotted border-gray-500 px-1">
+                  {voucher.costCenterName ?? ""}
+                </span>
+              </td>
+            </tr>
           </tbody>
         </table>
 

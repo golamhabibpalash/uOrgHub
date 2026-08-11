@@ -34,9 +34,11 @@ public class VouchersController : BaseController
         [FromQuery] VoucherStatus? status,
         [FromQuery] DateTime? fromDate,
         [FromQuery] DateTime? toDate,
-        [FromQuery] Guid? accountId)
+        [FromQuery] Guid? accountId,
+        [FromQuery] Guid? projectId,
+        [FromQuery] Guid? costCenterId)
     {
-        var result = await _mediator.Send(new GetVouchersQuery(request, type, status, fromDate, toDate, accountId));
+        var result = await _mediator.Send(new GetVouchersQuery(request, type, status, fromDate, toDate, accountId, projectId, costCenterId));
         return Ok(ApiResponse<PagedResult<VoucherResponseDto>>.Ok(result));
     }
 
@@ -54,12 +56,16 @@ public class VouchersController : BaseController
         return File(result.Content, result.MimeType, result.FileName);
     }
 
-    [HttpGet("cash-accounts")]
+    /// <summary>
+    /// The accounts valid for each side of the given voucher type, so the form only ever offers
+    /// what the server will accept.
+    /// </summary>
+    [HttpGet("account-options")]
     [RequireClaim(Claims.Accounts.Vouchers.View)]
-    public async Task<IActionResult> GetCashAccounts()
+    public async Task<IActionResult> GetAccountOptions([FromQuery] VoucherType type)
     {
-        var result = await _mediator.Send(new GetVoucherCashAccountsQuery());
-        return Ok(ApiResponse<List<VoucherCashAccountDto>>.Ok(result));
+        var result = await _mediator.Send(new GetVoucherAccountOptionsQuery(type));
+        return Ok(ApiResponse<VoucherAccountOptionsDto>.Ok(result));
     }
 
     [HttpGet("{id:guid}")]

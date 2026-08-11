@@ -6,6 +6,7 @@ import DataGrid, { DataGridColumn } from "../../components/shared/DataGrid";
 import ExportMenu from "../../components/shared/ExportMenu";
 import { useDataGrid } from "../../hooks/useDataGrid";
 import { getVouchers, Voucher, VoucherFilters, VoucherStatus, VoucherType } from "../../api/accounts";
+import { useProjectLookup } from "../../hooks/useEntityLookup";
 import { voucherThemes } from "../../components/accounts/voucherTheme";
 import { formatTaka } from "../../utils/format";
 
@@ -29,16 +30,20 @@ export default function Vouchers() {
   const [status, setStatus] = useState<VoucherStatus | "">("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [projectId, setProjectId] = useState("");
+
+  const { options: projects } = useProjectLookup();
 
   const filters: VoucherFilters = {
     ...(type && { type }),
     ...(status && { status }),
     ...(fromDate && { fromDate }),
     ...(toDate && { toDate }),
+    ...(projectId && { projectId }),
   };
 
   const { data, isLoading } = useQuery({
-    queryKey: ["vouchers", ...dg.queryKey, type, status, fromDate, toDate],
+    queryKey: ["vouchers", ...dg.queryKey, type, status, fromDate, toDate, projectId],
     queryFn: () => getVouchers(dg.queryParams, filters),
   });
 
@@ -51,6 +56,7 @@ export default function Vouchers() {
     setStatus("");
     setFromDate("");
     setToDate("");
+    setProjectId("");
     dg.resetPage();
   }
 
@@ -75,6 +81,25 @@ export default function Vouchers() {
       render: (row) => row.voucherDate?.split("T")[0] ?? "",
     },
     { key: "name", label: "Name", render: (row) => row.name ?? "—" },
+    {
+      // The cost center name is the project name for project vouchers — one is auto-created
+      // per project — so this one column covers both project and overhead vouchers.
+      key: "costCenterName",
+      label: "Charged To",
+      sortable: false,
+      render: (row) =>
+        row.costCenterName ? (
+          <span className="inline-flex items-center gap-1.5">
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${row.projectId ? "bg-primary-400" : "bg-gray-300"}`}
+              title={row.projectId ? "Project" : "Head office / overhead"}
+            />
+            <span className="text-xs text-gray-600">{row.costCenterName}</span>
+          </span>
+        ) : (
+          <span className="text-xs text-gray-300">—</span>
+        ),
+    },
     {
       key: "description",
       label: "Description",
@@ -218,7 +243,18 @@ export default function Vouchers() {
               onChange={(e) => { setToDate(e.target.value); dg.resetPage(); }}
               title="To date"
             />
-            {(type || status || fromDate || toDate) && (
+            <select
+              className={selectClass}
+              value={projectId}
+              onChange={(e) => { setProjectId(e.target.value); dg.resetPage(); }}
+              title="Project"
+            >
+              <option value="">All projects</option>
+              {projects.map((p) => (
+                <option key={p.value} value={p.value}>{p.label}</option>
+              ))}
+            </select>
+            {(type || status || fromDate || toDate || projectId) && (
               <button onClick={resetFilters} className="text-xs text-gray-400 hover:text-gray-600 underline">
                 Clear
               </button>

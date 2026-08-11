@@ -4,9 +4,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Info } from "lucide-react";
 import SearchableDropdown from "../../components/shared/SearchableDropdown";
 import {
-  useChartOfAccountsLookup,
   useFiscalYearLookup,
-  useVoucherCashAccountLookup,
+  useOverheadCostCenterLookup,
+  useProjectLookup,
+  useVoucherAccountOptions,
 } from "../../hooks/useEntityLookup";
 import {
   createVoucher,
@@ -19,9 +20,15 @@ import { voucherThemes } from "../../components/accounts/voucherTheme";
 import { amountInWords } from "../../utils/format";
 import { extractApiError } from "../../utils/apiError";
 
+/** What the voucher is charged to. Every voucher is one or the other, never both. */
+type ChargeMode = "project" | "overhead";
+
 interface FormState {
   voucherDate: string;
   fiscalYearId: string;
+  chargeMode: ChargeMode;
+  projectId: string;
+  costCenterId: string;
   name: string;
   section: string;
   description: string;
@@ -35,6 +42,9 @@ interface FormState {
 const emptyForm: FormState = {
   voucherDate: new Date().toISOString().split("T")[0],
   fiscalYearId: "",
+  chargeMode: "project",
+  projectId: "",
+  costCenterId: "",
   name: "",
   section: "",
   description: "",
@@ -81,6 +91,9 @@ export default function VoucherForm() {
           ? {
               voucherDate: voucher.voucherDate?.split("T")[0] ?? "",
               fiscalYearId: voucher.fiscalYearId ?? "",
+              chargeMode: voucher.projectId ? "project" : "overhead",
+              projectId: voucher.projectId ?? "",
+              costCenterId: voucher.projectId ? "" : voucher.costCenterId ?? "",
               name: voucher.name ?? "",
               section: voucher.section ?? "",
               description: voucher.description,
@@ -111,37 +124,39 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
   const [form, setForm] = useState<FormState>(initialForm);
   const [error, setError] = useState("");
 
-  const { options: allAccounts, isLoading: loadingAccounts } = useChartOfAccountsLookup();
-  const { options: cashAccounts, isLoading: loadingCash } = useVoucherCashAccountLookup();
+  const { moneyOptions, partyOptions, moneyIsOnDebitSide, moneyFieldLabel, isLoading: loadingAccounts } =
+    useVoucherAccountOptions(voucherType);
+  const { options: projects, isLoading: loadingProjects } = useProjectLookup();
+  const { options: overheadCostCenters, isLoading: loadingCostCenters } = useOverheadCostCenterLookup();
   const { options: fiscalYears } = useFiscalYearLookup();
 
   const isDebitVoucher = voucherType === "Debit";
   const theme = voucherThemes[voucherType];
 
-  // A Debit Voucher pays money out, so cash/bank sits on the credit side.
-  // A Credit Voucher takes money in, so cash/bank sits on the debit side.
+  // The server says which side holds the money account for this voucher type; the form only
+  // decides which of the two dropdowns writes to debitAccountId and which to creditAccountId.
+  type AccountField = "debitAccountId" | "creditAccountId";
+  const moneyField: AccountField = moneyIsOnDebitSide ? "debitAccountId" : "creditAccountId";
+  const partyField: AccountField = moneyIsOnDebitSide ? "creditAccountId" : "debitAccountId";
+
+  const partyFieldLabel = isDebitVoucher
+    ? "Party Account — Expense / Payable (Debit)"
+    : "Party Account — Income / Investor / Receivable (Credit)";
+
   const labels = isDebitVoucher
-    ? {
-        nameLabel: "Paid To",
-        namePlaceholder: "Name of person or party receiving the money",
-        debit: { label: "Expense / Party Account (Debit)", options: allAccounts, loading: loadingAccounts },
-        credit: { label: "Paid From — Cash / Bank (Credit)", options: cashAccounts, loading: loadingCash },
-        receivedByLabel: "Received By",
-      }
-    : {
-        nameLabel: "Received From",
-        namePlaceholder: "Name of person or party paying the money",
-        debit: { label: "Received Into — Cash / Bank (Debit)", options: cashAccounts, loading: loadingCash },
-        credit: { label: "Income / Party Account (Credit)", options: allAccounts, loading: loadingAccounts },
-        receivedByLabel: "Received By",
-      };
+    ? { nameLabel: "Paid To", namePlaceholder: "Name of person or party receiving the money" }
+    : { nameLabel: "Received From", namePlaceholder: "Name of person or party paying the money" };
 
   const amountValue = Number(form.amount) || 0;
   const words = useMemo(() => (amountValue > 0 ? amountInWords(amountValue) : ""), [amountValue]);
 
+  const chargeTargetChosen =
+    form.chargeMode === "project" ? form.projectId !== "" : form.costCenterId !== "";
+
   const canSave =
     form.voucherDate !== "" &&
     form.description.trim() !== "" &&
+    chargeTargetChosen &&
     form.debitAccountId !== "" &&
     form.creditAccountId !== "" &&
     form.debitAccountId !== form.creditAccountId &&
@@ -153,6 +168,9 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
       const common: UpdateVoucherPayload = {
         voucherDate: form.voucherDate,
         fiscalYearId: form.fiscalYearId || undefined,
+        // Exactly one of these goes to the server; sending both is a validation error.
+        projectId: form.chargeMode === "project" ? form.projectId : undefined,
+        costCenterId: form.chargeMode === "overhead" ? form.costCenterId : undefined,
         name: form.name || undefined,
         section: form.section || undefined,
         description: form.description,
@@ -179,8 +197,48 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
     setForm((f) => ({ ...f, [key]: value }));
   }
 
+  /** Switching charge mode clears the other side, so only one ever reaches the server. */
+  function setChargeMode(mode: ChargeMode) {
+    setForm((f) => ({ ...f, chargeMode: mode, projectId: "", costCenterId: "" }));
+  }
+
   const inputClass =
     "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500";
+
+  const chargeTabClass = (active: boolean) =>
+    `px-3 py-1.5 text-xs rounded-lg border transition-colors ${
+      active
+        ? "bg-primary-50 border-primary-300 text-primary-700 font-medium"
+        : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
+    }`;
+
+  const moneyDropdown = (
+    <SearchableDropdown
+      label={`${moneyFieldLabel} — Cash / Bank / Asset (${moneyIsOnDebitSide ? "Debit" : "Credit"})`}
+      required
+      options={moneyOptions}
+      loading={loadingAccounts}
+      value={form[moneyField]}
+      onChange={(v) => update(moneyField, v ?? "")}
+      placeholder="Select account"
+      searchPlaceholder="Search by code or name…"
+      noResultsMessage={moneyOptions.length === 0 ? "No asset accounts set up yet" : "No results found"}
+    />
+  );
+
+  const partyDropdown = (
+    <SearchableDropdown
+      label={partyFieldLabel}
+      required
+      options={partyOptions}
+      loading={loadingAccounts}
+      value={form[partyField]}
+      onChange={(v) => update(partyField, v ?? "")}
+      placeholder="Select account"
+      searchPlaceholder="Search by code or name…"
+      noResultsMessage="No results found"
+    />
+  );
 
   return (
     <div className="p-6 max-w-4xl">
@@ -252,52 +310,77 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
           </div>
         </div>
 
-        {/* Accounts */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-          <SearchableDropdown
-            label={labels.debit.label}
-            required
-            options={labels.debit.options}
-            loading={labels.debit.loading}
-            value={form.debitAccountId}
-            onChange={(v) => update("debitAccountId", v ?? "")}
-            placeholder="Select account"
-            searchPlaceholder="Search by code or name…"
-            noResultsMessage={
-              !isDebitVoucher && cashAccounts.length === 0
-                ? "No cash/bank accounts set up yet"
-                : "No results found"
-            }
-          />
-          <SearchableDropdown
-            label={labels.credit.label}
-            required
-            options={labels.credit.options}
-            loading={labels.credit.loading}
-            value={form.creditAccountId}
-            onChange={(v) => update("creditAccountId", v ?? "")}
-            placeholder="Select account"
-            searchPlaceholder="Search by code or name…"
-            noResultsMessage={
-              isDebitVoucher && cashAccounts.length === 0
-                ? "No cash/bank accounts set up yet"
-                : "No results found"
-            }
-          />
+        {/* Charge target — a project, or a cost center for head-office / overhead spend */}
+        <div className="border border-gray-100 bg-gray-50/60 rounded-lg p-4">
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <label className="text-xs text-gray-500 mr-1">
+              Charge To <span className="text-red-500">*</span>
+            </label>
+            <button
+              type="button"
+              className={chargeTabClass(form.chargeMode === "project")}
+              onClick={() => setChargeMode("project")}
+            >
+              Project
+            </button>
+            <button
+              type="button"
+              className={chargeTabClass(form.chargeMode === "overhead")}
+              onClick={() => setChargeMode("overhead")}
+            >
+              Head Office / Overhead
+            </button>
+          </div>
+
+          {form.chargeMode === "project" ? (
+            <SearchableDropdown
+              label="Project"
+              required
+              options={projects}
+              loading={loadingProjects}
+              value={form.projectId}
+              onChange={(v) => update("projectId", v ?? "")}
+              placeholder="Select project"
+              searchPlaceholder="Search by name or code…"
+              noResultsMessage="No projects found"
+            />
+          ) : (
+            <SearchableDropdown
+              label="Cost Center"
+              required
+              options={overheadCostCenters}
+              loading={loadingCostCenters}
+              value={form.costCenterId}
+              onChange={(v) => update("costCenterId", v ?? "")}
+              placeholder="Select cost center"
+              searchPlaceholder="Search by name or code…"
+              noResultsMessage="No non-project cost centers set up yet"
+            />
+          )}
+
+          <p className="text-[11px] text-gray-400 mt-2">
+            {form.chargeMode === "project"
+              ? "The amount is attributed to this project's cost center and appears in its financial summary once posted."
+              : "Use this for costs that belong to no single project, such as head-office running costs or bank charges."}
+          </p>
         </div>
 
-        {cashAccounts.length === 0 && !loadingCash && (
+        {/* Accounts — money side and party side, ordered debit-first to match the ledger */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+          {moneyIsOnDebitSide ? moneyDropdown : partyDropdown}
+          {moneyIsOnDebitSide ? partyDropdown : moneyDropdown}
+        </div>
+
+        {moneyOptions.length === 0 && !loadingAccounts && (
           <div className="flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
             <Info size={14} className="mt-0.5 shrink-0" />
             <span>
-              No cash or bank accounts are available yet. Set one up under{" "}
-              <button
-                onClick={() => navigate("/accounts/bank-accounts")}
-                className="underline font-medium"
-              >
-                Bank Accounts
+              No asset accounts are available for {moneyFieldLabel.toLowerCase()}. Add a cash or bank
+              account under{" "}
+              <button onClick={() => navigate("/accounts/chart-of-accounts")} className="underline font-medium">
+                Chart of Accounts
               </button>{" "}
-              first — every voucher needs one side to be a cash or bank account.
+              first — money can only move through an asset account.
             </span>
           </div>
         )}
@@ -355,7 +438,7 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
             />
           </div>
           <div className="pt-4">
-            <label className="text-xs text-gray-500 mb-1 block">{labels.receivedByLabel}</label>
+            <label className="text-xs text-gray-500 mb-1 block">Received By</label>
             <input
               className={inputClass}
               value={form.receivedBy}
