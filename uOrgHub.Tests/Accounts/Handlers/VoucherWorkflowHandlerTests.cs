@@ -33,7 +33,8 @@ public class VoucherWorkflowHandlerTests : IDisposable
             _context,
             new JournalEntryRepository(_context),
             new CreateJournalEntryValidator(),
-            new UpdateJournalEntryValidator());
+            new UpdateJournalEntryValidator(),
+            new JournalEntrySourceService(_context));
     }
 
     public void Dispose() => _context.Dispose();

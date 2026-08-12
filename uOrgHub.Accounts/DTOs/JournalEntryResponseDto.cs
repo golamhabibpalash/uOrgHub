@@ -16,6 +16,20 @@ public class JournalEntryResponseDto
     public string? PostedBy { get; set; }
     public DateTime? PostedAt { get; set; }
     public DateTime CreatedAt { get; set; }
+
+    /// <summary>
+    /// The document that generated this entry — "Voucher", "Bill", "Invoice", "Payment" — or null
+    /// when it was written by hand. A generated entry belongs to that document's workflow and
+    /// cannot be posted, edited, deleted or cancelled from the Journal Entries screen, so the UI
+    /// uses this to disable those actions rather than letting the click fail server-side.
+    /// </summary>
+    public string? SourceDocumentType { get; set; }
+    public string? SourceDocumentNumber { get; set; }
+    public string? SourceDocumentStatus { get; set; }
+
+    /// <summary>True when a source document owns this entry. Convenience for the UI.</summary>
+    public bool IsSystemGenerated => SourceDocumentType is not null;
+
     public List<JournalEntryLineResponseDto> Lines { get; set; } = new();
 }
 

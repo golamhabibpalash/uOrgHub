@@ -18,18 +18,39 @@ public class JournalEntryService : IJournalEntryService
     private readonly IJournalEntryRepository _repository;
     private readonly IValidator<CreateJournalEntryDto> _createValidator;
     private readonly IValidator<UpdateJournalEntryDto> _updateValidator;
+    private readonly IJournalEntrySourceService _sources;
     private readonly JournalEntryMapper _mapper = new();
 
     public JournalEntryService(
         AppDbContext context,
         IJournalEntryRepository repository,
         IValidator<CreateJournalEntryDto> createValidator,
-        IValidator<UpdateJournalEntryDto> updateValidator)
+        IValidator<UpdateJournalEntryDto> updateValidator,
+        IJournalEntrySourceService sources)
     {
         _context = context;
         _repository = repository;
         _createValidator = createValidator;
         _updateValidator = updateValidator;
+        _sources = sources;
+    }
+
+    /// <summary>
+    /// Stamps each entry with the document that generated it, so a reader can tell a hand-written
+    /// entry from one a voucher or bill owns. Resolved in a single batch for the whole page.
+    /// </summary>
+    private async Task PopulateSourcesAsync(IReadOnlyCollection<JournalEntryResponseDto> dtos)
+    {
+        if (dtos.Count == 0) return;
+
+        var sources = await _sources.FindSourcesAsync(dtos.Select(x => x.Id).ToList());
+        foreach (var dto in dtos)
+        {
+            if (!sources.TryGetValue(dto.Id, out var source)) continue;
+            dto.SourceDocumentType = source.DocumentType;
+            dto.SourceDocumentNumber = source.DocumentNumber;
+            dto.SourceDocumentStatus = source.DocumentStatus;
+        }
     }
 
     private static void PopulateLineNames(JournalEntryResponseDto dto, JournalEntry entity)
@@ -54,6 +75,7 @@ public class JournalEntryService : IJournalEntryService
             PopulateLineNames(dto, x);
             return dto;
         }).ToList();
+        await PopulateSourcesAsync(items);
         return new PagedResult<JournalEntryResponseDto>
         {
             Items = items,
@@ -69,6 +91,7 @@ public class JournalEntryService : IJournalEntryService
             ?? throw new NotFoundException(nameof(Models.Entities.JournalEntry), id);
         var dto = _mapper.ToDto(entity);
         PopulateLineNames(dto, entity);
+        await PopulateSourcesAsync(new[] { dto });
         return dto;
     }
 

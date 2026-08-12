@@ -19,6 +19,7 @@ public static class AccountsServiceExtension
         services.AddScoped<IChartOfAccountService, ChartOfAccountService>();
 
         services.AddScoped<IJournalEntryRepository, JournalEntryRepository>();
+        services.AddScoped<IJournalEntrySourceService, JournalEntrySourceService>();
         services.AddScoped<IJournalEntryService, JournalEntryService>();
 
         services.AddScoped<IFiscalYearRepository, FiscalYearRepository>();

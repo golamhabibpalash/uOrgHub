@@ -19,12 +19,18 @@ public class JournalEntriesController : BaseController
     private readonly IJournalEntryService _service;
     private readonly IMediator _mediator;
     private readonly IExportService _exportService;
+    private readonly IJournalEntrySourceService _sources;
 
-    public JournalEntriesController(IJournalEntryService service, IMediator mediator, IExportService exportService)
+    public JournalEntriesController(
+        IJournalEntryService service,
+        IMediator mediator,
+        IExportService exportService,
+        IJournalEntrySourceService sources)
     {
         _service = service;
         _mediator = mediator;
         _exportService = exportService;
+        _sources = sources;
     }
 
     [HttpGet]
@@ -69,6 +75,7 @@ public class JournalEntriesController : BaseController
     [RequireClaim(Claims.Accounts.JournalEntries.Edit)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateJournalEntryDto dto)
     {
+        await _sources.EnsureNotDocumentOwnedAsync(id, "edited");
         var result = await _service.UpdateAsync(id, dto);
         return Ok(ApiResponse<JournalEntryResponseDto>.Ok(result, "Journal entry updated successfully."));
     }
@@ -77,6 +84,7 @@ public class JournalEntriesController : BaseController
     [RequireClaim(Claims.Accounts.JournalEntries.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
+        await _sources.EnsureNotDocumentOwnedAsync(id, "deleted");
         await _service.DeleteAsync(id);
         return Ok(ApiResponse<string>.Ok("Deleted", "Journal entry deleted successfully."));
     }
@@ -85,6 +93,7 @@ public class JournalEntriesController : BaseController
     [RequireClaim(Claims.Accounts.JournalEntries.Post)]
     public async Task<IActionResult> Post(Guid id)
     {
+        await _sources.EnsureNotDocumentOwnedAsync(id, "posted");
         var result = await _service.PostAsync(id, User.Identity?.Name ?? "System");
         return Ok(ApiResponse<JournalEntryResponseDto>.Ok(result, "Journal entry posted successfully."));
     }
@@ -93,6 +102,7 @@ public class JournalEntriesController : BaseController
     [RequireClaim(Claims.Accounts.JournalEntries.Delete)]
     public async Task<IActionResult> Cancel(Guid id)
     {
+        await _sources.EnsureNotDocumentOwnedAsync(id, "cancelled");
         var result = await _service.CancelAsync(id);
         return Ok(ApiResponse<JournalEntryResponseDto>.Ok(result, "Journal entry cancelled successfully."));
     }

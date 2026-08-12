@@ -148,6 +148,14 @@ export interface JournalEntry {
   postedBy?: string;
   postedAt?: string;
   createdAt: string;
+  /**
+   * Set when a Voucher, Bill, Invoice or Payment generated this entry. Such an entry belongs to
+   * that document's workflow — it cannot be posted, edited, deleted or cancelled from this screen.
+   */
+  sourceDocumentType?: "Voucher" | "Bill" | "Invoice" | "Payment";
+  sourceDocumentNumber?: string;
+  sourceDocumentStatus?: string;
+  isSystemGenerated: boolean;
   lines: JournalEntryLineResponse[];
 }
 

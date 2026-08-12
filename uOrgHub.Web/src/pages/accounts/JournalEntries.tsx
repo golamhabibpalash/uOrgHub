@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Send, XCircle, ChevronDown, ChevronUp, Pencil, Check, AlertCircle, Trash2 } from "lucide-react";
+import { Plus, Send, XCircle, ChevronDown, ChevronUp, Pencil, Check, AlertCircle, Trash2, Lock } from "lucide-react";
 import DataGrid, { DataGridColumn } from "../../components/shared/DataGrid";
 import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
@@ -172,6 +172,19 @@ export default function JournalEntries() {
     { key: "description", label: "Description" },
     { key: "referenceNumber", label: "Reference" },
     {
+      key: "sourceDocumentNumber",
+      label: "Source",
+      render: (row) =>
+        row.isSystemGenerated ? (
+          <span className="text-xs text-gray-600">
+            {row.sourceDocumentType}{" "}
+            <span className="font-mono text-gray-500">{row.sourceDocumentNumber}</span>
+          </span>
+        ) : (
+          <span className="text-xs text-gray-300">Manual</span>
+        ),
+    },
+    {
       key: "status",
       label: "Status",
       render: (row) => (
@@ -206,43 +219,57 @@ export default function JournalEntries() {
           >
             {expandedId === row.id ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
           </button>
-          {row.status === "Draft" && (
-            <>
-              <button
-                onClick={() => openEdit(row)}
-                className="text-gray-400 hover:text-primary-600"
-                title="Edit"
-              >
-                <Pencil size={14} />
-              </button>
-              <button
-                onClick={() => postMutation.mutate(row.id)}
-                className="text-green-500 hover:text-green-700"
-                title="Post"
-              >
-                <Send size={14} />
-              </button>
-              <button
-                onClick={() => {
-                  if (window.confirm("Delete this draft journal entry?")) deleteMutation.mutate(row.id);
-                }}
-                className="text-red-400 hover:text-red-600"
-                title="Delete"
-              >
-                <Trash2 size={14} />
-              </button>
-            </>
-          )}
-          {row.status === "Posted" && (
-            <button
-              onClick={() => {
-                if (window.confirm("Cancel this posted entry? This reverses all balance changes.")) cancelMutation.mutate(row.id);
-              }}
-              className="text-red-400 hover:text-red-600"
-              title="Cancel"
+          {/* A generated entry is driven by its source document's workflow. Showing a lock rather
+              than dead buttons says why the actions are missing — the server rejects them anyway,
+              so offering them would only produce a click and an error. */}
+          {row.isSystemGenerated ? (
+            <span
+              className="inline-flex items-center gap-1 text-gray-300"
+              title={`Managed by ${row.sourceDocumentType} ${row.sourceDocumentNumber} (${row.sourceDocumentStatus}). Post or reverse it from there.`}
             >
-              <XCircle size={14} />
-            </button>
+              <Lock size={13} />
+            </span>
+          ) : (
+            <>
+              {row.status === "Draft" && (
+                <>
+                  <button
+                    onClick={() => openEdit(row)}
+                    className="text-gray-400 hover:text-primary-600"
+                    title="Edit"
+                  >
+                    <Pencil size={14} />
+                  </button>
+                  <button
+                    onClick={() => postMutation.mutate(row.id)}
+                    className="text-green-500 hover:text-green-700"
+                    title="Post"
+                  >
+                    <Send size={14} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (window.confirm("Delete this draft journal entry?")) deleteMutation.mutate(row.id);
+                    }}
+                    className="text-red-400 hover:text-red-600"
+                    title="Delete"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </>
+              )}
+              {row.status === "Posted" && (
+                <button
+                  onClick={() => {
+                    if (window.confirm("Cancel this posted entry? This reverses all balance changes.")) cancelMutation.mutate(row.id);
+                  }}
+                  className="text-red-400 hover:text-red-600"
+                  title="Cancel"
+                >
+                  <XCircle size={14} />
+                </button>
+              )}
+            </>
           )}
         </div>
       ),
