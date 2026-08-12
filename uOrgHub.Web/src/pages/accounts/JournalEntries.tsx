@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Send, XCircle, ChevronDown, ChevronUp, Pencil, Check, AlertCircle, Trash2 } from "lucide-react";
-import Pagination from "../../components/shared/Pagination";
+import DataGrid, { DataGridColumn } from "../../components/shared/DataGrid";
+import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
 import SearchableDropdown from "../../components/shared/SearchableDropdown";
 import { useChartOfAccountsLookup, useCostCenterLookup } from "../../hooks/useEntityLookup";
@@ -23,10 +24,20 @@ const statusColors: Record<JournalEntryStatus, string> = {
   Cancelled: "bg-gray-100 text-gray-500",
 };
 
+const selectClass =
+  "text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500 text-gray-600";
+
+const fmtAmount = (v: number) => v.toLocaleString("en-BD", { minimumFractionDigits: 2 });
+
 export default function JournalEntries() {
   const qc = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  // Newest first: a journal is read from the most recent entry backwards. The debounce keeps a
+  // burst of typing to one request instead of one per keystroke.
+  const dg = useDataGrid({
+    defaultSortBy: "entryDate",
+    defaultSortDescending: true,
+    searchDebounceMs: 300,
+  });
   const [modal, setModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -41,8 +52,11 @@ export default function JournalEntries() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["journal-entries", page, search],
-    queryFn: () => getJournalEntries({ page, pageSize: 10, search }),
+    queryKey: ["journal-entries", ...dg.queryKey],
+    queryFn: () => getJournalEntries(dg.queryParams),
+    // Keeps the previous page on screen while the next one loads, so paging and sorting don't
+    // blank the table out from under the reader.
+    placeholderData: (prev) => prev,
   });
 
   const { options: coaOptions } = useChartOfAccountsLookup();
@@ -50,6 +64,7 @@ export default function JournalEntries() {
 
   const entries = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
+  const totalCount = data?.data?.data?.totalCount ?? 0;
   const [saveError, setSaveError] = useState("");
 
   const saveMutation = useMutation({
@@ -151,32 +166,38 @@ export default function JournalEntries() {
   const totalCredit = form.lines.reduce((s, l) => s + (Number(l.creditAmount) || 0), 0);
   const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01;
 
-  const columns = [
-    { key: "entryNumber", label: "Entry #" },
-    { key: "entryDate", label: "Date", render: (row: JournalEntry) => row.entryDate?.split("T")[0] ?? "" },
+  const columns: DataGridColumn<JournalEntry>[] = [
+    { key: "entryNumber", label: "Entry #", className: "font-mono text-xs text-gray-500" },
+    { key: "entryDate", label: "Date", render: (row) => row.entryDate?.split("T")[0] ?? "" },
     { key: "description", label: "Description" },
     { key: "referenceNumber", label: "Reference" },
     {
       key: "status",
       label: "Status",
-      render: (row: JournalEntry) => (
+      render: (row) => (
         <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[row.status]}`}>{row.status}</span>
       ),
     },
     {
       key: "totalDebit",
       label: "Debit",
-      render: (row: JournalEntry) => row.totalDebit.toLocaleString("en-BD", { minimumFractionDigits: 2 }),
+      headerClassName: "text-right",
+      className: "text-right tabular-nums",
+      render: (row) => fmtAmount(row.totalDebit),
     },
     {
       key: "totalCredit",
       label: "Credit",
-      render: (row: JournalEntry) => row.totalCredit.toLocaleString("en-BD", { minimumFractionDigits: 2 }),
+      headerClassName: "text-right",
+      className: "text-right tabular-nums",
+      render: (row) => fmtAmount(row.totalCredit),
     },
     {
       key: "actions",
       label: "Actions",
-      render: (row: JournalEntry) => (
+      // Not a column on the entry — there is nothing for the server to order by.
+      sortable: false,
+      render: (row) => (
         <div className="flex items-center gap-2">
           <button
             onClick={() => setExpandedId(expandedId === row.id ? null : row.id)}
@@ -240,77 +261,61 @@ export default function JournalEntries() {
         </button>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100">
-          <input
-            type="text"
-            placeholder="Search journal entries..."
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 w-64 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          />
-        </div>
-
-        {isLoading ? (
-          <div className="flex items-center justify-center h-40 text-sm text-gray-400">Loading...</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="bg-gray-50">
-                  {columns.map((col) => (
-                    <th key={col.key} className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 border-b border-gray-200">{col.label}</th>
-                  ))}
+      <DataGrid
+        columns={columns}
+        data={entries}
+        loading={isLoading}
+        sortBy={dg.sortBy}
+        sortDescending={dg.sortDescending}
+        onSort={dg.handleSort}
+        search={dg.search}
+        onSearch={dg.setSearch}
+        searchPlaceholder="Search entry no, description, reference..."
+        page={dg.page}
+        totalPages={totalPages}
+        onPageChange={dg.setPage}
+        pageSize={dg.pageSize}
+        onPageSizeChange={dg.setPageSize}
+        totalCount={totalCount}
+        emptyMessage="No journal entries found"
+        expandedRowId={expandedId}
+        renderExpandedRow={(entry) => (
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="text-gray-500">
+                <th className="text-left pb-1">Account</th>
+                <th className="text-left pb-1">Description</th>
+                <th className="text-left pb-1">Cost Center</th>
+                <th className="text-right pb-1">Debit</th>
+                <th className="text-right pb-1">Credit</th>
+              </tr>
+            </thead>
+            <tbody>
+              {entry.lines.map((line) => (
+                <tr key={line.id}>
+                  <td className="py-0.5">{line.accountName}</td>
+                  <td className="py-0.5 text-gray-500">{line.description}</td>
+                  <td className="py-0.5 text-gray-500">{line.costCenterName}</td>
+                  <td className="py-0.5 text-right tabular-nums">{line.debitAmount > 0 ? fmtAmount(line.debitAmount) : ""}</td>
+                  <td className="py-0.5 text-right tabular-nums">{line.creditAmount > 0 ? fmtAmount(line.creditAmount) : ""}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {entries.length === 0 ? (
-                  <tr><td colSpan={columns.length} className="text-center py-10 text-gray-400">No records found</td></tr>
-                ) : entries.map((entry) => (
-                  <>
-                    <tr key={entry.id} className="border-t border-gray-100 hover:bg-gray-50">
-                      {columns.map((col) => (
-                        <td key={col.key} className="px-4 py-2.5 text-gray-700">
-                          {col.render ? col.render(entry) : String((entry as unknown as Record<string, unknown>)[col.key] ?? "")}
-                        </td>
-                      ))}
-                    </tr>
-                    {expandedId === entry.id && (
-                      <tr key={`${entry.id}-lines`} className="bg-gray-50">
-                        <td colSpan={columns.length} className="px-6 py-3">
-                          <table className="w-full text-xs">
-                            <thead>
-                              <tr className="text-gray-500">
-                                <th className="text-left pb-1">Account</th>
-                                <th className="text-left pb-1">Description</th>
-                                <th className="text-left pb-1">Cost Center</th>
-                                <th className="text-right pb-1">Debit</th>
-                                <th className="text-right pb-1">Credit</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {entry.lines.map((line) => (
-                                <tr key={line.id}>
-                                  <td className="py-0.5">{line.accountName}</td>
-                                  <td className="py-0.5 text-gray-500">{line.description}</td>
-                                  <td className="py-0.5 text-gray-500">{line.costCenterName}</td>
-                                  <td className="py-0.5 text-right">{line.debitAmount > 0 ? line.debitAmount.toLocaleString("en-BD", { minimumFractionDigits: 2 }) : ""}</td>
-                                  <td className="py-0.5 text-right">{line.creditAmount > 0 ? line.creditAmount.toLocaleString("en-BD", { minimumFractionDigits: 2 }) : ""}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </td>
-                      </tr>
-                    )}
-                  </>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         )}
-        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-      </div>
+        toolbarPrefix={
+          <select
+            className={selectClass}
+            value={dg.filters.Status ?? ""}
+            onChange={(e) => dg.setFilter("Status", e.target.value)}
+          >
+            <option value="">All statuses</option>
+            <option value="Draft">Draft</option>
+            <option value="Posted">Posted</option>
+            <option value="Cancelled">Cancelled</option>
+          </select>
+        }
+      />
 
       <Modal title={editingId ? "Edit Journal Entry" : "New Journal Entry"} open={modal} onClose={closeModal} size="5xl">
         <div className="space-y-4">

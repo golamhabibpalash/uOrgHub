@@ -16,6 +16,15 @@ public class Voucher : BaseEntity
 
     public DateTime VoucherDate { get; set; }
 
+    /// <summary>
+    /// The number written on the physical voucher slip, when one exists. Free text and optional —
+    /// it is whatever the paper says, so it is never generated, never validated for uniqueness,
+    /// and never used to identify the voucher. <see cref="VoucherNumber"/> remains the system's
+    /// own identifier; this only ties the record back to the document in the filing cabinet.
+    /// </summary>
+    [MaxLength(50)]
+    public string? ReferenceNumber { get; set; }
+
     public Guid? FiscalYearId { get; set; }
     public FiscalYear? FiscalYear { get; set; }
 

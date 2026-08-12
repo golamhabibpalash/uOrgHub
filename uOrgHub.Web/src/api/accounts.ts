@@ -206,6 +206,8 @@ export interface Voucher {
   voucherNumber: string;
   voucherType: VoucherType;
   voucherDate: string;
+  /** Number on the physical voucher slip, when one exists. */
+  referenceNumber?: string;
   fiscalYearId?: string;
   fiscalYearName?: string;
   projectId?: string;
@@ -273,6 +275,8 @@ export interface VoucherAccountOptions {
 export interface CreateVoucherPayload {
   voucherType: VoucherType;
   voucherDate: string;
+  /** Number on the physical voucher slip, when one exists. Optional, free text. */
+  referenceNumber?: string;
   fiscalYearId?: string;
   /** Set for a project voucher. Mutually exclusive with costCenterId. */
   projectId?: string;

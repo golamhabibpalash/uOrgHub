@@ -54,6 +54,7 @@ import GeneralLedgerPage from "./pages/accounts/reports/GeneralLedgerPage";
 import ChartOfAccountsReportPage from "./pages/accounts/reports/ChartOfAccountsReportPage";
 import JournalEntryReportPage from "./pages/accounts/reports/JournalEntryReportPage";
 import AccountLedgerPage from "./pages/accounts/reports/AccountLedgerPage";
+import ProjectStatementPage from "./pages/accounts/reports/ProjectStatementPage";
 import DayBookPage from "./pages/accounts/reports/DayBookPage";
 import AccountGroupSummaryPage from "./pages/accounts/reports/AccountGroupSummaryPage";
 import ARAgingPage from "./pages/accounts/reports/ARAgingPage";
@@ -190,6 +191,7 @@ export default function App() {
             <Route path="accounts/reports/chart-of-accounts" element={<ProtectedRoute requiredClaim="Accounts.Reports.View"><ChartOfAccountsReportPage /></ProtectedRoute>} />
             <Route path="accounts/reports/journal-entries" element={<ProtectedRoute requiredClaim="Accounts.Reports.View"><JournalEntryReportPage /></ProtectedRoute>} />
             <Route path="accounts/reports/account-ledger" element={<ProtectedRoute requiredClaim="Accounts.Reports.View"><AccountLedgerPage /></ProtectedRoute>} />
+            <Route path="accounts/reports/project-statement" element={<ProtectedRoute requiredClaim="Accounts.Reports.View"><ProjectStatementPage /></ProtectedRoute>} />
             <Route path="accounts/reports/day-book" element={<ProtectedRoute requiredClaim="Accounts.Reports.View"><DayBookPage /></ProtectedRoute>} />
             <Route path="accounts/reports/account-group-summary" element={<ProtectedRoute requiredClaim="Accounts.Reports.View"><AccountGroupSummaryPage /></ProtectedRoute>} />
             <Route path="accounts/reports/ar-aging" element={<ProtectedRoute requiredClaim="Accounts.Reports.View"><ARAgingPage /></ProtectedRoute>} />

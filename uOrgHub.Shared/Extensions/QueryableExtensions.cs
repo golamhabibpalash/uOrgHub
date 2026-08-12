@@ -13,11 +13,22 @@ public static class QueryableExtensions
         var parameter = Expression.Parameter(typeof(T), "e");
         Expression? orExpression = null;
         var containsMethod = typeof(string).GetMethod(nameof(string.Contains), [typeof(string)]);
+        var toLowerMethod = typeof(string).GetMethod(nameof(string.ToLower), Type.EmptyTypes);
+
+        // Both sides are lowered so the match is case-insensitive. PostgreSQL's LIKE is
+        // case-sensitive, so without this a search for "jv-2026" would miss "JV-2026-0001" —
+        // which is how entry numbers, codes and names are actually stored.
+        var loweredTerm = Expression.Constant(searchTerm.ToLower());
 
         foreach (var selector in propertySelectors)
         {
             var property = selector.Body.ReplaceParameter(selector.Parameters[0], parameter);
-            var containsCall = Expression.Call(property, containsMethod!, Expression.Constant(searchTerm));
+
+            // A null column would make ToLower() throw in memory and yield NULL in SQL; coalescing
+            // to empty keeps a nullable field (ReferenceNumber, say) a non-match rather than a fault.
+            var safeProperty = Expression.Coalesce(property, Expression.Constant(string.Empty));
+            var loweredProperty = Expression.Call(safeProperty, toLowerMethod!);
+            var containsCall = Expression.Call(loweredProperty, containsMethod!, loweredTerm);
 
             orExpression = orExpression == null ? containsCall : Expression.OrElse(orExpression, containsCall);
         }

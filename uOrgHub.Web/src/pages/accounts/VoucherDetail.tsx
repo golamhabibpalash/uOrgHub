@@ -128,7 +128,7 @@ export default function VoucherDetail() {
 
   const theme = voucherThemes[voucher.voucherType];
   // A Contra voucher moves money between own accounts, so there is no paying or receiving party.
-  const nameLabel = { Debit: "Paid To", Credit: "Received From", Contra: "Reference" }[
+  const nameLabel = { Debit: "Paid To", Credit: "Received From", Contra: "Cheque / Slip No." }[
     voucher.voucherType
   ];
   const debitLabel = { Debit: "Party Account", Credit: "Receive Into", Contra: "Transfer To" }[
@@ -291,6 +291,7 @@ export default function VoucherDetail() {
       {/* Summary */}
       <div className="bg-white border border-gray-200 rounded-xl p-5 mb-4 grid grid-cols-2 md:grid-cols-4 gap-5">
         <Field label={nameLabel} value={voucher.name} />
+        <Field label="Voucher Ref. No." value={voucher.referenceNumber} />
         <Field label="Section" value={voucher.section} />
         <Field
           label={voucher.projectId ? "Project" : "Charged To"}

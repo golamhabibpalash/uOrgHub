@@ -1,5 +1,6 @@
 import apiClient from "./client";
 import { ApiResponse, PagedResult, PaginationRequest } from "../types/api";
+import { AccountGroupType } from "./accounts";
 
 export interface Project {
   id: string;
@@ -846,3 +847,53 @@ export const markRABillPaid = (id: string) =>
 
 export const deleteRABill = (id: string) =>
   apiClient.delete<ApiResponse<null>>(`/rabills/${id}`);
+
+// ── Project-wise Accounting Report ─────────────────────────────────────────
+
+export interface ProjectStatementRow {
+  entryDate: string;
+  entryNumber: string;
+  referenceNumber?: string;
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  accountType: AccountGroupType;
+  narration?: string;
+  costCenterName: string;
+  debit: number;
+  credit: number;
+  runningNet: number;
+}
+
+export interface ProjectStatementAccount {
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  accountType: AccountGroupType;
+  debit: number;
+  credit: number;
+  net: number;
+}
+
+export interface ProjectStatement {
+  projectId: string;
+  projectCode: string;
+  projectName: string;
+  contractValue: number;
+  dateFrom?: string;
+  dateTo?: string;
+  openingSpend: number;
+  periodExpense: number;
+  periodIncome: number;
+  closingSpend: number;
+  receipts: number;
+  payments: number;
+  netCashPosition: number;
+  byAccount: ProjectStatementAccount[];
+  rows: ProjectStatementRow[];
+}
+
+export const getProjectStatement = (projectId: string, dateFrom?: string, dateTo?: string) =>
+  apiClient.get<ApiResponse<ProjectStatement>>(`/projects/reports/statement/${projectId}`, {
+    params: { dateFrom, dateTo },
+  });

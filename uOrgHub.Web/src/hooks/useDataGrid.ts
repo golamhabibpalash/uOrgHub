@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export interface DataGridState {
   page: number;
@@ -13,12 +13,32 @@ export interface UseDataGridOptions {
   defaultPageSize?: number;
   defaultSortBy?: string;
   defaultSortDescending?: boolean;
+  /**
+   * Wait this long after the last keystroke before the search reaches the server. Opt-in: left
+   * unset, the search fires on every keystroke, which is what every existing caller expects.
+   */
+  searchDebounceMs?: number;
 }
 
 export function useDataGrid(options: UseDataGridOptions = {}) {
+  const debounceMs = options.searchDebounceMs ?? 0;
+
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(options.defaultPageSize ?? 10);
   const [search, setSearchRaw] = useState("");
+  // The input renders from `search` so typing stays responsive; only the settled value is allowed
+  // to reach the query, so a burst of keystrokes costs one request rather than one each.
+  const [settledSearch, setSettledSearch] = useState("");
+
+  useEffect(() => {
+    if (debounceMs <= 0) return;
+    const timer = setTimeout(() => setSettledSearch(search), debounceMs);
+    return () => clearTimeout(timer);
+  }, [search, debounceMs]);
+
+  // Derived rather than stored for the undebounced case: writing state in the effect just to
+  // mirror `search` would cost an extra render on every keystroke.
+  const effectiveSearch = debounceMs > 0 ? settledSearch : search;
   const [sortBy, setSortBy] = useState<string | undefined>(options.defaultSortBy);
   const [sortDescending, setSortDescending] = useState(options.defaultSortDescending ?? false);
   const [filters, setFilters] = useState<Record<string, string>>({});
@@ -61,16 +81,20 @@ export function useDataGrid(options: UseDataGridOptions = {}) {
   const queryParams = useMemo(() => ({
     page,
     pageSize,
-    ...(search && { search }),
+    ...(effectiveSearch && { search: effectiveSearch }),
     ...(sortBy && { sortBy, sortDescending }),
     ...(Object.keys(filters).length > 0 && { filtersJson: JSON.stringify(filters) }),
-  }), [page, pageSize, search, sortBy, sortDescending, filters]);
+  }), [page, pageSize, effectiveSearch, sortBy, sortDescending, filters]);
 
   // Stable array covering every param that affects server results.
   // Pages spread this into their queryKey: ["entity", ...dg.queryKey, ...extras]
+  //
+  // `filters` belongs here because it reaches the server via queryParams — left out, a filter
+  // change would alter the request without changing the key, and the stale page would be served
+  // from cache instead of refetched.
   const queryKey = useMemo(
-    () => [page, pageSize, search, sortBy, sortDescending] as unknown[],
-    [page, pageSize, search, sortBy, sortDescending],
+    () => [page, pageSize, effectiveSearch, sortBy, sortDescending, filters] as unknown[],
+    [page, pageSize, effectiveSearch, sortBy, sortDescending, filters],
   );
 
   const state: DataGridState = useMemo(() => ({

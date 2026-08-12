@@ -82,6 +82,12 @@ export default function Vouchers() {
     },
     { key: "name", label: "Name", render: (row) => row.name ?? "—" },
     {
+      key: "referenceNumber",
+      label: "Ref. No.",
+      render: (row) => row.referenceNumber ?? "—",
+      className: "text-xs text-gray-500",
+    },
+    {
       // The cost center name is the project name for project vouchers — one is auto-created
       // per project — so this one column covers both project and overhead vouchers.
       key: "costCenterName",

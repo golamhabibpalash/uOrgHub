@@ -41,6 +41,7 @@ function parseVoucherType(raw: string | null): VoucherType {
 
 interface FormState {
   voucherDate: string;
+  referenceNumber: string;
   fiscalYearId: string;
   chargeMode: ChargeMode;
   projectId: string;
@@ -57,6 +58,7 @@ interface FormState {
 
 const emptyForm: FormState = {
   voucherDate: new Date().toISOString().split("T")[0],
+  referenceNumber: "",
   fiscalYearId: "",
   chargeMode: "project",
   projectId: "",
@@ -106,6 +108,7 @@ export default function VoucherForm() {
         voucher
           ? {
               voucherDate: voucher.voucherDate?.split("T")[0] ?? "",
+              referenceNumber: voucher.referenceNumber ?? "",
               fiscalYearId: voucher.fiscalYearId ?? "",
               chargeMode: voucher.projectId ? "project" : "overhead",
               projectId: voucher.projectId ?? "",
@@ -167,7 +170,9 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
   const labels = {
     Debit: { nameLabel: "Paid To", namePlaceholder: "Name of person or party receiving the money" },
     Credit: { nameLabel: "Received From", namePlaceholder: "Name of person or party paying the money" },
-    Contra: { nameLabel: "Reference", namePlaceholder: "Cheque number, slip number or similar" },
+    // Named for the instrument rather than "Reference", which would now collide with the
+    // voucher's own reference number field sitting beside it.
+    Contra: { nameLabel: "Cheque / Slip No.", namePlaceholder: "Cheque number, slip number or similar" },
   }[voucherType];
 
   const amountValue = Number(form.amount) || 0;
@@ -190,6 +195,7 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
       // Voucher type is fixed at creation — the update endpoint does not accept it.
       const common: UpdateVoucherPayload = {
         voucherDate: form.voucherDate,
+        referenceNumber: form.referenceNumber.trim() || undefined,
         fiscalYearId: fiscalYearId || undefined,
         // Exactly one of these goes to the server; sending both is a validation error.
         projectId: form.chargeMode === "project" ? form.projectId : undefined,
@@ -312,7 +318,7 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
 
       <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-5">
         {/* Header details */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="text-xs text-gray-500 mb-1 block">
               Date <span className="text-red-500">*</span>
@@ -328,6 +334,19 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
                 No open fiscal year covers this date.
               </p>
             )}
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Voucher Ref. No.</label>
+            <input
+              className={inputClass}
+              value={form.referenceNumber}
+              onChange={(e) => update("referenceNumber", e.target.value)}
+              maxLength={50}
+              placeholder="Number on the paper voucher"
+            />
+            <p className="text-[11px] text-gray-400 mt-1">
+              Leave blank if there is no physical voucher.
+            </p>
           </div>
           <div>
             <label className="text-xs text-gray-500 mb-1 block">{labels.nameLabel}</label>

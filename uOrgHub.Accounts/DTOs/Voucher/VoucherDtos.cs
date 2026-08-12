@@ -6,6 +6,10 @@ public class CreateVoucherDto
 {
     public VoucherType VoucherType { get; set; }
     public DateTime VoucherDate { get; set; }
+
+    /// <summary>Number on the physical voucher slip, if there is one. Optional, free text.</summary>
+    public string? ReferenceNumber { get; set; }
+
     public Guid? FiscalYearId { get; set; }
 
     /// <summary>
@@ -33,6 +37,10 @@ public class CreateVoucherDto
 public class UpdateVoucherDto
 {
     public DateTime VoucherDate { get; set; }
+
+    /// <summary>Number on the physical voucher slip, if there is one. Optional, free text.</summary>
+    public string? ReferenceNumber { get; set; }
+
     public Guid? FiscalYearId { get; set; }
     public Guid? ProjectId { get; set; }
     public Guid? CostCenterId { get; set; }
@@ -103,6 +111,7 @@ public class VoucherResponseDto
     public string VoucherNumber { get; set; } = string.Empty;
     public VoucherType VoucherType { get; set; }
     public DateTime VoucherDate { get; set; }
+    public string? ReferenceNumber { get; set; }
     public Guid? FiscalYearId { get; set; }
     public string? FiscalYearName { get; set; }
     public Guid? ProjectId { get; set; }

@@ -18,7 +18,7 @@ const VoucherPrintView = forwardRef<HTMLDivElement, VoucherPrintViewProps>(
     const theme = voucherThemes[voucher.voucherType];
     // A Contra voucher has no counterparty — money stays inside the organisation — so the field
     // carries the transfer's reference rather than a person's name.
-    const nameLabel = { Debit: "Paid To", Credit: "Received From", Contra: "Reference" }[
+    const nameLabel = { Debit: "Paid To", Credit: "Received From", Contra: "Cheque / Slip No." }[
       voucher.voucherType
     ];
 
@@ -57,6 +57,18 @@ const VoucherPrintView = forwardRef<HTMLDivElement, VoucherPrintViewProps>(
                 </span>
               </td>
             </tr>
+            {/* Only printed when a paper voucher exists — an empty dotted line on a printed
+                voucher reads as a field someone forgot to fill in. */}
+            {voucher.referenceNumber && (
+              <tr>
+                <td className="py-1" colSpan={2}>
+                  <span className="font-semibold">Voucher Ref. No: </span>
+                  <span className="border-b border-dotted border-gray-500 px-1">
+                    {voucher.referenceNumber}
+                  </span>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
 

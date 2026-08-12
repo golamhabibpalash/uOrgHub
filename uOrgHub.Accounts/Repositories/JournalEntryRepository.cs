@@ -25,17 +25,33 @@ public class JournalEntryRepository : IJournalEntryRepository
 
     public async Task<PagedResult<JournalEntry>> GetAllAsync(PaginationRequest request)
     {
-        var query = BaseQuery();
+        // No tracking: the list is read-only and maps straight to DTOs, so the change tracker
+        // would only pay to snapshot every entry and its lines on each page load.
+        var query = BaseQuery().AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(request.Search))
             query = query.WhereSearch(request.Search, x => x.EntryNumber, x => x.Description, x => x.ReferenceNumber);
 
-        query = query.ApplySorting(request.SortBy ?? "EntryDate", request.SortDescending);
+        query = query.ApplyFilters(request.Filters);
 
+        // Count before the includes matter — EF drops them for a COUNT, so this stays a cheap
+        // aggregate over the filtered set rather than materialising anything.
         var totalCount = await query.CountAsync();
+
+        // Newest first by default: a journal is read from the most recent entry backwards, and an
+        // unsorted request would otherwise start at the oldest page.
+        var sortBy = request.SortBy ?? nameof(JournalEntry.EntryDate);
+        var descending = request.SortBy is null || request.SortDescending;
+
+        // Ties on date are common — several entries are posted the same day — and a paged query
+        // with a non-unique ordering can repeat or skip rows between pages. EntryNumber is unique,
+        // so it settles them into a total order.
         var items = await query
+            .ApplySorting(sortBy, descending, x => x.EntryNumber, tieBreakDescending: true)
             .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)
+            // One collection include: split avoids the parent row repeating per line.
+            .AsSplitQuery()
             .ToListAsync();
 
         return new PagedResult<JournalEntry> { Items = items, TotalCount = totalCount, Page = request.Page, PageSize = request.PageSize };

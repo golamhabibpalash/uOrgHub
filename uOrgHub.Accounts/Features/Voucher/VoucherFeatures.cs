@@ -71,7 +71,9 @@ public class GetVouchersQueryHandler : IRequestHandler<GetVouchersQuery, PagedRe
             query = query.Where(x => x.CostCenterId == request.CostCenterId.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.WhereSearch(request.Request.Search, x => x.VoucherNumber, x => x.Description, x => x.Name);
+            // The physical slip number is searchable too: it is often the only number the person
+            // asking about a voucher actually has in front of them.
+            query = query.WhereSearch(request.Request.Search, x => x.VoucherNumber, x => x.Description, x => x.Name, x => x.ReferenceNumber!);
 
         query = query.ApplySorting(request.Request.SortBy ?? "VoucherDate", request.Request.SortDescending);
 

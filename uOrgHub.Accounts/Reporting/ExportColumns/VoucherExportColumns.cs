@@ -10,6 +10,7 @@ public static class VoucherExportColumns
         new("voucherNumber", "Voucher Number", x => x.VoucherNumber),
         new("voucherType", "Voucher Type", x => x.VoucherType.ToString()),
         new("voucherDate", "Voucher Date", x => x.VoucherDate),
+        new("referenceNumber", "Reference No.", x => x.ReferenceNumber),
         new("name", "Name", x => x.Name),
         new("section", "Section", x => x.Section),
         // The cost center name doubles as the project name for project vouchers — one is

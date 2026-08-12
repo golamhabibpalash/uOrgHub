@@ -20,6 +20,9 @@ public class CreateVoucherValidator : AbstractValidator<CreateVoucherDto>
         RuleFor(x => x.Name).MaximumLength(200);
         RuleFor(x => x.Section).MaximumLength(200);
 
+        // Free text off a paper slip — length is the only thing worth policing.
+        RuleFor(x => x.ReferenceNumber).MaximumLength(50);
+
         RuleFor(x => x.DebitAccountId)
             .NotEmpty().WithMessage("Debit account is required");
 
@@ -55,6 +58,9 @@ public class UpdateVoucherValidator : AbstractValidator<UpdateVoucherDto>
 
         RuleFor(x => x.Name).MaximumLength(200);
         RuleFor(x => x.Section).MaximumLength(200);
+
+        // Free text off a paper slip — length is the only thing worth policing.
+        RuleFor(x => x.ReferenceNumber).MaximumLength(50);
 
         RuleFor(x => x.DebitAccountId)
             .NotEmpty().WithMessage("Debit account is required");

@@ -14,6 +14,7 @@ public static class ProjectsServiceExtension
         services.AddValidatorsFromAssembly(typeof(ProjectsServiceExtension).Assembly);
         services.AddScoped<IProjectFinancialService, ProjectFinancialService>();
         services.AddScoped<IProjectCostLimitChecker, ProjectCostLimitChecker>();
+        services.AddScoped<IProjectStatementService, ProjectStatementService>();
         return services;
     }
 }

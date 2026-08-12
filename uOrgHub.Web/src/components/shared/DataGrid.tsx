@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { ArrowUpDown, ArrowUp, ArrowDown, Search, ChevronLeft, ChevronRight, List, Eye } from "lucide-react";
 
 export interface DataGridColumn<T> {
@@ -35,6 +36,12 @@ interface DataGridProps<T> {
   toolbarPrefix?: React.ReactNode;
   /** Optional filter bar rendered below toolbar */
   filterBar?: React.ReactNode;
+  /**
+   * Detail panel shown in a full-width row beneath the matching row. The grid only decides
+   * placement — which row is open is the page's state, passed in as `expandedRowId`.
+   */
+  renderExpandedRow?: (row: T) => React.ReactNode;
+  expandedRowId?: string | null;
 }
 
 function SortIcon({ column, sortBy, sortDescending }: { column: string; sortBy?: string; sortDescending?: boolean }) {
@@ -65,7 +72,11 @@ export default function DataGrid<T extends { id: string }>({
   emptyMessage = "No records found",
   toolbarPrefix,
   filterBar,
+  renderExpandedRow,
+  expandedRowId,
 }: DataGridProps<T>) {
+  const columnCount = columns.length + (onView || onEdit || onDelete ? 1 : 0);
+
   return (
     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
       {/* Toolbar */}
@@ -138,7 +149,7 @@ export default function DataGrid<T extends { id: string }>({
               {data.length === 0 && !loading ? (
                 <tr>
                   <td
-                    colSpan={columns.length + (onView || onEdit || onDelete ? 1 : 0)}
+                    colSpan={columnCount}
                     className="text-center py-16 text-gray-400 text-sm"
                   >
                     <div className="flex flex-col items-center gap-2">
@@ -149,8 +160,8 @@ export default function DataGrid<T extends { id: string }>({
                 </tr>
               ) : (
                 data.map((row) => (
+                  <Fragment key={row.id}>
                   <tr
-                    key={row.id}
                     className="border-t border-gray-100 hover:bg-gray-50 transition-colors"
                   >
                     {columns.map((col) => (
@@ -195,6 +206,14 @@ export default function DataGrid<T extends { id: string }>({
                       </td>
                     )}
                   </tr>
+                  {renderExpandedRow && expandedRowId === row.id && (
+                    <tr className="bg-gray-50">
+                      <td colSpan={columnCount} className="px-6 py-3">
+                        {renderExpandedRow(row)}
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 ))
               )}
             </tbody>
