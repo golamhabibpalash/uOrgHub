@@ -105,7 +105,10 @@ public class VouchersController : BaseController
     public async Task<IActionResult> Submit(Guid id)
     {
         var result = await _mediator.Send(new SubmitVoucherCommand(id, GetUserName()));
-        return Ok(ApiResponse<VoucherResponseDto>.Ok(result, "Voucher submitted successfully."));
+        var message = result.JournalEntryNumber is null
+            ? "Voucher submitted successfully."
+            : $"Voucher submitted. Journal Entry {result.JournalEntryNumber} created as Draft.";
+        return Ok(ApiResponse<VoucherResponseDto>.Ok(result, message));
     }
 
     [HttpPost("{id:guid}/approve")]
@@ -116,7 +119,7 @@ public class VouchersController : BaseController
         var jeRef = result.JournalEntryNumber;
         var message = jeRef is null
             ? "Voucher approved successfully."
-            : $"Voucher approved. Journal Entry {jeRef} created as Draft.";
+            : $"Voucher approved. Journal Entry {jeRef} is ready to post.";
         return Ok(ApiResponse<VoucherResponseDto>.Ok(result, message));
     }
 

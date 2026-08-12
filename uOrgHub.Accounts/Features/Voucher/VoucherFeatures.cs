@@ -226,9 +226,14 @@ public class UpdateVoucherCommandHandler : IRequestHandler<UpdateVoucherCommand,
 public class SubmitVoucherCommandHandler : IRequestHandler<SubmitVoucherCommand, VoucherResponseDto>
 {
     private readonly AppDbContext _context;
+    private readonly IJournalEntryService _jeService;
     private readonly VoucherMapper _mapper = new();
 
-    public SubmitVoucherCommandHandler(AppDbContext context) => _context = context;
+    public SubmitVoucherCommandHandler(AppDbContext context, IJournalEntryService jeService)
+    {
+        _context = context;
+        _jeService = jeService;
+    }
 
     public async Task<VoucherResponseDto> Handle(SubmitVoucherCommand request, CancellationToken ct)
     {
@@ -238,6 +243,12 @@ public class SubmitVoucherCommandHandler : IRequestHandler<SubmitVoucherCommand,
 
         if (entity.Status != VoucherStatus.Draft)
             throw new AppException("Only draft vouchers can be submitted.");
+
+        // Submitting is the point the voucher stops being editable, so it is the earliest moment
+        // its double entry can be built and still be guaranteed to match the voucher. Approval and
+        // posting then act on an entry that already exists rather than conjuring one.
+        if (!entity.JournalEntryId.HasValue)
+            entity.JournalEntryId = await VoucherJournal.CreateAsync(_context, _jeService, entity, ct);
 
         entity.Status = VoucherStatus.Submitted;
         entity.SubmittedBy = request.SubmittedBy;
@@ -272,8 +283,10 @@ public class ApproveVoucherCommandHandler : IRequestHandler<ApproveVoucherComman
         if (entity.Status != VoucherStatus.Submitted)
             throw new AppException("Only submitted vouchers can be approved.");
 
+        // Normally the entry already exists — it is created on submit. This covers vouchers
+        // submitted before that was the case, so approval never leaves one without an entry.
         if (!entity.JournalEntryId.HasValue)
-            entity.JournalEntryId = await CreateJournalEntryAsync(entity, ct);
+            entity.JournalEntryId = await VoucherJournal.CreateAsync(_context, _jeService, entity, ct);
 
         entity.Status = VoucherStatus.Approved;
         entity.ApprovedBy = request.ApprovedBy;
@@ -284,49 +297,6 @@ public class ApproveVoucherCommandHandler : IRequestHandler<ApproveVoucherComman
 
         await VoucherGuard.ReloadReferencedAsync(_context, entity, ct);
         return _mapper.ToDto(entity);
-    }
-
-    private async Task<Guid> CreateJournalEntryAsync(Models.Entities.Voucher voucher, CancellationToken ct)
-    {
-        var dto = new CreateJournalEntryDto
-        {
-            EntryDate = voucher.VoucherDate,
-            ReferenceNumber = voucher.VoucherNumber,
-            Description = $"Voucher {voucher.VoucherNumber} - {voucher.Description}",
-            Lines =
-            [
-                // Both lines carry the voucher's cost center. That is the only thing tying the
-                // amount back to a project: ProjectFinancialService reads posted journal entry
-                // lines by cost center, so a line without one is invisible to project reporting.
-                new CreateJournalEntryLineDto
-                {
-                    AccountId = voucher.DebitAccountId,
-                    Description = voucher.Description,
-                    DebitAmount = voucher.Amount,
-                    CostCenterId = voucher.CostCenterId,
-                    LineOrder = 1
-                },
-                new CreateJournalEntryLineDto
-                {
-                    AccountId = voucher.CreditAccountId,
-                    Description = voucher.Description,
-                    CreditAmount = voucher.Amount,
-                    CostCenterId = voucher.CostCenterId,
-                    LineOrder = 2
-                }
-            ]
-        };
-
-        var je = await _jeService.CreateAsync(dto);
-
-        // IBaseService.CreateAsync has no author parameter, so stamp the voucher's
-        // preparer onto the generated entry rather than leaving it as "System".
-        var entry = await _context.Set<Models.Entities.JournalEntry>()
-            .FirstOrDefaultAsync(x => x.Id == je.Id, ct);
-        if (entry is not null)
-            entry.CreatedBy = voucher.CreatedBy;
-
-        return je.Id;
     }
 }
 
@@ -371,9 +341,14 @@ public class PostVoucherCommandHandler : IRequestHandler<PostVoucherCommand, Vou
 public class RejectVoucherCommandHandler : IRequestHandler<RejectVoucherCommand, VoucherResponseDto>
 {
     private readonly AppDbContext _context;
+    private readonly IJournalEntryService _jeService;
     private readonly VoucherMapper _mapper = new();
 
-    public RejectVoucherCommandHandler(AppDbContext context) => _context = context;
+    public RejectVoucherCommandHandler(AppDbContext context, IJournalEntryService jeService)
+    {
+        _context = context;
+        _jeService = jeService;
+    }
 
     public async Task<VoucherResponseDto> Handle(RejectVoucherCommand request, CancellationToken ct)
     {
@@ -383,6 +358,15 @@ public class RejectVoucherCommandHandler : IRequestHandler<RejectVoucherCommand,
 
         if (entity.Status != VoucherStatus.Submitted)
             throw new AppException("Only submitted vouchers can be rejected.");
+
+        // The draft entry was created on submit; a rejected voucher must not leave it behind,
+        // or the journal fills up with drafts for money that was never approved to move.
+        if (entity.JournalEntryId.HasValue)
+        {
+            await _jeService.DeleteAsync(entity.JournalEntryId.Value);
+            entity.JournalEntryId = null;
+            entity.JournalEntry = null;
+        }
 
         entity.Status = VoucherStatus.Rejected;
         entity.RejectedBy = request.RejectedBy;
@@ -422,7 +406,11 @@ public class CancelVoucherCommandHandler : IRequestHandler<CancelVoucherCommand,
             throw new AppException("Voucher is already cancelled.");
 
         if (entity.JournalEntryId.HasValue)
+        {
             await _jeService.DeleteAsync(entity.JournalEntryId.Value);
+            entity.JournalEntryId = null;
+            entity.JournalEntry = null;
+        }
 
         entity.Status = VoucherStatus.Cancelled;
         entity.UpdatedAt = DateTime.UtcNow;
@@ -544,6 +532,70 @@ file static class VoucherQueryHelper
             .Include(x => x.CostCenter)
             .Include(x => x.JournalEntry)
             .Where(x => !x.IsDeleted);
+}
+
+file static class VoucherJournal
+{
+    /// <summary>
+    /// Turns a voucher into its double entry: the debit account debited and the credit account
+    /// credited, both for the voucher's full amount, as a Draft journal entry that posting later
+    /// pushes to the ledger. Returns the new entry's id.
+    ///
+    /// Deliberately type-agnostic. A Debit, Credit and Contra voucher differ only in which
+    /// accounts <see cref="VoucherGuard.ValidateAccountsAsync"/> allowed onto each side — by the
+    /// time the entry is built the sides are already correct, so all three yield the same balanced
+    /// two-line entry:
+    ///
+    /// Debit Voucher  (money out)      Dr expense/payable      Cr cash or bank
+    /// Credit Voucher (money in)       Dr cash or bank         Cr income/receivable/liability
+    /// Contra Voucher (own transfer)   Dr destination account  Cr source account
+    /// </summary>
+    public static async Task<Guid> CreateAsync(
+        AppDbContext context,
+        IJournalEntryService jeService,
+        Models.Entities.Voucher voucher,
+        CancellationToken ct)
+    {
+        var dto = new CreateJournalEntryDto
+        {
+            EntryDate = voucher.VoucherDate,
+            ReferenceNumber = voucher.VoucherNumber,
+            Description = $"Voucher {voucher.VoucherNumber} - {voucher.Description}",
+            Lines =
+            [
+                // Both lines carry the voucher's cost center. That is the only thing tying the
+                // amount back to a project: ProjectFinancialService reads posted journal entry
+                // lines by cost center, so a line without one is invisible to project reporting.
+                new CreateJournalEntryLineDto
+                {
+                    AccountId = voucher.DebitAccountId,
+                    Description = voucher.Description,
+                    DebitAmount = voucher.Amount,
+                    CostCenterId = voucher.CostCenterId,
+                    LineOrder = 1
+                },
+                new CreateJournalEntryLineDto
+                {
+                    AccountId = voucher.CreditAccountId,
+                    Description = voucher.Description,
+                    CreditAmount = voucher.Amount,
+                    CostCenterId = voucher.CostCenterId,
+                    LineOrder = 2
+                }
+            ]
+        };
+
+        var je = await jeService.CreateAsync(dto);
+
+        // IBaseService.CreateAsync has no author parameter, so stamp the voucher's
+        // preparer onto the generated entry rather than leaving it as "System".
+        var entry = await context.Set<Models.Entities.JournalEntry>()
+            .FirstOrDefaultAsync(x => x.Id == je.Id, ct);
+        if (entry is not null)
+            entry.CreatedBy = voucher.CreatedBy;
+
+        return je.Id;
+    }
 }
 
 file static class VoucherGuard
