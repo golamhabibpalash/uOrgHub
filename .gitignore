@@ -90,3 +90,6 @@ appsettings.Development.json
 # Claude
 .claude/
 .aider*
+
+# Client import working files (rendered log book pages, etc.)
+imports/
