@@ -6,6 +6,7 @@ import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
 import { useDataGrid } from "../../hooks/useDataGrid";
 import { getRFQs, createRFQ, updateRFQ, deleteRFQ, RequestForQuotation, RFQStatus } from "../../api/procurement";
+import DateInput from "../../components/shared/DateInput";
 
 export default function RequestForQuotations() {
   const qc = useQueryClient();
@@ -163,12 +164,12 @@ export default function RequestForQuotations() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">RFQ Date *</label>
-              <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+              <DateInput className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
                 value={form.rfqDate} onChange={(e) => setForm((f) => ({ ...f, rfqDate: e.target.value }))} />
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Closing Date *</label>
-              <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+              <DateInput className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
                 value={form.closingDate} onChange={(e) => setForm((f) => ({ ...f, closingDate: e.target.value }))} />
             </div>
           </div>

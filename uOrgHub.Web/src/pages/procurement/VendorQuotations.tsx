@@ -6,6 +6,7 @@ import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
 import { useDataGrid } from "../../hooks/useDataGrid";
 import { getVendorQuotations, createVendorQuotation, updateVendorQuotation, deleteVendorQuotation, VendorQuotation, QuotationStatus } from "../../api/procurement";
+import DateInput from "../../components/shared/DateInput";
 
 export default function VendorQuotations() {
   const qc = useQueryClient();
@@ -153,9 +154,9 @@ export default function VendorQuotations() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div><label className="text-xs text-gray-500 mb-1 block">Quote Date *</label>
-              <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.quotationDate} onChange={(e) => setForm((f) => ({ ...f, quotationDate: e.target.value }))} /></div>
+              <DateInput className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.quotationDate} onChange={(e) => setForm((f) => ({ ...f, quotationDate: e.target.value }))} /></div>
             <div><label className="text-xs text-gray-500 mb-1 block">Valid Until *</label>
-              <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.validUntil} onChange={(e) => setForm((f) => ({ ...f, validUntil: e.target.value }))} /></div>
+              <DateInput className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.validUntil} onChange={(e) => setForm((f) => ({ ...f, validUntil: e.target.value }))} /></div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div><label className="text-xs text-gray-500 mb-1 block">Delivery Days</label>

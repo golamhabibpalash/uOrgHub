@@ -13,6 +13,7 @@ import {
   deleteRFI,
   RFI,
 } from "../../api/projects";
+import DateInput from "../../components/shared/DateInput";
 
 const STATUSES = ["Open", "Responded", "Closed", "Cancelled"];
 
@@ -208,7 +209,7 @@ export default function RFIsPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Response Due Date</label>
-              <input type="date" value={form.responseDueDate} onChange={(e) => setForm((f) => ({ ...f, responseDueDate: e.target.value }))}
+              <DateInput value={form.responseDueDate} onChange={(e) => setForm((f) => ({ ...f, responseDueDate: e.target.value }))}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" />
             </div>
             <div className="flex items-end pb-2">
@@ -238,7 +239,7 @@ export default function RFIsPage() {
           </div>
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Response Date</label>
-            <input type="date" value={respondForm.responseDate} onChange={(e) => setRespondForm((f) => ({ ...f, responseDate: e.target.value }))}
+            <DateInput value={respondForm.responseDate} onChange={(e) => setRespondForm((f) => ({ ...f, responseDate: e.target.value }))}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" />
           </div>
           <div className="flex justify-end gap-2 pt-2">

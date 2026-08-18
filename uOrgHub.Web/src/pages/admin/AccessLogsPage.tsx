@@ -8,6 +8,7 @@ import {
   type PagedResult,
   type AccessLogFilterParams,
 } from '../../api/auth';
+import DateInput from "../../components/shared/DateInput";
 
 const HTTP_METHODS = ['', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
 const PAGE_SIZES = [20, 30, 50, 100];
@@ -195,13 +196,13 @@ export default function AccessLogsPage() {
             </div>
             <div>
               <label className="block text-xs text-slate-400 mb-1">Date From</label>
-              <input type="datetime-local"
+              <DateInput mode="datetime"
                 value={local.dateFrom} onChange={e => setLocal(p => ({ ...p, dateFrom: e.target.value }))}
                 className="w-full bg-slate-900 border border-slate-700 text-white text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-primary-500" />
             </div>
             <div>
               <label className="block text-xs text-slate-400 mb-1">Date To</label>
-              <input type="datetime-local"
+              <DateInput mode="datetime"
                 value={local.dateTo} onChange={e => setLocal(p => ({ ...p, dateTo: e.target.value }))}
                 className="w-full bg-slate-900 border border-slate-700 text-white text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-primary-500" />
             </div>

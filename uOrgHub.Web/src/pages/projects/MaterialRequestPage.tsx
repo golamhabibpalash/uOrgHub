@@ -13,6 +13,7 @@ import {
   createMaterialRequestItem,
   MaterialRequest,
 } from "../../api/projects";
+import DateInput from "../../components/shared/DateInput";
 
 export default function MaterialRequestPage() {
   const { id: projectId } = useParams<{ id: string }>();
@@ -240,8 +241,7 @@ export default function MaterialRequestPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Request Date *</label>
-              <input
-                type="date"
+              <DateInput
                 value={requestForm.requestDate}
                 onChange={(e) =>
                   setRequestForm((f) => ({ ...f, requestDate: e.target.value }))
@@ -251,8 +251,7 @@ export default function MaterialRequestPage() {
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Required Date *</label>
-              <input
-                type="date"
+              <DateInput
                 value={requestForm.requiredDate}
                 onChange={(e) =>
                   setRequestForm((f) => ({ ...f, requiredDate: e.target.value }))

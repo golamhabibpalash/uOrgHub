@@ -4,6 +4,7 @@ import { getProjectStatement } from "../../../api/projects";
 import { useProjectLookup } from "../../../hooks/useEntityLookup";
 import SearchableDropdown from "../../../components/shared/SearchableDropdown";
 import ReportLayout from "../../../components/shared/ReportLayout";
+import DateInput from "../../../components/shared/DateInput";
 
 const fmt = (v: number) => v.toLocaleString("en-BD", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const dateFmt = (d: string) => new Date(d).toLocaleDateString("en-BD");
@@ -83,8 +84,7 @@ export default function ProjectStatementPage() {
           />
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Start Date</label>
-            <input
-              type="date"
+            <DateInput
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
@@ -92,8 +92,7 @@ export default function ProjectStatementPage() {
           </div>
           <div>
             <label className="text-xs text-gray-500 mb-1 block">End Date</label>
-            <input
-              type="date"
+            <DateInput
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}

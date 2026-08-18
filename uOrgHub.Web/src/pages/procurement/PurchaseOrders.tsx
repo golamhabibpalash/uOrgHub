@@ -6,6 +6,7 @@ import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
 import { useDataGrid } from "../../hooks/useDataGrid";
 import { getPurchaseOrders, createPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder, sendPO, confirmPO, cancelPO, PurchaseOrder, POStatus } from "../../api/procurement";
+import DateInput from "../../components/shared/DateInput";
 
 export default function PurchaseOrders() {
   const qc = useQueryClient();
@@ -163,9 +164,9 @@ export default function PurchaseOrders() {
         <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
           <div className="grid grid-cols-2 gap-3">
             <div><label className="text-xs text-gray-500 mb-1 block">PO Date *</label>
-              <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.poDate} onChange={(e) => setForm((f) => ({ ...f, poDate: e.target.value }))} /></div>
+              <DateInput className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.poDate} onChange={(e) => setForm((f) => ({ ...f, poDate: e.target.value }))} /></div>
             <div><label className="text-xs text-gray-500 mb-1 block">Expected Delivery *</label>
-              <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.expectedDeliveryDate} onChange={(e) => setForm((f) => ({ ...f, expectedDeliveryDate: e.target.value }))} /></div>
+              <DateInput className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.expectedDeliveryDate} onChange={(e) => setForm((f) => ({ ...f, expectedDeliveryDate: e.target.value }))} /></div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div><label className="text-xs text-gray-500 mb-1 block">Vendor ID *</label>

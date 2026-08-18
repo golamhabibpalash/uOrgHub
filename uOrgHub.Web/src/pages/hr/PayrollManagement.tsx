@@ -30,6 +30,7 @@ import {
   PayrollCycle,
   ExpenseRequest,
 } from "../../api/hr";
+import DateInput from "../../components/shared/DateInput";
 
 export default function PayrollManagement() {
   const qc = useQueryClient();
@@ -292,7 +293,7 @@ export default function PayrollManagement() {
         {activeTab === "cycles" && (
           <div className="space-y-3">
             <div><label className="text-xs text-gray-500 mb-1 block">Cycle Name</label><input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={cycleForm.title} onChange={e => setCycleForm(f => ({ ...f, title: e.target.value }))} /></div>
-            <div className="grid grid-cols-3 gap-3"><div><label className="text-xs text-gray-500 mb-1 block">Start Date</label><input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={cycleForm.startDate} onChange={e => setCycleForm(f => ({ ...f, startDate: e.target.value }))} /></div><div><label className="text-xs text-gray-500 mb-1 block">End Date</label><input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={cycleForm.endDate} onChange={e => setCycleForm(f => ({ ...f, endDate: e.target.value }))} /></div><div><label className="text-xs text-gray-500 mb-1 block">Payment Date</label><input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={cycleForm.paymentDate} onChange={e => setCycleForm(f => ({ ...f, paymentDate: e.target.value }))} /></div></div>
+            <div className="grid grid-cols-3 gap-3"><div><label className="text-xs text-gray-500 mb-1 block">Start Date</label><DateInput className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={cycleForm.startDate} onChange={e => setCycleForm(f => ({ ...f, startDate: e.target.value }))} /></div><div><label className="text-xs text-gray-500 mb-1 block">End Date</label><DateInput className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={cycleForm.endDate} onChange={e => setCycleForm(f => ({ ...f, endDate: e.target.value }))} /></div><div><label className="text-xs text-gray-500 mb-1 block">Payment Date</label><DateInput className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={cycleForm.paymentDate} onChange={e => setCycleForm(f => ({ ...f, paymentDate: e.target.value }))} /></div></div>
             <div className="flex justify-end gap-2 pt-2"><button onClick={() => setModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button><button onClick={() => cycleMutation.mutate()} disabled={cycleMutation.isPending} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">{cycleMutation.isPending ? "Saving..." : "Save"}</button></div>
           </div>
         )}

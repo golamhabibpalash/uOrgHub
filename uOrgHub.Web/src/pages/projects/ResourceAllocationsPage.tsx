@@ -11,6 +11,7 @@ import {
   deleteResourceAllocation,
   ResourceAllocation,
 } from "../../api/projects";
+import DateInput from "../../components/shared/DateInput";
 
 const RESOURCE_TYPES = ["Labour", "Equipment", "Material"];
 const STATUSES = ["Planned", "Active", "Completed", "Cancelled"];
@@ -239,12 +240,12 @@ export default function ResourceAllocationsPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Planned Start *</label>
-              <input type="date" value={form.plannedStartDate} onChange={(e) => setForm((f) => ({ ...f, plannedStartDate: e.target.value }))}
+              <DateInput value={form.plannedStartDate} onChange={(e) => setForm((f) => ({ ...f, plannedStartDate: e.target.value }))}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" />
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Planned End *</label>
-              <input type="date" value={form.plannedEndDate} onChange={(e) => setForm((f) => ({ ...f, plannedEndDate: e.target.value }))}
+              <DateInput value={form.plannedEndDate} onChange={(e) => setForm((f) => ({ ...f, plannedEndDate: e.target.value }))}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" />
             </div>
           </div>

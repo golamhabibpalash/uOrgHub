@@ -19,6 +19,7 @@ import {
   BankTransaction,
   BankTransactionType,
 } from "../../api/accounts";
+import DateInput from "../../components/shared/DateInput";
 
 const TXN_TYPES: BankTransactionType[] = ["Deposit", "Withdrawal", "Transfer", "Fee", "Interest", "ChequeDeposit", "ChequeIssue"];
 
@@ -386,7 +387,7 @@ export default function BankAccounts() {
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Date *</label>
-              <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={txnForm.transactionDate} onChange={(e) => setTxnForm((f) => ({ ...f, transactionDate: e.target.value }))} />
+              <DateInput className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={txnForm.transactionDate} onChange={(e) => setTxnForm((f) => ({ ...f, transactionDate: e.target.value }))} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">

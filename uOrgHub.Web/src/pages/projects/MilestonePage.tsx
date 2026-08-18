@@ -6,6 +6,7 @@ import Modal from "../../components/shared/Modal";
 import SearchableDropdown from "../../components/shared/SearchableDropdown";
 import ProjectNav from "../../components/projects/ProjectNav";
 import { getMilestones, createMilestone, updateMilestone, deleteMilestone, Milestone } from "../../api/projects";
+import DateInput from "../../components/shared/DateInput";
 
 export default function MilestonePage() {
   const { id: projectId } = useParams<{ id: string }>();
@@ -233,8 +234,7 @@ export default function MilestonePage() {
           </div>
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Planned Date *</label>
-            <input
-              type="date"
+            <DateInput
               value={form.plannedDate}
               onChange={(e) => setForm((f) => ({ ...f, plannedDate: e.target.value }))}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"

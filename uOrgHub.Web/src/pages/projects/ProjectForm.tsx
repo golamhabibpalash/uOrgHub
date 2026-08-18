@@ -6,6 +6,7 @@ import { amountInWords } from "../../utils/format";
 import { useEmployeeLookup } from "../../hooks/useEntityLookup";
 import SearchableDropdown from "../../components/shared/SearchableDropdown";
 import Modal from "../../components/shared/Modal";
+import DateInput from "../../components/shared/DateInput";
 
 interface ProjectFormProps {
   project: Project | null;
@@ -205,11 +206,10 @@ export default function ProjectForm({ project, onClose }: ProjectFormProps) {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-xs text-gray-500 mb-1 block">Start Date *</label>
-          <input
-            type="date"
+          <DateInput
             name="startDate"
             value={form.startDate}
-            onChange={handleChange}
+            onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
           />
         </div>
@@ -217,11 +217,10 @@ export default function ProjectForm({ project, onClose }: ProjectFormProps) {
           <label className="text-xs text-gray-500 mb-1 block">
             Planned End Date *
           </label>
-          <input
-            type="date"
+          <DateInput
             name="plannedEndDate"
             value={form.plannedEndDate}
-            onChange={handleChange}
+            onChange={(e) => setForm((f) => ({ ...f, plannedEndDate: e.target.value }))}
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
           />
         </div>

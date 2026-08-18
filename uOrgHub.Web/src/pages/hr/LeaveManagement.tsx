@@ -22,6 +22,7 @@ import {
   LeaveType,
   LeaveRequest,
 } from "../../api/hr";
+import DateInput from "../../components/shared/DateInput";
 
 export default function LeaveManagement() {
   const qc = useQueryClient();
@@ -498,11 +499,11 @@ export default function LeaveManagement() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">Start Date</label>
-                <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={reqForm.startDate} onChange={(e) => { setReqForm(f => ({ ...f, startDate: e.target.value })); setReqFormError(""); }} />
+                <DateInput className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={reqForm.startDate} onChange={(e) => { setReqForm(f => ({ ...f, startDate: e.target.value })); setReqFormError(""); }} />
               </div>
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">End Date</label>
-                <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={reqForm.endDate} onChange={(e) => { setReqForm(f => ({ ...f, endDate: e.target.value })); setReqFormError(""); }} />
+                <DateInput className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={reqForm.endDate} onChange={(e) => { setReqForm(f => ({ ...f, endDate: e.target.value })); setReqFormError(""); }} />
               </div>
             </div>
             {reqFormValidation.totalDays !== null && reqFormValidation.valid && (

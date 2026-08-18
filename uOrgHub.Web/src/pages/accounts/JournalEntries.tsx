@@ -17,6 +17,7 @@ import {
   JournalEntryStatus,
   CreateJournalEntryLineDto,
 } from "../../api/accounts";
+import DateInput from "../../components/shared/DateInput";
 
 const statusColors: Record<JournalEntryStatus, string> = {
   Draft: "bg-yellow-50 text-yellow-700",
@@ -356,7 +357,7 @@ export default function JournalEntries() {
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Entry Date *</label>
-              <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.entryDate} onChange={(e) => setForm((f) => ({ ...f, entryDate: e.target.value }))} />
+              <DateInput className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.entryDate} onChange={(e) => setForm((f) => ({ ...f, entryDate: e.target.value }))} />
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Reference Number</label>

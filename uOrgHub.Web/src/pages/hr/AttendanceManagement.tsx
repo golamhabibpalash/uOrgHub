@@ -21,6 +21,7 @@ import {
   Shift,
   AttendanceLog,
 } from "../../api/hr";
+import DateInput from "../../components/shared/DateInput";
 
 export default function AttendanceManagement() {
   const qc = useQueryClient();
@@ -256,7 +257,7 @@ export default function AttendanceManagement() {
         {modalType === "log" && (
           <div className="space-y-3">
             <div><SearchableDropdown label="Employee" options={empOptions} value={logForm.employeeId} onChange={v => setLogForm(f => ({ ...f, employeeId: v || "" }))} placeholder="Select Employee" searchPlaceholder="Search employee..." loading={empLoading} required /></div>
-            <div><label className="text-xs text-gray-500 mb-1 block">Date</label><input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={logForm.attendanceDate} onChange={e => setLogForm(f => ({ ...f, attendanceDate: e.target.value }))} /></div>
+            <div><label className="text-xs text-gray-500 mb-1 block">Date</label><DateInput className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={logForm.attendanceDate} onChange={e => setLogForm(f => ({ ...f, attendanceDate: e.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-3">
               <div><label className="text-xs text-gray-500 mb-1 block">Check In</label><input type="time" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={logForm.checkIn} onChange={e => setLogForm(f => ({ ...f, checkIn: e.target.value }))} /></div>
               <div><label className="text-xs text-gray-500 mb-1 block">Check Out</label><input type="time" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={logForm.checkOut} onChange={e => setLogForm(f => ({ ...f, checkOut: e.target.value }))} /></div>

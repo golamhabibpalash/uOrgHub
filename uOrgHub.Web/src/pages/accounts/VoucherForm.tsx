@@ -20,6 +20,7 @@ import {
 import { voucherThemes } from "../../components/accounts/voucherTheme";
 import { amountInWords } from "../../utils/format";
 import { extractApiError } from "../../utils/apiError";
+import DateInput from "../../components/shared/DateInput";
 
 /** What the voucher is charged to. Every voucher is one or the other, never both. */
 type ChargeMode = "project" | "overhead";
@@ -323,8 +324,7 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
             <label className="text-xs text-gray-500 mb-1 block">
               Date <span className="text-red-500">*</span>
             </label>
-            <input
-              type="date"
+            <DateInput
               className={inputClass}
               value={form.voucherDate}
               onChange={(e) => setVoucherDate(e.target.value)}

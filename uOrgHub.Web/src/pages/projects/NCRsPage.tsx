@@ -14,6 +14,7 @@ import {
   deleteNCR,
   NCR,
 } from "../../api/projects";
+import DateInput from "../../components/shared/DateInput";
 
 const CATEGORIES = ["Workmanship", "Material", "Process", "Design", "Documentation", "Safety"];
 const SEVERITIES = ["Minor", "Major", "Critical"];
@@ -256,7 +257,7 @@ export default function NCRsPage() {
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Raised Date</label>
-              <input type="date" value={form.raisedDate} onChange={(e) => setForm((f) => ({ ...f, raisedDate: e.target.value }))}
+              <DateInput value={form.raisedDate} onChange={(e) => setForm((f) => ({ ...f, raisedDate: e.target.value }))}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" />
             </div>
           </div>
@@ -284,7 +285,7 @@ export default function NCRsPage() {
         <div className="space-y-3">
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Verified Date *</label>
-            <input type="date" value={verifyForm.verifiedDate} onChange={(e) => setVerifyForm((f) => ({ ...f, verifiedDate: e.target.value }))}
+            <DateInput value={verifyForm.verifiedDate} onChange={(e) => setVerifyForm((f) => ({ ...f, verifiedDate: e.target.value }))}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" />
           </div>
           <div>

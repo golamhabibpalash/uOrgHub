@@ -11,6 +11,7 @@ import {
   deleteQAChecklist,
   QAChecklist,
 } from "../../api/projects";
+import DateInput from "../../components/shared/DateInput";
 
 const STATUSES = ["Draft", "Open", "InProgress", "Passed", "Failed", "Waived"];
 const INSPECTION_TYPES = ["Pre", "During", "Post", "Final"];
@@ -226,7 +227,7 @@ export default function QAChecklistsPage() {
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Inspection Date</label>
-              <input type="date" value={form.inspectionDate} onChange={(e) => setForm((f) => ({ ...f, inspectionDate: e.target.value }))}
+              <DateInput value={form.inspectionDate} onChange={(e) => setForm((f) => ({ ...f, inspectionDate: e.target.value }))}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" />
             </div>
           </div>

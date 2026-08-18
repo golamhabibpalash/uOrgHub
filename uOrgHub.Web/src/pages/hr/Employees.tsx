@@ -31,6 +31,7 @@ import {
   createDesignation,
 } from "../../api/hr";
 import { getRoles } from "../../api/auth";
+import DateInput from "../../components/shared/DateInput";
 
 export default function Employees() {
   const qc = useQueryClient();
@@ -588,8 +589,7 @@ export default function Employees() {
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Joining Date</label>
-              <input
-                type="date"
+              <DateInput
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
                 value={form.joiningDate}
                 onChange={(e) => setForm((f) => ({ ...f, joiningDate: e.target.value }))}
@@ -631,8 +631,7 @@ export default function Employees() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Date of Birth</label>
-              <input
-                type="date"
+              <DateInput
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
                 value={form.dateOfBirth}
                 onChange={(e) => setForm((f) => ({ ...f, dateOfBirth: e.target.value }))}
@@ -697,8 +696,7 @@ export default function Employees() {
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Passport Expiry</label>
-              <input
-                type="date"
+              <DateInput
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
                 value={form.passportExpiry}
                 onChange={(e) => setForm((f) => ({ ...f, passportExpiry: e.target.value }))}

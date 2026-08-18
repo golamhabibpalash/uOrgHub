@@ -12,6 +12,7 @@ import {
   removeTeamMember,
   ProjectTeamMember,
 } from "../../api/projects";
+import DateInput from "../../components/shared/DateInput";
 
 const TEAM_ROLES = ["ProjectManager", "SiteEngineer", "Supervisor", "Foreman", "SafetyOfficer", "QualityInspector", "Other"];
 
@@ -264,8 +265,7 @@ export default function ProjectTeamPage() {
           </div>
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Joined Date *</label>
-            <input
-              type="date"
+            <DateInput
               value={form.joinedDate}
               onChange={(e) => setForm((f) => ({ ...f, joinedDate: e.target.value }))}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"

@@ -14,6 +14,7 @@ import {
   RABill,
   RABillItem,
 } from "../../api/projects";
+import DateInput from "../../components/shared/DateInput";
 
 const STATUSES = ["Draft", "Submitted", "UnderReview", "Certified", "Paid", "Rejected"];
 
@@ -263,7 +264,7 @@ export default function RABillsPage() {
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Bill Date *</label>
-              <input type="date" value={form.billDate} onChange={(e) => setForm((f) => ({ ...f, billDate: e.target.value }))}
+              <DateInput value={form.billDate} onChange={(e) => setForm((f) => ({ ...f, billDate: e.target.value }))}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" />
             </div>
             <div>

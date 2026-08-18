@@ -9,6 +9,7 @@ import { getVouchers, Voucher, VoucherFilters, VoucherStatus, VoucherType } from
 import { useProjectLookup } from "../../hooks/useEntityLookup";
 import { voucherThemes } from "../../components/accounts/voucherTheme";
 import { formatTaka } from "../../utils/format";
+import DateInput from "../../components/shared/DateInput";
 
 const statusColors: Record<VoucherStatus, string> = {
   Draft: "bg-gray-100 text-gray-600",
@@ -235,16 +236,14 @@ export default function Vouchers() {
         }
         filterBar={
           <div className="flex items-center gap-2">
-            <input
-              type="date"
+            <DateInput
               className={selectClass}
               value={fromDate}
               onChange={(e) => { setFromDate(e.target.value); dg.resetPage(); }}
               title="From date"
             />
             <span className="text-xs text-gray-400">to</span>
-            <input
-              type="date"
+            <DateInput
               className={selectClass}
               value={toDate}
               onChange={(e) => { setToDate(e.target.value); dg.resetPage(); }}

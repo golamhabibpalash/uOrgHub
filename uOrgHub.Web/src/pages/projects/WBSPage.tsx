@@ -6,6 +6,7 @@ import Modal from "../../components/shared/Modal";
 import SearchableDropdown from "../../components/shared/SearchableDropdown";
 import ProjectNav from "../../components/projects/ProjectNav";
 import { getWBSList, createWBS, updateWBS, deleteWBS, updateWBSCompletion, WBS } from "../../api/projects";
+import DateInput from "../../components/shared/DateInput";
 
 export default function WBSPage() {
   const { id: projectId } = useParams<{ id: string }>();
@@ -310,8 +311,7 @@ export default function WBSPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Planned Start</label>
-              <input
-                type="date"
+              <DateInput
                 value={form.plannedStartDate}
                 onChange={(e) => setForm((f) => ({ ...f, plannedStartDate: e.target.value }))}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
@@ -319,8 +319,7 @@ export default function WBSPage() {
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Planned End</label>
-              <input
-                type="date"
+              <DateInput
                 value={form.plannedEndDate}
                 onChange={(e) => setForm((f) => ({ ...f, plannedEndDate: e.target.value }))}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"

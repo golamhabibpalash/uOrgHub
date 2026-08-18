@@ -18,6 +18,7 @@ import {
   PaymentType,
   PaymentMethod,
 } from "../../api/accounts";
+import DateInput from "../../components/shared/DateInput";
 
 const PAYMENT_TYPES: PaymentType[] = ["CustomerPayment", "VendorPayment", "AdvanceToVendor", "AdvanceFromCustomer", "Refund"];
 const PAYMENT_METHODS: PaymentMethod[] = ["Cash", "BankTransfer", "Cheque", "CreditCard", "DebitCard", "MobileBanking", "OnlineTransfer"];
@@ -232,7 +233,7 @@ export default function Payments() {
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Payment Date *</label>
-              <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.paymentDate} onChange={(e) => setForm((f) => ({ ...f, paymentDate: e.target.value }))} />
+              <DateInput className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.paymentDate} onChange={(e) => setForm((f) => ({ ...f, paymentDate: e.target.value }))} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">

@@ -6,6 +6,7 @@ import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
 import { useDataGrid } from "../../hooks/useDataGrid";
 import { getPurchaseRequisitions, createPurchaseRequisition, updatePurchaseRequisition, deletePurchaseRequisition, submitPR, approvePR, rejectPR, PurchaseRequisition, PRStatus } from "../../api/procurement";
+import DateInput from "../../components/shared/DateInput";
 
 export default function PurchaseRequisitions() {
   const qc = useQueryClient();
@@ -198,12 +199,12 @@ export default function PurchaseRequisitions() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">PR Date *</label>
-              <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+              <DateInput className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
                 value={form.prDate} onChange={(e) => setForm((f) => ({ ...f, prDate: e.target.value }))} />
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Required Date *</label>
-              <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+              <DateInput className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
                 value={form.requiredDate} onChange={(e) => setForm((f) => ({ ...f, requiredDate: e.target.value }))} />
             </div>
           </div>

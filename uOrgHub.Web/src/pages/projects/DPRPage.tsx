@@ -11,6 +11,7 @@ import {
   approveDPR,
   DPR,
 } from "../../api/projects";
+import DateInput from "../../components/shared/DateInput";
 
 const weatherIcons: Record<string, React.ReactNode> = {
   Sunny: <Sun size={16} className="text-amber-500" />,
@@ -220,8 +221,7 @@ export default function DPRPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Report Date *</label>
-              <input
-                type="date"
+              <DateInput
                 value={form.reportDate}
                 onChange={(e) => setForm((f) => ({ ...f, reportDate: e.target.value }))}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getARAging } from "../../../api/accounts";
 import ReportLayout from "../../../components/shared/ReportLayout";
+import DateInput from "../../../components/shared/DateInput";
 
 export default function ARAgingPage() {
   const today = new Date().toISOString().split("T")[0];
@@ -35,7 +36,7 @@ export default function ARAgingPage() {
       <div className="no-print mb-4">
         <div className="w-64">
           <label className="text-xs text-gray-500 mb-1 block">As of Date</label>
-          <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={asOfDate} onChange={(e) => setAsOfDate(e.target.value)} />
+          <DateInput className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={asOfDate} onChange={(e) => setAsOfDate(e.target.value)} />
         </div>
       </div>
 

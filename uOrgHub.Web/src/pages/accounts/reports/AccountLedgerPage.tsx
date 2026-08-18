@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getReportAccountLedger, getChartOfAccounts } from "../../../api/accounts";
 import SearchableDropdown from "../../../components/shared/SearchableDropdown";
 import ReportLayout from "../../../components/shared/ReportLayout";
+import DateInput from "../../../components/shared/DateInput";
 
 export default function AccountLedgerPage() {
   const [accountId, setAccountId] = useState("");
@@ -51,11 +52,11 @@ export default function AccountLedgerPage() {
           />
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Date From</label>
-            <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+            <DateInput className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
           </div>
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Date To</label>
-            <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+            <DateInput className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
           </div>
           <div className="flex items-end">
             <button

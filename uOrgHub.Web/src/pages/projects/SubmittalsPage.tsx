@@ -12,6 +12,7 @@ import {
   deleteSubmittal,
   Submittal,
 } from "../../api/projects";
+import DateInput from "../../components/shared/DateInput";
 
 const STATUSES = ["Draft", "Submitted", "UnderReview", "Approved", "ApprovedWithComments", "Rejected", "Resubmit"];
 
@@ -206,7 +207,7 @@ export default function SubmittalsPage() {
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Submitted Date *</label>
-              <input type="date" value={form.submittedDate} onChange={(e) => setForm((f) => ({ ...f, submittedDate: e.target.value }))}
+              <DateInput value={form.submittedDate} onChange={(e) => setForm((f) => ({ ...f, submittedDate: e.target.value }))}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" />
             </div>
           </div>
@@ -242,7 +243,7 @@ export default function SubmittalsPage() {
           </div>
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Review Date</label>
-            <input type="date" value={reviewForm.reviewDate} onChange={(e) => setReviewForm((f) => ({ ...f, reviewDate: e.target.value }))}
+            <DateInput value={reviewForm.reviewDate} onChange={(e) => setReviewForm((f) => ({ ...f, reviewDate: e.target.value }))}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" />
           </div>
           <div className="flex justify-end gap-2 pt-2">

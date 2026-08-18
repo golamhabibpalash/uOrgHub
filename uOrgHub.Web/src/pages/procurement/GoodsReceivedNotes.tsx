@@ -6,6 +6,7 @@ import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
 import { useDataGrid } from "../../hooks/useDataGrid";
 import { getGRNs, createGRN, updateGRN, deleteGRN, confirmGRN, GoodsReceivedNote, GRNStatus } from "../../api/procurement";
+import DateInput from "../../components/shared/DateInput";
 
 export default function GoodsReceivedNotes() {
   const qc = useQueryClient();
@@ -153,7 +154,7 @@ export default function GoodsReceivedNotes() {
         <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
           <div className="grid grid-cols-2 gap-3">
             <div><label className="text-xs text-gray-500 mb-1 block">GRN Date *</label>
-              <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.grnDate} onChange={(e) => setForm((f) => ({ ...f, grnDate: e.target.value }))} /></div>
+              <DateInput className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.grnDate} onChange={(e) => setForm((f) => ({ ...f, grnDate: e.target.value }))} /></div>
             <div><label className="text-xs text-gray-500 mb-1 block">PO ID *</label>
               <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.poId} onChange={(e) => setForm((f) => ({ ...f, poId: e.target.value }))} /></div>
           </div>
@@ -167,7 +168,7 @@ export default function GoodsReceivedNotes() {
             <div><label className="text-xs text-gray-500 mb-1 block">Invoice Number</label>
               <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.invoiceNumber} onChange={(e) => setForm((f) => ({ ...f, invoiceNumber: e.target.value }))} /></div>
             <div><label className="text-xs text-gray-500 mb-1 block">Invoice Date</label>
-              <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.invoiceDate} onChange={(e) => setForm((f) => ({ ...f, invoiceDate: e.target.value }))} /></div>
+              <DateInput className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.invoiceDate} onChange={(e) => setForm((f) => ({ ...f, invoiceDate: e.target.value }))} /></div>
           </div>
           <div><label className="text-xs text-gray-500 mb-1 block">Notes</label>
             <textarea rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} /></div>

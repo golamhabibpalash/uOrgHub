@@ -11,6 +11,7 @@ import {
   deleteDrawing,
   Drawing,
 } from "../../api/projects";
+import DateInput from "../../components/shared/DateInput";
 
 const DISCIPLINES = ["Architectural", "Structural", "Civil", "Mechanical", "Electrical", "Plumbing", "Landscape", "Survey"];
 const STATUSES = ["Draft", "Issued", "Superseded", "Obsolete"];
@@ -216,7 +217,7 @@ export default function DrawingsPage() {
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Issued Date</label>
-              <input type="date" value={form.issuedDate} onChange={(e) => setForm((f) => ({ ...f, issuedDate: e.target.value }))}
+              <DateInput value={form.issuedDate} onChange={(e) => setForm((f) => ({ ...f, issuedDate: e.target.value }))}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" />
             </div>
           </div>
