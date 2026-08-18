@@ -78,6 +78,16 @@ const emptyForm: FormState = {
   receivedBy: "",
 };
 
+/** Which mandatory fields failed validation on the last save attempt. */
+interface FieldErrors {
+  voucherDate?: boolean;
+  chargeTarget?: boolean;
+  debitAccountId?: boolean;
+  creditAccountId?: boolean;
+  amount?: boolean;
+  description?: boolean;
+}
+
 /**
  * A voucher held in memory only, built by "Save and Continue". Nothing here is written to the
  * database until the user clicks the Save Voucher button on the temporary list; account names
@@ -186,6 +196,10 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
 
   const [form, setForm] = useState<FormState>(initialForm);
   const [error, setError] = useState("");
+  // Set after a failed save attempt; while true, missing mandatory fields stay highlighted so the
+  // user can see everything that needs fixing, clearing automatically as each field is completed.
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [formError, setFormError] = useState("");
 
   const [tempVouchers, setTempVouchers] = useState<TempVoucher[]>([]);
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -195,6 +209,14 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
   // reuse them (a typical entry is the previous one with a small change).
   const [keepFormData, setKeepFormData] = useState(false);
   const tempKeyRef = useRef(1);
+
+  // Focus targets for the first missing mandatory field on a failed save.
+  const dateFieldRef = useRef<HTMLDivElement>(null);
+  const chargeTargetRef = useRef<HTMLDivElement>(null);
+  const debitRef = useRef<HTMLDivElement>(null);
+  const creditRef = useRef<HTMLDivElement>(null);
+  const amountRef = useRef<HTMLInputElement>(null);
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
 
   const {
     debitOptions,
@@ -236,14 +258,66 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
   const chargeTargetChosen =
     form.chargeMode === "project" ? form.projectId !== "" : form.costCenterId !== "";
 
-  const canSave =
-    form.voucherDate !== "" &&
-    form.description.trim() !== "" &&
-    chargeTargetChosen &&
-    form.debitAccountId !== "" &&
-    form.creditAccountId !== "" &&
-    form.debitAccountId !== form.creditAccountId &&
-    amountValue > 0;
+  /** Which mandatory fields are currently missing or invalid. */
+  function validateForm(): FieldErrors {
+    const errors: FieldErrors = {};
+    if (form.voucherDate === "") errors.voucherDate = true;
+    if (!chargeTargetChosen) errors.chargeTarget = true;
+    if (form.debitAccountId === "") errors.debitAccountId = true;
+    if (form.creditAccountId === "") errors.creditAccountId = true;
+    if (form.debitAccountId !== "" && form.debitAccountId === form.creditAccountId) {
+      errors.debitAccountId = true;
+      errors.creditAccountId = true;
+    }
+    if (amountValue <= 0) errors.amount = true;
+    if (form.description.trim() === "") errors.description = true;
+    return errors;
+  }
+
+  function hasFormErrors(errors: FieldErrors): boolean {
+    return Boolean(
+      errors.voucherDate ||
+        errors.chargeTarget ||
+        errors.debitAccountId ||
+        errors.creditAccountId ||
+        errors.amount ||
+        errors.description,
+    );
+  }
+
+  /** Highlighted only after a save attempt, so an untouched form stays clean while typing. */
+  const fieldErrors = submitAttempted ? validateForm() : ({} as FieldErrors);
+
+  /** Puts the cursor on the first missing field, top-to-bottom as the form reads. */
+  function focusFirstInvalid(errors: FieldErrors) {
+    const focusEl = (el: HTMLElement | null | undefined) => el?.focus();
+    if (errors.voucherDate) focusEl(dateFieldRef.current?.querySelector("input"));
+    else if (errors.chargeTarget) focusEl(chargeTargetRef.current?.querySelector("input, button"));
+    else if (errors.debitAccountId) focusEl(debitRef.current?.querySelector("input, button"));
+    else if (errors.creditAccountId) focusEl(creditRef.current?.querySelector("input, button"));
+    else if (errors.amount) focusEl(amountRef.current);
+    else if (errors.description) focusEl(descriptionRef.current);
+  }
+
+  /**
+   * Validates the form before running the real save action. On invalid input the required fields
+   * are highlighted and the cursor jumps to the first one, so the Save buttons stay clickable and
+   * tell the user what is missing instead of silently doing nothing.
+   */
+  function attemptSave(onValid: () => void) {
+    setError("");
+    setBatchError("");
+    const errors = validateForm();
+    if (hasFormErrors(errors)) {
+      setSubmitAttempted(true);
+      setFormError("Please fill in the required fields marked below.");
+      focusFirstInvalid(errors);
+      return;
+    }
+    setSubmitAttempted(false);
+    setFormError("");
+    onValid();
+  }
 
   const saveMutation = useMutation({
     mutationFn: () => {
@@ -344,7 +418,6 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
   function handleSaveAndContinue() {
     setError("");
     setBatchError("");
-    if (!canSave) return;
 
     const entry: TempVoucher = {
       key: editingKey ?? `temp-${tempKeyRef.current++}`,
@@ -451,6 +524,12 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
   const inputClass =
     "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500";
 
+  /** inputClass, but with a red border + tint for a mandatory field missing on submit. */
+  const fieldClass = (invalid: boolean) =>
+    invalid
+      ? "w-full border border-red-400 bg-red-50/30 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-red-400"
+      : inputClass;
+
   const chargeTabClass = (active: boolean) =>
     `px-3 py-1.5 text-xs rounded-lg border transition-colors ${
       active
@@ -471,6 +550,11 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
       placeholder="Select account"
       searchPlaceholder="Search by code or name…"
       noResultsMessage={debitOptions.length === 0 ? "No eligible accounts set up yet" : "No results found"}
+      error={
+        fieldErrors.debitAccountId && form.debitAccountId === ""
+          ? `${debitFieldLabel} is required`
+          : undefined
+      }
     />
   );
 
@@ -485,6 +569,11 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
       placeholder="Select account"
       searchPlaceholder="Search by code or name…"
       noResultsMessage={creditOptions.length === 0 ? "No eligible accounts set up yet" : "No results found"}
+      error={
+        fieldErrors.creditAccountId && form.creditAccountId === ""
+          ? `${creditFieldLabel} is required`
+          : undefined
+      }
     />
   );
 
@@ -518,24 +607,27 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
         </div>
       </div>
 
-      {error && (
+      {(error || (formError && hasFormErrors(fieldErrors))) && (
         <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-          {error}
+          {error || formError}
         </div>
       )}
 
       <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-5">
         {/* Header details */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
+          <div ref={dateFieldRef}>
             <label className="text-xs text-gray-500 mb-1 block">
               Date <span className="text-red-500">*</span>
             </label>
             <DateInput
-              className={inputClass}
+              className={fieldClass(Boolean(fieldErrors.voucherDate))}
               value={form.voucherDate}
               onChange={(e) => setVoucherDate(e.target.value)}
             />
+            {fieldErrors.voucherDate && (
+              <p className="text-[11px] text-red-500 mt-1">Date is required.</p>
+            )}
             {noFiscalYearForDate && (
               <p className="text-[11px] text-amber-600 mt-1">
                 No open fiscal year covers this date.
@@ -576,7 +668,14 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
         </div>
 
         {/* Charge target — a project, or a cost center for head-office / overhead spend */}
-        <div className="border border-gray-100 bg-gray-50/60 rounded-lg p-4">
+        <div
+          ref={chargeTargetRef}
+          className={`rounded-lg p-4 ${
+            fieldErrors.chargeTarget
+              ? "border border-red-300 bg-red-50/40"
+              : "border border-gray-100 bg-gray-50/60"
+          }`}
+        >
           <div className="flex flex-wrap items-center gap-2 mb-3">
             <label className="text-xs text-gray-500 mr-1">
               Charge To <span className="text-red-500">*</span>
@@ -608,6 +707,7 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
               placeholder="Select project"
               searchPlaceholder="Search by name or code…"
               noResultsMessage="No projects found"
+              error={fieldErrors.chargeTarget ? "Project is required" : undefined}
             />
           ) : (
             <SearchableDropdown
@@ -620,6 +720,7 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
               placeholder="Select cost center"
               searchPlaceholder="Search by name or code…"
               noResultsMessage="No non-project cost centers set up yet"
+              error={fieldErrors.chargeTarget ? "Cost center is required" : undefined}
             />
           )}
 
@@ -632,8 +733,8 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
 
         {/* Accounts — always debit first, matching the order they appear in the ledger */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-          {debitDropdown}
-          {creditDropdown}
+          <div ref={debitRef}>{debitDropdown}</div>
+          <div ref={creditRef}>{creditDropdown}</div>
         </div>
 
         {isOwnAccountTransfer && (
@@ -671,14 +772,18 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
               Amount <span className="text-red-500">*</span>
             </label>
             <input
+              ref={amountRef}
               type="number"
               min="0"
               step="0.01"
-              className={`${inputClass} text-right tabular-nums`}
+              className={`${fieldClass(Boolean(fieldErrors.amount))} text-right tabular-nums`}
               value={form.amount}
               onChange={(e) => update("amount", e.target.value)}
               placeholder="0.00"
             />
+            {fieldErrors.amount && (
+              <p className="text-[11px] text-red-500 mt-1">Amount must be greater than 0.</p>
+            )}
           </div>
           <div className="md:col-span-2">
             <label className="text-xs text-gray-500 mb-1 block">Amount in Words</label>
@@ -693,12 +798,16 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
             Description / Purpose <span className="text-red-500">*</span>
           </label>
           <textarea
+            ref={descriptionRef}
             rows={3}
-            className={inputClass}
+            className={fieldClass(Boolean(fieldErrors.description))}
             value={form.description}
             onChange={(e) => update("description", e.target.value)}
             placeholder="What is this payment or receipt for?"
           />
+          {fieldErrors.description && (
+            <p className="text-[11px] text-red-500 mt-1">Description is required.</p>
+          )}
         </div>
 
         {/* Preparation details */}
@@ -771,16 +880,16 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
               </button>
               {isNew && (
                 <button
-                  onClick={handleSaveAndContinue}
-                  disabled={!canSave || saveMutation.isPending || batchSaveMutation.isPending}
+                  onClick={() => attemptSave(handleSaveAndContinue)}
+                  disabled={saveMutation.isPending || batchSaveMutation.isPending}
                   className="px-4 py-2 text-sm border border-primary-300 text-primary-700 rounded-lg hover:bg-primary-50 disabled:opacity-50"
                 >
                   {editingKey ? "Update Entry" : "Save and Continue"}
                 </button>
               )}
               <button
-                onClick={() => { setError(""); saveMutation.mutate(); }}
-                disabled={!canSave || saveMutation.isPending || (isNew && hasTempVouchers)}
+                onClick={() => attemptSave(() => saveMutation.mutate())}
+                disabled={saveMutation.isPending || (isNew && hasTempVouchers)}
                 className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
               >
                 {saveMutation.isPending ? "Saving…" : isEdit ? "Update Voucher" : "Save Voucher"}
