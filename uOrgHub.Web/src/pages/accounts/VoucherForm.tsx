@@ -191,6 +191,9 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [batchError, setBatchError] = useState("");
   const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+  // When on, "Save and Continue" keeps the entered details in the form so the next voucher can
+  // reuse them (a typical entry is the previous one with a small change).
+  const [keepFormData, setKeepFormData] = useState(false);
   const tempKeyRef = useRef(1);
 
   const {
@@ -373,7 +376,10 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
     );
 
     setEditingKey(null);
-    setForm({ ...emptyForm, voucherDate: new Date().toISOString().split("T")[0] });
+    // Leave the entered details in place when the user opted to reuse them for the next voucher.
+    if (!keepFormData) {
+      setForm({ ...emptyForm, voucherDate: new Date().toISOString().split("T")[0] });
+    }
   }
 
   function handleEditTemp(temp: TempVoucher) {
@@ -743,30 +749,43 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
         </div>
 
         {/* Footer */}
-        <div className="flex flex-col items-end gap-2 pt-4 border-t border-gray-100">
-          <div className="flex justify-end gap-2">
-            <button
-              onClick={() => navigate(-1)}
-              className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            {isNew && (
-              <button
-                onClick={handleSaveAndContinue}
-                disabled={!canSave || saveMutation.isPending || batchSaveMutation.isPending}
-                className="px-4 py-2 text-sm border border-primary-300 text-primary-700 rounded-lg hover:bg-primary-50 disabled:opacity-50"
-              >
-                {editingKey ? "Update Entry" : "Save and Continue"}
-              </button>
+        <div className="flex flex-col gap-2 pt-4 border-t border-gray-100">
+          <div className="flex items-center justify-between gap-4">
+            {isNew && !editingKey && (
+              <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={keepFormData}
+                  onChange={(e) => setKeepFormData(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                Keep form details for the next voucher
+              </label>
             )}
-            <button
-              onClick={() => { setError(""); saveMutation.mutate(); }}
-              disabled={!canSave || saveMutation.isPending || (isNew && hasTempVouchers)}
-              className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
-            >
-              {saveMutation.isPending ? "Saving…" : isEdit ? "Update Voucher" : "Save Voucher"}
-            </button>
+            <div className="flex justify-end gap-2 ml-auto">
+              <button
+                onClick={() => navigate(-1)}
+                className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              {isNew && (
+                <button
+                  onClick={handleSaveAndContinue}
+                  disabled={!canSave || saveMutation.isPending || batchSaveMutation.isPending}
+                  className="px-4 py-2 text-sm border border-primary-300 text-primary-700 rounded-lg hover:bg-primary-50 disabled:opacity-50"
+                >
+                  {editingKey ? "Update Entry" : "Save and Continue"}
+                </button>
+              )}
+              <button
+                onClick={() => { setError(""); saveMutation.mutate(); }}
+                disabled={!canSave || saveMutation.isPending || (isNew && hasTempVouchers)}
+                className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
+              >
+                {saveMutation.isPending ? "Saving…" : isEdit ? "Update Voucher" : "Save Voucher"}
+              </button>
+            </div>
           </div>
           {isNew && editingTemp && (
             <p className="flex items-center gap-2 text-[11px] text-sky-800 bg-sky-50 border border-sky-200 rounded-lg px-3 py-1.5">
