@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Info } from "lucide-react";
+import toast from "react-hot-toast";
+import { AlertTriangle, ArrowLeft, Info, Pencil, Trash2 } from "lucide-react";
 import SearchableDropdown, { SelectOption } from "../../components/shared/SearchableDropdown";
 import {
   useEmployeeNameLookup,
@@ -14,13 +15,16 @@ import {
   createVoucher,
   getVoucherById,
   updateVoucher,
+  CreateVoucherPayload,
   UpdateVoucherPayload,
+  VoucherAccountOption,
   VoucherType,
 } from "../../api/accounts";
 import { voucherThemes } from "../../components/accounts/voucherTheme";
-import { amountInWords } from "../../utils/format";
+import { amountInWords, formatDate, formatTaka } from "../../utils/format";
 import { extractApiError } from "../../utils/apiError";
 import DateInput from "../../components/shared/DateInput";
+import ConfirmDialog from "../../components/shared/ConfirmDialog";
 
 /** What the voucher is charged to. Every voucher is one or the other, never both. */
 type ChargeMode = "project" | "overhead";
@@ -75,6 +79,38 @@ const emptyForm: FormState = {
 };
 
 /**
+ * A voucher held in memory only, built by "Save and Continue". Nothing here is written to the
+ * database until the user clicks the Save Voucher button on the temporary list; account names
+ * are captured at add time so the table stays readable even if the account list later changes.
+ */
+interface TempVoucher {
+  /** Stable local key — never sent to the server. */
+  key: string;
+  tempRef: string;
+  voucherDate: string;
+  referenceNumber: string;
+  fiscalYearId: string;
+  chargeMode: ChargeMode;
+  projectId: string;
+  costCenterId: string;
+  name: string;
+  section: string;
+  description: string;
+  debitAccountId: string;
+  debitAccountName: string;
+  creditAccountId: string;
+  creditAccountName: string;
+  amount: number;
+  preparedBy: string;
+  receivedBy: string;
+}
+
+/** Re-numbers the pending vouchers so the displayed Temporary-00N always runs 1, 2, 3… */
+function renumberTemp(list: TempVoucher[]): TempVoucher[] {
+  return list.map((t, i) => ({ ...t, tempRef: `Temporary-${String(i + 1).padStart(3, "0")}` }));
+}
+
+/**
  * Resolves what the form should start from before mounting it, so the editable
  * state can be seeded once via useState rather than patched in afterwards.
  */
@@ -99,12 +135,16 @@ export default function VoucherForm() {
     return <div className="p-6 text-sm text-gray-400">Voucher not found.</div>;
   }
 
+  // Resolved once so the form's key (and thus its temporary-voucher session) follows the type.
+  // Changing ?type= remounts the form rather than carrying one type's pending vouchers into another.
+  const voucherType = voucher?.voucherType ?? parseVoucherType(searchParams.get("type"));
+
   return (
     <VoucherFormFields
-      key={id ?? "new"}
+      key={id ? id : `new-${voucherType}`}
       voucherId={id}
       voucherNumber={voucher?.voucherNumber}
-      voucherType={voucher?.voucherType ?? parseVoucherType(searchParams.get("type"))}
+      voucherType={voucherType}
       initialForm={
         voucher
           ? {
@@ -140,13 +180,24 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
   const navigate = useNavigate();
   const qc = useQueryClient();
   const isEdit = Boolean(voucherId);
+  // The temporary-voucher workflow only applies to creating new vouchers, not to editing an
+  // existing one, so every piece of it is gated behind isNew.
+  const isNew = !isEdit;
 
   const [form, setForm] = useState<FormState>(initialForm);
   const [error, setError] = useState("");
 
+  const [tempVouchers, setTempVouchers] = useState<TempVoucher[]>([]);
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [batchError, setBatchError] = useState("");
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+  const tempKeyRef = useRef(1);
+
   const {
     debitOptions,
     creditOptions,
+    debitAccounts,
+    creditAccounts,
     debitFieldLabel,
     creditFieldLabel,
     isOwnAccountTransfer,
@@ -222,6 +273,156 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
     },
     onError: (err: unknown) => setError(extractApiError(err)),
   });
+
+  /** Plain account name for a selected id, falling back to the dropdown label if unknown. */
+  const accountNameOf = (accounts: VoucherAccountOption[], id: string) =>
+    accounts.find((a) => a.id === id)?.accountName ?? "";
+
+  const optionLabelOf = (options: SelectOption[], id: string) =>
+    options.find((o) => o.value === id)?.label ?? id;
+
+  function buildPayload(temp: TempVoucher): CreateVoucherPayload {
+    return {
+      voucherType,
+      voucherDate: temp.voucherDate,
+      referenceNumber: temp.referenceNumber.trim() || undefined,
+      fiscalYearId: temp.fiscalYearId || undefined,
+      // Exactly one of these goes to the server; sending both is a validation error.
+      projectId: temp.chargeMode === "project" ? temp.projectId : undefined,
+      costCenterId: temp.chargeMode === "overhead" ? temp.costCenterId : undefined,
+      name: temp.name || undefined,
+      section: temp.section || undefined,
+      description: temp.description,
+      debitAccountId: temp.debitAccountId,
+      creditAccountId: temp.creditAccountId,
+      amount: temp.amount,
+      preparedBy: temp.preparedBy || undefined,
+      receivedBy: temp.receivedBy || undefined,
+    };
+  }
+
+  /**
+   * Saves every pending temporary voucher through the normal create endpoint. There is no batch
+   * endpoint — each voucher is created one at a time with the same server-side validation the
+   * single Save Voucher button uses. Saving stops at the first failure so the user can fix or
+   * remove that entry; the vouchers saved before it are already in the database and are dropped
+   * from the list, while the failed one and everything after it stay pending.
+   */
+  const batchSaveMutation = useMutation({
+    mutationFn: async (): Promise<{ savedKeys: string[]; failedTempRef?: string; error?: string }> => {
+      const savedKeys: string[] = [];
+      for (const temp of tempVouchers) {
+        try {
+          await createVoucher(buildPayload(temp));
+          savedKeys.push(temp.key);
+        } catch (err) {
+          return { savedKeys, failedTempRef: temp.tempRef, error: extractApiError(err) };
+        }
+      }
+      return { savedKeys };
+    },
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: ["vouchers"] });
+      setTempVouchers((prev) => renumberTemp(prev.filter((t) => !result.savedKeys.includes(t.key))));
+      setEditingKey(null);
+      setError("");
+      if (result.error) {
+        setBatchError(`${result.failedTempRef}: ${result.error}`);
+      } else {
+        toast.dismiss();
+        toast.success(
+          `${result.savedKeys.length} ${result.savedKeys.length === 1 ? "voucher" : "vouchers"} saved to the database.`,
+        );
+      }
+    },
+    onError: () => setBatchError("Unexpected error while saving the vouchers. Please try again."),
+  });
+
+  function handleSaveAndContinue() {
+    setError("");
+    setBatchError("");
+    if (!canSave) return;
+
+    const entry: TempVoucher = {
+      key: editingKey ?? `temp-${tempKeyRef.current++}`,
+      tempRef: "",
+      voucherDate: form.voucherDate,
+      referenceNumber: form.referenceNumber,
+      fiscalYearId,
+      chargeMode: form.chargeMode,
+      projectId: form.projectId,
+      costCenterId: form.costCenterId,
+      name: form.name,
+      section: form.section,
+      description: form.description,
+      debitAccountId: form.debitAccountId,
+      debitAccountName:
+        accountNameOf(debitAccounts, form.debitAccountId) || optionLabelOf(debitOptions, form.debitAccountId),
+      creditAccountId: form.creditAccountId,
+      creditAccountName:
+        accountNameOf(creditAccounts, form.creditAccountId) || optionLabelOf(creditOptions, form.creditAccountId),
+      amount: amountValue,
+      preparedBy: form.preparedBy,
+      receivedBy: form.receivedBy,
+    };
+
+    setTempVouchers((prev) =>
+      editingKey
+        ? prev.map((t) => (t.key === editingKey ? { ...entry, key: editingKey, tempRef: t.tempRef } : t))
+        : renumberTemp([...prev, entry]),
+    );
+
+    setEditingKey(null);
+    setForm({ ...emptyForm, voucherDate: new Date().toISOString().split("T")[0] });
+  }
+
+  function handleEditTemp(temp: TempVoucher) {
+    setForm({
+      voucherDate: temp.voucherDate,
+      referenceNumber: temp.referenceNumber,
+      fiscalYearId: temp.fiscalYearId,
+      chargeMode: temp.chargeMode,
+      projectId: temp.projectId,
+      costCenterId: temp.costCenterId,
+      name: temp.name,
+      section: temp.section,
+      description: temp.description,
+      debitAccountId: temp.debitAccountId,
+      creditAccountId: temp.creditAccountId,
+      amount: String(temp.amount),
+      preparedBy: temp.preparedBy,
+      receivedBy: temp.receivedBy,
+    });
+    setEditingKey(temp.key);
+    setError("");
+    setBatchError("");
+  }
+
+  function handleCancelEdit() {
+    setEditingKey(null);
+    setForm({ ...emptyForm, voucherDate: new Date().toISOString().split("T")[0] });
+  }
+
+  function handleRemoveTemp(key: string) {
+    setTempVouchers((prev) => renumberTemp(prev.filter((t) => t.key !== key)));
+    setBatchError("");
+    if (editingKey === key) {
+      setEditingKey(null);
+      setForm({ ...emptyForm, voucherDate: new Date().toISOString().split("T")[0] });
+    }
+  }
+
+  function handleClearAll() {
+    setTempVouchers([]);
+    setBatchError("");
+    if (editingKey) setForm({ ...emptyForm, voucherDate: new Date().toISOString().split("T")[0] });
+    setEditingKey(null);
+    setConfirmClearOpen(false);
+  }
+
+  const hasTempVouchers = tempVouchers.length > 0;
+  const editingTemp = editingKey ? tempVouchers.find((t) => t.key === editingKey) : undefined;
+  const totalTempAmount = tempVouchers.reduce((sum, t) => sum + t.amount, 0);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -542,22 +743,172 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-2 pt-4 border-t border-gray-100">
-          <button
-            onClick={() => navigate(-1)}
-            className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => { setError(""); saveMutation.mutate(); }}
-            disabled={!canSave || saveMutation.isPending}
-            className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
-          >
-            {saveMutation.isPending ? "Saving…" : isEdit ? "Update Voucher" : "Save Voucher"}
-          </button>
+        <div className="flex flex-col items-end gap-2 pt-4 border-t border-gray-100">
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => navigate(-1)}
+              className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            {isNew && (
+              <button
+                onClick={handleSaveAndContinue}
+                disabled={!canSave || saveMutation.isPending || batchSaveMutation.isPending}
+                className="px-4 py-2 text-sm border border-primary-300 text-primary-700 rounded-lg hover:bg-primary-50 disabled:opacity-50"
+              >
+                {editingKey ? "Update Entry" : "Save and Continue"}
+              </button>
+            )}
+            <button
+              onClick={() => { setError(""); saveMutation.mutate(); }}
+              disabled={!canSave || saveMutation.isPending || (isNew && hasTempVouchers)}
+              className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
+            >
+              {saveMutation.isPending ? "Saving…" : isEdit ? "Update Voucher" : "Save Voucher"}
+            </button>
+          </div>
+          {isNew && editingTemp && (
+            <p className="flex items-center gap-2 text-[11px] text-sky-800 bg-sky-50 border border-sky-200 rounded-lg px-3 py-1.5">
+              Editing {editingTemp.tempRef} — click "Update Entry" to save your changes, or
+              <button onClick={handleCancelEdit} className="underline font-medium">
+                cancel edit
+              </button>
+              .
+            </p>
+          )}
+          {isNew && hasTempVouchers && !editingKey && (
+            <p className="text-[11px] text-amber-600">
+              Save Voucher is disabled while temporary vouchers are pending. Use the Save Voucher
+              button under the temporary vouchers table to persist them to the database.
+            </p>
+          )}
         </div>
       </div>
+
+      {/* Pending temporary vouchers collected by "Save and Continue" */}
+      {isNew && hasTempVouchers && (
+        <div className="mt-6 bg-white border border-gray-200 rounded-xl">
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-900">Temporary Vouchers</h2>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {tempVouchers.length} pending · total {formatTaka(totalTempAmount)}
+              </p>
+            </div>
+            <button
+              onClick={() => setConfirmClearOpen(true)}
+              className="text-xs text-red-600 hover:text-red-700 font-medium"
+            >
+              Clear All
+            </button>
+          </div>
+
+          <div className="flex items-start gap-2 text-xs text-amber-800 bg-amber-50 border-b border-amber-200 px-5 py-2.5">
+            <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+            <span>
+              This data not saved in database yet, to save on database click on 'Save voucher' button
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-gray-500 border-b border-gray-100 bg-gray-50/60">
+                  <th className="px-4 py-2.5 font-medium">SL</th>
+                  <th className="px-4 py-2.5 font-medium">Voucher No.</th>
+                  <th className="px-4 py-2.5 font-medium">Date</th>
+                  <th className="px-4 py-2.5 font-medium">{debitFieldLabel}</th>
+                  <th className="px-4 py-2.5 font-medium">{creditFieldLabel}</th>
+                  <th className="px-4 py-2.5 font-medium">Description</th>
+                  <th className="px-4 py-2.5 font-medium text-right">Debit</th>
+                  <th className="px-4 py-2.5 font-medium text-right">Credit</th>
+                  <th className="px-4 py-2.5 font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tempVouchers.map((temp, i) => {
+                  // A Debit voucher posts the amount to the debit side, a Credit voucher to the
+                  // credit side; a Contra moves it between own accounts, so both sides show it.
+                  const debitSide = voucherType !== "Credit" ? temp.amount : null;
+                  const creditSide = voucherType === "Credit" || voucherType === "Contra" ? temp.amount : null;
+                  return (
+                    <tr key={temp.key} className="border-b border-gray-50 hover:bg-gray-50/50">
+                      <td className="px-4 py-2.5 text-gray-400 tabular-nums">{i + 1}</td>
+                      <td className="px-4 py-2.5 font-medium text-gray-700">{temp.tempRef}</td>
+                      <td className="px-4 py-2.5 text-gray-600">{formatDate(temp.voucherDate)}</td>
+                      <td className="px-4 py-2.5 text-gray-700">{temp.debitAccountName}</td>
+                      <td className="px-4 py-2.5 text-gray-700">{temp.creditAccountName}</td>
+                      <td className="px-4 py-2.5">
+                        <span className="block max-w-[220px] truncate text-gray-600" title={temp.description}>
+                          {temp.description}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-gray-700">
+                        {debitSide != null ? formatTaka(debitSide) : "—"}
+                      </td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-gray-700">
+                        {creditSide != null ? formatTaka(creditSide) : "—"}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => handleEditTemp(temp)}
+                            className="text-gray-400 hover:text-primary-600"
+                            title="Edit"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleRemoveTemp(temp.key)}
+                            className="text-gray-400 hover:text-red-600"
+                            title="Remove"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex items-center justify-between gap-4 px-5 py-4 border-t border-gray-100 bg-gray-50/60 rounded-b-xl">
+            <div className="min-w-0">
+              {batchError ? (
+                <p className="text-xs text-red-600">{batchError}</p>
+              ) : (
+                <p className="text-xs text-gray-400">
+                  {tempVouchers.length} temporary {tempVouchers.length === 1 ? "voucher" : "vouchers"} not yet saved to
+                  the database.
+                </p>
+              )}
+            </div>
+            <button
+              onClick={() => { setBatchError(""); batchSaveMutation.mutate(); }}
+              disabled={batchSaveMutation.isPending || editingKey !== null}
+              className="shrink-0 px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
+            >
+              {batchSaveMutation.isPending ? "Saving…" : "Save Voucher"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={confirmClearOpen}
+        title="Clear temporary vouchers"
+        message={`Remove all ${tempVouchers.length} pending temporary voucher${
+          tempVouchers.length === 1 ? "" : "s"
+        }? Nothing has been saved to the database yet.`}
+        confirmLabel="Clear All"
+        cancelLabel="Keep Vouchers"
+        tone="danger"
+        onConfirm={handleClearAll}
+        onCancel={() => setConfirmClearOpen(false)}
+      />
     </div>
   );
 }

@@ -336,6 +336,10 @@ export function useVoucherAccountOptions(voucherType: VoucherType) {
   return {
     debitOptions,
     creditOptions,
+    // Raw account records, for resolving the plain account name of a selected id (e.g. in the
+    // temporary voucher table) rather than the formatted dropdown label.
+    debitAccounts: data?.debitAccounts ?? [],
+    creditAccounts: data?.creditAccounts ?? [],
     // Side labels come from the server so the form and the validation messages always agree.
     debitFieldLabel: data?.debitFieldLabel ?? "Debit Account",
     creditFieldLabel: data?.creditFieldLabel ?? "Credit Account",
