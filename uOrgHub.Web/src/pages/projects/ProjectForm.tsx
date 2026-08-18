@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { createProject, updateProject, getProjectCategories, getClients, createClient, createProjectCategory, Project, VALID_STATUS_TRANSITIONS } from "../../api/projects";
 import { extractApiError } from "../../utils/apiError";
+import { amountInWords } from "../../utils/format";
 import { useEmployeeLookup } from "../../hooks/useEntityLookup";
 import SearchableDropdown from "../../components/shared/SearchableDropdown";
 import Modal from "../../components/shared/Modal";
@@ -173,6 +174,11 @@ export default function ProjectForm({ project, onClose }: ProjectFormProps) {
             }}
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
           />
+          {form.contractValue > 0 && (
+            <p className="text-xs text-gray-500 mt-1">
+              {amountInWords(form.contractValue)}
+            </p>
+          )}
         </div>
       </div>
 
