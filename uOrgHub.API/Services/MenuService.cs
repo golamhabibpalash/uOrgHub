@@ -71,7 +71,8 @@ public class MenuService : IMenuService
 
         new("projects", "Projects", "HardHat", null, null, null, "main",
         [
-            new("proj-all", "All Projects", "HardHat", "/projects", Claims.Projects.Projects_.View, null, null, null),
+            new("proj-dashboard", "Dashboard", "HardHat", "/projects", Claims.Projects.Projects_.View, null, null, null),
+            new("proj-all", "All Projects", "HardHat", "/projects/all", Claims.Projects.Projects_.View, null, null, null),
             new("proj-categories", "Categories", "Tag", "/projects/categories", Claims.Projects.ProjectCategories.View, null, null, null),
             new("proj-clients", "Clients", "Users", "/projects/clients", Claims.Projects.Clients.View, null, null, null),
         ]),

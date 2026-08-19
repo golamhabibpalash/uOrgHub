@@ -33,7 +33,7 @@ export default function ProjectsDashboard() {
   ).slice(0, 5);
 
   const modules = [
-    { name: "All Projects", path: "/projects", icon: HardHat, color: "bg-blue-500" },
+    { name: "All Projects", path: "/projects/all", icon: HardHat, color: "bg-blue-500" },
     { name: "Categories", path: "/projects/categories", icon: Tag, color: "bg-purple-500" },
     { name: "Clients", path: "/projects/clients", icon: Users, color: "bg-green-500" },
   ];

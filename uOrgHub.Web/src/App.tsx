@@ -77,6 +77,7 @@ import VendorQuotations from "./pages/procurement/VendorQuotations";
 import PurchaseOrders from "./pages/procurement/PurchaseOrders";
 import GoodsReceivedNotes from "./pages/procurement/GoodsReceivedNotes";
 import ProjectsDashboard from "./pages/projects/ProjectsDashboard";
+import AllProjectsPage from "./pages/projects/AllProjectsPage";
 import ProjectDetail from "./pages/projects/ProjectDetail";
 import WBSPage from "./pages/projects/WBSPage";
 import BOQPage from "./pages/projects/BOQPage";
@@ -214,6 +215,7 @@ export default function App() {
             <Route path="procurement/purchase-orders" element={<PurchaseOrders />} />
             <Route path="procurement/grns" element={<GoodsReceivedNotes />} />
             <Route path="projects" element={<ProjectsDashboard />} />
+            <Route path="projects/all" element={<AllProjectsPage />} />
             <Route path="projects/categories" element={<ProjectCategories />} />
             <Route path="projects/clients" element={<ClientsPage />} />
             <Route path="projects/:id" element={<ProjectDetail />} />
