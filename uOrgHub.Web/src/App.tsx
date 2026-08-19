@@ -214,11 +214,11 @@ export default function App() {
             <Route path="procurement/quotations" element={<VendorQuotations />} />
             <Route path="procurement/purchase-orders" element={<PurchaseOrders />} />
             <Route path="procurement/grns" element={<GoodsReceivedNotes />} />
-            <Route path="projects" element={<ProjectsDashboard />} />
-            <Route path="projects/all" element={<AllProjectsPage />} />
-            <Route path="projects/categories" element={<ProjectCategories />} />
-            <Route path="projects/clients" element={<ClientsPage />} />
-            <Route path="projects/:id" element={<ProjectDetail />} />
+            <Route path="projects" element={<ProtectedRoute requiredClaim="Projects.Projects.View"><ProjectsDashboard /></ProtectedRoute>} />
+            <Route path="projects/all" element={<ProtectedRoute requiredClaim="Projects.Projects.View"><AllProjectsPage /></ProtectedRoute>} />
+            <Route path="projects/categories" element={<ProtectedRoute requiredClaim="Projects.ProjectCategories.View"><ProjectCategories /></ProtectedRoute>} />
+            <Route path="projects/clients" element={<ProtectedRoute requiredClaim="Projects.Clients.View"><ClientsPage /></ProtectedRoute>} />
+            <Route path="projects/:id" element={<ProtectedRoute requiredClaim="Projects.Projects.View"><ProjectDetail /></ProtectedRoute>} />
             <Route path="projects/:id/wbs" element={<WBSPage />} />
             <Route path="projects/:id/boq" element={<BOQPage />} />
             <Route path="projects/:id/dpr" element={<DPRPage />} />

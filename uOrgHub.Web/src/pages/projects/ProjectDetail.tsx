@@ -1,11 +1,13 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   MapPin,
   Calendar,
   Banknote,
   Plus,
+  Pencil,
 } from "lucide-react";
 import {
   getProjectById,
@@ -15,6 +17,9 @@ import {
   getMilestones,
   getProjectProgress,
 } from "../../api/projects";
+import Modal from "../../components/shared/Modal";
+import ProjectForm from "./ProjectForm";
+import { useAuthStore } from "../../store/authStore";
 import {
   getCostCenterByProjectId,
   createCostCenter,
@@ -22,6 +27,18 @@ import {
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
+  const qc = useQueryClient();
+  const { hasClaim, hasRole } = useAuthStore();
+  const isAdmin = hasRole("Admin");
+  const canEdit = isAdmin || hasClaim("Projects.Projects.Edit");
+  const [editing, setEditing] = useState(false);
+
+  const closeEdit = () => {
+    setEditing(false);
+    qc.invalidateQueries({ queryKey: ["project", id] });
+    qc.invalidateQueries({ queryKey: ["projectBudget", id] });
+    qc.invalidateQueries({ queryKey: ["projectFinancials", id] });
+  };
 
   const { data: projectData, isLoading: projectLoading } = useQuery({
     queryKey: ["project", id],
@@ -126,11 +143,21 @@ export default function ProjectDetail() {
         </Link>
       </div>
 
-      <div className="mb-6">
-        <h2 className="text-lg font-medium text-gray-900">{project.projectName}</h2>
-        <p className="text-sm text-gray-500">
-          {project.projectCode} • {project.categoryName}
-        </p>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-medium text-gray-900">{project.projectName}</h2>
+          <p className="text-sm text-gray-500">
+            {project.projectCode} • {project.categoryName}
+          </p>
+        </div>
+        {canEdit && (
+          <button
+            onClick={() => setEditing(true)}
+            className="flex items-center gap-2 text-sm bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg hover:border-primary-500 hover:text-primary-600 transition-colors"
+          >
+            <Pencil size={14} /> Edit
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-3 gap-4 mb-6">
@@ -491,6 +518,10 @@ export default function ProjectDetail() {
           </div>
         )}
       </div>
+
+      <Modal title="Edit Project" open={editing} onClose={closeEdit} size="2xl">
+        <ProjectForm project={project} onClose={closeEdit} />
+      </Modal>
     </div>
   );
 }

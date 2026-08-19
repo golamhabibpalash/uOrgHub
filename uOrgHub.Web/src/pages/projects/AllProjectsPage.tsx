@@ -6,6 +6,7 @@ import DataGrid from "../../components/shared/DataGrid";
 import Modal from "../../components/shared/Modal";
 import ProjectForm from "./ProjectForm";
 import { useDataGrid } from "../../hooks/useDataGrid";
+import { useAuthStore } from "../../store/authStore";
 import { getProjects, VALID_STATUS_TRANSITIONS, type Project } from "../../api/projects";
 import { formatBDT, formatDate } from "../../utils/format";
 
@@ -30,8 +31,18 @@ const PRIORITY_STYLES: Record<string, string> = {
 
 export default function AllProjectsPage() {
   const navigate = useNavigate();
+  const { hasClaim, hasRole } = useAuthStore();
+  const isAdmin = hasRole("Admin");
+  const canCreate = isAdmin || hasClaim("Projects.Projects.Create");
+  const canEdit = isAdmin || hasClaim("Projects.Projects.Edit");
   const dg = useDataGrid({ defaultSortBy: "ProjectName" });
   const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<Project | null>(null);
+
+  const closeForm = () => {
+    setShowForm(false);
+    setEditing(null);
+  };
 
   const status = dg.filters.status;
 
@@ -90,12 +101,14 @@ export default function AllProjectsPage() {
             {totalCount} project{totalCount !== 1 ? "s" : ""} in total
           </p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 bg-primary-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-primary-600"
-        >
-          <Plus size={15} /> New Project
-        </button>
+        {canCreate && (
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center gap-2 bg-primary-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-primary-600"
+          >
+            <Plus size={15} /> New Project
+          </button>
+        )}
       </div>
 
       <DataGrid
@@ -115,6 +128,7 @@ export default function AllProjectsPage() {
         onPageSizeChange={dg.setPageSize}
         totalCount={totalCount}
         onView={(row) => navigate(`/projects/${row.id}`)}
+        onEdit={canEdit ? (row) => setEditing(row) : undefined}
         emptyMessage="No projects found"
         filterBar={
           <select
@@ -130,8 +144,13 @@ export default function AllProjectsPage() {
         }
       />
 
-      <Modal title="New Project" open={showForm} onClose={() => setShowForm(false)} size="2xl">
-        <ProjectForm project={null} onClose={() => setShowForm(false)} />
+      <Modal
+        title={editing ? "Edit Project" : "New Project"}
+        open={showForm || editing !== null}
+        onClose={closeForm}
+        size="2xl"
+      >
+        <ProjectForm project={editing} onClose={closeForm} />
       </Modal>
     </div>
   );
