@@ -105,10 +105,10 @@ export default function RolesPage() {
                         {moduleClaims.map(claim => {
                           const has = selected.claims?.some(c => c.id === claim.id) ?? false;
                           return (
-                            <button key={claim.id} onClick={() => toggleClaim(claim)}
+                            <button key={claim.id} title={claim.name} onClick={() => toggleClaim(claim)}
                               className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border text-left text-xs transition-all cursor-pointer ${has ? 'bg-primary-600/20 border-primary-500/50 text-primary-300' : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500'}`}>
                               {has && <Check size={12} className="shrink-0" />}
-                              <span className="truncate">{claim.name.split('.')[1] ?? claim.name}</span>
+                              <span className="truncate">{claim.name.split('.').slice(1).join('.')}</span>
                             </button>
                           );
                         })}
