@@ -69,6 +69,9 @@ builder.Services.AddLocalFileStorage(opts =>
     opts.JpegQuality = 85;
 });
 
+// Attachments (shared, auth-gated file attachments for any module)
+builder.Services.AddAttachments(builder.Configuration);
+
 // Dashboard
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 

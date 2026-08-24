@@ -26,7 +26,9 @@ import {
   VoucherStatus,
 } from "../../api/accounts";
 import { voucherThemes } from "../../components/accounts/voucherTheme";
+import AttachmentManager from "../../components/shared/AttachmentManager";
 import { getMyCompany } from "../../api/company";
+import { useAuthStore } from "../../store/authStore";
 import { amountInWords, formatTaka } from "../../utils/format";
 import { extractApiError } from "../../utils/apiError";
 
@@ -69,6 +71,9 @@ export default function VoucherDetail() {
     queryFn: () => getVoucherById(id!),
     enabled: Boolean(id),
   });
+
+  const { hasClaim, hasRole } = useAuthStore();
+  const canEditAttachments = hasRole("Admin") || hasClaim("Accounts.Vouchers.Edit");
 
   const { data: company } = useQuery({ queryKey: ["my-company"], queryFn: getMyCompany, staleTime: 300000 });
 
@@ -345,6 +350,17 @@ export default function VoucherDetail() {
           </div>
         )}
       </div>
+
+      {/* Attachments */}
+      {voucher.id && (
+        <div className="mb-4">
+          <AttachmentManager
+            entityType="Voucher"
+            entityId={voucher.id}
+            canEdit={canEditAttachments}
+          />
+        </div>
+      )}
 
       {/* Print preview */}
       <div className="bg-white border border-gray-200 rounded-xl p-8">
