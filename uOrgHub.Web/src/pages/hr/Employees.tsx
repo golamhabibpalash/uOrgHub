@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { Plus, X, Upload, Trash2 } from "lucide-react";
@@ -35,7 +36,27 @@ import DateInput from "../../components/shared/DateInput";
 
 export default function Employees() {
   const qc = useQueryClient();
-  const dg = useDataGrid({ defaultSortBy: "firstName" });
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Filters and grid state read from / written back to the URL query string, so leaving the page
+  // and returning (e.g. to view an employee) restores exactly the view the user was looking at.
+  const paramPage = Number(searchParams.get("page")) || 1;
+  const paramPageSize = Number(searchParams.get("pageSize")) || 10;
+  const paramSearch = searchParams.get("search") ?? "";
+  const paramSortBy = searchParams.get("sortBy") || undefined;
+  const paramSortDesc = searchParams.get("sortDesc") === "true";
+  const paramDepartment = searchParams.get("department") ?? "";
+  const paramDesignation = searchParams.get("designation") ?? "";
+  const paramStatus = searchParams.get("status") ?? "";
+
+  const dg = useDataGrid({
+    defaultSortBy: "firstName",
+    initialPage: paramPage,
+    initialPageSize: paramPageSize,
+    initialSearch: paramSearch,
+    initialSortBy: paramSortBy,
+    initialSortDescending: paramSortDesc,
+  });
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Employee | null>(null);
   const [error, setError] = useState("");
@@ -89,9 +110,15 @@ export default function Employees() {
   const [desigForm, setDesigForm] = useState({ name: "", code: "" });
   const [desigInlineError, setDesigInlineError] = useState("");
 
+  const employeeFilters = {
+    ...(paramDepartment && { departmentId: paramDepartment }),
+    ...(paramDesignation && { designationId: paramDesignation }),
+    ...(paramStatus && { status: paramStatus }),
+  };
+
   const { data, isLoading } = useQuery({
-    queryKey: ["employees", ...dg.queryKey],
-    queryFn: () => getEmployees(dg.queryParams),
+    queryKey: ["employees", ...dg.queryKey, paramDepartment, paramDesignation, paramStatus],
+    queryFn: () => getEmployees(dg.queryParams, employeeFilters),
   });
 
   const { options: deptOptions, isLoading: deptLoading } = useDepartmentLookup();
@@ -108,6 +135,68 @@ export default function Employees() {
   const roles = rolesData ?? [];
 
   const totalCount = data?.data?.data?.totalCount ?? 0;
+
+  /** Overwrites (replace) the URL query string with the given entries. */
+  function persist(entries: [string, string | undefined][]) {
+    const next = new URLSearchParams();
+    for (const [key, value] of entries) {
+      if (value) next.set(key, value);
+    }
+    setSearchParams(next, { replace: true });
+  }
+
+  /** The full list view state as URL query entries — filters plus current grid state. */
+  function buildEntries(overrides: Record<string, string | undefined>): [string, string | undefined][] {
+    const base: Record<string, string | undefined> = {
+      department: paramDepartment || undefined,
+      designation: paramDesignation || undefined,
+      status: paramStatus || undefined,
+      pageSize: String(dg.pageSize),
+      search: dg.search || undefined,
+      sortBy: dg.sortBy,
+      sortDesc: dg.sortDescending ? "true" : undefined,
+    };
+    return Object.entries({ ...base, ...overrides });
+  }
+
+  /** Reflects a changed filter to the URL + resets to page 1. */
+  function setFilter(key: string, value: string) {
+    persist(buildEntries({ [key]: value || undefined, page: undefined }));
+    dg.resetPage();
+  }
+
+  /** Wraps the DataGrid's page setter so a page change is also written to the URL. */
+  const handlePageChange = (page: number) => {
+    persist(buildEntries({ page: String(page) }));
+    dg.setPage(page);
+  };
+
+  /** Wraps the DataGrid's pageSize setter. */
+  const handlePageSizeChange = (size: number) => {
+    persist(buildEntries({ page: "1", pageSize: String(size) }));
+    dg.setPageSize(size);
+  };
+
+  /** Wraps the DataGrid's sort handler. */
+  const handleSort = (column: string) => {
+    let nextSortBy = dg.sortBy;
+    let nextDesc = dg.sortDescending;
+    if (nextSortBy === column) nextDesc = !nextDesc;
+    else nextSortBy = column;
+    persist(buildEntries({ page: "1", sortBy: nextSortBy, sortDesc: nextDesc ? "true" : undefined }));
+    dg.handleSort(column);
+  };
+
+  /** Wraps the DataGrid's search setter. */
+  const handleSearch = (value: string) => {
+    persist(buildEntries({ page: "1", search: value || undefined }));
+    dg.setSearch(value);
+  };
+
+  function resetFilters() {
+    persist(buildEntries({ department: undefined, designation: undefined, status: undefined, page: "1" }));
+    dg.resetPage();
+  }
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -169,7 +258,7 @@ export default function Employees() {
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["employees"] });
       if (editing) {
-        const fresh = qc.getQueryData<{ data: { data: { items: Employee[] } } }>(["employees", ...dg.queryKey]);
+        const fresh = qc.getQueryData<{ data: { data: { items: Employee[] } } }>(["employees", ...dg.queryKey, paramDepartment, paramDesignation, paramStatus]);
         const items = fresh?.data?.data?.items ?? [];
         const found = items.find((e) => e.id === editing.id);
         if (found) setEditing(found);
@@ -472,21 +561,66 @@ export default function Employees() {
         loading={isLoading}
         sortBy={dg.sortBy}
         sortDescending={dg.sortDescending}
-        onSort={dg.handleSort}
+        onSort={handleSort}
         search={dg.search}
-        onSearch={dg.setSearch}
+        onSearch={handleSearch}
         searchPlaceholder="Search employees..."
         page={dg.page}
         totalPages={totalPages}
-        onPageChange={dg.setPage}
+        onPageChange={handlePageChange}
         pageSize={dg.pageSize}
-        onPageSizeChange={dg.setPageSize}
+        onPageSizeChange={handlePageSizeChange}
         totalCount={totalCount}
         onView={(row) => setDetailsId(row.id)}
         onEdit={openEdit}
         onDelete={(row) => handleDeleteClick(row)}
         emptyMessage="No employees found"
-        actions={<ExportMenu baseUrl="employees" filters={{ search: dg.search || undefined }} />}
+        filterBar={
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              className="text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500 text-gray-600"
+              value={paramDepartment}
+              onChange={(e) => setFilter("department", e.target.value)}
+              title="Department"
+            >
+              <option value="">All departments</option>
+              {deptOptions.map((d) => (
+                <option key={d.value} value={d.value}>{d.label}</option>
+              ))}
+            </select>
+            <select
+              className="text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500 text-gray-600"
+              value={paramDesignation}
+              onChange={(e) => setFilter("designation", e.target.value)}
+              title="Designation"
+            >
+              <option value="">All designations</option>
+              {desigOptions.map((d) => (
+                <option key={d.value} value={d.value}>{d.label}</option>
+              ))}
+            </select>
+            <select
+              className="text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500 text-gray-600"
+              value={paramStatus}
+              onChange={(e) => setFilter("status", e.target.value)}
+              title="Status"
+            >
+              <option value="">All statuses</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+              <option value="Terminated">Terminated</option>
+            </select>
+            {(paramDepartment || paramDesignation || paramStatus) && (
+              <button
+                onClick={resetFilters}
+                className="text-xs text-gray-400 hover:text-gray-600 underline"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+        }
+        actions={<ExportMenu baseUrl="employees" filters={{ search: dg.search || undefined, ...employeeFilters }} />}
       />
 
       <ConfirmDialog

@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using uOrgHub.HR.DTOs;
 using uOrgHub.HR.Features._Common;
+using uOrgHub.HR.Models.Enums;
 using uOrgHub.HR.Repositories;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
@@ -22,7 +23,7 @@ public static class EmployeePictureUrl
     }
 }
 
-public record GetEmployeesQuery(PaginationRequest Request, Guid? DepartmentId = null, Guid? DesignationId = null) : IQuery<PagedResult<EmployeeResponseDto>>;
+public record GetEmployeesQuery(PaginationRequest Request, Guid? DepartmentId = null, Guid? DesignationId = null, EmployeeStatus? Status = null) : IQuery<PagedResult<EmployeeResponseDto>>;
 public record GetAllEmployeesQuery(Guid? DepartmentId = null, Guid? DesignationId = null, string? Search = null) : IQuery<List<EmployeeResponseDto>>;
 public record GetEmployeeByIdQuery(Guid Id) : IQuery<EmployeeResponseDto>;
 public record GetEmployeeDependenciesQuery(Guid Id) : IQuery<EmployeeDependenciesDto>;
@@ -46,6 +47,9 @@ public class GetEmployeesQueryHandler : IRequestHandler<GetEmployeesQuery, Paged
 
         if (request.DesignationId.HasValue)
             query = query.Where(x => x.DesignationId == request.DesignationId);
+
+        if (request.Status.HasValue)
+            query = query.Where(x => x.Status == request.Status);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
             query = query.WhereSearch(request.Request.Search, x => x.FirstName, x => x.LastName, x => x.EmployeeCode, x => x.Email);

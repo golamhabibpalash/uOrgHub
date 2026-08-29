@@ -8,6 +8,7 @@ using uOrgHub.Auth.Authorization;
 using uOrgHub.HR.DTOs;
 using uOrgHub.HR.Features.CoreHR.Commands;
 using uOrgHub.HR.Features.CoreHR.Queries;
+using uOrgHub.HR.Models.Enums;
 using uOrgHub.HR.Reporting.ExportColumns;
 using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
@@ -37,9 +38,9 @@ public class EmployeeController : BaseController
 
     [HttpGet]
     [RequireClaim(Claims.HR.Employees.View)]
-    public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request, [FromQuery] Guid? departmentId = null, [FromQuery] Guid? designationId = null)
+    public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request, [FromQuery] Guid? departmentId = null, [FromQuery] Guid? designationId = null, [FromQuery] EmployeeStatus? status = null)
     {
-        var result = await _mediator.Send(new GetEmployeesQuery(request, departmentId, designationId));
+        var result = await _mediator.Send(new GetEmployeesQuery(request, departmentId, designationId, status));
         return Ok(ApiResponse<PagedResult<EmployeeResponseDto>>.Ok(result));
     }
 

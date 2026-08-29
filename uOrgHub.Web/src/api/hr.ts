@@ -325,8 +325,11 @@ export interface Asset {
 }
 
 // Employees
-export const getEmployees = (params: PaginationRequest) =>
-  apiClient.get<ApiResponse<PagedResult<Employee>>>("employees", { params });
+export const getEmployees = (
+  params: PaginationRequest,
+  filters: { departmentId?: string; designationId?: string; status?: string } = {},
+) =>
+  apiClient.get<ApiResponse<PagedResult<Employee>>>("employees", { params: { ...params, ...filters } });
 
 export const getEmployeeById = (id: string) =>
   apiClient.get<ApiResponse<Employee>>(`employees/${id}`);
