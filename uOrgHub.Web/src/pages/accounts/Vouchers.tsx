@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Eye, Pencil, Printer } from "lucide-react";
 import DataGrid, { DataGridColumn } from "../../components/shared/DataGrid";
@@ -25,26 +24,30 @@ const selectClass =
 
 export default function Vouchers() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const dg = useDataGrid({ defaultSortBy: "voucherDate", defaultSortDescending: true });
 
-  const [type, setType] = useState<VoucherType | "">("");
-  const [status, setStatus] = useState<VoucherStatus | "">("");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
-  const [projectId, setProjectId] = useState("");
+  // Filters are read from (and written back to) the URL query string, so leaving the page to view
+  // a voucher and coming back restores the exact list state the user was looking at via browser
+  // history, and the filtered view stays shareable/bookmarkable.
+  const paramType = (searchParams.get("type") as VoucherType | "") || "";
+  const paramStatus = (searchParams.get("status") as VoucherStatus | "") || "";
+  const paramFrom = searchParams.get("from") ?? "";
+  const paramTo = searchParams.get("to") ?? "";
+  const paramProject = searchParams.get("project") ?? "";
 
   const { options: projects } = useProjectLookup();
 
   const filters: VoucherFilters = {
-    ...(type && { type }),
-    ...(status && { status }),
-    ...(fromDate && { fromDate }),
-    ...(toDate && { toDate }),
-    ...(projectId && { projectId }),
+    ...(paramType && { type: paramType }),
+    ...(paramStatus && { status: paramStatus }),
+    ...(paramFrom && { fromDate: paramFrom }),
+    ...(paramTo && { toDate: paramTo }),
+    ...(paramProject && { projectId: paramProject }),
   };
 
   const { data, isLoading } = useQuery({
-    queryKey: ["vouchers", ...dg.queryKey, type, status, fromDate, toDate, projectId],
+    queryKey: ["vouchers", ...dg.queryKey, paramType, paramStatus, paramFrom, paramTo, paramProject],
     queryFn: () => getVouchers(dg.queryParams, filters),
   });
 
@@ -52,12 +55,19 @@ export default function Vouchers() {
   const totalPages = data?.data?.data?.totalPages ?? 1;
   const totalCount = data?.data?.data?.totalCount ?? 0;
 
+  /** Reflects a changed filter to the URL (and thus to browser history), replacing the current entry. */
+  function setFilter(key: string, value: string) {
+    const next = new URLSearchParams(searchParams);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    setSearchParams(next, { replace: true });
+    dg.resetPage();
+  }
+
   function resetFilters() {
-    setType("");
-    setStatus("");
-    setFromDate("");
-    setToDate("");
-    setProjectId("");
+    const next = new URLSearchParams(searchParams);
+    for (const key of ["type", "status", "from", "to", "project"]) next.delete(key);
+    setSearchParams(next, { replace: true });
     dg.resetPage();
   }
 
@@ -211,8 +221,8 @@ export default function Vouchers() {
           <div className="flex items-center gap-2">
             <select
               className={selectClass}
-              value={type}
-              onChange={(e) => { setType(e.target.value as VoucherType | ""); dg.resetPage(); }}
+              value={paramType}
+              onChange={(e) => setFilter("type", e.target.value)}
             >
               <option value="">All types</option>
               <option value="Debit">Debit (DR)</option>
@@ -221,8 +231,8 @@ export default function Vouchers() {
             </select>
             <select
               className={selectClass}
-              value={status}
-              onChange={(e) => { setStatus(e.target.value as VoucherStatus | ""); dg.resetPage(); }}
+              value={paramStatus}
+              onChange={(e) => setFilter("status", e.target.value)}
             >
               <option value="">All statuses</option>
               <option value="Draft">Draft</option>
@@ -238,21 +248,21 @@ export default function Vouchers() {
           <div className="flex items-center gap-2">
             <DateInput
               className={selectClass}
-              value={fromDate}
-              onChange={(e) => { setFromDate(e.target.value); dg.resetPage(); }}
+              value={paramFrom}
+              onChange={(e) => setFilter("from", e.target.value)}
               title="From date"
             />
             <span className="text-xs text-gray-400">to</span>
             <DateInput
               className={selectClass}
-              value={toDate}
-              onChange={(e) => { setToDate(e.target.value); dg.resetPage(); }}
+              value={paramTo}
+              onChange={(e) => setFilter("to", e.target.value)}
               title="To date"
             />
             <select
               className={selectClass}
-              value={projectId}
-              onChange={(e) => { setProjectId(e.target.value); dg.resetPage(); }}
+              value={paramProject}
+              onChange={(e) => setFilter("project", e.target.value)}
               title="Project"
             >
               <option value="">All projects</option>
@@ -260,7 +270,7 @@ export default function Vouchers() {
                 <option key={p.value} value={p.value}>{p.label}</option>
               ))}
             </select>
-            {(type || status || fromDate || toDate || projectId) && (
+            {(paramType || paramStatus || paramFrom || paramTo || paramProject) && (
               <button onClick={resetFilters} className="text-xs text-gray-400 hover:text-gray-600 underline">
                 Clear
               </button>
