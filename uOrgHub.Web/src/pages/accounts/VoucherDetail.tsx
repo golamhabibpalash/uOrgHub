@@ -152,7 +152,7 @@ export default function VoucherDetail() {
       {/* Header — colour-coded by voucher type */}
       <div className="flex items-start gap-3 mb-4">
         <button
-          onClick={() => navigate("/accounts/vouchers")}
+          onClick={() => navigate(-1)}
           className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500"
         >
           <ArrowLeft size={15} />
