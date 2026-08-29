@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { X, Mail, Briefcase, User, CalendarDays, CreditCard } from "lucide-react";
+import { X, Mail, Briefcase, User, CalendarDays, CreditCard, Download, Printer } from "lucide-react";
 import Avatar from "../../components/shared/Avatar";
-import { getEmployeeById } from "../../api/hr";
+import EmployeeCV from "../../components/hr/EmployeeCV";
+import { getEmployeeById, Employee } from "../../api/hr";
 
 interface Props {
   employeeId: string | null;
@@ -92,6 +93,35 @@ export default function EmployeeDetailsModal({ employeeId, onClose }: Props) {
     queryFn: () => getEmployeeById(employeeId as string),
     enabled: !!employeeId,
   });
+
+  const cvRef = useRef<HTMLDivElement>(null);
+
+  /** Opens the CV in a new window and lets the user print it or save it as PDF. */
+  async function handlePrintCV() {
+    const emp = data?.data?.data;
+    if (!emp) return;
+    const content = cvRef.current?.innerHTML;
+    if (!content) return;
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${[emp.firstName, emp.lastName].filter(Boolean).join(" ")} - CV</title>
+          <script src="https://cdn.tailwindcss.com"></script>
+          <style>
+            @page { size: A4; margin: 15mm; }
+            body { font-family: 'Inter', sans-serif; color: #111827; -webkit-print-color-adjust: exact; }
+            .rounded-full { border-radius: 9999px; }
+            .bg-primary-600 { background-color: #2563eb; }
+            .text-primary-700 { color: #1d4ed8; }
+          </style>
+        </head>
+        <body>${content}<script>window.print();</script></body>
+      </html>
+    `);
+    printWindow.document.close();
+  }
 
   if (!employeeId) return null;
   const emp = data?.data?.data;
@@ -218,19 +248,47 @@ export default function EmployeeDetailsModal({ employeeId, onClose }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 border-t border-gray-100 flex items-center justify-between shrink-0">
+        <div className="px-6 py-3 border-t border-gray-100 flex items-center justify-between gap-3 shrink-0">
           <span className="inline-flex items-center gap-1.5 text-xs text-gray-400">
             <CalendarDays size={13} />
             {emp?.createdAt ? `Joined system on ${fmtDate(emp.createdAt)}` : ""}
           </span>
-          <button
-            onClick={onClose}
-            className="px-4 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50"
-          >
-            Close
-          </button>
+          <div className="flex items-center gap-2">
+            {emp && (
+              <>
+                <button
+                  onClick={handlePrintCV}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-700"
+                  title="Save as PDF"
+                >
+                  <Download size={14} /> Download PDF
+                </button>
+                <button
+                  onClick={handlePrintCV}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600"
+                  title="Print CV"
+                >
+                  <Printer size={14} /> Print CV
+                </button>
+              </>
+            )}
+            <button
+              onClick={onClose}
+              className="px-4 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 ml-1"
+            >
+              Close
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Hidden CV rendered off-screen so handlePrintCV can capture its markup (same technique as the
+          voucher print). It is invisible on screen and only meaningful once serialised for printing. */}
+      {emp && (
+        <div className="fixed -left-[9999px] top-0 w-[794px] pointer-events-none" aria-hidden>
+          <EmployeeCV ref={cvRef} employee={emp as Employee} />
+        </div>
+      )}
     </div>
   );
 }
