@@ -25,16 +25,30 @@ const selectClass =
 export default function Vouchers() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const dg = useDataGrid({ defaultSortBy: "voucherDate", defaultSortDescending: true });
 
-  // Filters are read from (and written back to) the URL query string, so leaving the page to view
-  // a voucher and coming back restores the exact list state the user was looking at via browser
-  // history, and the filtered view stays shareable/bookmarkable.
+  // Every piece of list state — filters, search, sort, page — is read from and written back to the
+  // URL query string. Leaving the page to view a voucher and coming back then restores exactly what
+  // the user was looking at (including the page number) via browser history, and stays shareable.
+  const paramPage = Number(searchParams.get("page")) || 1;
+  const paramPageSize = Number(searchParams.get("pageSize")) || 10;
+  const paramSearch = searchParams.get("search") ?? "";
+  const paramSortBy = searchParams.get("sortBy") || undefined;
+  const paramSortDesc = searchParams.get("sortDesc") === "true";
   const paramType = (searchParams.get("type") as VoucherType | "") || "";
   const paramStatus = (searchParams.get("status") as VoucherStatus | "") || "";
   const paramFrom = searchParams.get("from") ?? "";
   const paramTo = searchParams.get("to") ?? "";
   const paramProject = searchParams.get("project") ?? "";
+
+  const dg = useDataGrid({
+    defaultSortBy: "voucherDate",
+    defaultSortDescending: true,
+    initialPage: paramPage,
+    initialPageSize: paramPageSize,
+    initialSearch: paramSearch,
+    initialSortBy: paramSortBy,
+    initialSortDescending: paramSortDesc,
+  });
 
   const { options: projects } = useProjectLookup();
 
@@ -55,19 +69,67 @@ export default function Vouchers() {
   const totalPages = data?.data?.data?.totalPages ?? 1;
   const totalCount = data?.data?.data?.totalCount ?? 0;
 
-  /** Reflects a changed filter to the URL (and thus to browser history), replacing the current entry. */
-  function setFilter(key: string, value: string) {
-    const next = new URLSearchParams(searchParams);
-    if (value) next.set(key, value);
-    else next.delete(key);
+  /** Overwrites (replace) the URL query string with the given entries, keeping document-navigation clean. */
+  function persist(entries: [string, string | undefined][]) {
+    const next = new URLSearchParams();
+    for (const [key, value] of entries) {
+      if (value) next.set(key, value);
+    }
     setSearchParams(next, { replace: true });
+  }
+
+  /** The full list view state as URL query entries — filters plus current grid state. */
+  function buildEntries(overrides: Record<string, string | undefined>): [string, string | undefined][] {
+    const base: Record<string, string | undefined> = {
+      type: paramType || undefined,
+      status: paramStatus || undefined,
+      from: paramFrom || undefined,
+      to: paramTo || undefined,
+      project: paramProject || undefined,
+      pageSize: String(dg.pageSize),
+      search: dg.search || undefined,
+      sortBy: dg.sortBy,
+      sortDesc: dg.sortDescending ? "true" : undefined,
+    };
+    return Object.entries({ ...base, ...overrides });
+  }
+
+  /** Filters: reflect a changed dropdown/date to URL + reset to page 1. */
+  function setFilter(key: string, value: string) {
+    persist(buildEntries({ [key]: value || undefined, page: undefined }));
     dg.resetPage();
   }
 
+  /** Wraps the DataGrid's page setter so a page change is also written to the URL. */
+  const handlePageChange = (page: number) => {
+    persist(buildEntries({ page: String(page) }));
+    dg.setPage(page);
+  };
+
+  /** Wraps the DataGrid's pageSize setter. */
+  const handlePageSizeChange = (size: number) => {
+    persist(buildEntries({ page: "1", pageSize: String(size) }));
+    dg.setPageSize(size);
+  };
+
+  /** Wraps the DataGrid's sort handler. */
+  const handleSort = (column: string) => {
+    let nextSortBy = dg.sortBy;
+    let nextDesc = dg.sortDescending;
+    if (nextSortBy === column) nextDesc = !nextDesc;
+    else nextSortBy = column;
+    persist(buildEntries({ page: "1", sortBy: nextSortBy, sortDesc: nextDesc ? "true" : undefined }));
+    dg.handleSort(column);
+  };
+
+  /** Wraps the DataGrid's search setter. */
+  const handleSearch = (value: string) => {
+    persist(buildEntries({ page: "1", search: value || undefined }));
+    dg.setSearch(value);
+  };
+
   function resetFilters() {
-    const next = new URLSearchParams(searchParams);
-    for (const key of ["type", "status", "from", "to", "project"]) next.delete(key);
-    setSearchParams(next, { replace: true });
+    persist(buildEntries({ status: undefined, type: undefined, from: undefined, to: undefined, project: undefined, page: "1" }));
     dg.resetPage();
   }
 
@@ -206,15 +268,15 @@ export default function Vouchers() {
         loading={isLoading}
         sortBy={dg.sortBy}
         sortDescending={dg.sortDescending}
-        onSort={dg.handleSort}
+        onSort={handleSort}
         search={dg.search}
-        onSearch={dg.setSearch}
+        onSearch={handleSearch}
         searchPlaceholder="Search voucher no, description, name..."
         page={dg.page}
         totalPages={totalPages}
-        onPageChange={dg.setPage}
+        onPageChange={handlePageChange}
         pageSize={dg.pageSize}
-        onPageSizeChange={dg.setPageSize}
+        onPageSizeChange={handlePageSizeChange}
         totalCount={totalCount}
         emptyMessage="No vouchers found"
         toolbarPrefix={

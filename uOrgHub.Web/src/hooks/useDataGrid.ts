@@ -18,17 +18,27 @@ export interface UseDataGridOptions {
    * unset, the search fires on every keystroke, which is what every existing caller expects.
    */
   searchDebounceMs?: number;
+  /**
+   * Seed the grid state from a previously-persisted location (e.g. URL query params), so a page
+   * the user navigated away from — page number, search term, sort — restores on return. Optional;
+   * left unset, the grid starts fresh as before.
+   */
+  initialPage?: number;
+  initialPageSize?: number;
+  initialSearch?: string;
+  initialSortBy?: string;
+  initialSortDescending?: boolean;
 }
 
 export function useDataGrid(options: UseDataGridOptions = {}) {
   const debounceMs = options.searchDebounceMs ?? 0;
 
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(options.defaultPageSize ?? 10);
-  const [search, setSearchRaw] = useState("");
+  const [page, setPage] = useState(options.initialPage ?? 1);
+  const [pageSize, setPageSize] = useState(options.initialPageSize ?? options.defaultPageSize ?? 10);
+  const [search, setSearchRaw] = useState(options.initialSearch ?? "");
   // The input renders from `search` so typing stays responsive; only the settled value is allowed
   // to reach the query, so a burst of keystrokes costs one request rather than one each.
-  const [settledSearch, setSettledSearch] = useState("");
+  const [settledSearch, setSettledSearch] = useState(options.initialSearch ?? "");
 
   useEffect(() => {
     if (debounceMs <= 0) return;
@@ -39,8 +49,12 @@ export function useDataGrid(options: UseDataGridOptions = {}) {
   // Derived rather than stored for the undebounced case: writing state in the effect just to
   // mirror `search` would cost an extra render on every keystroke.
   const effectiveSearch = debounceMs > 0 ? settledSearch : search;
-  const [sortBy, setSortBy] = useState<string | undefined>(options.defaultSortBy);
-  const [sortDescending, setSortDescending] = useState(options.defaultSortDescending ?? false);
+  const [sortBy, setSortBy] = useState<string | undefined>(
+    options.initialSortBy ?? options.defaultSortBy,
+  );
+  const [sortDescending, setSortDescending] = useState(
+    options.initialSortDescending ?? options.defaultSortDescending ?? false,
+  );
   const [filters, setFilters] = useState<Record<string, string>>({});
 
   const setSearch = useCallback((value: string) => {
