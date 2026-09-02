@@ -10,7 +10,12 @@ uOrgHub — a modular ERP for a civil construction company. .NET 8 Web API backe
 ## Read first
 
 `CODING_STANDARDS.md` (solution root) is the authoritative style guide: naming, entity
-rules, soft-delete, table prefixes, commit format. **Follow it.** A few rules to keep front of mind:
+rules, soft-delete, table prefixes, commit format. **Follow it.** Other root docs worth
+knowing: `BUSINESS_FLOW.md` (procure-to-pay / order-to-cash / project money flows),
+`UORGHUB_SYSTEM_GUIDE.md` (feature-level system guide), `AGENTS.md` (condensed rules),
+`CFL_DEPLOYMENT_INFO.md` + `deploy/README.md` (multi-instance deployment).
+
+A few rules to keep front of mind:
 
 - Every entity inherits `BaseEntity` (`uOrgHub.Shared/Entities/BaseEntity.cs`), uses `Guid` PK, and is soft-deleted (`IsDeleted = true`, never hard delete).
 - Always `DateTime.UtcNow`, never `DateTime.Now`.
@@ -27,6 +32,16 @@ rules, soft-delete, table prefixes, commit format. **Follow it.** A few rules to
 Each business module (`uOrgHub.HR`, `uOrgHub.Accounts`, `uOrgHub.Inventory`,
 `uOrgHub.Procurement`, `uOrgHub.Projects`) is its own class library, registered in
 `uOrgHub.API/Program.cs` via a `{Module}ServiceExtension.cs` (e.g. `AddHRModule()`).
+Supporting libraries: `uOrgHub.Shared` (BaseEntity, `AppDbContext`, `ApiResponse`,
+exceptions, `WhereSearch` — see below), `uOrgHub.Auth` (JWT + claims, below),
+`uOrgHub.Settings` (system settings + `ValidationRuleEngine`). `uOrgHub.HR` is still the
+reference module. `uOrgHub.Projects/Services/` holds domain services (financial
+rollups, cost-limit checks) alongside its normal MediatR handlers — not the old
+Service+Repository pattern.
+
+Cross-module search convention: all list/search endpoints filter via the `WhereSearch()`
+extension (`uOrgHub.Shared/Extensions/`), which emits PostgreSQL `ILIKE` for
+case-insensitive partial matching — don't hand-roll `Contains`/`ToLower` filters.
 
 Request flow: **Controller → MediatR `_mediator.Send(command/query)` → Handler → Repository → `AppDbContext`.**
 
@@ -76,10 +91,13 @@ Frontend (from `uOrgHub.Web`):
 ```bash
 npm run dev      # Vite dev server (proxies to API; default VITE_API_URL http://localhost:5177/api/v1)
 npm run build    # tsc -b && vite build
-npm run lint
+npm run lint     # eslint .
 ```
+There is no frontend unit-test runner (`playwright` is a dependency but only for browser
+automation). All automated tests are backend xUnit in `uOrgHub.Tests`.
 
-EF Core migrations (migrations live under `uOrgHub.Shared`, applied automatically on API startup):
+EF Core migrations (live in `uOrgHub.Shared/Data/Migrations/`, applied automatically on API
+startup via `db.Database.Migrate()` in `Program.cs`):
 ```bash
 dotnet ef migrations add Add{Module}Module \
   --project uOrgHub.Shared/uOrgHub.Shared.csproj \
