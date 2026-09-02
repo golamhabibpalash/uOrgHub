@@ -76,6 +76,7 @@ export interface Designation {
   id: string;
   name: string;
   code: string;
+  description?: string;
   level: number;
   isActive: boolean;
   departmentId: string;

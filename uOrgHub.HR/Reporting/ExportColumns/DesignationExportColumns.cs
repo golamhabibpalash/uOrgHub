@@ -9,6 +9,7 @@ public static class DesignationExportColumns
     [
         new("name", "Name", x => x.Name),
         new("code", "Code", x => x.Code),
+        new("description", "Description", x => x.Description),
         new("level", "Level", x => x.Level),
         new("departmentName", "Department", x => x.DepartmentName),
         new("parentDesignationName", "Parent Designation", x => x.ParentDesignationName),

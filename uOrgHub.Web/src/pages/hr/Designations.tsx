@@ -8,6 +8,7 @@ import Modal from "../../components/shared/Modal";
 import ConfirmDialog from "../../components/shared/ConfirmDialog";
 import ExportMenu from "../../components/shared/ExportMenu";
 import SearchableDropdown from "../../components/shared/SearchableDropdown";
+import TruncatedText from "../../components/shared/TruncatedText";
 import { useDataGrid } from "../../hooks/useDataGrid";
 import { useDepartmentLookup, useDesignationLookup, useSalaryGradeLookup } from "../../hooks/useEntityLookup";
 import {
@@ -24,7 +25,7 @@ export default function Designations() {
   const dg = useDataGrid({ defaultSortBy: "name" });
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Designation | null>(null);
-  const [form, setForm] = useState({ name: "", code: "", departmentId: "", level: 1, isActive: true, parentDesignationId: "", salaryGradeId: "" });
+  const [form, setForm] = useState({ name: "", code: "", description: "", departmentId: "", level: 1, isActive: true, parentDesignationId: "", salaryGradeId: "" });
   const [deleteTarget, setDeleteTarget] = useState<Designation | null>(null);
   const [deptFilter, setDeptFilter] = useState("");
 
@@ -50,6 +51,7 @@ export default function Designations() {
       const payload = {
         name: form.name,
         code: form.code,
+        description: form.description,
         departmentId: form.departmentId,
         level: form.level,
         isActive: form.isActive,
@@ -114,7 +116,7 @@ export default function Designations() {
 
   function openAdd() {
     setEditing(null);
-    setForm({ name: "", code: "", departmentId: "", level: 1, isActive: true, parentDesignationId: "", salaryGradeId: "" });
+    setForm({ name: "", code: "", description: "", departmentId: "", level: 1, isActive: true, parentDesignationId: "", salaryGradeId: "" });
     setModal(true);
   }
 
@@ -123,6 +125,7 @@ export default function Designations() {
     setForm({
       name: desig.name,
       code: desig.code,
+      description: desig.description ?? "",
       departmentId: desig.departmentId,
       level: desig.level,
       isActive: desig.isActive,
@@ -141,6 +144,12 @@ export default function Designations() {
     { key: "code", label: "Code" },
     { key: "name", label: "Designation Name" },
     { key: "departmentName", label: "Department" },
+    {
+      key: "description",
+      label: "Description",
+      className: "max-w-md align-top",
+      render: (row: Designation) => <TruncatedText text={row.description} limit={50} />,
+    },
     {
       key: "parentDesignationName",
       label: "Parent Designation",
@@ -243,6 +252,15 @@ export default function Designations() {
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
               value={form.code}
               onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Description</label>
+            <textarea
+              rows={3}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+              value={form.description}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
             />
           </div>
           <SearchableDropdown
