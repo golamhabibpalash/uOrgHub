@@ -322,6 +322,74 @@ public class AccountingReportService : IAccountingReportService
         return result;
     }
 
+    public async Task<List<AccountLedgerGroupDto>> GetAllAccountsLedgerAsync(DateTime? dateFrom, DateTime? dateTo)
+    {
+        var accounts = await _db.Set<ChartOfAccount>()
+            .Include(a => a.AccountGroup)
+            .Where(a => !a.IsDeleted && a.IsActive)
+            .OrderBy(a => a.AccountCode)
+            .ToListAsync();
+
+        var groups = new List<AccountLedgerGroupDto>();
+
+        foreach (var account in accounts)
+        {
+            var lines = _db.Set<JournalEntryLine>()
+                .Include(l => l.JournalEntry)
+                .Where(l => l.AccountId == account.Id && l.JournalEntry.Status == JournalEntryStatus.Posted);
+
+            if (dateFrom.HasValue)
+                lines = lines.Where(l => l.JournalEntry.EntryDate >= dateFrom.Value);
+            if (dateTo.HasValue)
+                lines = lines.Where(l => l.JournalEntry.EntryDate <= dateTo.Value);
+
+            var entries = await lines
+                .OrderBy(l => l.JournalEntry.EntryDate)
+                .ThenBy(l => l.JournalEntry.EntryNumber)
+                .Select(l => new
+                {
+                    l.JournalEntry.EntryDate,
+                    l.JournalEntry.EntryNumber,
+                    l.JournalEntry.ReferenceNumber,
+                    l.Description,
+                    l.DebitAmount,
+                    l.CreditAmount,
+                })
+                .ToListAsync();
+
+            if (entries.Count == 0)
+                continue;
+
+            var isDebitNormal = account.AccountType is AccountGroupType.Asset or AccountGroupType.Expense;
+
+            var totalDebit = entries.Sum(e => e.DebitAmount);
+            var totalCredit = entries.Sum(e => e.CreditAmount);
+            var periodNet = isDebitNormal ? totalDebit - totalCredit : totalCredit - totalDebit;
+
+            var closingBalance = account.CurrentBalance;
+            var openingBalance = closingBalance - periodNet;
+
+            var bal = openingBalance;
+            var rows = new List<AccountLedgerRowDto>();
+            foreach (var e in entries)
+            {
+                bal += isDebitNormal ? e.DebitAmount - e.CreditAmount : e.CreditAmount - e.DebitAmount;
+                rows.Add(new AccountLedgerRowDto(
+                    e.EntryDate, e.EntryNumber, e.ReferenceNumber,
+                    e.Description ?? "", e.DebitAmount, e.CreditAmount, bal
+                ));
+            }
+
+            groups.Add(new AccountLedgerGroupDto(
+                account.Id, account.AccountCode, account.AccountName,
+                account.AccountGroup?.Name ?? "", account.AccountType,
+                openingBalance, closingBalance, totalDebit, totalCredit, rows
+            ));
+        }
+
+        return groups;
+    }
+
     public async Task<List<DayBookRowDto>> GetDayBookAsync(DateTime date)
     {
         var entries = await _db.Set<JournalEntry>()

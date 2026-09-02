@@ -89,6 +89,19 @@ public record AccountLedgerRowDto(
     decimal RunningBalance
 );
 
+public record AccountLedgerGroupDto(
+    Guid AccountId,
+    string AccountCode,
+    string AccountName,
+    string AccountGroupName,
+    AccountGroupType AccountType,
+    decimal OpeningBalance,
+    decimal ClosingBalance,
+    decimal TotalDebit,
+    decimal TotalCredit,
+    List<AccountLedgerRowDto> Rows
+);
+
 public record DayBookRowDto(
     DateTime EntryDate,
     string EntryNumber,

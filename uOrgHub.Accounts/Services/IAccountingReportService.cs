@@ -9,6 +9,7 @@ public interface IAccountingReportService
     Task<IncomeStatementDto> GetIncomeStatementAsync(ReportFilterDto filter);
     Task<BalanceSheetDto> GetBalanceSheetAsync(ReportFilterDto filter);
     Task<List<AccountLedgerRowDto>> GetAccountLedgerAsync(Guid accountId, DateTime? dateFrom, DateTime? dateTo);
+    Task<List<AccountLedgerGroupDto>> GetAllAccountsLedgerAsync(DateTime? dateFrom, DateTime? dateTo);
     Task<List<DayBookRowDto>> GetDayBookAsync(DateTime date);
     Task<List<ChartOfAccountsReportRowDto>> GetChartOfAccountsReportAsync(ReportFilterDto filter);
     Task<List<JournalEntryReportRowDto>> GetJournalEntryReportAsync(ReportFilterDto filter);

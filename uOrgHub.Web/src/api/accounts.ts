@@ -791,6 +791,19 @@ export interface AccountLedgerRow {
   runningBalance: number;
 }
 
+export interface AccountLedgerGroup {
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  accountGroupName: string;
+  accountType: AccountGroupType;
+  openingBalance: number;
+  closingBalance: number;
+  totalDebit: number;
+  totalCredit: number;
+  rows: AccountLedgerRow[];
+}
+
 export interface DayBookRow {
   entryDate: string;
   entryNumber: string;
@@ -859,6 +872,9 @@ export const getBalanceSheet = (filter?: ReportFilter) =>
 
 export const getReportAccountLedger = (accountId: string, dateFrom?: string, dateTo?: string) =>
   apiClient.get<ApiResponse<AccountLedgerRow[]>>(`/accounts/reports/account-ledger/${accountId}`, { params: { dateFrom, dateTo } });
+
+export const getReportAllAccountsLedger = (dateFrom?: string, dateTo?: string) =>
+  apiClient.get<ApiResponse<AccountLedgerGroup[]>>(`/accounts/reports/account-ledger`, { params: { dateFrom, dateTo } });
 
 export const getDayBook = (date: string) =>
   apiClient.get<ApiResponse<DayBookRow[]>>("/accounts/reports/day-book", { params: { date } });

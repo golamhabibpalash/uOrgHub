@@ -59,6 +59,14 @@ public class AccountingReportsController : BaseController
         return Ok(ApiResponse<List<AccountLedgerRowDto>>.Ok(result));
     }
 
+    [HttpGet("account-ledger")]
+    [RequireClaim(Claims.Accounts.Reports.View)]
+    public async Task<IActionResult> GetAllAccountsLedger([FromQuery] DateTime? dateFrom, [FromQuery] DateTime? dateTo)
+    {
+        var result = await _reportService.GetAllAccountsLedgerAsync(dateFrom, dateTo);
+        return Ok(ApiResponse<List<AccountLedgerGroupDto>>.Ok(result));
+    }
+
     [HttpGet("day-book")]
     [RequireClaim(Claims.Accounts.Reports.View)]
     public async Task<IActionResult> GetDayBook([FromQuery] DateTime date)
