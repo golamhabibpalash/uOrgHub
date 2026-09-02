@@ -9,6 +9,7 @@ import Modal from "../../components/shared/Modal";
 import ConfirmDialog from "../../components/shared/ConfirmDialog";
 import ExportMenu from "../../components/shared/ExportMenu";
 import SearchableDropdown from "../../components/shared/SearchableDropdown";
+import TruncatedText from "../../components/shared/TruncatedText";
 import { useDepartmentLookup } from "../../hooks/useEntityLookup";
 import {
   getDepartments,
@@ -148,7 +149,12 @@ export default function Departments() {
         </span>
       ),
     },
-    { key: "description", label: "Description" },
+    {
+      key: "description",
+      label: "Description",
+      className: "max-w-md align-top",
+      render: (row: Department) => <TruncatedText text={row.description} limit={50} />,
+    },
     {
       key: "isActive",
       label: "Status",
