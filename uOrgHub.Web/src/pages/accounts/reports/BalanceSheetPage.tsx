@@ -1,20 +1,59 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getBalanceSheet, ReportFilter } from "../../../api/accounts";
+import { getBalanceSheet, BalanceSheetLine } from "../../../api/accounts";
 import ReportLayout from "../../../components/shared/ReportLayout";
+import DateInput from "../../../components/shared/DateInput";
+import { useFiscalYearLookup } from "../../../hooks/useEntityLookup";
+
+const selectClass =
+  "text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500 text-gray-600";
 
 export default function BalanceSheetPage() {
-  const [filter] = useState<ReportFilter>({});
+  const [fiscalYearId, setFiscalYearId] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
+  const { fiscalYears, options: fiscalYearOptions } = useFiscalYearLookup();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["report-balance-sheet", filter],
-    queryFn: () => getBalanceSheet(filter),
+    queryKey: ["report-balance-sheet", dateFrom, dateTo],
+    queryFn: () =>
+      getBalanceSheet({
+        ...(dateFrom && { dateFrom }),
+        ...(dateTo && { dateTo }),
+      }),
   });
 
   const bs = data?.data?.data;
   const fmt = (v: number) => v.toLocaleString("en-BD", { minimumFractionDigits: 2 });
+  const dateFmt = (d: string) => new Date(d).toLocaleDateString("en-BD");
 
-  function renderLines(lines: { label: string; amount: number; isBold: boolean; children?: any[] }[] | undefined, depth = 0) {
+  /** Picking a fiscal year fills the date range from it, but the range stays freely editable after. */
+  function selectFiscalYear(id: string) {
+    setFiscalYearId(id);
+    const fy = fiscalYears.find((f) => f.id === id);
+    if (fy) {
+      setDateFrom(fy.startDate.split("T")[0]);
+      setDateTo(fy.endDate.split("T")[0]);
+    }
+  }
+
+  function resetFilters() {
+    setFiscalYearId("");
+    setDateFrom("");
+    setDateTo("");
+  }
+
+  const subtitle =
+    dateFrom && dateTo
+      ? `Financial position as at the period ${dateFmt(dateFrom)} to ${dateFmt(dateTo)}`
+      : dateFrom
+        ? `Financial position from ${dateFmt(dateFrom)} onwards`
+        : dateTo
+          ? `Financial position up to ${dateFmt(dateTo)}`
+          : "Financial position — assets, liabilities, and equity";
+
+  function renderLines(lines: BalanceSheetLine[] | undefined, depth = 0) {
     if (!lines) return null;
     return lines.map((line, i) => (
       <div key={i}>
@@ -34,12 +73,43 @@ export default function BalanceSheetPage() {
     ));
   }
 
+  const filters = (
+    <div className="flex flex-wrap items-end gap-3">
+      <div>
+        <label className="text-xs text-gray-500 mb-1 block">Fiscal Year</label>
+        <select className={selectClass} value={fiscalYearId} onChange={(e) => selectFiscalYear(e.target.value)}>
+          <option value="">Custom range</option>
+          {fiscalYearOptions.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className="text-xs text-gray-500 mb-1 block">Date From</label>
+        <DateInput
+          className={selectClass}
+          value={dateFrom}
+          onChange={(e) => { setDateFrom(e.target.value); setFiscalYearId(""); }}
+        />
+      </div>
+      <div>
+        <label className="text-xs text-gray-500 mb-1 block">Date To</label>
+        <DateInput
+          className={selectClass}
+          value={dateTo}
+          onChange={(e) => { setDateTo(e.target.value); setFiscalYearId(""); }}
+        />
+      </div>
+      {(dateFrom || dateTo) && (
+        <button onClick={resetFilters} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-500">
+          Clear
+        </button>
+      )}
+    </div>
+  );
+
   return (
-    <ReportLayout
-      title="Balance Sheet"
-      subtitle="Financial position — assets, liabilities, and equity"
-      loading={isLoading}
-    >
+    <ReportLayout title="Balance Sheet" subtitle={subtitle} filters={filters} loading={isLoading}>
       {bs ? (
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden max-w-3xl mx-auto">
           <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
