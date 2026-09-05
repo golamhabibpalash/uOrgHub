@@ -13,7 +13,7 @@ public interface IAccountingReportService
     Task<List<AccountLedgerGroupDto>> GetAllAccountsLedgerAsync(DateTime? dateFrom, DateTime? dateTo);
     Task<DayBookReportDto> GetDayBookAsync(DayBookFilterDto filter, PaginationRequest request);
     Task<List<ChartOfAccountsReportRowDto>> GetChartOfAccountsReportAsync(ReportFilterDto filter);
-    Task<List<JournalEntryReportRowDto>> GetJournalEntryReportAsync(ReportFilterDto filter);
+    Task<PagedResult<JournalEntryReportRowDto>> GetJournalEntryReportAsync(ReportFilterDto filter, PaginationRequest request);
     Task<List<AccountGroupSummaryRowDto>> GetAccountGroupSummaryAsync(ReportFilterDto filter);
     Task<DashboardSummaryDto> GetDashboardSummaryAsync();
     Task<AgingSummaryDto> GetARAgingReportAsync(DateTime asOfDate);

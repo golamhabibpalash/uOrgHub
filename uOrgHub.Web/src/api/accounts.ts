@@ -831,6 +831,7 @@ export interface ChartOfAccountsReportRow {
 }
 
 export interface JournalEntryReportRow {
+  id: string;
   entryNumber: string;
   entryDate: string;
   referenceNumber?: string;
@@ -900,8 +901,16 @@ export const getDayBook = (params: {
 export const getChartOfAccountsReport = (filter?: ReportFilter) =>
   apiClient.get<ApiResponse<ChartOfAccountsReportRow[]>>("/accounts/reports/chart-of-accounts", { params: filter });
 
-export const getJournalEntryReport = (filter?: ReportFilter) =>
-  apiClient.get<ApiResponse<JournalEntryReportRow[]>>("/accounts/reports/journal-entries", { params: filter });
+export const getJournalEntryReport = (params: {
+  dateFrom?: string;
+  dateTo?: string;
+  status?: string;
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  sortBy?: string;
+  sortDescending?: boolean;
+}) => apiClient.get<ApiResponse<PagedResult<JournalEntryReportRow>>>("/accounts/reports/journal-entries", { params });
 
 export const getAccountGroupSummary = (filter?: ReportFilter) =>
   apiClient.get<ApiResponse<AccountGroupSummaryRow[]>>("/accounts/reports/account-group-summary", { params: filter });

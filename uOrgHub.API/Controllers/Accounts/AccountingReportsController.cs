@@ -85,10 +85,10 @@ public class AccountingReportsController : BaseController
 
     [HttpGet("journal-entries")]
     [RequireClaim(Claims.Accounts.Reports.View)]
-    public async Task<IActionResult> GetJournalEntryReport([FromQuery] ReportFilterDto filter)
+    public async Task<IActionResult> GetJournalEntryReport([FromQuery] ReportFilterDto filter, [FromQuery] PaginationRequest request)
     {
-        var result = await _reportService.GetJournalEntryReportAsync(filter);
-        return Ok(ApiResponse<List<JournalEntryReportRowDto>>.Ok(result));
+        var result = await _reportService.GetJournalEntryReportAsync(filter, request);
+        return Ok(ApiResponse<PagedResult<JournalEntryReportRowDto>>.Ok(result));
     }
 
     [HttpGet("account-group-summary")]

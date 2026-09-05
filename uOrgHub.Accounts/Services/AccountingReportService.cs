@@ -512,7 +512,7 @@ public class AccountingReportService : IAccountingReportService
         return accounts;
     }
 
-    public async Task<List<JournalEntryReportRowDto>> GetJournalEntryReportAsync(ReportFilterDto filter)
+    public async Task<PagedResult<JournalEntryReportRowDto>> GetJournalEntryReportAsync(ReportFilterDto filter, PaginationRequest request)
     {
         var query = _db.Set<JournalEntry>()
             .Where(j => !j.IsDeleted);
@@ -526,17 +526,29 @@ public class AccountingReportService : IAccountingReportService
         if (filter.CreatedBy is not null)
             query = query.Where(j => j.CreatedBy.Contains(filter.CreatedBy));
 
-        var entries = await query
-            .OrderByDescending(j => j.EntryDate)
-            .ThenBy(j => j.EntryNumber)
+        if (!string.IsNullOrWhiteSpace(request.Search))
+            query = query.WhereSearch(request.Search, j => j.EntryNumber, j => j.Description, j => j.ReferenceNumber!);
+
+        var totalCount = await query.CountAsync();
+
+        var items = await query
+            .ApplySorting(request.SortBy ?? "EntryDate", request.SortDescending, j => j.EntryNumber)
+            .Skip((request.Page - 1) * request.PageSize)
+            .Take(request.PageSize)
             .Select(j => new JournalEntryReportRowDto(
-                j.EntryNumber, j.EntryDate, j.ReferenceNumber,
+                j.Id, j.EntryNumber, j.EntryDate, j.ReferenceNumber,
                 j.Description, j.TotalDebit, j.TotalCredit,
                 j.Status.ToString(), j.CreatedBy, j.CreatedAt
             ))
             .ToListAsync();
 
-        return entries;
+        return new PagedResult<JournalEntryReportRowDto>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = request.Page,
+            PageSize = request.PageSize
+        };
     }
 
     public async Task<List<AccountGroupSummaryRowDto>> GetAccountGroupSummaryAsync(ReportFilterDto filter)

@@ -140,6 +140,7 @@ public record ChartOfAccountsReportRowDto(
 );
 
 public record JournalEntryReportRowDto(
+    Guid Id,
     string EntryNumber,
     DateTime EntryDate,
     string? ReferenceNumber,
