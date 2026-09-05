@@ -41,7 +41,9 @@ Service+Repository pattern.
 
 Cross-module search convention: all list/search endpoints filter via the `WhereSearch()`
 extension (`uOrgHub.Shared/Extensions/`), which emits PostgreSQL `ILIKE` for
-case-insensitive partial matching — don't hand-roll `Contains`/`ToLower` filters.
+case-insensitive partial matching — don't hand-roll `Contains`/`ToLower` filters. Paginated
+query handlers sort via the `ApplySorting()` extension (same folder) instead of a hardcoded
+`OrderBy`, so the frontend's column-header sort clicks work generically.
 
 Request flow: **Controller → MediatR `_mediator.Send(command/query)` → Handler → Repository → `AppDbContext`.**
 
@@ -76,6 +78,10 @@ React 19 + Vite + TypeScript + Tailwind + shadcn/ui. State: Zustand (`src/store/
 - `src/api/{module}.ts` — typed API functions + TS interfaces per module.
 - `src/pages/{module}/` — page components, one folder per module.
 - Backend `ApiResponse<T>` / `PagedResult<T>` shapes mirrored in `src/types/api.ts`.
+- Every list page uses the shared `DataGrid` component (`src/components/shared/DataGrid.tsx`)
+  + `useDataGrid` hook (`src/hooks/useDataGrid.ts`) for paging/sort/search/filter state — don't
+  use the old `DataTable`/`Pagination` components. See CODING_STANDARDS.md §18 for the exact
+  page-component pattern and the `DataGridColumn`/`useDataGrid` APIs.
 
 ## Commands
 
