@@ -69,10 +69,10 @@ public class AccountingReportsController : BaseController
 
     [HttpGet("day-book")]
     [RequireClaim(Claims.Accounts.Reports.View)]
-    public async Task<IActionResult> GetDayBook([FromQuery] DateTime date)
+    public async Task<IActionResult> GetDayBook([FromQuery] DayBookFilterDto filter, [FromQuery] PaginationRequest request)
     {
-        var result = await _reportService.GetDayBookAsync(date);
-        return Ok(ApiResponse<List<DayBookRowDto>>.Ok(result));
+        var result = await _reportService.GetDayBookAsync(filter, request);
+        return Ok(ApiResponse<DayBookReportDto>.Ok(result));
     }
 
     [HttpGet("chart-of-accounts")]

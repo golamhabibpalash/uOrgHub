@@ -1,4 +1,5 @@
 using uOrgHub.Accounts.DTOs.Reports;
+using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Accounts.Services;
 
@@ -10,7 +11,7 @@ public interface IAccountingReportService
     Task<BalanceSheetDto> GetBalanceSheetAsync(ReportFilterDto filter);
     Task<List<AccountLedgerRowDto>> GetAccountLedgerAsync(Guid accountId, DateTime? dateFrom, DateTime? dateTo);
     Task<List<AccountLedgerGroupDto>> GetAllAccountsLedgerAsync(DateTime? dateFrom, DateTime? dateTo);
-    Task<List<DayBookRowDto>> GetDayBookAsync(DateTime date);
+    Task<DayBookReportDto> GetDayBookAsync(DayBookFilterDto filter, PaginationRequest request);
     Task<List<ChartOfAccountsReportRowDto>> GetChartOfAccountsReportAsync(ReportFilterDto filter);
     Task<List<JournalEntryReportRowDto>> GetJournalEntryReportAsync(ReportFilterDto filter);
     Task<List<AccountGroupSummaryRowDto>> GetAccountGroupSummaryAsync(ReportFilterDto filter);

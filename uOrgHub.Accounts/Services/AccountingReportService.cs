@@ -3,6 +3,8 @@ using uOrgHub.Accounts.DTOs.Reports;
 using uOrgHub.Accounts.Models.Entities;
 using uOrgHub.Accounts.Models.Enums;
 using uOrgHub.Shared.Data;
+using uOrgHub.Shared.Extensions;
+using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Accounts.Services;
 
@@ -390,19 +392,93 @@ public class AccountingReportService : IAccountingReportService
         return groups;
     }
 
-    public async Task<List<DayBookRowDto>> GetDayBookAsync(DateTime date)
+    public async Task<DayBookReportDto> GetDayBookAsync(DayBookFilterDto filter, PaginationRequest request)
     {
-        var entries = await _db.Set<JournalEntry>()
-            .Where(j => !j.IsDeleted && j.EntryDate.Date == date.Date)
-            .OrderBy(j => j.EntryNumber)
-            .Select(j => new DayBookRowDto(
-                j.EntryDate, j.EntryNumber, j.ReferenceNumber,
-                j.Description, j.Status.ToString(),
-                j.TotalDebit, j.TotalCredit, j.CreatedBy
-            ))
+        var query = _db.Set<JournalEntry>()
+            .Where(j => !j.IsDeleted);
+
+        if (filter.DateFrom.HasValue)
+            query = query.Where(j => j.EntryDate >= filter.DateFrom.Value);
+        if (filter.DateTo.HasValue)
+            query = query.Where(j => j.EntryDate <= filter.DateTo.Value);
+
+        if (!string.IsNullOrWhiteSpace(request.Search))
+            query = query.WhereSearch(request.Search, j => j.EntryNumber, j => j.Description, j => j.ReferenceNumber!);
+
+        // The day book classifies each entry by the voucher that generated it — DR (Debit),
+        // CR (Credit), CN (Contra) — and everything else (bills, invoices, payments, hand-written
+        // entries) is a Journal Voucher, JV.
+        var type = filter.Type?.Trim().ToUpperInvariant();
+        if (!string.IsNullOrWhiteSpace(type))
+        {
+            query = type switch
+            {
+                "DR" => query.Where(j => _db.Set<Voucher>().Any(v => !v.IsDeleted && v.JournalEntryId == j.Id && v.VoucherType == VoucherType.Debit)),
+                "CR" => query.Where(j => _db.Set<Voucher>().Any(v => !v.IsDeleted && v.JournalEntryId == j.Id && v.VoucherType == VoucherType.Credit)),
+                "CN" => query.Where(j => _db.Set<Voucher>().Any(v => !v.IsDeleted && v.JournalEntryId == j.Id && v.VoucherType == VoucherType.Contra)),
+                "JV" => query.Where(j => !_db.Set<Voucher>().Any(v => !v.IsDeleted && v.JournalEntryId == j.Id)),
+                _ => query,
+            };
+        }
+
+        var totalCount = await query.CountAsync();
+
+        var rows = await query
+            .ApplySorting(request.SortBy ?? "EntryDate", request.SortDescending, j => j.EntryNumber)
+            .Skip((request.Page - 1) * request.PageSize)
+            .Take(request.PageSize)
             .ToListAsync();
 
-        return entries;
+        // Voucher types are resolved once for the whole page — a joined subquery per row would
+        // otherwise cost a round trip for every entry on the page.
+        var entryIds = rows.Select(j => j.Id).ToList();
+        var voucherTypes = await _db.Set<Voucher>()
+            .Where(v => !v.IsDeleted && v.JournalEntryId != null && entryIds.Contains(v.JournalEntryId.Value))
+            .Select(v => new { EntryId = v.JournalEntryId!.Value, v.VoucherType })
+            .ToListAsync();
+
+        var typeByEntry = voucherTypes
+            .GroupBy(v => v.EntryId)
+            .ToDictionary(g => g.Key, g => g.First().VoucherType);
+
+        var items = rows.Select(j => new DayBookRowDto(
+            j.Id,
+            j.EntryDate,
+            j.EntryNumber,
+            j.ReferenceNumber,
+            j.Description,
+            j.Status.ToString(),
+            typeByEntry.TryGetValue(j.Id, out var voucherType)
+                ? voucherType switch
+                {
+                    VoucherType.Debit => "DR",
+                    VoucherType.Credit => "CR",
+                    _ => "CN",
+                }
+                : "JV",
+            j.TotalDebit,
+            j.TotalCredit,
+            j.CreatedBy
+        )).ToList();
+
+        // Grand totals cover every filtered entry, not just the page, so the footer stays correct
+        // as the user pages through the register. Resolved in a single aggregate over the query.
+        var totals = await query
+            .GroupBy(j => 1)
+            .Select(g => new { Debit = g.Sum(j => j.TotalDebit), Credit = g.Sum(j => j.TotalCredit) })
+            .FirstOrDefaultAsync();
+
+        return new DayBookReportDto(
+            new PagedResult<DayBookRowDto>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                Page = request.Page,
+                PageSize = request.PageSize
+            },
+            totals?.Debit ?? 0,
+            totals?.Credit ?? 0
+        );
     }
 
     public async Task<List<ChartOfAccountsReportRowDto>> GetChartOfAccountsReportAsync(ReportFilterDto filter)

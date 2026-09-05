@@ -804,12 +804,16 @@ export interface AccountLedgerGroup {
   rows: AccountLedgerRow[];
 }
 
+export type DayBookType = "DR" | "CR" | "CN" | "JV";
+
 export interface DayBookRow {
+  id: string;
   entryDate: string;
   entryNumber: string;
   referenceNumber?: string;
   description: string;
   status: string;
+  type: DayBookType;
   debitTotal: number;
   creditTotal: number;
   createdBy: string;
@@ -876,8 +880,22 @@ export const getReportAccountLedger = (accountId: string, dateFrom?: string, dat
 export const getReportAllAccountsLedger = (dateFrom?: string, dateTo?: string) =>
   apiClient.get<ApiResponse<AccountLedgerGroup[]>>(`/accounts/reports/account-ledger`, { params: { dateFrom, dateTo } });
 
-export const getDayBook = (date: string) =>
-  apiClient.get<ApiResponse<DayBookRow[]>>("/accounts/reports/day-book", { params: { date } });
+export interface DayBookReport {
+  rows: PagedResult<DayBookRow>;
+  totalDebit: number;
+  totalCredit: number;
+}
+
+export const getDayBook = (params: {
+  dateFrom?: string;
+  dateTo?: string;
+  type?: string;
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  sortBy?: string;
+  sortDescending?: boolean;
+}) => apiClient.get<ApiResponse<DayBookReport>>("/accounts/reports/day-book", { params });
 
 export const getChartOfAccountsReport = (filter?: ReportFilter) =>
   apiClient.get<ApiResponse<ChartOfAccountsReportRow[]>>("/accounts/reports/chart-of-accounts", { params: filter });

@@ -1,4 +1,5 @@
 using uOrgHub.Accounts.Models.Enums;
+using uOrgHub.Shared.Models;
 
 namespace uOrgHub.Accounts.DTOs.Reports;
 
@@ -102,15 +103,29 @@ public record AccountLedgerGroupDto(
     List<AccountLedgerRowDto> Rows
 );
 
+public record DayBookFilterDto(
+    DateTime? DateFrom,
+    DateTime? DateTo,
+    string? Type
+);
+
 public record DayBookRowDto(
+    Guid Id,
     DateTime EntryDate,
     string EntryNumber,
     string? ReferenceNumber,
     string Description,
     string Status,
+    string Type,
     decimal DebitTotal,
     decimal CreditTotal,
     string CreatedBy
+);
+
+public record DayBookReportDto(
+    PagedResult<DayBookRowDto> Rows,
+    decimal TotalDebit,
+    decimal TotalCredit
 );
 
 public record ChartOfAccountsReportRowDto(
