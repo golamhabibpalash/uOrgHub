@@ -168,8 +168,10 @@ export interface CreateJournalEntryLineDto {
   costCenterId?: string;
 }
 
-export const getJournalEntries = (params: PaginationRequest) =>
-  apiClient.get<ApiResponse<PagedResult<JournalEntry>>>("/accounts/journal-entries", { params });
+export const getJournalEntries = (params: PaginationRequest, dateFrom?: string, dateTo?: string) =>
+  apiClient.get<ApiResponse<PagedResult<JournalEntry>>>("/accounts/journal-entries", {
+    params: { ...params, ...(dateFrom && { dateFrom }), ...(dateTo && { dateTo }) },
+  });
 
 export const getJournalEntryById = (id: string) =>
   apiClient.get<ApiResponse<JournalEntry>>(`/accounts/journal-entries/${id}`);

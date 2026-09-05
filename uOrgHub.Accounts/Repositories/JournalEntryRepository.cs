@@ -23,11 +23,19 @@ public class JournalEntryRepository : IJournalEntryRepository
     public async Task<JournalEntry?> GetByIdAsync(Guid id)
         => await BaseQuery().FirstOrDefaultAsync(x => x.Id == id);
 
-    public async Task<PagedResult<JournalEntry>> GetAllAsync(PaginationRequest request)
+    public Task<PagedResult<JournalEntry>> GetAllAsync(PaginationRequest request)
+        => GetAllAsync(request, null, null);
+
+    public async Task<PagedResult<JournalEntry>> GetAllAsync(PaginationRequest request, DateTime? dateFrom, DateTime? dateTo)
     {
         // No tracking: the list is read-only and maps straight to DTOs, so the change tracker
         // would only pay to snapshot every entry and its lines on each page load.
         var query = BaseQuery().AsNoTracking();
+
+        if (dateFrom.HasValue)
+            query = query.Where(x => x.EntryDate >= dateFrom.Value);
+        if (dateTo.HasValue)
+            query = query.Where(x => x.EntryDate <= dateTo.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Search))
             query = query.WhereSearch(request.Search, x => x.EntryNumber, x => x.Description, x => x.ReferenceNumber);

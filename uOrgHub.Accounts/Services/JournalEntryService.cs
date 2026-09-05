@@ -66,9 +66,12 @@ public class JournalEntryService : IJournalEntryService
         }
     }
 
-    public async Task<PagedResult<JournalEntryResponseDto>> GetAllAsync(PaginationRequest request)
+    public Task<PagedResult<JournalEntryResponseDto>> GetAllAsync(PaginationRequest request)
+        => GetAllAsync(request, null, null);
+
+    public async Task<PagedResult<JournalEntryResponseDto>> GetAllAsync(PaginationRequest request, DateTime? dateFrom, DateTime? dateTo)
     {
-        var result = await _repository.GetAllAsync(request);
+        var result = await _repository.GetAllAsync(request, dateFrom, dateTo);
         var items = result.Items.Select(x =>
         {
             var dto = _mapper.ToDto(x);

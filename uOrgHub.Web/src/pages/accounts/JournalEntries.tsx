@@ -39,6 +39,8 @@ export default function JournalEntries() {
     defaultSortDescending: true,
     searchDebounceMs: 300,
   });
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [modal, setModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -53,12 +55,23 @@ export default function JournalEntries() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["journal-entries", ...dg.queryKey],
-    queryFn: () => getJournalEntries(dg.queryParams),
+    queryKey: ["journal-entries", ...dg.queryKey, dateFrom, dateTo],
+    queryFn: () => getJournalEntries(dg.queryParams, dateFrom || undefined, dateTo || undefined),
     // Keeps the previous page on screen while the next one loads, so paging and sorting don't
     // blank the table out from under the reader.
     placeholderData: (prev) => prev,
   });
+
+  function setDateFilter(setter: (v: string) => void, value: string) {
+    setter(value);
+    dg.resetPage();
+  }
+
+  function clearDates() {
+    setDateFrom("");
+    setDateTo("");
+    dg.resetPage();
+  }
 
   const { options: coaOptions } = useChartOfAccountsLookup();
   const { options: costCenterOptions } = useCostCenterLookup();
@@ -332,16 +345,36 @@ export default function JournalEntries() {
           </table>
         )}
         toolbarPrefix={
-          <select
-            className={selectClass}
-            value={dg.filters.Status ?? ""}
-            onChange={(e) => dg.setFilter("Status", e.target.value)}
-          >
-            <option value="">All statuses</option>
-            <option value="Draft">Draft</option>
-            <option value="Posted">Posted</option>
-            <option value="Cancelled">Cancelled</option>
-          </select>
+          <div className="flex items-center gap-2">
+            <select
+              className={selectClass}
+              value={dg.filters.Status ?? ""}
+              onChange={(e) => dg.setFilter("Status", e.target.value)}
+            >
+              <option value="">All statuses</option>
+              <option value="Draft">Draft</option>
+              <option value="Posted">Posted</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+            <DateInput
+              className={selectClass}
+              value={dateFrom}
+              onChange={(e) => setDateFilter(setDateFrom, e.target.value)}
+              title="From date"
+            />
+            <span className="text-xs text-gray-400">to</span>
+            <DateInput
+              className={selectClass}
+              value={dateTo}
+              onChange={(e) => setDateFilter(setDateTo, e.target.value)}
+              title="To date"
+            />
+            {(dateFrom || dateTo) && (
+              <button onClick={clearDates} className="text-xs text-gray-400 hover:text-gray-600 underline">
+                Clear dates
+              </button>
+            )}
+          </div>
         }
       />
 

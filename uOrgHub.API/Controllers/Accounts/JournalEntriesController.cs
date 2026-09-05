@@ -35,9 +35,12 @@ public class JournalEntriesController : BaseController
 
     [HttpGet]
     [RequireClaim(Claims.Accounts.JournalEntries.View)]
-    public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request)
+    public async Task<IActionResult> GetAll(
+        [FromQuery] PaginationRequest request,
+        [FromQuery] DateTime? dateFrom,
+        [FromQuery] DateTime? dateTo)
     {
-        var result = await _service.GetAllAsync(request);
+        var result = await _service.GetAllAsync(request, dateFrom, dateTo);
         return Ok(ApiResponse<PagedResult<JournalEntryResponseDto>>.Ok(result));
     }
 
