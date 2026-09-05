@@ -27,27 +27,29 @@ public class ProjectStatementServiceTests
         Project Project, CostCenter CostCenter,
         ChartOfAccount Expense, ChartOfAccount Payable, ChartOfAccount Income, ChartOfAccount Bank);
 
-    private static Fixture Seed(AppDbContext ctx, bool withCostCenter = true)
+    private static Fixture Seed(
+        AppDbContext ctx, bool withCostCenter = true,
+        string code = "PRJ-100", string name = "Riverside Bridge", decimal contractValue = 10_000_000m)
     {
         var project = new Project
         {
             Id = Guid.NewGuid(),
-            ProjectCode = "PRJ-100",
-            ProjectName = "Riverside Bridge",
+            ProjectCode = code,
+            ProjectName = name,
             ClientId = Guid.NewGuid(),
             CategoryId = Guid.NewGuid(),
             ProjectManagerId = Guid.NewGuid(),
             StartDate = Jan,
             PlannedEndDate = Dec,
-            ContractValue = 10_000_000m,
+            ContractValue = contractValue,
         };
         ctx.Set<Project>().Add(project);
 
         var costCenter = new CostCenter
         {
             Id = Guid.NewGuid(),
-            Code = "PRJ-100",
-            Name = "Riverside Bridge",
+            Code = code,
+            Name = name,
             ProjectId = project.Id,
         };
         if (withCostCenter) ctx.Set<CostCenter>().Add(costCenter);
@@ -124,6 +126,10 @@ public class ProjectStatementServiceTests
     private static Task<uOrgHub.Projects.DTOs.Reports.ProjectStatementDto> Statement(
         AppDbContext ctx, Fixture f, DateTime? from = null, DateTime? to = null)
         => new ProjectStatementService(ctx).GetStatementAsync(f.Project.Id, from, to);
+
+    private static Task<uOrgHub.Projects.DTOs.Reports.ConsolidatedProjectStatementDto> Consolidated(
+        AppDbContext ctx, DateTime? from = null, DateTime? to = null)
+        => new ProjectStatementService(ctx).GetConsolidatedStatementAsync(from, to);
 
     // --- Identity and period framing ---
 
@@ -353,5 +359,143 @@ public class ProjectStatementServiceTests
         var result = await Statement(ctx, f);
 
         result.Receipts.Should().Be(0);
+    }
+
+    // --- Consolidated (all-projects) statement ---
+
+    [Fact]
+    public async Task Consolidated_statement_rejects_a_start_after_the_end()
+    {
+        using var ctx = NewContext();
+        Seed(ctx);
+
+        var act = () => Consolidated(ctx, Dec, Jan);
+
+        await act.Should().ThrowAsync<AppException>();
+    }
+
+    [Fact]
+    public async Task Consolidated_totals_are_the_sum_of_every_projects_figures()
+    {
+        using var ctx = NewContext();
+        var a = Seed(ctx, code: "PRJ-A", name: "Bridge", contractValue: 6_000_000m);
+        var b = Seed(ctx, code: "PRJ-B", name: "Road", contractValue: 4_000_000m);
+        Post(ctx, a, a.Expense, a.Payable, 100_000, Jun);
+        Post(ctx, b, b.Expense, b.Payable, 250_000, Jun);
+        AddVoucher(ctx, a, VoucherType.Credit, 500_000, Jun);
+        AddVoucher(ctx, b, VoucherType.Debit, 120_000, Jun);
+
+        var result = await Consolidated(ctx);
+
+        result.Projects.Should().HaveCount(2);
+        result.ContractValue.Should().Be(10_000_000m);
+        result.PeriodExpense.Should().Be(350_000);
+        result.Receipts.Should().Be(500_000);
+        result.Payments.Should().Be(120_000);
+        result.NetCashPosition.Should().Be(380_000);
+    }
+
+    [Fact]
+    public async Task Consolidated_rows_are_ordered_by_project_code()
+    {
+        using var ctx = NewContext();
+        Seed(ctx, code: "PRJ-Z", name: "Zeta");
+        Seed(ctx, code: "PRJ-A", name: "Alpha");
+
+        var result = await Consolidated(ctx);
+
+        result.Projects.Select(p => p.ProjectCode).Should().ContainInOrder("PRJ-A", "PRJ-Z");
+    }
+
+    [Fact]
+    public async Task Consolidated_statement_lists_projects_with_no_activity()
+    {
+        using var ctx = NewContext();
+        Seed(ctx, code: "PRJ-A", name: "Idle", contractValue: 2_000_000m);
+
+        var result = await Consolidated(ctx);
+
+        var row = result.Projects.Single();
+        row.ContractValue.Should().Be(2_000_000m);
+        row.PeriodExpense.Should().Be(0);
+        row.NetCashPosition.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Consolidated_attributes_each_posting_to_its_own_project()
+    {
+        using var ctx = NewContext();
+        var a = Seed(ctx, code: "PRJ-A", name: "Bridge");
+        var b = Seed(ctx, code: "PRJ-B", name: "Road");
+        Post(ctx, a, a.Expense, a.Payable, 100_000, Jun);
+        Post(ctx, b, b.Expense, b.Payable, 250_000, Jun);
+
+        var result = await Consolidated(ctx);
+
+        result.Projects.Single(p => p.ProjectCode == "PRJ-A").PeriodExpense.Should().Be(100_000);
+        result.Projects.Single(p => p.ProjectCode == "PRJ-B").PeriodExpense.Should().Be(250_000);
+    }
+
+    [Fact]
+    public async Task Consolidated_excludes_draft_entries_and_contra_vouchers()
+    {
+        using var ctx = NewContext();
+        var f = Seed(ctx, code: "PRJ-A");
+        Post(ctx, f, f.Expense, f.Payable, 100_000, Jun);
+        Post(ctx, f, f.Expense, f.Payable, 999_999, Jun, JournalEntryStatus.Draft);
+        AddVoucher(ctx, f, VoucherType.Contra, 400_000, Jun);
+
+        var result = await Consolidated(ctx);
+
+        result.PeriodExpense.Should().Be(100_000);
+        result.Receipts.Should().Be(0);
+        result.Payments.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Consolidated_opening_spend_holds_everything_before_the_start_date()
+    {
+        using var ctx = NewContext();
+        var f = Seed(ctx, code: "PRJ-A");
+        Post(ctx, f, f.Expense, f.Payable, 100_000, Jan);
+        Post(ctx, f, f.Expense, f.Payable, 250_000, Jun);
+
+        var result = await Consolidated(ctx, new DateTime(2026, 6, 1), null);
+
+        result.OpeningSpend.Should().Be(100_000);
+        result.PeriodExpense.Should().Be(250_000);
+        result.ClosingSpend.Should().Be(350_000);
+    }
+
+    /// <summary>
+    /// The strong invariant: a project's row in the consolidated statement must equal the figures
+    /// its own statement reports for the same window.
+    /// </summary>
+    [Fact]
+    public async Task Consolidated_row_reconciles_to_the_single_project_statement()
+    {
+        using var ctx = NewContext();
+        var a = Seed(ctx, code: "PRJ-A", name: "Bridge");
+        var b = Seed(ctx, code: "PRJ-B", name: "Road");
+        Post(ctx, a, a.Expense, a.Payable, 100_000, Jan);
+        Post(ctx, a, a.Expense, a.Payable, 250_000, Jun);
+        Post(ctx, a, a.Bank, a.Income, 400_000, Jun);
+        Post(ctx, b, b.Expense, b.Payable, 999_000, Jun);
+        AddVoucher(ctx, a, VoucherType.Credit, 500_000, Jun);
+        AddVoucher(ctx, a, VoucherType.Debit, 200_000, Jun);
+
+        var from = new DateTime(2026, 6, 1);
+        var to = new DateTime(2026, 6, 30);
+        var single = await Statement(ctx, a, from, to);
+        var row = (await Consolidated(ctx, from, to)).Projects.Single(p => p.ProjectCode == "PRJ-A");
+
+        row.ContractValue.Should().Be(single.ContractValue);
+        row.OpeningSpend.Should().Be(single.OpeningSpend);
+        row.PeriodExpense.Should().Be(single.PeriodExpense);
+        row.PeriodIncome.Should().Be(single.PeriodIncome);
+        row.ClosingSpend.Should().Be(single.ClosingSpend);
+        row.Receipts.Should().Be(single.Receipts);
+        row.Payments.Should().Be(single.Payments);
+        row.NetCashPosition.Should().Be(single.NetCashPosition);
     }
 }

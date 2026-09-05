@@ -64,3 +64,43 @@ public record ProjectStatementDto(
     List<ProjectStatementAccountDto> ByAccount,
     List<ProjectStatementRowDto> Rows
 );
+
+/// <summary>
+/// One project's headline figures as it appears in the consolidated (all-projects) statement —
+/// the same numbers the project's own <see cref="ProjectStatementDto"/> summary band carries,
+/// so a row here reconciles to that project's individual statement.
+/// </summary>
+public record ConsolidatedProjectRowDto(
+    Guid ProjectId,
+    string ProjectCode,
+    string ProjectName,
+    decimal ContractValue,
+    decimal OpeningSpend,
+    decimal PeriodExpense,
+    decimal PeriodIncome,
+    decimal ClosingSpend,
+    decimal Receipts,
+    decimal Payments,
+    decimal NetCashPosition
+);
+
+/// <summary>
+/// The Project Statement rolled up across every project for a date range: organisation-wide
+/// totals over a per-project breakdown. Built on the same posted-line basis as
+/// <see cref="ProjectStatementDto"/> — the transaction ledger is dropped because it would be
+/// unbounded across all projects, but every summary figure still ties out to the individual
+/// statements.
+/// </summary>
+public record ConsolidatedProjectStatementDto(
+    DateTime? DateFrom,
+    DateTime? DateTo,
+    decimal ContractValue,
+    decimal OpeningSpend,
+    decimal PeriodExpense,
+    decimal PeriodIncome,
+    decimal ClosingSpend,
+    decimal Receipts,
+    decimal Payments,
+    decimal NetCashPosition,
+    List<ConsolidatedProjectRowDto> Projects
+);

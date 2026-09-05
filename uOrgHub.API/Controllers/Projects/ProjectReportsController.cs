@@ -34,4 +34,16 @@ public class ProjectReportsController : BaseController
         var result = await _statementService.GetStatementAsync(projectId, dateFrom, dateTo);
         return Ok(ApiResponse<ProjectStatementDto>.Ok(result));
     }
+
+    /// <summary>The statement rolled up across every project — organisation-wide totals over a
+    /// per-project breakdown, for the "All Projects" option on the report screen.</summary>
+    [HttpGet("statement")]
+    [RequireClaim(Claims.Accounts.Reports.View)]
+    public async Task<IActionResult> GetConsolidatedProjectStatement(
+        [FromQuery] DateTime? dateFrom,
+        [FromQuery] DateTime? dateTo)
+    {
+        var result = await _statementService.GetConsolidatedStatementAsync(dateFrom, dateTo);
+        return Ok(ApiResponse<ConsolidatedProjectStatementDto>.Ok(result));
+    }
 }

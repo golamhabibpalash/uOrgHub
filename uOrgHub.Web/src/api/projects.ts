@@ -897,3 +897,38 @@ export const getProjectStatement = (projectId: string, dateFrom?: string, dateTo
   apiClient.get<ApiResponse<ProjectStatement>>(`/projects/reports/statement/${projectId}`, {
     params: { dateFrom, dateTo },
   });
+
+/** One project's headline figures within the consolidated (all-projects) statement. */
+export interface ConsolidatedProjectRow {
+  projectId: string;
+  projectCode: string;
+  projectName: string;
+  contractValue: number;
+  openingSpend: number;
+  periodExpense: number;
+  periodIncome: number;
+  closingSpend: number;
+  receipts: number;
+  payments: number;
+  netCashPosition: number;
+}
+
+/** The Project Statement rolled up across every project: org-wide totals + a per-project breakdown. */
+export interface ConsolidatedProjectStatement {
+  dateFrom?: string;
+  dateTo?: string;
+  contractValue: number;
+  openingSpend: number;
+  periodExpense: number;
+  periodIncome: number;
+  closingSpend: number;
+  receipts: number;
+  payments: number;
+  netCashPosition: number;
+  projects: ConsolidatedProjectRow[];
+}
+
+export const getConsolidatedProjectStatement = (dateFrom?: string, dateTo?: string) =>
+  apiClient.get<ApiResponse<ConsolidatedProjectStatement>>("/projects/reports/statement", {
+    params: { dateFrom, dateTo },
+  });
