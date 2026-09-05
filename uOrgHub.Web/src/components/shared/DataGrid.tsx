@@ -79,12 +79,13 @@ export default function DataGrid<T extends { id: string }>({
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-      {/* Toolbar */}
-      <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 flex-1">
+      {/* Toolbar — wraps onto multiple lines rather than squeezing everything (search box
+          included) into unreadable widths once a page stacks several filters alongside it. */}
+      <div className="px-4 py-3 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3 flex-1">
           {toolbarPrefix}
           {onSearch && (
-            <div className="relative flex-1 max-w-xs">
+            <div className="relative flex-1 min-w-[180px] max-w-xs">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
