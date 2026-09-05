@@ -134,84 +134,95 @@ export default function Vouchers() {
   }
 
   const columns: DataGridColumn<Voucher>[] = [
-    { key: "voucherNumber", label: "Voucher #" },
     {
-      key: "voucherType",
-      label: "Type",
+      // Number, type badge and date used to be three separate columns — stacked here since
+      // they're always read together and each was too narrow to earn its own column.
+      key: "voucherNumber",
+      label: "Voucher",
+      width: "165px",
       render: (row) => {
         const theme = voucherThemes[row.voucherType];
         return (
-          <span className={`inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full font-medium ${theme.badge}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${theme.bar}`} />
-            {theme.code}
-          </span>
+          <div className="flex flex-col gap-1">
+            <span className="font-medium text-gray-900 tabular-nums whitespace-nowrap">{row.voucherNumber}</span>
+            <div className="flex items-center gap-1.5">
+              <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${theme.badge}`}>
+                <span className={`w-1 h-1 rounded-full ${theme.bar}`} />
+                {theme.code}
+              </span>
+              <span className="text-xs text-gray-400">{row.voucherDate?.split("T")[0] ?? ""}</span>
+            </div>
+          </div>
         );
       },
     },
     {
-      key: "voucherDate",
-      label: "Date",
-      render: (row) => row.voucherDate?.split("T")[0] ?? "",
-    },
-    { key: "name", label: "Name", render: (row) => row.name ?? "—" },
-    {
-      key: "referenceNumber",
-      label: "Ref. No.",
-      render: (row) => row.referenceNumber ?? "—",
-      className: "text-xs text-gray-500",
+      // Name is the "who", description is the "what" — reading them together as a two-line
+      // block reads more naturally than two columns, and gives the description room to breathe
+      // instead of truncating inside a narrow fixed column.
+      key: "name",
+      label: "Party / Description",
+      render: (row) => (
+        <div className="flex flex-col gap-1 max-w-sm">
+          <span className="text-gray-800">{row.name ?? "—"}</span>
+          {row.description && (
+            <span className="block text-xs text-gray-400 truncate" title={row.description}>
+              {row.description}
+            </span>
+          )}
+        </div>
+      ),
     },
     {
       // The cost center name is the project name for project vouchers — one is auto-created
-      // per project — so this one column covers both project and overhead vouchers.
+      // per project — so this one column covers both project and overhead vouchers. The
+      // physical-slip reference number is folded in as a second line since it belongs to the
+      // same context and rarely needs its own column.
       key: "costCenterName",
       label: "Charged To",
+      width: "190px",
       sortable: false,
-      render: (row) =>
-        row.costCenterName ? (
-          <span className="inline-flex items-center gap-1.5">
-            <span
-              className={`w-1.5 h-1.5 rounded-full ${row.projectId ? "bg-primary-400" : "bg-gray-300"}`}
-              title={row.projectId ? "Project" : "Head office / overhead"}
-            />
-            <span className="text-xs text-gray-600">{row.costCenterName}</span>
-          </span>
-        ) : (
-          <span className="text-xs text-gray-300">—</span>
-        ),
-    },
-    {
-      key: "description",
-      label: "Description",
       render: (row) => (
-        <span className="block max-w-xs truncate" title={row.description}>
-          {row.description}
-        </span>
+        <div className="flex flex-col gap-1">
+          {row.costCenterName ? (
+            <span className="inline-flex items-center gap-1.5">
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${row.projectId ? "bg-primary-400" : "bg-gray-300"}`}
+                title={row.projectId ? "Project" : "Head office / overhead"}
+              />
+              <span className="text-xs text-gray-600">{row.costCenterName}</span>
+            </span>
+          ) : (
+            <span className="text-xs text-gray-300">—</span>
+          )}
+          {row.referenceNumber && <span className="text-[11px] text-gray-400">Ref: {row.referenceNumber}</span>}
+        </div>
       ),
     },
     {
       key: "amount",
       label: "Amount",
-      className: "text-right tabular-nums",
+      className: "text-right tabular-nums font-medium text-gray-900 whitespace-nowrap",
       headerClassName: "text-right",
+      width: "150px",
       render: (row) => formatTaka(row.amount),
     },
     {
+      // Journal entry number only exists once a voucher is posted, so it reads naturally as a
+      // sub-line under Status rather than its own column.
       key: "status",
       label: "Status",
+      width: "130px",
       render: (row) => (
-        <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[row.status]}`}>{row.status}</span>
+        <div className="flex flex-col gap-1">
+          <span className={`inline-block w-fit text-xs px-2 py-0.5 rounded-full ${statusColors[row.status]}`}>
+            {row.status}
+          </span>
+          {row.journalEntryNumber && (
+            <span className="text-[11px] text-gray-400 tabular-nums">JE {row.journalEntryNumber}</span>
+          )}
+        </div>
       ),
-    },
-    {
-      key: "journalEntryNumber",
-      label: "Journal Entry",
-      sortable: false,
-      render: (row) =>
-        row.journalEntryNumber ? (
-          <span className="text-xs text-gray-500 tabular-nums">{row.journalEntryNumber}</span>
-        ) : (
-          <span className="text-xs text-gray-300">—</span>
-        ),
     },
     {
       key: "actions",
