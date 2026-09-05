@@ -79,13 +79,13 @@ export default function DataGrid<T extends { id: string }>({
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-      {/* Toolbar — wraps onto multiple lines rather than squeezing everything (search box
-          included) into unreadable widths once a page stacks several filters alongside it. */}
-      <div className="px-4 py-3 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3 flex-1">
-          {toolbarPrefix}
+      {/* Toolbar — search gets its own row so it never has to fight toolbarPrefix/filterBar for
+          width; a page with several filters was squeezing the search box down to an unreadable
+          sliver when they all shared one row. */}
+      <div className="px-4 py-3 border-b border-gray-100 space-y-3">
+        <div className="flex items-center justify-between gap-3">
           {onSearch && (
-            <div className="relative flex-1 min-w-[180px] max-w-xs">
+            <div className="relative flex-1 max-w-sm">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
@@ -96,11 +96,16 @@ export default function DataGrid<T extends { id: string }>({
               />
             </div>
           )}
-          {filterBar}
+          <div className="flex items-center gap-2 ml-auto">
+            {actions}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          {actions}
-        </div>
+        {(toolbarPrefix || filterBar) && (
+          <div className="flex flex-wrap items-center gap-3">
+            {toolbarPrefix}
+            {filterBar}
+          </div>
+        )}
       </div>
 
       {/* Loading overlay / table */}
