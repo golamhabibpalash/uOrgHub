@@ -46,6 +46,9 @@ export default function JournalEntryReportPage() {
         ...(paramStatus && { status: paramStatus }),
         ...dg.queryParams,
       }),
+    // Keeps the previous page on screen while the next one loads, so typing in the search box
+    // or paging doesn't blank the table out from under the reader (or reset the search input).
+    placeholderData: (prev) => prev,
   });
 
   const items = data?.data?.data?.items ?? [];
@@ -210,7 +213,7 @@ export default function JournalEntryReportPage() {
   );
 
   return (
-    <ReportLayout title="Journal Entry Report" subtitle={subtitle} filters={filters} loading={isLoading}>
+    <ReportLayout title="Journal Entry Report" subtitle={subtitle} filters={filters}>
       <DataGrid
         columns={columns}
         data={items}

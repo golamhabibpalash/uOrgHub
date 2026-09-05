@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { getDayBook, DayBookRow, DayBookType } from "../../../api/accounts";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { getDayBook, getJournalEntryById, DayBookRow, DayBookType } from "../../../api/accounts";
 import ReportLayout from "../../../components/shared/ReportLayout";
 import DateInput from "../../../components/shared/DateInput";
 import DataGrid, { DataGridColumn } from "../../../components/shared/DataGrid";
@@ -24,6 +26,7 @@ const selectClass =
 
 export default function DayBookPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const paramPage = Number(searchParams.get("page")) || 1;
   const paramPageSize = Number(searchParams.get("pageSize")) || 10;
@@ -53,12 +56,24 @@ export default function DayBookPage() {
         ...(paramType && { type: paramType }),
         ...dg.queryParams,
       }),
+    // Keeps the previous page on screen while the next one loads, so typing in the search box
+    // or paging doesn't blank the table out from under the reader (or reset the search input).
+    placeholderData: (prev) => prev,
   });
 
   const report = data?.data?.data;
   const rows = report?.rows?.items ?? [];
   const totalPages = report?.rows?.totalPages ?? 1;
   const totalCount = report?.rows?.totalCount ?? 0;
+
+  // Day book rows are lightweight aggregates (no lines) for list performance, so a row's lines
+  // are only fetched once the reader actually expands it.
+  const { data: detailData, isLoading: detailLoading } = useQuery({
+    queryKey: ["journal-entry-detail", expandedId],
+    queryFn: () => getJournalEntryById(expandedId!),
+    enabled: !!expandedId,
+  });
+  const detail = detailData?.data?.data;
 
   const fmt = (v: number) => v.toLocaleString("en-BD", { minimumFractionDigits: 2 });
   const dateFmt = (d: string) => new Date(d).toLocaleDateString("en-BD");
@@ -200,6 +215,21 @@ export default function DayBookPage() {
       width: "130px",
       render: (row) => <span className="text-xs text-gray-500">{row.createdBy}</span>,
     },
+    {
+      key: "actions",
+      label: "",
+      width: "48px",
+      sortable: false,
+      render: (row) => (
+        <button
+          onClick={() => setExpandedId(expandedId === row.id ? null : row.id)}
+          className="text-gray-400 hover:text-primary-600"
+          title="View lines"
+        >
+          {expandedId === row.id ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+        </button>
+      ),
+    },
   ];
 
   const filters = (
@@ -231,7 +261,7 @@ export default function DayBookPage() {
   );
 
   return (
-    <ReportLayout title="Day Book" subtitle={subtitle} filters={filters} loading={isLoading}>
+    <ReportLayout title="Day Book" subtitle={subtitle} filters={filters}>
       <DataGrid
         columns={columns}
         data={rows}
@@ -249,6 +279,37 @@ export default function DayBookPage() {
         onPageSizeChange={handlePageSizeChange}
         totalCount={totalCount}
         emptyMessage="No transactions found"
+        expandedRowId={expandedId}
+        renderExpandedRow={() =>
+          detailLoading ? (
+            <p className="text-xs text-gray-400 py-1">Loading lines…</p>
+          ) : !detail ? (
+            <p className="text-xs text-gray-400 py-1">Could not load lines for this entry.</p>
+          ) : (
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-gray-500">
+                  <th className="text-left pb-1">Account</th>
+                  <th className="text-left pb-1">Description</th>
+                  <th className="text-left pb-1">Cost Center</th>
+                  <th className="text-right pb-1">Debit</th>
+                  <th className="text-right pb-1">Credit</th>
+                </tr>
+              </thead>
+              <tbody>
+                {detail.lines.map((line) => (
+                  <tr key={line.id}>
+                    <td className="py-0.5">{line.accountName}</td>
+                    <td className="py-0.5 text-gray-500">{line.description}</td>
+                    <td className="py-0.5 text-gray-500">{line.costCenterName}</td>
+                    <td className="py-0.5 text-right tabular-nums">{line.debitAmount > 0 ? fmt(line.debitAmount) : ""}</td>
+                    <td className="py-0.5 text-right tabular-nums">{line.creditAmount > 0 ? fmt(line.creditAmount) : ""}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )
+        }
       />
       {totalCount > 0 && (
         <div className="mt-3 flex justify-end">

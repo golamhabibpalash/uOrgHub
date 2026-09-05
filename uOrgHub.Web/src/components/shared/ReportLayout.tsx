@@ -83,14 +83,15 @@ export default function ReportLayout({
       {/* Filters */}
       {filters && <div className="mb-4 no-print">{filters}</div>}
 
-      {/* Content */}
-      <div ref={printRef}>
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
+      {/* Content — kept mounted even while loading, so a report with its own search/filter inputs
+          (e.g. a DataGrid) doesn't get torn down and rebuilt on every refetch, which would drop
+          focus and cursor position out from under whoever is typing. */}
+      <div ref={printRef} className="relative">
+        {children}
+        {loading && (
+          <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
             <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-500 border-t-transparent" />
           </div>
-        ) : (
-          children
         )}
       </div>
     </div>
