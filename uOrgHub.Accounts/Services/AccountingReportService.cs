@@ -731,9 +731,12 @@ public class AccountingReportService : IAccountingReportService
             .Select(a => new { a.Id, a.AccountCode, a.AccountName, a.OpeningBalance })
             .ToListAsync();
 
-        var cashIds = cashAccounts.Select(a => a.Id).ToHashSet();
+        // A List (not a HashSet) for the query itself — EF Core / Npgsql only translates
+        // List<T>.Contains, not HashSet<T>.Contains. The HashSet is for the in-memory hot paths below.
+        var cashIdList = cashAccounts.Select(a => a.Id).ToList();
+        var cashIds = cashIdList.ToHashSet();
 
-        if (cashIds.Count == 0)
+        if (cashIdList.Count == 0)
             return new ReceiptsPaymentsReportDto(
                 new(), 0, new(), 0, 0, new(), 0, new(), 0, 0, 0, 0);
 
@@ -742,7 +745,7 @@ public class AccountingReportService : IAccountingReportService
         // counterpart accounts found.
         var entryIds = await _db.Set<JournalEntryLine>()
             .Where(l => !l.IsDeleted
-                && cashIds.Contains(l.AccountId)
+                && cashIdList.Contains(l.AccountId)
                 && !l.JournalEntry.IsDeleted
                 && l.JournalEntry.Status != JournalEntryStatus.Cancelled
                 && l.JournalEntry.EntryDate <= dateToInclusive)
