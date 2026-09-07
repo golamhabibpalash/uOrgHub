@@ -18,4 +18,5 @@ public interface IAccountingReportService
     Task<DashboardSummaryDto> GetDashboardSummaryAsync();
     Task<AgingSummaryDto> GetARAgingReportAsync(DateTime asOfDate);
     Task<AgingSummaryDto> GetAPAgingReportAsync(DateTime asOfDate);
+    Task<ReceiptsPaymentsReportDto> GetReceiptsPaymentsAsync(ReceiptsPaymentsFilterDto filter);
 }

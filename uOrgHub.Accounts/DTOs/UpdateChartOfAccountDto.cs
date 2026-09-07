@@ -11,6 +11,7 @@ public class UpdateChartOfAccountDto
     public Guid? ParentAccountId { get; set; }
     public AccountGroupType AccountType { get; set; }
     public bool IsActive { get; set; } = true;
+    public bool IsCashOrBank { get; set; } = false;
     public string? Description { get; set; }
     public bool AllowDirectEntry { get; set; } = true;
     public string? CustomCode { get; set; }

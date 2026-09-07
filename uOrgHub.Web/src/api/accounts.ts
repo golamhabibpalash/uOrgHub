@@ -94,6 +94,7 @@ export interface ChartOfAccount {
   parentAccountName?: string;
   accountType: AccountGroupType;
   isActive: boolean;
+  isCashOrBank: boolean;
   openingBalance: number;
   currentBalance: number;
   description?: string;
@@ -950,3 +951,64 @@ export const getARAging = (asOfDate?: string) =>
 
 export const getAPAging = (asOfDate?: string) =>
   apiClient.get<ApiResponse<AgingSummary>>("/accounts/reports/ap-aging", { params: { asOfDate } });
+
+// ── Receipts & Payments Statement ─────────────────────────────────────────
+
+export interface ReceiptsPaymentsRow {
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  amount: number;
+}
+
+export interface ReceiptsPaymentsGroup {
+  costCenterId?: string;
+  costCenterCode: string;
+  costCenterName: string;
+  projectId?: string;
+  subtotal: number;
+  rows: ReceiptsPaymentsRow[];
+}
+
+export interface TransferRow {
+  entryDate: string;
+  entryNumber: string;
+  fromAccount: string;
+  toAccount: string;
+  narration: string;
+  amount: number;
+}
+
+export interface CashBankBalanceRow {
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  opening: number;
+  receipts: number;
+  payments: number;
+  closing: number;
+}
+
+export interface ReceiptsPaymentsReport {
+  transfers: TransferRow[];
+  totalTransfers: number;
+  receipts: ReceiptsPaymentsGroup[];
+  totalReceiptsExclTransfers: number;
+  totalReceiptsInclTransfers: number;
+  payments: ReceiptsPaymentsGroup[];
+  totalPayments: number;
+  balances: CashBankBalanceRow[];
+  totalOpening: number;
+  totalPeriodReceipts: number;
+  totalPeriodPayments: number;
+  totalClosing: number;
+}
+
+export const getReceiptsPayments = (params: {
+  dateFrom?: string;
+  dateTo?: string;
+  fiscalYearId?: string;
+  costCenterId?: string;
+  projectId?: string;
+}) =>
+  apiClient.get<ApiResponse<ReceiptsPaymentsReport>>("/accounts/reports/receipts-payments", { params });

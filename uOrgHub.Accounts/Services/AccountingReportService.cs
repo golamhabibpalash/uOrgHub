@@ -711,4 +711,212 @@ public class AccountingReportService : IAccountingReportService
             currentProfitLoss, totalJournalEntries, recentTransactions
         );
     }
+
+    /// <summary>
+    /// Receipts &amp; Payments Statement — a cash/bank fund-position report. Every journal entry
+    /// (Posted or Draft, not Cancelled) that touches an account flagged <c>IsCashOrBank</c> is
+    /// classified as a transfer (both legs are cash/bank, or a linked Contra voucher), a receipt
+    /// (net cash inflow) or a payment (net cash outflow). Receipts and payments are itemised by
+    /// their non-cash counterpart account and grouped by cost center; the bottom section is each
+    /// cash/bank account's opening → movement → closing over the period.
+    /// </summary>
+    public async Task<ReceiptsPaymentsReportDto> GetReceiptsPaymentsAsync(ReceiptsPaymentsFilterDto filter)
+    {
+        var dateFrom = (filter.DateFrom ?? DateTime.UtcNow).Date;
+        var dateToInclusive = (filter.DateTo ?? DateTime.UtcNow).Date.AddDays(1).AddTicks(-1);
+
+        var cashAccounts = await _db.Set<ChartOfAccount>()
+            .Where(a => !a.IsDeleted && a.IsCashOrBank)
+            .OrderBy(a => a.AccountCode)
+            .Select(a => new { a.Id, a.AccountCode, a.AccountName, a.OpeningBalance })
+            .ToListAsync();
+
+        var cashIds = cashAccounts.Select(a => a.Id).ToHashSet();
+
+        if (cashIds.Count == 0)
+            return new ReceiptsPaymentsReportDto(
+                new(), 0, new(), 0, 0, new(), 0, new(), 0, 0, 0, 0);
+
+        // Journal entries that touch a cash/bank account on or before the period end. We then pull
+        // every line of those entries (not just the cash ones) so transfers can be identified and
+        // counterpart accounts found.
+        var entryIds = await _db.Set<JournalEntryLine>()
+            .Where(l => !l.IsDeleted
+                && cashIds.Contains(l.AccountId)
+                && !l.JournalEntry.IsDeleted
+                && l.JournalEntry.Status != JournalEntryStatus.Cancelled
+                && l.JournalEntry.EntryDate <= dateToInclusive)
+            .Select(l => l.JournalEntryId)
+            .Distinct()
+            .ToListAsync();
+
+        var allLines = await _db.Set<JournalEntryLine>()
+            .Where(l => !l.IsDeleted && entryIds.Contains(l.JournalEntryId))
+            .Select(l => new LineView(
+                l.JournalEntryId,
+                l.AccountId,
+                l.Account.AccountCode,
+                l.Account.AccountName,
+                l.DebitAmount,
+                l.CreditAmount,
+                l.CostCenterId,
+                l.CostCenter != null ? l.CostCenter.Code : null,
+                l.CostCenter != null ? l.CostCenter.Name : null,
+                l.CostCenter != null ? l.CostCenter.ProjectId : null,
+                l.JournalEntry.EntryDate,
+                l.JournalEntry.EntryNumber,
+                l.JournalEntry.Description))
+            .ToListAsync();
+
+        var linesByEntry = allLines.GroupBy(l => l.EntryId).ToDictionary(g => g.Key, g => g.ToList());
+
+        var contraEntryIds = (await _db.Set<Voucher>()
+            .Where(v => !v.IsDeleted && v.JournalEntryId != null
+                && v.VoucherType == VoucherType.Contra
+                && entryIds.Contains(v.JournalEntryId.Value))
+            .Select(v => v.JournalEntryId!.Value)
+            .ToListAsync()).ToHashSet();
+
+        bool IsTransfer(Guid entryId) =>
+            contraEntryIds.Contains(entryId) || linesByEntry[entryId].All(l => cashIds.Contains(l.AccountId));
+
+        // ── Bottom portion: per cash/bank account opening → movement → closing.
+        // Balances are never scoped by the cost-center / project filter — they are the whole
+        // organisation's cash position.
+        var balances = new List<CashBankBalanceRowDto>();
+        decimal totalOpening = 0, totalPeriodReceipts = 0, totalPeriodPayments = 0, totalClosing = 0;
+
+        foreach (var acc in cashAccounts)
+        {
+            var accLines = allLines.Where(l => l.AccountId == acc.Id).ToList();
+            var opening = acc.OpeningBalance
+                + accLines.Where(l => l.EntryDate < dateFrom).Sum(l => l.Debit - l.Credit);
+            var receipts = accLines.Where(l => l.EntryDate >= dateFrom && l.EntryDate <= dateToInclusive).Sum(l => l.Debit);
+            var payments = accLines.Where(l => l.EntryDate >= dateFrom && l.EntryDate <= dateToInclusive).Sum(l => l.Credit);
+            var closing = opening + receipts - payments;
+
+            balances.Add(new CashBankBalanceRowDto(acc.Id, acc.AccountCode, acc.AccountName, opening, receipts, payments, closing));
+            totalOpening += opening;
+            totalPeriodReceipts += receipts;
+            totalPeriodPayments += payments;
+            totalClosing += closing;
+        }
+
+        // ── Left / right portions: classify each in-period entry.
+        // Cost-center dictionary keys use Guid.Empty for "no cost center" (unallocated / head office).
+        var transfers = new List<TransferRowDto>();
+        var receiptAcc = new Dictionary<(Guid Cc, Guid Acct), decimal>();
+        var paymentAcc = new Dictionary<(Guid Cc, Guid Acct), decimal>();
+        var ccMeta = new Dictionary<Guid, (string Code, string Name, Guid? ProjectId)>();
+        var acctMeta = new Dictionary<Guid, (string Code, string Name)>();
+
+        var periodEntryIds = allLines
+            .Where(l => l.EntryDate >= dateFrom && l.EntryDate <= dateToInclusive)
+            .Select(l => l.EntryId)
+            .Distinct();
+
+        bool PassesScope(LineView nc) =>
+            (!filter.CostCenterId.HasValue || nc.CostCenterId == filter.CostCenterId.Value)
+            && (!filter.ProjectId.HasValue || nc.CostCenterProjectId == filter.ProjectId.Value);
+
+        void Remember(LineView nc)
+        {
+            ccMeta[nc.CostCenterId ?? Guid.Empty] = (nc.CostCenterCode ?? "", nc.CostCenterName ?? "Unallocated / Head Office", nc.CostCenterProjectId);
+            acctMeta[nc.AccountId] = (nc.AccountCode, nc.AccountName);
+        }
+
+        foreach (var entryId in periodEntryIds)
+        {
+            var lines = linesByEntry[entryId];
+            var cashLines = lines.Where(l => cashIds.Contains(l.AccountId)).ToList();
+            var nonCashLines = lines.Where(l => !cashIds.Contains(l.AccountId)).ToList();
+            var cashDebit = cashLines.Sum(l => l.Debit);
+            var cashCredit = cashLines.Sum(l => l.Credit);
+
+            if (IsTransfer(entryId))
+            {
+                var first = cashLines.First();
+                transfers.Add(new TransferRowDto(
+                    first.EntryDate,
+                    first.EntryNumber,
+                    cashLines.Where(l => l.Credit > 0).Select(l => l.AccountName).FirstOrDefault() ?? "",
+                    cashLines.Where(l => l.Debit > 0).Select(l => l.AccountName).FirstOrDefault() ?? "",
+                    first.Narration ?? "",
+                    Math.Max(cashDebit, cashCredit)));
+                continue;
+            }
+
+            var net = cashDebit - cashCredit;
+            if (net > 0)
+            {
+                foreach (var nc in nonCashLines.Where(l => l.Credit > 0 && PassesScope(l)))
+                {
+                    var key = (nc.CostCenterId ?? Guid.Empty, nc.AccountId);
+                    receiptAcc[key] = receiptAcc.GetValueOrDefault(key) + nc.Credit;
+                    Remember(nc);
+                }
+            }
+            else if (net < 0)
+            {
+                foreach (var nc in nonCashLines.Where(l => l.Debit > 0 && PassesScope(l)))
+                {
+                    var key = (nc.CostCenterId ?? Guid.Empty, nc.AccountId);
+                    paymentAcc[key] = paymentAcc.GetValueOrDefault(key) + nc.Debit;
+                    Remember(nc);
+                }
+            }
+        }
+
+        List<ReceiptsPaymentsGroupDto> BuildGroups(Dictionary<(Guid Cc, Guid Acct), decimal> map) => map
+            .GroupBy(kv => kv.Key.Cc)
+            .Select(g =>
+            {
+                var meta = ccMeta.GetValueOrDefault(g.Key, ("", "Unallocated / Head Office", null));
+                var rows = g
+                    .Select(kv => new ReceiptsPaymentsRowDto(kv.Key.Acct, acctMeta[kv.Key.Acct].Code, acctMeta[kv.Key.Acct].Name, kv.Value))
+                    .OrderBy(r => r.AccountCode)
+                    .ToList();
+                return new ReceiptsPaymentsGroupDto(
+                    g.Key == Guid.Empty ? null : g.Key,
+                    meta.Code, meta.Name, meta.ProjectId, rows.Sum(r => r.Amount), rows);
+            })
+            .OrderBy(g => g.CostCenterName)
+            .ToList();
+
+        var receiptGroups = BuildGroups(receiptAcc);
+        var paymentGroups = BuildGroups(paymentAcc);
+        var totalReceiptsExcl = receiptGroups.Sum(g => g.Subtotal);
+        var totalTransfers = transfers.Sum(t => t.Amount);
+        var totalPayments = paymentGroups.Sum(g => g.Subtotal);
+
+        return new ReceiptsPaymentsReportDto(
+            transfers.OrderBy(t => t.EntryDate).ThenBy(t => t.EntryNumber).ToList(),
+            totalTransfers,
+            receiptGroups,
+            totalReceiptsExcl,
+            totalReceiptsExcl + totalTransfers,
+            paymentGroups,
+            totalPayments,
+            balances,
+            totalOpening,
+            totalPeriodReceipts,
+            totalPeriodPayments,
+            totalClosing);
+    }
+
+    /// <summary>Flattened journal-entry-line projection used only by the Receipts &amp; Payments report.</summary>
+    private sealed record LineView(
+        Guid EntryId,
+        Guid AccountId,
+        string AccountCode,
+        string AccountName,
+        decimal Debit,
+        decimal Credit,
+        Guid? CostCenterId,
+        string? CostCenterCode,
+        string? CostCenterName,
+        Guid? CostCenterProjectId,
+        DateTime EntryDate,
+        string EntryNumber,
+        string? Narration);
 }

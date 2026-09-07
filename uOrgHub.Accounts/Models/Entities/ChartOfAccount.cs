@@ -29,6 +29,13 @@ public class ChartOfAccount : BaseEntity
 
     public bool IsActive { get; set; } = true;
 
+    /// <summary>
+    /// Marks the account as a cash or bank account — petty cash, main cash, a bank GL account.
+    /// Set by the accountant on the Chart of Accounts screen; the Receipts &amp; Payments report
+    /// treats a debit to any flagged account as a receipt and a credit as a payment.
+    /// </summary>
+    public bool IsCashOrBank { get; set; } = false;
+
     [Column(TypeName = "decimal(18,2)")]
     public decimal OpeningBalance { get; set; } = 0;
 

@@ -9,6 +9,7 @@ public class CreateChartOfAccountDto
     public Guid? ParentAccountId { get; set; }
     public AccountGroupType AccountType { get; set; }
     public bool IsActive { get; set; } = true;
+    public bool IsCashOrBank { get; set; } = false;
     public decimal OpeningBalance { get; set; } = 0;
     public string? Description { get; set; }
     public bool AllowDirectEntry { get; set; } = true;

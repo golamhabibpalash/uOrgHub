@@ -1,4 +1,4 @@
-import { BarChart3, BookOpen, Scale, DollarSign, FileText, CalendarDays, Layers, BookType, PieChart, Clock, AlertTriangle, HardHat } from "lucide-react";
+import { BarChart3, BookOpen, Scale, DollarSign, FileText, CalendarDays, Layers, BookType, PieChart, Clock, AlertTriangle, HardHat, ArrowLeftRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const reportCards = [
@@ -11,6 +11,7 @@ const reportCards = [
   { label: "Account Ledger", desc: "Single account transaction history", icon: Layers, color: "bg-cyan-50 text-cyan-600", path: "account-ledger" },
   { label: "Project Statement", desc: "Project-wise cost, income & transactions", icon: HardHat, color: "bg-lime-50 text-lime-600", path: "project-statement" },
   { label: "Day Book", desc: "Daily transaction register", icon: CalendarDays, color: "bg-orange-50 text-orange-600", path: "day-book" },
+  { label: "Receipts & Payments", desc: "Cash & bank receipts, payments & closing position", icon: ArrowLeftRight, color: "bg-sky-50 text-sky-600", path: "receipts-payments" },
   { label: "Account Group Summary", desc: "Group-wise balance summaries", icon: BarChart3, color: "bg-teal-50 text-teal-600", path: "account-group-summary" },
   { label: "AR Aging", desc: "Outstanding customer invoices aging", icon: Clock, color: "bg-violet-50 text-violet-600", path: "ar-aging" },
   { label: "AP Aging", desc: "Outstanding vendor bills aging", icon: AlertTriangle, color: "bg-pink-50 text-pink-600", path: "ap-aging" },

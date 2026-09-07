@@ -122,4 +122,12 @@ public class AccountingReportsController : BaseController
         var result = await _reportService.GetAPAgingReportAsync(asOfDate ?? DateTime.UtcNow);
         return Ok(ApiResponse<AgingSummaryDto>.Ok(result));
     }
+
+    [HttpGet("receipts-payments")]
+    [RequireClaim(Claims.Accounts.Reports.View)]
+    public async Task<IActionResult> GetReceiptsPayments([FromQuery] ReceiptsPaymentsFilterDto filter)
+    {
+        var result = await _reportService.GetReceiptsPaymentsAsync(filter);
+        return Ok(ApiResponse<ReceiptsPaymentsReportDto>.Ok(result));
+    }
 }

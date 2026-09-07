@@ -194,3 +194,72 @@ public record AgingSummaryDto(
     decimal TotalOutstanding,
     List<AgingRowDto> Rows
 );
+
+// ── Receipts & Payments Statement ──────────────────────────────────────────
+// A cash/bank fund-position report. Driven off journal entry lines that hit an
+// account flagged IsCashOrBank, over non-cancelled entries in a date range.
+
+public record ReceiptsPaymentsFilterDto(
+    DateTime? DateFrom,
+    DateTime? DateTo,
+    Guid? FiscalYearId,
+    Guid? CostCenterId,
+    Guid? ProjectId
+);
+
+/// <summary>One counterpart account (income source or expense head) within a cost-center group.</summary>
+public record ReceiptsPaymentsRowDto(
+    Guid AccountId,
+    string AccountCode,
+    string AccountName,
+    decimal Amount
+);
+
+/// <summary>Receipts or payments rolled up under one cost center (null = unallocated / head office).</summary>
+public record ReceiptsPaymentsGroupDto(
+    Guid? CostCenterId,
+    string CostCenterCode,
+    string CostCenterName,
+    Guid? ProjectId,
+    decimal Subtotal,
+    List<ReceiptsPaymentsRowDto> Rows
+);
+
+/// <summary>A single transfer between the organisation's own cash/bank accounts.</summary>
+public record TransferRowDto(
+    DateTime EntryDate,
+    string EntryNumber,
+    string FromAccount,
+    string ToAccount,
+    string Narration,
+    decimal Amount
+);
+
+/// <summary>Per cash/bank account movement over the period.</summary>
+public record CashBankBalanceRowDto(
+    Guid AccountId,
+    string AccountCode,
+    string AccountName,
+    decimal Opening,
+    decimal Receipts,
+    decimal Payments,
+    decimal Closing
+);
+
+public record ReceiptsPaymentsReportDto(
+    // Left portion
+    List<TransferRowDto> Transfers,
+    decimal TotalTransfers,
+    List<ReceiptsPaymentsGroupDto> Receipts,
+    decimal TotalReceiptsExclTransfers,
+    decimal TotalReceiptsInclTransfers,
+    // Right portion
+    List<ReceiptsPaymentsGroupDto> Payments,
+    decimal TotalPayments,
+    // Bottom portion
+    List<CashBankBalanceRowDto> Balances,
+    decimal TotalOpening,
+    decimal TotalPeriodReceipts,
+    decimal TotalPeriodPayments,
+    decimal TotalClosing
+);

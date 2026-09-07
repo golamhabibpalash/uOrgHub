@@ -13,6 +13,7 @@ public class ChartOfAccountResponseDto
     public string? ParentAccountName { get; set; }
     public AccountGroupType AccountType { get; set; }
     public bool IsActive { get; set; }
+    public bool IsCashOrBank { get; set; }
     public decimal OpeningBalance { get; set; }
     public decimal CurrentBalance { get; set; }
     public string? Description { get; set; }

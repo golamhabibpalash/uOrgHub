@@ -38,6 +38,7 @@ export default function ChartOfAccounts() {
     description: "",
     allowDirectEntry: true,
     isActive: true,
+    isCashOrBank: false,
     customCode: "",
   });
   const [obDisplay, setObDisplay] = useState("0");
@@ -88,7 +89,7 @@ export default function ChartOfAccounts() {
 
   function openAdd() {
     setEditing(null);
-    setForm({ accountName: "", accountGroupId: groupOptions[0]?.value ?? "", accountType: "Asset", openingBalance: 0, description: "", allowDirectEntry: true, isActive: true, customCode: "" });
+    setForm({ accountName: "", accountGroupId: groupOptions[0]?.value ?? "", accountType: "Asset", openingBalance: 0, description: "", allowDirectEntry: true, isActive: true, isCashOrBank: false, customCode: "" });
     setObDisplay("0");
     setGeneratedCode("");
     setSaveError("");
@@ -105,6 +106,7 @@ export default function ChartOfAccounts() {
       description: acc.description ?? "",
       allowDirectEntry: acc.allowDirectEntry,
       isActive: acc.isActive,
+      isCashOrBank: acc.isCashOrBank,
       customCode: acc.customCode ?? "",
     });
     setObDisplay(String(acc.openingBalance));
@@ -264,6 +266,10 @@ export default function ChartOfAccounts() {
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input type="checkbox" id="allowDirect" checked={form.allowDirectEntry} onChange={(e) => setForm((f) => ({ ...f, allowDirectEntry: e.target.checked }))} />
                 <span className="text-xs text-gray-600">Allow direct entry</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input type="checkbox" id="isCashOrBank" checked={form.isCashOrBank} onChange={(e) => setForm((f) => ({ ...f, isCashOrBank: e.target.checked }))} />
+                <span className="text-xs text-gray-600">Cash / Bank account</span>
               </label>
               {editing && (
                 <label className="flex items-center gap-2 cursor-pointer select-none">
