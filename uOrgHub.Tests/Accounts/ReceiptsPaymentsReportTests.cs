@@ -67,8 +67,87 @@ public class ReceiptsPaymentsReportTests
         ctx.SaveChanges();
     }
 
+    /// <summary>Seeds a journal entry with two lines plus a voucher of <paramref name="type"/> linked to it.</summary>
+    private static void SeedVoucherEntry(
+        AppDbContext ctx, string number, DateTime date, VoucherType type,
+        Guid debitAccountId, Guid creditAccountId, decimal amount, Guid? costCenterId, Guid? projectId = null)
+    {
+        var entry = new JournalEntry
+        {
+            Id = Guid.NewGuid(),
+            EntryNumber = number,
+            EntryDate = date,
+            Description = number,
+            Status = JournalEntryStatus.Posted,
+            TotalDebit = amount,
+            TotalCredit = amount,
+        };
+        ctx.Set<JournalEntry>().Add(entry);
+        ctx.Set<JournalEntryLine>().AddRange(
+            new JournalEntryLine { Id = Guid.NewGuid(), JournalEntryId = entry.Id, AccountId = debitAccountId, DebitAmount = amount, CostCenterId = costCenterId, LineOrder = 0 },
+            new JournalEntryLine { Id = Guid.NewGuid(), JournalEntryId = entry.Id, AccountId = creditAccountId, CreditAmount = amount, CostCenterId = costCenterId, LineOrder = 1 });
+        ctx.Set<Voucher>().Add(new Voucher
+        {
+            Id = Guid.NewGuid(),
+            VoucherNumber = number,
+            VoucherType = type,
+            VoucherDate = date,
+            Description = number,
+            DebitAccountId = debitAccountId,
+            CreditAccountId = creditAccountId,
+            Amount = amount,
+            CostCenterId = costCenterId,
+            ProjectId = projectId,
+            Status = VoucherStatus.Posted,
+            JournalEntryId = entry.Id,
+        });
+        ctx.SaveChanges();
+    }
+
     private static ReceiptsPaymentsFilterDto August2026 => new(
         new DateTime(2026, 8, 1), new DateTime(2026, 8, 31), null, null, null);
+
+    [Fact]
+    public async Task Voucher_type_drives_classification()
+    {
+        using var ctx = NewContext();
+        SeedAccounts(ctx);
+        // A Credit voucher is a receipt regardless of which account is flagged.
+        SeedVoucherEntry(ctx, "CR-1", new DateTime(2026, 8, 5), VoucherType.Credit, CashId, SalesId, 2000m, SiteAId);
+        // A Debit voucher is a payment.
+        SeedVoucherEntry(ctx, "DR-1", new DateTime(2026, 8, 6), VoucherType.Debit, ConveyanceId, CashId, 500m, SiteAId);
+        // A Contra voucher is a transfer between own accounts.
+        SeedVoucherEntry(ctx, "CN-1", new DateTime(2026, 8, 7), VoucherType.Contra, BankId, CashId, 1000m, null);
+
+        var report = await new AccountingReportService(ctx).GetReceiptsPaymentsAsync(August2026);
+
+        report.Receipts.Should().ContainSingle();
+        report.Receipts[0].CostCenterName.Should().Be("Site A");
+        report.Receipts[0].Rows.Should().ContainSingle(r => r.AccountName == "Sales" && r.Amount == 2000m);
+        report.TotalReceiptsExclTransfers.Should().Be(2000m);
+
+        report.Payments.Should().ContainSingle();
+        report.Payments[0].Rows.Should().ContainSingle(r => r.AccountName == "Conveyance" && r.Amount == 500m);
+        report.TotalPayments.Should().Be(500m);
+
+        report.Transfers.Should().ContainSingle(t => t.FromAccount == "Cash" && t.ToAccount == "Bank" && t.Amount == 1000m);
+        report.TotalTransfers.Should().Be(1000m);
+    }
+
+    [Fact]
+    public async Task Voucher_project_filter_scopes_receipts_and_payments()
+    {
+        using var ctx = NewContext();
+        SeedAccounts(ctx);
+        var projectX = Guid.NewGuid();
+        SeedVoucherEntry(ctx, "CR-1", new DateTime(2026, 8, 5), VoucherType.Credit, CashId, SalesId, 2000m, SiteAId, projectX);
+        SeedVoucherEntry(ctx, "CR-2", new DateTime(2026, 8, 6), VoucherType.Credit, CashId, SalesId, 700m, SiteAId, Guid.NewGuid());
+
+        var filtered = await new AccountingReportService(ctx).GetReceiptsPaymentsAsync(
+            new ReceiptsPaymentsFilterDto(new DateTime(2026, 8, 1), new DateTime(2026, 8, 31), null, null, projectX));
+
+        filtered.TotalReceiptsExclTransfers.Should().Be(2000m);
+    }
 
     [Fact]
     public async Task Splits_receipts_payments_and_transfers()
