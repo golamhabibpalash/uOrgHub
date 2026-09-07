@@ -176,6 +176,36 @@ public class ReceiptsPaymentsReportTests
     }
 
     [Fact]
+    public async Task A_bank_account_gl_is_treated_as_cash_bank_even_without_the_flag()
+    {
+        using var ctx = NewContext();
+        SeedAccounts(ctx);
+        var tradeBankId = Guid.NewGuid();
+        ctx.Set<ChartOfAccount>().Add(new ChartOfAccount
+        {
+            Id = tradeBankId, AccountCode = "1200", AccountName = "Trade Bank",
+            AccountGroupId = Guid.NewGuid(), AccountType = AccountGroupType.Asset,
+            IsCashOrBank = false, OpeningBalance = 0m,
+        });
+        ctx.Set<BankAccount>().Add(new BankAccount
+        {
+            Id = Guid.NewGuid(), AccountNumber = "0001", AccountName = "Trade Bank",
+            BankName = "Trade Bank Ltd", ChartOfAccountId = tradeBankId,
+        });
+        ctx.SaveChanges();
+        SeedEntry(ctx, "JV-1", new DateTime(2026, 8, 5), JournalEntryStatus.Posted, new[]
+        {
+            (tradeBankId, 3000m, 0m, (Guid?)null),
+            (SalesId, 0m, 3000m, (Guid?)SiteAId),
+        });
+
+        var report = await new AccountingReportService(ctx).GetReceiptsPaymentsAsync(August2026);
+
+        report.Balances.Should().Contain(b => b.AccountName == "Trade Bank" && b.Receipts == 3000m);
+        report.TotalReceiptsExclTransfers.Should().Be(3000m);
+    }
+
+    [Fact]
     public async Task No_cash_or_bank_accounts_yields_an_empty_report()
     {
         using var ctx = NewContext();

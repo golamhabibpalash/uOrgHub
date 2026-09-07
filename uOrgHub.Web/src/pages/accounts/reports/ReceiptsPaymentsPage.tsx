@@ -145,6 +145,15 @@ export default function ReceiptsPaymentsPage() {
         <p className="text-sm text-gray-400 py-8 text-center">No data for the selected period.</p>
       ) : (
         <div className="space-y-5">
+          {report.balances.length === 0 && (
+            <div className="border border-amber-200 bg-amber-50 rounded-lg px-4 py-3 text-sm text-amber-800">
+              No cash or bank accounts are set up yet, so there is nothing to report. Open the{" "}
+              <span className="font-medium">Chart of Accounts</span> and tick{" "}
+              <span className="font-medium">“Cash / Bank account”</span> on your cash-in-hand and
+              bank accounts (bank accounts registered under Bank Accounts are picked up
+              automatically).
+            </div>
+          )}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {/* ── Left portion: Receipts ─────────────────────────────── */}
             <section className="border border-gray-200 rounded-xl overflow-hidden">

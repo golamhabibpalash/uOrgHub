@@ -714,19 +714,28 @@ public class AccountingReportService : IAccountingReportService
 
     /// <summary>
     /// Receipts &amp; Payments Statement — a cash/bank fund-position report. Every journal entry
-    /// (Posted or Draft, not Cancelled) that touches an account flagged <c>IsCashOrBank</c> is
-    /// classified as a transfer (both legs are cash/bank, or a linked Contra voucher), a receipt
-    /// (net cash inflow) or a payment (net cash outflow). Receipts and payments are itemised by
-    /// their non-cash counterpart account and grouped by cost center; the bottom section is each
+    /// (Posted or Draft, not Cancelled) that touches a cash/bank account is classified as a
+    /// transfer (both legs are cash/bank, or a linked Contra voucher), a receipt (net cash
+    /// inflow) or a payment (net cash outflow). Receipts and payments are itemised by their
+    /// non-cash counterpart account and grouped by cost center; the bottom section is each
     /// cash/bank account's opening → movement → closing over the period.
+    ///
+    /// An account counts as cash/bank if it is flagged <c>IsCashOrBank</c> or it is the GL
+    /// account behind a bank account (<c>acc_bank_accounts</c>), so bank movement shows up with
+    /// no set-up and cash-in-hand accounts are picked up once flagged.
     /// </summary>
     public async Task<ReceiptsPaymentsReportDto> GetReceiptsPaymentsAsync(ReceiptsPaymentsFilterDto filter)
     {
         var dateFrom = (filter.DateFrom ?? DateTime.UtcNow).Date;
         var dateToInclusive = (filter.DateTo ?? DateTime.UtcNow).Date.AddDays(1).AddTicks(-1);
 
+        var bankGlAccountIds = await _db.Set<BankAccount>()
+            .Where(b => !b.IsDeleted)
+            .Select(b => b.ChartOfAccountId)
+            .ToListAsync();
+
         var cashAccounts = await _db.Set<ChartOfAccount>()
-            .Where(a => !a.IsDeleted && a.IsCashOrBank)
+            .Where(a => !a.IsDeleted && (a.IsCashOrBank || bankGlAccountIds.Contains(a.Id)))
             .OrderBy(a => a.AccountCode)
             .Select(a => new { a.Id, a.AccountCode, a.AccountName, a.OpeningBalance })
             .ToListAsync();
