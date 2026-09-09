@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import {
   getConsolidatedProjectStatement,
   getProjectStatement,
@@ -46,6 +46,18 @@ type SortKey = keyof Pick<
   "projectCode" | "contractValue" | "openingSpend" | "periodExpense" | "periodIncome" | "closingSpend" | "receipts" | "payments" | "netCashPosition"
 >;
 
+type TxSortKey =
+  | "entryDate"
+  | "entryNumber"
+  | "referenceNumber"
+  | "accountCode"
+  | "narration"
+  | "debit"
+  | "credit"
+  | "runningNet";
+
+const TX_PAGE_SIZES = [10, 25, 50, 100];
+
 export default function ProjectStatementPage() {
   const [projectId, setProjectId] = useState("");
   const [dateFrom, setDateFrom] = useState("");
@@ -73,8 +85,8 @@ export default function ProjectStatementPage() {
   });
 
   const statement = single.data?.data?.data;
-  const rows = statement?.rows ?? [];
-  const byAccount = statement?.byAccount ?? [];
+  const rows = useMemo(() => statement?.rows ?? [], [statement]);
+  const byAccount = useMemo(() => statement?.byAccount ?? [], [statement]);
 
   const cs = consolidated.data?.data?.data;
   const sortedProjects = useMemo(() => {
@@ -92,6 +104,86 @@ export default function ProjectStatementPage() {
 
   const toggleSort = (key: SortKey) =>
     setSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }));
+
+  // ── Transactions ledger: client-side search / filter / sort / pagination ──
+  // The ledger is already fully loaded with the statement, and each row's Running Net only
+  // means anything in the backend's chronological order — so the view is refined in memory
+  // rather than re-fetched, and the printed statement (below) keeps the whole unpaged ledger.
+  const [txSearch, setTxSearch] = useState("");
+  const [txAccount, setTxAccount] = useState("");
+  const [txDirection, setTxDirection] = useState<"" | "debit" | "credit">("");
+  const [txSort, setTxSort] = useState<{ key: TxSortKey; dir: "asc" | "desc" }>({ key: "entryDate", dir: "asc" });
+  const [txPage, setTxPage] = useState(1);
+  const [txPageSize, setTxPageSize] = useState(25);
+
+  const txFilterActive = txSearch.trim() !== "" || txAccount !== "" || txDirection !== "";
+
+  // Any change to what's shown drops the user back to page 1 — otherwise a filter that shrinks
+  // the list can strand them on a now-empty page. (Out-of-range pages from a project/date switch
+  // are handled by clamping below.)
+  const resetTxPage = () => setTxPage(1);
+  const changeTxSearch = (v: string) => { setTxSearch(v); resetTxPage(); };
+  const changeTxAccount = (v: string) => { setTxAccount(v); resetTxPage(); };
+  const changeTxDirection = (v: "" | "debit" | "credit") => { setTxDirection(v); resetTxPage(); };
+  const changeTxPageSize = (n: number) => { setTxPageSize(n); resetTxPage(); };
+  const clearTxFilters = () => { setTxSearch(""); setTxAccount(""); setTxDirection(""); resetTxPage(); };
+
+  const toggleTxSort = (key: TxSortKey) => {
+    setTxSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }));
+    resetTxPage();
+  };
+
+  const txFiltered = useMemo(() => {
+    const q = txSearch.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (q) {
+        const hay = [
+          r.entryNumber,
+          r.referenceNumber ?? "",
+          r.accountCode,
+          r.accountName,
+          r.narration ?? "",
+          r.costCenterName,
+        ].join(" ").toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (txAccount && r.accountId !== txAccount) return false;
+      if (txDirection === "debit" && !(r.debit > 0)) return false;
+      if (txDirection === "credit" && !(r.credit > 0)) return false;
+      return true;
+    });
+  }, [rows, txSearch, txAccount, txDirection]);
+
+  const txSorted = useMemo(() => {
+    const list = [...txFiltered];
+    const { key, dir } = txSort;
+    list.sort((a, b) => {
+      let cmp: number;
+      if (key === "entryDate") {
+        cmp = new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime();
+      } else {
+        const av = a[key];
+        const bv = b[key];
+        cmp = typeof av === "number" && typeof bv === "number"
+          ? av - bv
+          : String(av ?? "").localeCompare(String(bv ?? ""));
+      }
+      return dir === "asc" ? cmp : -cmp;
+    });
+    return list;
+  }, [txFiltered, txSort]);
+
+  const txTotalPages = Math.max(1, Math.ceil(txSorted.length / txPageSize));
+  const txPageSafe = Math.min(txPage, txTotalPages);
+  const txPageRows = useMemo(
+    () => txSorted.slice((txPageSafe - 1) * txPageSize, txPageSafe * txPageSize),
+    [txSorted, txPageSafe, txPageSize],
+  );
+
+  const txDebitTotal = useMemo(() => txFiltered.reduce((s, r) => s + r.debit, 0), [txFiltered]);
+  const txCreditTotal = useMemo(() => txFiltered.reduce((s, r) => s + r.credit, 0), [txFiltered]);
+  const txRangeStart = txSorted.length === 0 ? 0 : (txPageSafe - 1) * txPageSize + 1;
+  const txRangeEnd = Math.min(txPageSafe * txPageSize, txSorted.length);
 
   const period =
     dateFrom && dateTo ? `${dateFmt(dateFrom)} — ${dateFmt(dateTo)}`
@@ -325,8 +417,100 @@ export default function ProjectStatementPage() {
                 Posted journal entry lines charged to this project
               </p>
             </div>
+
+            {/* Search + filters — screen only, so a printed statement keeps the full ledger */}
+            {rows.length > 0 && (
+              <div className="no-print px-4 py-3 border-b border-gray-100 flex flex-wrap items-center gap-2">
+                <div className="relative flex-1 min-w-[200px] max-w-xs">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    value={txSearch}
+                    onChange={(e) => changeTxSearch(e.target.value)}
+                    placeholder="Search entry #, reference, account, narration…"
+                    className="w-full text-sm border border-gray-200 rounded-lg pl-9 pr-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  />
+                </div>
+                <select
+                  value={txAccount}
+                  onChange={(e) => changeTxAccount(e.target.value)}
+                  className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                >
+                  <option value="">All accounts</option>
+                  {byAccount.map((a) => (
+                    <option key={a.accountId} value={a.accountId}>
+                      {a.accountCode} · {a.accountName}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={txDirection}
+                  onChange={(e) => changeTxDirection(e.target.value as "" | "debit" | "credit")}
+                  className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                >
+                  <option value="">Debit &amp; credit</option>
+                  <option value="debit">Debit lines only</option>
+                  <option value="credit">Credit lines only</option>
+                </select>
+                {txFilterActive && (
+                  <button
+                    onClick={clearTxFilters}
+                    className="inline-flex items-center gap-1 px-2 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-500"
+                  >
+                    <X size={12} /> Clear
+                  </button>
+                )}
+              </div>
+            )}
+
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              {/* Interactive table — the paged / sorted / filtered view (hidden when printing) */}
+              <table className="w-full text-sm print:hidden">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    <SortHeader label="Date" sortKey="entryDate" sort={txSort} onSort={toggleTxSort} align="left" />
+                    <SortHeader label="Entry #" sortKey="entryNumber" sort={txSort} onSort={toggleTxSort} align="left" />
+                    <SortHeader label="Reference" sortKey="referenceNumber" sort={txSort} onSort={toggleTxSort} align="left" />
+                    <SortHeader label="Account" sortKey="accountCode" sort={txSort} onSort={toggleTxSort} align="left" />
+                    <SortHeader label="Narration" sortKey="narration" sort={txSort} onSort={toggleTxSort} align="left" />
+                    <SortHeader label="Debit" sortKey="debit" sort={txSort} onSort={toggleTxSort} />
+                    <SortHeader label="Credit" sortKey="credit" sort={txSort} onSort={toggleTxSort} />
+                    <SortHeader label="Running Net" sortKey="runningNet" sort={txSort} onSort={toggleTxSort} />
+                  </tr>
+                </thead>
+                <tbody>
+                  {txPageRows.map((r, i) => (
+                    <tr key={`${r.entryNumber}-${r.accountId}-${i}`} className="border-b border-gray-100 hover:bg-gray-50/50">
+                      <td className="px-4 py-2 text-xs whitespace-nowrap">{dateFmt(r.entryDate)}</td>
+                      <td className="px-4 py-2 text-xs font-mono text-gray-500 whitespace-nowrap">{r.entryNumber}</td>
+                      <td className="px-4 py-2 text-xs text-gray-500 whitespace-nowrap">{r.referenceNumber ?? "—"}</td>
+                      <td className="px-4 py-2 text-xs">
+                        <span className="font-mono text-gray-500">{r.accountCode}</span>
+                        <span className="ml-2">{r.accountName}</span>
+                      </td>
+                      <td className="px-4 py-2 text-sm max-w-xs truncate">{r.narration ?? "—"}</td>
+                      <td className="px-4 py-2 text-right tabular-nums">{r.debit > 0 ? fmt(r.debit) : "—"}</td>
+                      <td className="px-4 py-2 text-right tabular-nums">{r.credit > 0 ? fmt(r.credit) : "—"}</td>
+                      <td className="px-4 py-2 text-right tabular-nums font-medium">{fmt(r.runningNet)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                {txSorted.length > 0 && (
+                  <tfoot className="bg-gray-50 border-t-2 border-gray-200">
+                    <tr>
+                      <td colSpan={5} className="px-4 py-2.5 text-xs font-semibold text-gray-600">
+                        {txFilterActive ? "Totals (filtered)" : "Totals"}
+                      </td>
+                      <td className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(txDebitTotal)}</td>
+                      <td className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(txCreditTotal)}</td>
+                      <td className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(txDebitTotal - txCreditTotal)}</td>
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+
+              {/* Print-only: the whole ledger, backend order, unpaged and unfiltered */}
+              <table className="hidden print:table w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200">
                     <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Date</th>
@@ -341,7 +525,7 @@ export default function ProjectStatementPage() {
                 </thead>
                 <tbody>
                   {rows.map((r, i) => (
-                    <tr key={`${r.entryNumber}-${i}`} className="border-b border-gray-100 hover:bg-gray-50/50">
+                    <tr key={`print-${r.entryNumber}-${i}`} className="border-b border-gray-100">
                       <td className="px-4 py-2 text-xs whitespace-nowrap">{dateFmt(r.entryDate)}</td>
                       <td className="px-4 py-2 text-xs font-mono text-gray-500 whitespace-nowrap">{r.entryNumber}</td>
                       <td className="px-4 py-2 text-xs text-gray-500 whitespace-nowrap">{r.referenceNumber ?? "—"}</td>
@@ -349,7 +533,7 @@ export default function ProjectStatementPage() {
                         <span className="font-mono text-gray-500">{r.accountCode}</span>
                         <span className="ml-2">{r.accountName}</span>
                       </td>
-                      <td className="px-4 py-2 text-sm max-w-xs truncate">{r.narration ?? "—"}</td>
+                      <td className="px-4 py-2 text-sm">{r.narration ?? "—"}</td>
                       <td className="px-4 py-2 text-right tabular-nums">{r.debit > 0 ? fmt(r.debit) : "—"}</td>
                       <td className="px-4 py-2 text-right tabular-nums">{r.credit > 0 ? fmt(r.credit) : "—"}</td>
                       <td className="px-4 py-2 text-right tabular-nums font-medium">{fmt(r.runningNet)}</td>
@@ -367,16 +551,64 @@ export default function ProjectStatementPage() {
                         {fmt(rows.reduce((s, r) => s + r.credit, 0))}
                       </td>
                       <td className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">
-                        {fmt(rows.length > 0 ? rows[rows.length - 1].runningNet : 0)}
+                        {fmt(rows[rows.length - 1].runningNet)}
                       </td>
                     </tr>
                   </tfoot>
                 )}
               </table>
             </div>
+
+            {/* Pagination — screen only */}
+            {txSorted.length > 0 && (
+              <div className="no-print flex items-center justify-between gap-3 px-4 py-3 border-t border-gray-100 text-xs text-gray-500">
+                <div className="flex items-center gap-2">
+                  <span>
+                    {txRangeStart}–{txRangeEnd} of {txSorted.length}
+                    {txFilterActive && rows.length !== txSorted.length ? ` (filtered from ${rows.length})` : ""}
+                  </span>
+                  <span className="text-gray-200">|</span>
+                  <span>Show</span>
+                  <select
+                    value={txPageSize}
+                    onChange={(e) => changeTxPageSize(Number(e.target.value))}
+                    className="border border-gray-200 rounded px-1.5 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  >
+                    {TX_PAGE_SIZES.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+                {txTotalPages > 1 && (
+                  <div className="flex items-center gap-2">
+                    <span>Page {txPageSafe} of {txTotalPages}</span>
+                    <button
+                      disabled={txPageSafe <= 1}
+                      onClick={() => setTxPage(txPageSafe - 1)}
+                      className="p-1 border border-gray-200 rounded-md disabled:opacity-40 hover:bg-gray-50"
+                    >
+                      <ChevronLeft size={14} />
+                    </button>
+                    <button
+                      disabled={txPageSafe >= txTotalPages}
+                      onClick={() => setTxPage(txPageSafe + 1)}
+                      className="p-1 border border-gray-200 rounded-md disabled:opacity-40 hover:bg-gray-50"
+                    >
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             {rows.length === 0 && !single.isLoading && (
               <div className="text-center py-12 text-sm text-gray-400">
                 No posted transactions for this project in the selected period
+              </div>
+            )}
+            {rows.length > 0 && txSorted.length === 0 && (
+              <div className="no-print text-center py-12 text-sm text-gray-400">
+                No transactions match your search or filters
               </div>
             )}
           </div>
@@ -386,11 +618,11 @@ export default function ProjectStatementPage() {
   );
 }
 
-function SortHeader({ label, sortKey, sort, onSort, align = "right" }: {
+function SortHeader<K extends string>({ label, sortKey, sort, onSort, align = "right" }: {
   label: string;
-  sortKey: SortKey;
-  sort: { key: SortKey; dir: "asc" | "desc" };
-  onSort: (key: SortKey) => void;
+  sortKey: K;
+  sort: { key: K; dir: "asc" | "desc" };
+  onSort: (key: K) => void;
   align?: "left" | "right";
 }) {
   const active = sort.key === sortKey;
