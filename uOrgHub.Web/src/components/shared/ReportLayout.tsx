@@ -33,22 +33,69 @@ export default function ReportLayout({
           <title>${title}</title>
           <script src="https://cdn.tailwindcss.com"></script>
           <style>
-            @page { margin: 15mm; }
-            body { font-family: 'Inter', sans-serif; color: #1f2937; -webkit-print-color-adjust: exact; }
-            .print-header { text-align: center; margin-bottom: 1.5rem; }
-            .print-footer { position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 10px; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 4px; }
-            @media print { .no-print { display: none !important; } }
+            @page { margin: 12mm; }
+
+            /* Tailwind's text and spacing utilities are rem-based, so shrinking the root shrinks
+               the whole report proportionally — a dense ledger then fits the page without having
+               to override individual utility classes. */
+            html { font-size: 11px; }
+            body {
+              font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+              color: #1f2937; line-height: 1.35;
+              -webkit-print-color-adjust: exact; print-color-adjust: exact;
+            }
+
+            .print-header { text-align: center; margin-bottom: 16px; }
+            .print-footer {
+              position: fixed; bottom: 0; width: 100%; text-align: center;
+              font-size: 9px; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 4px;
+            }
+
+            /* Wide tables use the full page width instead of scrolling or being clipped. */
+            .overflow-x-auto, .overflow-hidden, .overflow-y-auto { overflow: visible !important; }
+
+            table { width: 100%; border-collapse: collapse; }
+            thead { display: table-header-group; }   /* repeat column headers on every page */
+            tfoot { display: table-footer-group; }
+            tr { page-break-inside: avoid; }
+            th, td { vertical-align: top; }
+
+            /* Clamped cells (e.g. narration) wrap on paper rather than losing text. */
+            .truncate { overflow: visible !important; white-space: normal !important; text-overflow: clip !important; }
+            .max-w-xs, .max-w-sm, .max-w-md { max-width: none !important; }
+
+            /* Keep a section heading with the content that follows it. */
+            h1, h2, h3, h4, p.font-medium { page-break-after: avoid; }
+
+            @media print {
+              .no-print { display: none !important; }
+              a { color: inherit; text-decoration: none; }
+              /* Guaranteed regardless of the Tailwind CDN's timing: a page can render a
+                 compact interactive table for the screen and a full unpaged twin for print. */
+              .print\\:hidden { display: none !important; }
+              .print\\:table { display: table !important; }
+              .print\\:block { display: block !important; }
+            }
           </style>
         </head>
         <body>
           <div class="print-header">
-            <h1 style="font-size:18px; font-weight:600; margin:0;">${title}</h1>
-            ${subtitle ? `<p style="font-size:12px; color:#6b7280; margin:4px 0 0;">${subtitle}</p>` : ""}
-            <p style="font-size:10px; color:#9ca3af; margin:4px 0;">Printed: ${now}</p>
+            <h1 style="font-size:16px; font-weight:600; margin:0;">${title}</h1>
+            ${subtitle ? `<p style="font-size:11px; color:#6b7280; margin:4px 0 0;">${subtitle}</p>` : ""}
+            <p style="font-size:9px; color:#9ca3af; margin:4px 0;">Printed: ${now}</p>
           </div>
           ${content}
           <div class="print-footer">Page 1</div>
-          <script>window.print();</script>
+          <script>
+            // Wait for the Tailwind CDN to finish generating utilities before printing —
+            // firing too early prints an unstyled (oversized) page.
+            (function () {
+              var done = false;
+              function go() { if (done) return; done = true; window.focus(); window.print(); }
+              window.addEventListener('load', function () { setTimeout(go, 350); });
+              if (document.readyState === 'complete') setTimeout(go, 350);
+            })();
+          </script>
         </body>
       </html>
     `);
