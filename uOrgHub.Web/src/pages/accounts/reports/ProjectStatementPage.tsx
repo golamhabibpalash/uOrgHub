@@ -306,18 +306,18 @@ export default function ProjectStatementPage() {
                         onClick={() => setProjectId(p.projectId)}
                         className="border-b border-gray-100 hover:bg-gray-50/50 cursor-pointer"
                       >
-                        <td className="px-4 py-2 whitespace-nowrap">
+                        <td data-col="projectCode" className="px-4 py-2 whitespace-nowrap">
                           <span className="text-xs font-mono text-gray-500">{p.projectCode}</span>
                           <span className="text-sm ml-2">{p.projectName}</span>
                         </td>
-                        <td className="px-4 py-2 text-right tabular-nums">{fmt(p.contractValue)}</td>
-                        <td className="px-4 py-2 text-right tabular-nums">{fmt(p.openingSpend)}</td>
-                        <td className="px-4 py-2 text-right tabular-nums text-red-600">{fmt(p.periodExpense)}</td>
-                        <td className="px-4 py-2 text-right tabular-nums text-green-600">{fmt(p.periodIncome)}</td>
-                        <td className="px-4 py-2 text-right tabular-nums text-red-600">{fmt(p.closingSpend)}</td>
-                        <td className="px-4 py-2 text-right tabular-nums text-green-600">{fmt(p.receipts)}</td>
-                        <td className="px-4 py-2 text-right tabular-nums text-red-600">{fmt(p.payments)}</td>
-                        <td className={`px-4 py-2 text-right tabular-nums font-medium ${p.netCashPosition >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        <td data-col="contractValue" className="px-4 py-2 text-right tabular-nums">{fmt(p.contractValue)}</td>
+                        <td data-col="openingSpend" className="px-4 py-2 text-right tabular-nums">{fmt(p.openingSpend)}</td>
+                        <td data-col="periodExpense" className="px-4 py-2 text-right tabular-nums text-red-600">{fmt(p.periodExpense)}</td>
+                        <td data-col="periodIncome" className="px-4 py-2 text-right tabular-nums text-green-600">{fmt(p.periodIncome)}</td>
+                        <td data-col="closingSpend" className="px-4 py-2 text-right tabular-nums text-red-600">{fmt(p.closingSpend)}</td>
+                        <td data-col="receipts" className="px-4 py-2 text-right tabular-nums text-green-600">{fmt(p.receipts)}</td>
+                        <td data-col="payments" className="px-4 py-2 text-right tabular-nums text-red-600">{fmt(p.payments)}</td>
+                        <td data-col="netCashPosition" className={`px-4 py-2 text-right tabular-nums font-medium ${p.netCashPosition >= 0 ? "text-green-600" : "text-red-600"}`}>
                           {fmt(p.netCashPosition)}
                         </td>
                       </tr>
@@ -327,14 +327,14 @@ export default function ProjectStatementPage() {
                     <tfoot className="bg-gray-50 border-t-2 border-gray-200">
                       <tr>
                         <td className="px-4 py-2.5 text-xs font-semibold text-gray-600">Totals</td>
-                        <td className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(cs.contractValue)}</td>
-                        <td className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(cs.openingSpend)}</td>
-                        <td className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(cs.periodExpense)}</td>
-                        <td className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(cs.periodIncome)}</td>
-                        <td className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(cs.closingSpend)}</td>
-                        <td className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(cs.receipts)}</td>
-                        <td className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(cs.payments)}</td>
-                        <td className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(cs.netCashPosition)}</td>
+                        <td data-col="contractValue" className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(cs.contractValue)}</td>
+                        <td data-col="openingSpend" className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(cs.openingSpend)}</td>
+                        <td data-col="periodExpense" className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(cs.periodExpense)}</td>
+                        <td data-col="periodIncome" className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(cs.periodIncome)}</td>
+                        <td data-col="closingSpend" className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(cs.closingSpend)}</td>
+                        <td data-col="receipts" className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(cs.receipts)}</td>
+                        <td data-col="payments" className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(cs.payments)}</td>
+                        <td data-col="netCashPosition" className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(cs.netCashPosition)}</td>
                       </tr>
                     </tfoot>
                   )}
@@ -379,24 +379,24 @@ export default function ProjectStatementPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Account</th>
-                    <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Type</th>
-                    <th className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Debit</th>
-                    <th className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Credit</th>
-                    <th className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Net</th>
+                    <th data-col="account" className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Account</th>
+                    <th data-col="acctType" className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Type</th>
+                    <th data-col="debit" className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Debit</th>
+                    <th data-col="credit" className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Credit</th>
+                    <th data-col="acctNet" className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Net</th>
                   </tr>
                 </thead>
                 <tbody>
                   {byAccount.map((a) => (
                     <tr key={a.accountId} className="border-b border-gray-100 hover:bg-gray-50/50">
-                      <td className="px-4 py-2">
+                      <td data-col="account" className="px-4 py-2">
                         <span className="text-xs font-mono text-gray-500">{a.accountCode}</span>
                         <span className="text-sm ml-2">{a.accountName}</span>
                       </td>
-                      <td className="px-4 py-2 text-xs text-gray-500">{a.accountType}</td>
-                      <td className="px-4 py-2 text-right tabular-nums">{a.debit > 0 ? fmt(a.debit) : "—"}</td>
-                      <td className="px-4 py-2 text-right tabular-nums">{a.credit > 0 ? fmt(a.credit) : "—"}</td>
-                      <td className="px-4 py-2 text-right tabular-nums font-medium">{fmt(a.net)}</td>
+                      <td data-col="acctType" className="px-4 py-2 text-xs text-gray-500">{a.accountType}</td>
+                      <td data-col="debit" className="px-4 py-2 text-right tabular-nums">{a.debit > 0 ? fmt(a.debit) : "—"}</td>
+                      <td data-col="credit" className="px-4 py-2 text-right tabular-nums">{a.credit > 0 ? fmt(a.credit) : "—"}</td>
+                      <td data-col="acctNet" className="px-4 py-2 text-right tabular-nums font-medium">{fmt(a.net)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -481,29 +481,33 @@ export default function ProjectStatementPage() {
                 <tbody>
                   {txPageRows.map((r, i) => (
                     <tr key={`${r.entryNumber}-${r.accountId}-${i}`} className="border-b border-gray-100 hover:bg-gray-50/50">
-                      <td className="px-4 py-2 text-xs whitespace-nowrap">{dateFmt(r.entryDate)}</td>
-                      <td className="px-4 py-2 text-xs font-mono text-gray-500 whitespace-nowrap">{r.entryNumber}</td>
-                      <td className="px-4 py-2 text-xs text-gray-500 whitespace-nowrap">{r.referenceNumber ?? "—"}</td>
-                      <td className="px-4 py-2 text-xs">
+                      <td data-col="entryDate" className="px-4 py-2 text-xs whitespace-nowrap">{dateFmt(r.entryDate)}</td>
+                      <td data-col="entryNumber" className="px-4 py-2 text-xs font-mono text-gray-500 whitespace-nowrap">{r.entryNumber}</td>
+                      <td data-col="referenceNumber" className="px-4 py-2 text-xs text-gray-500 whitespace-nowrap">{r.referenceNumber ?? "—"}</td>
+                      <td data-col="accountCode" className="px-4 py-2 text-xs">
                         <span className="font-mono text-gray-500">{r.accountCode}</span>
                         <span className="ml-2">{r.accountName}</span>
                       </td>
-                      <td className="px-4 py-2 text-sm max-w-xs truncate">{r.narration ?? "—"}</td>
-                      <td className="px-4 py-2 text-right tabular-nums">{r.debit > 0 ? fmt(r.debit) : "—"}</td>
-                      <td className="px-4 py-2 text-right tabular-nums">{r.credit > 0 ? fmt(r.credit) : "—"}</td>
-                      <td className="px-4 py-2 text-right tabular-nums font-medium">{fmt(r.runningNet)}</td>
+                      <td data-col="narration" className="px-4 py-2 text-sm max-w-xs truncate">{r.narration ?? "—"}</td>
+                      <td data-col="debit" className="px-4 py-2 text-right tabular-nums">{r.debit > 0 ? fmt(r.debit) : "—"}</td>
+                      <td data-col="credit" className="px-4 py-2 text-right tabular-nums">{r.credit > 0 ? fmt(r.credit) : "—"}</td>
+                      <td data-col="runningNet" className="px-4 py-2 text-right tabular-nums font-medium">{fmt(r.runningNet)}</td>
                     </tr>
                   ))}
                 </tbody>
                 {txSorted.length > 0 && (
                   <tfoot className="bg-gray-50 border-t-2 border-gray-200">
                     <tr>
-                      <td colSpan={5} className="px-4 py-2.5 text-xs font-semibold text-gray-600">
+                      <td
+                        colSpan={5}
+                        data-col-span="entryDate,entryNumber,referenceNumber,accountCode,narration"
+                        className="px-4 py-2.5 text-xs font-semibold text-gray-600"
+                      >
                         {txFilterActive ? "Totals (filtered)" : "Totals"}
                       </td>
-                      <td className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(txDebitTotal)}</td>
-                      <td className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(txCreditTotal)}</td>
-                      <td className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(txDebitTotal - txCreditTotal)}</td>
+                      <td data-col="debit" className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(txDebitTotal)}</td>
+                      <td data-col="credit" className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(txCreditTotal)}</td>
+                      <td data-col="runningNet" className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(txDebitTotal - txCreditTotal)}</td>
                     </tr>
                   </tfoot>
                 )}
@@ -513,44 +517,50 @@ export default function ProjectStatementPage() {
               <table className="hidden print:table w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Date</th>
-                    <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Entry #</th>
-                    <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Reference</th>
-                    <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Account</th>
-                    <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Narration</th>
-                    <th className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Debit</th>
-                    <th className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Credit</th>
-                    <th className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Running Net</th>
+                    <th data-col="entryDate" className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Date</th>
+                    <th data-col="entryNumber" className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Entry #</th>
+                    <th data-col="referenceNumber" className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Reference</th>
+                    <th data-col="accountCode" className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Account</th>
+                    <th data-col="narration" className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Narration</th>
+                    <th data-col="debit" className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Debit</th>
+                    <th data-col="credit" className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Credit</th>
+                    <th data-col="runningNet" className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Running Net</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((r, i) => (
                     <tr key={`print-${r.entryNumber}-${i}`} className="border-b border-gray-100">
-                      <td className="px-4 py-2 text-xs whitespace-nowrap">{dateFmt(r.entryDate)}</td>
-                      <td className="px-4 py-2 text-xs font-mono text-gray-500 whitespace-nowrap">{r.entryNumber}</td>
-                      <td className="px-4 py-2 text-xs text-gray-500 whitespace-nowrap">{r.referenceNumber ?? "—"}</td>
-                      <td className="px-4 py-2 text-xs">
+                      <td data-col="entryDate" className="px-4 py-2 text-xs whitespace-nowrap">{dateFmt(r.entryDate)}</td>
+                      <td data-col="entryNumber" className="px-4 py-2 text-xs font-mono text-gray-500 whitespace-nowrap">{r.entryNumber}</td>
+                      <td data-col="referenceNumber" className="px-4 py-2 text-xs text-gray-500 whitespace-nowrap">{r.referenceNumber ?? "—"}</td>
+                      <td data-col="accountCode" className="px-4 py-2 text-xs">
                         <span className="font-mono text-gray-500">{r.accountCode}</span>
                         <span className="ml-2">{r.accountName}</span>
                       </td>
-                      <td className="px-4 py-2 text-sm">{r.narration ?? "—"}</td>
-                      <td className="px-4 py-2 text-right tabular-nums">{r.debit > 0 ? fmt(r.debit) : "—"}</td>
-                      <td className="px-4 py-2 text-right tabular-nums">{r.credit > 0 ? fmt(r.credit) : "—"}</td>
-                      <td className="px-4 py-2 text-right tabular-nums font-medium">{fmt(r.runningNet)}</td>
+                      <td data-col="narration" className="px-4 py-2 text-sm">{r.narration ?? "—"}</td>
+                      <td data-col="debit" className="px-4 py-2 text-right tabular-nums">{r.debit > 0 ? fmt(r.debit) : "—"}</td>
+                      <td data-col="credit" className="px-4 py-2 text-right tabular-nums">{r.credit > 0 ? fmt(r.credit) : "—"}</td>
+                      <td data-col="runningNet" className="px-4 py-2 text-right tabular-nums font-medium">{fmt(r.runningNet)}</td>
                     </tr>
                   ))}
                 </tbody>
                 {rows.length > 0 && (
                   <tfoot className="bg-gray-50 border-t-2 border-gray-200">
                     <tr>
-                      <td colSpan={5} className="px-4 py-2.5 text-xs font-semibold text-gray-600">Totals</td>
-                      <td className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">
+                      <td
+                        colSpan={5}
+                        data-col-span="entryDate,entryNumber,referenceNumber,accountCode,narration"
+                        className="px-4 py-2.5 text-xs font-semibold text-gray-600"
+                      >
+                        Totals
+                      </td>
+                      <td data-col="debit" className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">
                         {fmt(rows.reduce((s, r) => s + r.debit, 0))}
                       </td>
-                      <td className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">
+                      <td data-col="credit" className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">
                         {fmt(rows.reduce((s, r) => s + r.credit, 0))}
                       </td>
-                      <td className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">
+                      <td data-col="runningNet" className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">
                         {fmt(rows[rows.length - 1].runningNet)}
                       </td>
                     </tr>
@@ -629,6 +639,7 @@ function SortHeader<K extends string>({ label, sortKey, sort, onSort, align = "r
   return (
     <th
       onClick={() => onSort(sortKey)}
+      data-col={sortKey}
       className={`px-4 py-2.5 text-xs font-medium text-gray-500 cursor-pointer select-none hover:text-gray-700 ${align === "left" ? "text-left" : "text-right"}`}
     >
       <span className={`inline-flex items-center gap-1 ${align === "right" ? "flex-row-reverse" : ""}`}>
