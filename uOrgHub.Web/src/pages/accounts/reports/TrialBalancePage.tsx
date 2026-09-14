@@ -60,7 +60,7 @@ export default function TrialBalancePage() {
           {tb && (
             <tfoot className="bg-gray-50 border-t-2 border-gray-200">
               <tr>
-                <td colSpan={4} className="px-4 py-2.5 text-xs font-semibold text-gray-600">Totals</td>
+                <td colSpan={4} data-col-span="code,account,group,type" className="px-4 py-2.5 text-xs font-semibold text-gray-600">Totals</td>
                 <td data-col="openingDebit" className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(tb.totalOpeningDebit)}</td>
                 <td data-col="openingCredit" className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(tb.totalOpeningCredit)}</td>
                 <td data-col="debit" className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(tb.totalDebit)}</td>

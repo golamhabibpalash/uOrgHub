@@ -194,6 +194,15 @@ export default function ReportLayout({
                 var k = el.getAttribute('data-col');
                 if (!active[k]) el.style.display = 'none';
               });
+              // A totals-row label cell (e.g. "Totals" under colSpan={4}) names the data-col keys
+              // it stands in for via data-col-span, so its span shrinks to match however many of
+              // those columns are still visible — otherwise a table with one hidden in that group
+              // shifts every total to its right out from under the wrong header.
+              document.querySelectorAll('[data-col-span]').forEach(function (el) {
+                var keys = (el.getAttribute('data-col-span') || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+                var visible = keys.filter(function (k) { return active[k]; }).length;
+                el.colSpan = Math.max(visible, 1);
+              });
               var done = false;
               function go() { if (done) return; done = true; window.focus(); window.print(); }
               window.addEventListener('load', function () { setTimeout(go, 350); });

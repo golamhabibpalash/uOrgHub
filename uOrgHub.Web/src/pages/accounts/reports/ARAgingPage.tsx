@@ -94,11 +94,11 @@ export default function ARAgingPage() {
           {summary && (
             <tfoot className="bg-gray-50 border-t-2 border-gray-200">
               <tr>
-                <td colSpan={4} className="px-4 py-2.5 text-xs font-semibold text-gray-600">Totals</td>
+                <td colSpan={4} data-col-span="customer,invoice,date,dueDate" className="px-4 py-2.5 text-xs font-semibold text-gray-600">Totals</td>
                 <td data-col="total" className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(summary.rows.reduce((s, r) => s + r.totalAmount, 0))}</td>
                 <td data-col="paid" className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(summary.rows.reduce((s, r) => s + r.paidAmount, 0))}</td>
                 <td data-col="balance" className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(summary.totalOutstanding)}</td>
-                <td colSpan={2}></td>
+                <td colSpan={2} data-col-span="days,bucket"></td>
               </tr>
             </tfoot>
           )}

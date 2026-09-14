@@ -59,7 +59,7 @@ export default function AccountGroupSummaryPage() {
           {rows.length > 0 && (
             <tfoot className="bg-gray-50 border-t-2 border-gray-200">
               <tr>
-                <td colSpan={3} className="px-4 py-2.5 text-xs font-semibold text-gray-600">Totals</td>
+                <td colSpan={3} data-col-span="code,groupName,type" className="px-4 py-2.5 text-xs font-semibold text-gray-600">Totals</td>
                 <td data-col="totalDebit" className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(totalDebit)}</td>
                 <td data-col="totalCredit" className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(totalCredit)}</td>
                 <td data-col="net" className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(totalDebit - totalCredit)}</td>

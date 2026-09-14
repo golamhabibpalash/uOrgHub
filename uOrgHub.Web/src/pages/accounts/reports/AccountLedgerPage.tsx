@@ -113,7 +113,7 @@ export default function AccountLedgerPage() {
                   </thead>
                   <tbody>
                     <tr className="border-b border-gray-100 bg-gray-50/40">
-                      <td className="px-4 py-2 text-xs text-gray-500" colSpan={6}>Opening Balance</td>
+                      <td className="px-4 py-2 text-xs text-gray-500" colSpan={6} data-col-span="date,entry,reference,narration,debit,credit">Opening Balance</td>
                       <td data-col="balance" className="px-4 py-2 text-right tabular-nums font-medium">{fmt(g.openingBalance)}</td>
                     </tr>
                     {g.rows.map((row, i) => (
@@ -128,7 +128,7 @@ export default function AccountLedgerPage() {
                       </tr>
                     ))}
                     <tr className="border-t border-gray-200 bg-gray-50/60 font-medium">
-                      <td className="px-4 py-2 text-xs" colSpan={4}>Closing Balance</td>
+                      <td className="px-4 py-2 text-xs" colSpan={4} data-col-span="date,entry,reference,narration">Closing Balance</td>
                       <td data-col="debit" className="px-4 py-2 text-right tabular-nums">{fmt(g.totalDebit)}</td>
                       <td data-col="credit" className="px-4 py-2 text-right tabular-nums">{fmt(g.totalCredit)}</td>
                       <td data-col="balance" className="px-4 py-2 text-right tabular-nums">{fmt(g.closingBalance)}</td>

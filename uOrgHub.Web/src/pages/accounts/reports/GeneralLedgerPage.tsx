@@ -61,7 +61,7 @@ export default function GeneralLedgerPage() {
           {rows.length > 0 && (
             <tfoot className="bg-gray-50 border-t-2 border-gray-200">
               <tr>
-                <td colSpan={4} className="px-4 py-2.5 text-xs font-semibold text-gray-600">Totals</td>
+                <td colSpan={4} data-col-span="code,account,group,type" className="px-4 py-2.5 text-xs font-semibold text-gray-600">Totals</td>
                 <td data-col="opening" className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(totalOpening)}</td>
                 <td data-col="debit" className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(totalDebit)}</td>
                 <td data-col="credit" className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(totalCredit)}</td>

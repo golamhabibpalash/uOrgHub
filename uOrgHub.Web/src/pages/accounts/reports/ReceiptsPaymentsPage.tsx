@@ -270,7 +270,7 @@ export default function ReceiptsPaymentsPage() {
                 <tbody className="divide-y divide-gray-50">
                   {report.balances.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-4 py-4 text-center text-xs text-gray-400">
+                      <td colSpan={5} data-col-span="account,opening,receipts,payments,closing" className="px-4 py-4 text-center text-xs text-gray-400">
                         No accounts are flagged as “Cash / Bank” in the Chart of Accounts.
                       </td>
                     </tr>
