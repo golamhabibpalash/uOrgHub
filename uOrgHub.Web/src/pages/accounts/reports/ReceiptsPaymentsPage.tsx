@@ -260,11 +260,11 @@ export default function ReceiptsPaymentsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-xs text-gray-500 border-b border-gray-100">
-                    <th className="text-left font-medium px-4 py-2">Account</th>
-                    <th className="text-right font-medium px-4 py-2">Opening</th>
-                    <th className="text-right font-medium px-4 py-2">Receipts</th>
-                    <th className="text-right font-medium px-4 py-2">Payments</th>
-                    <th className="text-right font-medium px-4 py-2">Closing</th>
+                    <th data-col="account" className="text-left font-medium px-4 py-2">Account</th>
+                    <th data-col="opening" className="text-right font-medium px-4 py-2">Opening</th>
+                    <th data-col="receipts" className="text-right font-medium px-4 py-2">Receipts</th>
+                    <th data-col="payments" className="text-right font-medium px-4 py-2">Payments</th>
+                    <th data-col="closing" className="text-right font-medium px-4 py-2">Closing</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -277,14 +277,14 @@ export default function ReceiptsPaymentsPage() {
                   ) : (
                     report.balances.map((b) => (
                       <tr key={b.accountId}>
-                        <td className="px-4 py-2 text-gray-600">
+                        <td data-col="account" className="px-4 py-2 text-gray-600">
                           <span className="text-gray-400 font-mono text-xs mr-1.5">{b.accountCode}</span>
                           {b.accountName}
                         </td>
-                        <td className="px-4 py-2 text-right tabular-nums text-gray-600">{fmt(b.opening)}</td>
-                        <td className="px-4 py-2 text-right tabular-nums text-green-700">{fmt(b.receipts)}</td>
-                        <td className="px-4 py-2 text-right tabular-nums text-red-700">{fmt(b.payments)}</td>
-                        <td className="px-4 py-2 text-right tabular-nums font-semibold text-gray-900">{fmt(b.closing)}</td>
+                        <td data-col="opening" className="px-4 py-2 text-right tabular-nums text-gray-600">{fmt(b.opening)}</td>
+                        <td data-col="receipts" className="px-4 py-2 text-right tabular-nums text-green-700">{fmt(b.receipts)}</td>
+                        <td data-col="payments" className="px-4 py-2 text-right tabular-nums text-red-700">{fmt(b.payments)}</td>
+                        <td data-col="closing" className="px-4 py-2 text-right tabular-nums font-semibold text-gray-900">{fmt(b.closing)}</td>
                       </tr>
                     ))
                   )}
@@ -293,10 +293,10 @@ export default function ReceiptsPaymentsPage() {
                   <tfoot>
                     <tr className="border-t border-gray-200 bg-gray-50 font-semibold">
                       <td className="px-4 py-2 text-gray-700">Total</td>
-                      <td className="px-4 py-2 text-right tabular-nums text-gray-700">{fmt(report.totalOpening)}</td>
-                      <td className="px-4 py-2 text-right tabular-nums text-green-800">{fmt(report.totalPeriodReceipts)}</td>
-                      <td className="px-4 py-2 text-right tabular-nums text-red-800">{fmt(report.totalPeriodPayments)}</td>
-                      <td className="px-4 py-2 text-right tabular-nums text-gray-900">{fmt(report.totalClosing)}</td>
+                      <td data-col="opening" className="px-4 py-2 text-right tabular-nums text-gray-700">{fmt(report.totalOpening)}</td>
+                      <td data-col="receipts" className="px-4 py-2 text-right tabular-nums text-green-800">{fmt(report.totalPeriodReceipts)}</td>
+                      <td data-col="payments" className="px-4 py-2 text-right tabular-nums text-red-800">{fmt(report.totalPeriodPayments)}</td>
+                      <td data-col="closing" className="px-4 py-2 text-right tabular-nums text-gray-900">{fmt(report.totalClosing)}</td>
                     </tr>
                   </tfoot>
                 )}
