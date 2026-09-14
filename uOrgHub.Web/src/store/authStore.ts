@@ -75,3 +75,18 @@ export const useAuthStore = create<AuthState>()(
     }
   )
 );
+
+// Refresh tokens are single-use — the server revokes the old one the instant a tab redeems it for
+// a new pair (AuthService.RefreshTokenAsync). Without this, a second open tab keeps the
+// now-revoked refresh token in memory (each tab's Zustand state is independent of the others), so
+// the next time *that* tab's access token expires, its refresh call is rejected and it gets logged
+// out mid-work — even though the session is still perfectly alive in the tab that rotated it.
+// `storage` fires in every tab except the one that wrote the change, so re-hydrating from it here
+// keeps every tab pointed at whichever token pair is actually current.
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (event.key === 'auth-storage') {
+      void useAuthStore.persist.rehydrate();
+    }
+  });
+}

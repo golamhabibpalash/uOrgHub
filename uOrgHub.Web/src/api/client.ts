@@ -26,7 +26,15 @@ apiClient.interceptors.request.use((config) => {
 });
 
 let isRefreshing = false;
-let refreshQueue: Array<(token: string) => void> = [];
+// Requests that 401'd while a refresh was already in flight wait here for its outcome — resolved
+// with the new token on success, rejected on failure so they fail cleanly instead of hanging.
+let refreshQueue: Array<{ resolve: (token: string) => void; reject: (reason: unknown) => void }> = [];
+
+function settleQueue(token: string | null, error?: unknown) {
+  const queued = refreshQueue;
+  refreshQueue = [];
+  queued.forEach(({ resolve, reject }) => (token ? resolve(token) : reject(error)));
+}
 
 apiClient.interceptors.response.use(
   (response) => {
@@ -53,15 +61,19 @@ apiClient.interceptors.response.use(
       if (!refreshToken) { logout(); return Promise.reject(error); }
 
       if (isRefreshing) {
-        return new Promise((resolve) => {
-          refreshQueue.push((token) => {
-            original.headers.Authorization = `Bearer ${token}`;
-            resolve(apiClient(original));
+        return new Promise((resolve, reject) => {
+          refreshQueue.push({
+            resolve: (token) => {
+              original.headers.Authorization = `Bearer ${token}`;
+              resolve(apiClient(original));
+            },
+            reject,
           });
         });
       }
 
       isRefreshing = true;
+      const attemptedRefreshToken = refreshToken;
       try {
         const { data } = await axios.post(
           `${apiClient.defaults.baseURL ?? 'http://localhost:5177/api/v1'}/auth/refresh-token`,
@@ -70,13 +82,24 @@ apiClient.interceptors.response.use(
         );
         const { accessToken, refreshToken: newRefresh } = data.data;
         setTokens(accessToken, newRefresh);
-        refreshQueue.forEach((cb) => cb(accessToken));
-        refreshQueue = [];
+        settleQueue(accessToken);
         original.headers.Authorization = `Bearer ${accessToken}`;
         return apiClient(original);
-      } catch {
+      } catch (refreshError) {
+        // Refresh tokens are single-use — another tab (or a request that beat this one to the
+        // server) may have already redeemed this exact token for a new pair, which is why the
+        // server just rejected it. That doesn't mean the session is dead: if the store now holds a
+        // *different* refresh token than the one we tried, someone else already rotated it, so
+        // retry with what's current instead of logging out from under an otherwise-live session.
+        const latest = useAuthStore.getState();
+        if (latest.refreshToken && latest.refreshToken !== attemptedRefreshToken && latest.token) {
+          settleQueue(latest.token);
+          original.headers.Authorization = `Bearer ${latest.token}`;
+          return apiClient(original);
+        }
+        settleQueue(null, refreshError);
         logout();
-        return Promise.reject(error);
+        return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
       }
