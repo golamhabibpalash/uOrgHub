@@ -29,31 +29,31 @@ export default function TrialBalancePage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Code</th>
-              <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Account</th>
-              <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Group</th>
-              <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Type</th>
-              <th className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Opening Dr</th>
-              <th className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Opening Cr</th>
-              <th className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Debit</th>
-              <th className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Credit</th>
-              <th className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Closing Dr</th>
-              <th className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Closing Cr</th>
+              <th data-col="code" className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Code</th>
+              <th data-col="account" className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Account</th>
+              <th data-col="group" className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Group</th>
+              <th data-col="type" className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Type</th>
+              <th data-col="openingDebit" className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Opening Dr</th>
+              <th data-col="openingCredit" className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Opening Cr</th>
+              <th data-col="debit" className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Debit</th>
+              <th data-col="credit" className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Credit</th>
+              <th data-col="closingDebit" className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Closing Dr</th>
+              <th data-col="closingCredit" className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Closing Cr</th>
             </tr>
           </thead>
           <tbody>
             {tb?.rows.map((row) => (
               <tr key={row.accountId} className="border-b border-gray-100 hover:bg-gray-50/50">
-                <td className="px-4 py-2 text-xs font-mono text-gray-500">{row.accountCode}</td>
-                <td className="px-4 py-2 text-sm">{row.accountName}</td>
-                <td className="px-4 py-2 text-xs text-gray-500">{row.accountGroupName}</td>
-                <td className={`px-4 py-2 text-xs font-medium ${typeColors[row.accountType]}`}>{row.accountType}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{fmt(row.openingDebit)}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{fmt(row.openingCredit)}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{fmt(row.debit)}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{fmt(row.credit)}</td>
-                <td className="px-4 py-2 text-right tabular-nums font-medium">{fmt(row.closingDebit)}</td>
-                <td className="px-4 py-2 text-right tabular-nums font-medium">{fmt(row.closingCredit)}</td>
+                <td data-col="code" className="px-4 py-2 text-xs font-mono text-gray-500">{row.accountCode}</td>
+                <td data-col="account" className="px-4 py-2 text-sm">{row.accountName}</td>
+                <td data-col="group" className="px-4 py-2 text-xs text-gray-500">{row.accountGroupName}</td>
+                <td data-col="type" className={`px-4 py-2 text-xs font-medium ${typeColors[row.accountType]}`}>{row.accountType}</td>
+                <td data-col="openingDebit" className="px-4 py-2 text-right tabular-nums">{fmt(row.openingDebit)}</td>
+                <td data-col="openingCredit" className="px-4 py-2 text-right tabular-nums">{fmt(row.openingCredit)}</td>
+                <td data-col="debit" className="px-4 py-2 text-right tabular-nums">{fmt(row.debit)}</td>
+                <td data-col="credit" className="px-4 py-2 text-right tabular-nums">{fmt(row.credit)}</td>
+                <td data-col="closingDebit" className="px-4 py-2 text-right tabular-nums font-medium">{fmt(row.closingDebit)}</td>
+                <td data-col="closingCredit" className="px-4 py-2 text-right tabular-nums font-medium">{fmt(row.closingCredit)}</td>
               </tr>
             ))}
           </tbody>
@@ -61,12 +61,12 @@ export default function TrialBalancePage() {
             <tfoot className="bg-gray-50 border-t-2 border-gray-200">
               <tr>
                 <td colSpan={4} className="px-4 py-2.5 text-xs font-semibold text-gray-600">Totals</td>
-                <td className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(tb.totalOpeningDebit)}</td>
-                <td className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(tb.totalOpeningCredit)}</td>
-                <td className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(tb.totalDebit)}</td>
-                <td className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(tb.totalCredit)}</td>
-                <td className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(tb.totalClosingDebit)}</td>
-                <td className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(tb.totalClosingCredit)}</td>
+                <td data-col="openingDebit" className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(tb.totalOpeningDebit)}</td>
+                <td data-col="openingCredit" className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(tb.totalOpeningCredit)}</td>
+                <td data-col="debit" className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(tb.totalDebit)}</td>
+                <td data-col="credit" className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(tb.totalCredit)}</td>
+                <td data-col="closingDebit" className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(tb.totalClosingDebit)}</td>
+                <td data-col="closingCredit" className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(tb.totalClosingCredit)}</td>
               </tr>
             </tfoot>
           )}

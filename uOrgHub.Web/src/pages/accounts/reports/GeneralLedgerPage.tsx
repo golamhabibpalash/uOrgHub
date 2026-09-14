@@ -34,27 +34,27 @@ export default function GeneralLedgerPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Code</th>
-              <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Account</th>
-              <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Group</th>
-              <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Type</th>
-              <th className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Opening</th>
-              <th className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Debit</th>
-              <th className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Credit</th>
-              <th className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Closing</th>
+              <th data-col="code" className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Code</th>
+              <th data-col="account" className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Account</th>
+              <th data-col="group" className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Group</th>
+              <th data-col="type" className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Type</th>
+              <th data-col="opening" className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Opening</th>
+              <th data-col="debit" className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Debit</th>
+              <th data-col="credit" className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Credit</th>
+              <th data-col="closing" className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Closing</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
               <tr key={row.accountId} className="border-b border-gray-100 hover:bg-gray-50/50">
-                <td className="px-4 py-2 text-xs font-mono text-gray-500">{row.accountCode}</td>
-                <td className="px-4 py-2 text-sm">{row.accountName}</td>
-                <td className="px-4 py-2 text-xs text-gray-500">{row.accountGroupName}</td>
-                <td className={`px-4 py-2 text-xs font-medium ${typeColors[row.accountType]}`}>{row.accountType}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{fmt(row.openingBalance)}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{fmt(row.debit)}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{fmt(row.credit)}</td>
-                <td className="px-4 py-2 text-right tabular-nums font-medium">{fmt(row.closingBalance)}</td>
+                <td data-col="code" className="px-4 py-2 text-xs font-mono text-gray-500">{row.accountCode}</td>
+                <td data-col="account" className="px-4 py-2 text-sm">{row.accountName}</td>
+                <td data-col="group" className="px-4 py-2 text-xs text-gray-500">{row.accountGroupName}</td>
+                <td data-col="type" className={`px-4 py-2 text-xs font-medium ${typeColors[row.accountType]}`}>{row.accountType}</td>
+                <td data-col="opening" className="px-4 py-2 text-right tabular-nums">{fmt(row.openingBalance)}</td>
+                <td data-col="debit" className="px-4 py-2 text-right tabular-nums">{fmt(row.debit)}</td>
+                <td data-col="credit" className="px-4 py-2 text-right tabular-nums">{fmt(row.credit)}</td>
+                <td data-col="closing" className="px-4 py-2 text-right tabular-nums font-medium">{fmt(row.closingBalance)}</td>
               </tr>
             ))}
           </tbody>
@@ -62,10 +62,10 @@ export default function GeneralLedgerPage() {
             <tfoot className="bg-gray-50 border-t-2 border-gray-200">
               <tr>
                 <td colSpan={4} className="px-4 py-2.5 text-xs font-semibold text-gray-600">Totals</td>
-                <td className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(totalOpening)}</td>
-                <td className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(totalDebit)}</td>
-                <td className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(totalCredit)}</td>
-                <td className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(totalClosing)}</td>
+                <td data-col="opening" className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(totalOpening)}</td>
+                <td data-col="debit" className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(totalDebit)}</td>
+                <td data-col="credit" className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(totalCredit)}</td>
+                <td data-col="closing" className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(totalClosing)}</td>
               </tr>
             </tfoot>
           )}

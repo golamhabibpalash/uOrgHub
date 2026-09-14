@@ -1,5 +1,5 @@
-import { useRef, useCallback } from "react";
-import { Printer, Download, FileDown } from "lucide-react";
+import { useRef, useState, useEffect, useCallback } from "react";
+import { Printer, Download, FileDown, Columns3 } from "lucide-react";
 
 interface ReportLayoutProps {
   title: string;
@@ -9,6 +9,11 @@ interface ReportLayoutProps {
   loading?: boolean;
   onExportExcel?: () => void;
   onExportCsv?: () => void;
+}
+
+interface PrintColumn {
+  key: string;
+  label: string;
 }
 
 export default function ReportLayout({
@@ -21,13 +26,107 @@ export default function ReportLayout({
   onExportCsv,
 }: ReportLayoutProps) {
   const printRef = useRef<HTMLDivElement>(null);
+  const columnMenuRef = useRef<HTMLDivElement>(null);
+
+  const [columnOptions, setColumnOptions] = useState<PrintColumn[]>([]);
+  const [enabledColumns, setEnabledColumns] = useState<string[]>([]);
+  const [columnMenuOpen, setColumnMenuOpen] = useState(false);
+  const storageKey = `uorghub.print.columns.${title}`;
+
+  const discoverColumns = useCallback((): PrintColumn[] => {
+    const root = printRef.current;
+    if (!root) return [];
+    const found: PrintColumn[] = [];
+    const seen = new Set<string>();
+    root.querySelectorAll("th[data-col]").forEach((th) => {
+      const key = th.getAttribute("data-col") ?? "";
+      if (!key || seen.has(key)) return;
+      const label = (th.textContent ?? key).replace(/\s+/g, " ").trim();
+      if (!label) return;
+      seen.add(key);
+      found.push({ key, label });
+    });
+    return found;
+  }, []);
+
+  const loadSavedColumns = useCallback(
+    (cols: PrintColumn[]): string[] | null => {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        const parsed = raw ? JSON.parse(raw) : null;
+        if (Array.isArray(parsed)) {
+          const valid = parsed.filter((k) => cols.some((c) => c.key === k));
+          if (valid.length) return valid;
+        }
+      } catch {
+        /* corrupted/missing storage is not fatal */
+      }
+      return null;
+    },
+    [storageKey]
+  );
+
+  const immediateEnabled = useCallback(
+    (cols: PrintColumn[]): string[] => {
+      const valid = enabledColumns.filter((k) => cols.some((c) => c.key === k));
+      if (valid.length) return valid;
+      return cols.filter((c) => c.key !== "actions").map((c) => c.key);
+    },
+    [enabledColumns]
+  );
+
+  const openColumnMenu = useCallback(() => {
+    const cols = discoverColumns();
+    setColumnOptions(cols);
+    if (!cols.length) {
+      setColumnMenuOpen(false);
+      return;
+    }
+    setEnabledColumns((prev) => {
+      if (prev.length) return prev;
+      return loadSavedColumns(cols) ?? cols.filter((c) => c.key !== "actions").map((c) => c.key);
+    });
+    setColumnMenuOpen((open) => !open);
+  }, [discoverColumns, loadSavedColumns]);
+
+  const toggleColumn = useCallback(
+    (key: string) => {
+      setEnabledColumns((prev) => {
+        const next = prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key];
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(next));
+        } catch {
+          /* ignore */
+        }
+        return next;
+      });
+    },
+    [storageKey]
+  );
+
+  useEffect(() => {
+    if (!columnMenuOpen) return;
+    const onDocumentClick = (e: MouseEvent) => {
+      if (columnMenuRef.current && !columnMenuRef.current.contains(e.target as Node)) {
+        setColumnMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDocumentClick);
+    return () => document.removeEventListener("mousedown", onDocumentClick);
+  }, [columnMenuOpen]);
 
   const handlePrint = useCallback(() => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
     const content = printRef.current?.innerHTML ?? "";
     const now = new Date().toLocaleString("en-BD");
+
+    // The column menu configures which columns survive to paper; the print window only applies it.
+    const cols = discoverColumns();
+    const enabledPayload = JSON.stringify(immediateEnabled(cols));
+
     printWindow.document.write(`
+      <!DOCTYPE html>
       <html>
         <head>
           <title>${title}</title>
@@ -84,12 +183,17 @@ export default function ReportLayout({
             ${subtitle ? `<p style="font-size:11px; color:#6b7280; margin:4px 0 0;">${subtitle}</p>` : ""}
             <p style="font-size:9px; color:#9ca3af; margin:4px 0;">Printed: ${now}</p>
           </div>
-          ${content}
+          <div id="print-content">${content}</div>
           <div class="print-footer">Page 1</div>
           <script>
-            // Wait for the Tailwind CDN to finish generating utilities before printing —
-            // firing too early prints an unstyled (oversized) page.
             (function () {
+              var enabled = ${enabledPayload};
+              var active = {};
+              enabled.forEach(function (k) { active[k] = true; });
+              document.querySelectorAll('[data-col]').forEach(function (el) {
+                var k = el.getAttribute('data-col');
+                if (!active[k]) el.style.display = 'none';
+              });
               var done = false;
               function go() { if (done) return; done = true; window.focus(); window.print(); }
               window.addEventListener('load', function () { setTimeout(go, 350); });
@@ -100,7 +204,7 @@ export default function ReportLayout({
       </html>
     `);
     printWindow.document.close();
-  }, [title, subtitle]);
+  }, [title, subtitle, discoverColumns, immediateEnabled]);
 
   return (
     <div>
@@ -121,6 +225,38 @@ export default function ReportLayout({
               <Download size={14} /> CSV
             </button>
           )}
+          <div className="relative" ref={columnMenuRef}>
+            <button
+              onClick={openColumnMenu}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600"
+              title="Choose columns to print"
+            >
+              <Columns3 size={14} /> Columns
+            </button>
+            {columnMenuOpen && (
+              <div className="absolute right-0 top-full mt-2 z-20 w-64 bg-white border border-gray-200 rounded-xl shadow-lg p-3">
+                <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                  Columns to print
+                </div>
+                <div className="space-y-1 max-h-72 overflow-y-auto pr-1">
+                  {columnOptions.map((col) => (
+                    <label
+                      key={col.key}
+                      className="flex items-center gap-2 px-2 py-1 rounded-md text-sm text-gray-700 cursor-pointer hover:bg-gray-50"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={enabledColumns.includes(col.key)}
+                        onChange={() => toggleColumn(col.key)}
+                        className="accent-primary-600"
+                      />
+                      {col.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
           <button onClick={handlePrint} className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600">
             <Printer size={14} /> Print
           </button>

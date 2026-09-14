@@ -82,7 +82,7 @@ export default function DataGrid<T extends { id: string }>({
       {/* Toolbar — search gets its own row so it never has to fight toolbarPrefix/filterBar for
           width; a page with several filters was squeezing the search box down to an unreadable
           sliver when they all shared one row. */}
-      <div className="px-4 py-3 border-b border-gray-100 space-y-3">
+      <div className="no-print px-4 py-3 border-b border-gray-100 space-y-3">
         <div className="flex items-center justify-between gap-3">
           {onSearch && (
             <div className="relative flex-1 max-w-sm">
@@ -128,6 +128,7 @@ export default function DataGrid<T extends { id: string }>({
                 {columns.map((col) => (
                   <th
                     key={col.key}
+                    data-col={col.key}
                     className={`text-left px-4 py-2.5 text-xs font-medium text-gray-500 border-b border-gray-200 ${col.headerClassName ?? ""}`}
                     style={col.width ? { width: col.width } : undefined}
                   >
@@ -145,7 +146,7 @@ export default function DataGrid<T extends { id: string }>({
                   </th>
                 ))}
                 {(onView || onEdit || onDelete) && (
-                  <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 border-b border-gray-200">
+                  <th data-col="actions" className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 border-b border-gray-200">
                     Actions
                   </th>
                 )}
@@ -173,13 +174,14 @@ export default function DataGrid<T extends { id: string }>({
                     {columns.map((col) => (
                       <td
                         key={col.key}
+                        data-col={col.key}
                         className={`px-4 py-2.5 text-gray-700 ${col.className ?? ""}`}
                       >
                         {col.render ? col.render(row) : String((row as Record<string, unknown>)[col.key] ?? "")}
                       </td>
                     ))}
                     {(onView || onEdit || onDelete) && (
-                      <td className="px-4 py-2.5">
+                      <td data-col="actions" className="px-4 py-2.5">
                         <div className="flex items-center gap-3">
                           {onView && (
                             <button
@@ -228,7 +230,7 @@ export default function DataGrid<T extends { id: string }>({
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+      <div className="no-print flex items-center justify-between px-4 py-3 border-t border-gray-100">
         <div className="flex items-center gap-2 text-xs text-gray-400">
           <span>{totalCount} record{totalCount !== 1 ? "s" : ""}</span>
           {onPageSizeChange && (

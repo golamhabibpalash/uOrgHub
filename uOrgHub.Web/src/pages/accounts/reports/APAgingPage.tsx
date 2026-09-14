@@ -61,29 +61,29 @@ export default function APAgingPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Vendor</th>
-              <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Bill #</th>
-              <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Date</th>
-              <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Due Date</th>
-              <th className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Total</th>
-              <th className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Paid</th>
-              <th className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Balance</th>
-              <th className="text-center px-4 py-2.5 text-xs font-medium text-gray-500">Days</th>
-              <th className="text-center px-4 py-2.5 text-xs font-medium text-gray-500">Bucket</th>
+              <th data-col="vendor" className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Vendor</th>
+              <th data-col="bill" className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Bill #</th>
+              <th data-col="date" className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Date</th>
+              <th data-col="dueDate" className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Due Date</th>
+              <th data-col="total" className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Total</th>
+              <th data-col="paid" className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Paid</th>
+              <th data-col="balance" className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Balance</th>
+              <th data-col="days" className="text-center px-4 py-2.5 text-xs font-medium text-gray-500">Days</th>
+              <th data-col="bucket" className="text-center px-4 py-2.5 text-xs font-medium text-gray-500">Bucket</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row, i) => (
               <tr key={i} className="border-b border-gray-100 hover:bg-gray-50/50">
-                <td className="px-4 py-2 text-sm">{row.customerOrVendor}</td>
-                <td className="px-4 py-2 text-xs font-mono text-gray-500">{row.documentNumber}</td>
-                <td className="px-4 py-2 text-xs">{dateFmt(row.documentDate)}</td>
-                <td className="px-4 py-2 text-xs">{dateFmt(row.dueDate)}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{fmt(row.totalAmount)}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{fmt(row.paidAmount)}</td>
-                <td className="px-4 py-2 text-right tabular-nums font-medium">{fmt(row.balanceDue)}</td>
-                <td className="px-4 py-2 text-center text-xs text-gray-500">{row.daysOverdue}</td>
-                <td className="px-4 py-2 text-center">
+                <td data-col="vendor" className="px-4 py-2 text-sm">{row.customerOrVendor}</td>
+                <td data-col="bill" className="px-4 py-2 text-xs font-mono text-gray-500">{row.documentNumber}</td>
+                <td data-col="date" className="px-4 py-2 text-xs">{dateFmt(row.documentDate)}</td>
+                <td data-col="dueDate" className="px-4 py-2 text-xs">{dateFmt(row.dueDate)}</td>
+                <td data-col="total" className="px-4 py-2 text-right tabular-nums">{fmt(row.totalAmount)}</td>
+                <td data-col="paid" className="px-4 py-2 text-right tabular-nums">{fmt(row.paidAmount)}</td>
+                <td data-col="balance" className="px-4 py-2 text-right tabular-nums font-medium">{fmt(row.balanceDue)}</td>
+                <td data-col="days" className="px-4 py-2 text-center text-xs text-gray-500">{row.daysOverdue}</td>
+                <td data-col="bucket" className="px-4 py-2 text-center">
                   <span className={`text-xs px-2 py-0.5 rounded-full ${bucketColors[row.agingBucket] ?? "bg-gray-100 text-gray-600"}`}>
                     {row.agingBucket}
                   </span>
@@ -95,9 +95,9 @@ export default function APAgingPage() {
             <tfoot className="bg-gray-50 border-t-2 border-gray-200">
               <tr>
                 <td colSpan={4} className="px-4 py-2.5 text-xs font-semibold text-gray-600">Totals</td>
-                <td className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(summary.rows.reduce((s, r) => s + r.totalAmount, 0))}</td>
-                <td className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(summary.rows.reduce((s, r) => s + r.paidAmount, 0))}</td>
-                <td className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(summary.totalOutstanding)}</td>
+                <td data-col="total" className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(summary.rows.reduce((s, r) => s + r.totalAmount, 0))}</td>
+                <td data-col="paid" className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(summary.rows.reduce((s, r) => s + r.paidAmount, 0))}</td>
+                <td data-col="balance" className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">{fmt(summary.totalOutstanding)}</td>
                 <td colSpan={2}></td>
               </tr>
             </tfoot>
