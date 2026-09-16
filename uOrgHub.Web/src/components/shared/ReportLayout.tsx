@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from "react";
-import { Printer, Download, FileDown, Columns3 } from "lucide-react";
+import { Printer, Download, FileDown, FileText, Columns3 } from "lucide-react";
 
 interface ReportLayoutProps {
   title: string;
@@ -9,6 +9,8 @@ interface ReportLayoutProps {
   loading?: boolean;
   onExportExcel?: () => void;
   onExportCsv?: () => void;
+  onExportPdf?: () => void;
+  exportingPdf?: boolean;
 }
 
 interface PrintColumn {
@@ -24,6 +26,8 @@ export default function ReportLayout({
   loading,
   onExportExcel,
   onExportCsv,
+  onExportPdf,
+  exportingPdf,
 }: ReportLayoutProps) {
   const printRef = useRef<HTMLDivElement>(null);
   const columnMenuRef = useRef<HTMLDivElement>(null);
@@ -116,16 +120,45 @@ export default function ReportLayout({
   }, [columnMenuOpen]);
 
   const handlePrint = useCallback(() => {
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
     const content = printRef.current?.innerHTML ?? "";
     const now = new Date().toLocaleString("en-BD");
 
-    // The column menu configures which columns survive to paper; the print window only applies it.
+    // The column menu configures which columns survive to paper; the print document only applies it.
     const cols = discoverColumns();
     const enabledPayload = JSON.stringify(immediateEnabled(cols));
 
-    printWindow.document.write(`
+    // Printed via a detached, off-screen iframe rather than window.open(), so printing never
+    // spawns a visible new tab/window — the print dialog attaches to this same page.
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.top = "-100000px";
+    iframe.style.left = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "none";
+    iframe.setAttribute("aria-hidden", "true");
+    document.body.appendChild(iframe);
+
+    let cleaned = false;
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      iframe.remove();
+    };
+
+    const printDoc = iframe.contentWindow?.document;
+    if (!printDoc) {
+      cleanup();
+      return;
+    }
+
+    const printWin = iframe.contentWindow;
+    printWin?.addEventListener("afterprint", cleanup);
+    // Fallback in case afterprint never fires (some browser/OS print-dialog combinations).
+    setTimeout(cleanup, 60000);
+
+    printDoc.open();
+    printDoc.write(`
       <!DOCTYPE html>
       <html>
         <head>
@@ -212,7 +245,7 @@ export default function ReportLayout({
         </body>
       </html>
     `);
-    printWindow.document.close();
+    printDoc.close();
   }, [title, subtitle, discoverColumns, immediateEnabled]);
 
   return (
@@ -232,6 +265,15 @@ export default function ReportLayout({
           {onExportCsv && (
             <button onClick={onExportCsv} className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600">
               <Download size={14} /> CSV
+            </button>
+          )}
+          {onExportPdf && (
+            <button
+              onClick={onExportPdf}
+              disabled={exportingPdf}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 disabled:opacity-50"
+            >
+              <FileText size={14} /> {exportingPdf ? "Preparing..." : "Download PDF"}
             </button>
           )}
           <div className="relative" ref={columnMenuRef}>

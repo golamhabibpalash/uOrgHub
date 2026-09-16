@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getAccountGroupSummary, ReportFilter } from "../../../api/accounts";
+import { getAccountGroupSummary, reportPdfUrls, ReportFilter } from "../../../api/accounts";
 import ReportLayout from "../../../components/shared/ReportLayout";
+import { useReportPdf } from "../../../hooks/useReportPdf";
 
 const typeColors: Record<string, string> = {
   Asset: "text-blue-600", Liability: "text-red-600", Equity: "text-purple-600",
@@ -21,12 +22,15 @@ export default function AccountGroupSummaryPage() {
 
   const totalDebit = rows.reduce((s, r) => s + r.totalDebit, 0);
   const totalCredit = rows.reduce((s, r) => s + r.totalCredit, 0);
+  const { downloadPdf, isDownloading } = useReportPdf();
 
   return (
     <ReportLayout
       title="Account Group Summary"
       subtitle="Group-wise account balance summaries"
       loading={isLoading}
+      onExportPdf={() => downloadPdf({ url: reportPdfUrls.accountGroupSummary, params: filter, filename: "AccountGroupSummary.pdf" })}
+      exportingPdf={isDownloading}
     >
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         <table className="w-full text-sm">

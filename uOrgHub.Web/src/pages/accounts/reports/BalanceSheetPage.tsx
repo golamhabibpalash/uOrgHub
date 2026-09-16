@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getBalanceSheet, BalanceSheetLine } from "../../../api/accounts";
+import { getBalanceSheet, reportPdfUrls, BalanceSheetLine } from "../../../api/accounts";
 import ReportLayout from "../../../components/shared/ReportLayout";
 import DateInput from "../../../components/shared/DateInput";
 import { useFiscalYearLookup } from "../../../hooks/useEntityLookup";
+import { useReportPdf } from "../../../hooks/useReportPdf";
 
 const selectClass =
   "text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500 text-gray-600";
@@ -23,6 +24,8 @@ export default function BalanceSheetPage() {
         ...(dateTo && { dateTo }),
       }),
   });
+
+  const { downloadPdf, isDownloading } = useReportPdf();
 
   const bs = data?.data?.data;
   const fmt = (v: number) => v.toLocaleString("en-BD", { minimumFractionDigits: 2 });
@@ -109,7 +112,20 @@ export default function BalanceSheetPage() {
   );
 
   return (
-    <ReportLayout title="Balance Sheet" subtitle={subtitle} filters={filters} loading={isLoading}>
+    <ReportLayout
+      title="Balance Sheet"
+      subtitle={subtitle}
+      filters={filters}
+      loading={isLoading}
+      onExportPdf={() =>
+        downloadPdf({
+          url: reportPdfUrls.balanceSheet,
+          params: { ...(dateFrom && { dateFrom }), ...(dateTo && { dateTo }) },
+          filename: "BalanceSheet.pdf",
+        })
+      }
+      exportingPdf={isDownloading}
+    >
       {bs ? (
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden max-w-3xl mx-auto">
           <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">

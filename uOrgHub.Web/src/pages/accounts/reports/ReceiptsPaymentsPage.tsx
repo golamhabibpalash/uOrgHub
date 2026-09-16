@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   getReceiptsPayments,
+  reportPdfUrls,
   ReceiptsPaymentsGroup,
 } from "../../../api/accounts";
 import ReportLayout from "../../../components/shared/ReportLayout";
@@ -11,6 +12,7 @@ import {
   useCostCenterLookup,
   useProjectLookup,
 } from "../../../hooks/useEntityLookup";
+import { useReportPdf } from "../../../hooks/useReportPdf";
 
 const selectClass =
   "text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500 text-gray-600";
@@ -71,6 +73,7 @@ export default function ReceiptsPaymentsPage() {
 
   const report = data?.data?.data;
   const scoped = !!costCenterId || !!projectId;
+  const { downloadPdf, isDownloading } = useReportPdf();
 
   function selectFiscalYear(id: string) {
     setFiscalYearId(id);
@@ -140,7 +143,25 @@ export default function ReceiptsPaymentsPage() {
   );
 
   return (
-    <ReportLayout title="Receipts & Payments Statement" subtitle={subtitle} filters={filters} loading={isLoading}>
+    <ReportLayout
+      title="Receipts & Payments Statement"
+      subtitle={subtitle}
+      filters={filters}
+      loading={isLoading}
+      onExportPdf={() =>
+        downloadPdf({
+          url: reportPdfUrls.receiptsPayments,
+          params: {
+            ...(dateFrom && { dateFrom }),
+            ...(dateTo && { dateTo }),
+            ...(costCenterId && { costCenterId }),
+            ...(projectId && { projectId }),
+          },
+          filename: "ReceiptsPayments.pdf",
+        })
+      }
+      exportingPdf={isDownloading}
+    >
       {!report ? (
         <p className="text-sm text-gray-400 py-8 text-center">No data for the selected period.</p>
       ) : (

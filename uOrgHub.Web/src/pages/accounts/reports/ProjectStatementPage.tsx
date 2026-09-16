@@ -4,12 +4,14 @@ import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Search, X } from "lucide
 import {
   getConsolidatedProjectStatement,
   getProjectStatement,
+  reportPdfUrls,
   type ConsolidatedProjectRow,
 } from "../../../api/projects";
 import { useProjectLookup } from "../../../hooks/useEntityLookup";
 import SearchableDropdown from "../../../components/shared/SearchableDropdown";
 import ReportLayout from "../../../components/shared/ReportLayout";
 import DateInput from "../../../components/shared/DateInput";
+import { useReportPdf } from "../../../hooks/useReportPdf";
 
 const ALL_PROJECTS = "all";
 
@@ -87,6 +89,7 @@ export default function ProjectStatementPage() {
   const statement = single.data?.data?.data;
   const rows = useMemo(() => statement?.rows ?? [], [statement]);
   const byAccount = useMemo(() => statement?.byAccount ?? [], [statement]);
+  const { downloadPdf, isDownloading } = useReportPdf();
 
   const cs = consolidated.data?.data?.data;
   const sortedProjects = useMemo(() => {
@@ -204,6 +207,17 @@ export default function ProjectStatementPage() {
       title="Project Statement"
       subtitle={subtitle}
       loading={single.isLoading || consolidated.isLoading}
+      onExportPdf={
+        projectId
+          ? () =>
+              downloadPdf({
+                url: isAll ? reportPdfUrls.consolidatedProjectStatement : reportPdfUrls.projectStatement(projectId),
+                params: { dateFrom: dateFrom || undefined, dateTo: dateTo || undefined },
+                filename: "ProjectStatement.pdf",
+              })
+          : undefined
+      }
+      exportingPdf={isDownloading}
     >
       {/* Filters */}
       <div className="no-print mb-4">

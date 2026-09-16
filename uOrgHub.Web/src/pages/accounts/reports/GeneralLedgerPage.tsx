@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getGeneralLedger, ReportFilter } from "../../../api/accounts";
+import { getGeneralLedger, reportPdfUrls, ReportFilter } from "../../../api/accounts";
 import ReportLayout from "../../../components/shared/ReportLayout";
+import { useReportPdf } from "../../../hooks/useReportPdf";
 
 const typeColors: Record<string, string> = {
   Asset: "text-blue-600", Liability: "text-red-600", Equity: "text-purple-600",
@@ -15,6 +16,7 @@ export default function GeneralLedgerPage() {
     queryKey: ["report-general-ledger", filter],
     queryFn: () => getGeneralLedger(filter),
   });
+  const { downloadPdf, isDownloading } = useReportPdf();
 
   const rows = data?.data?.data ?? [];
   const fmt = (v: number) => v.toLocaleString("en-BD", { minimumFractionDigits: 2 });
@@ -29,6 +31,8 @@ export default function GeneralLedgerPage() {
       title="General Ledger"
       subtitle="Account-wise ledger summary with opening and closing balances"
       loading={isLoading}
+      onExportPdf={() => downloadPdf({ url: reportPdfUrls.generalLedger, params: filter, filename: "GeneralLedger.pdf" })}
+      exportingPdf={isDownloading}
     >
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         <table className="w-full text-sm">

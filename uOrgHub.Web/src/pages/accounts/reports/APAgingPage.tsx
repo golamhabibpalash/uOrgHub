@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getAPAging } from "../../../api/accounts";
+import { getAPAging, reportPdfUrls } from "../../../api/accounts";
 import ReportLayout from "../../../components/shared/ReportLayout";
 import DateInput from "../../../components/shared/DateInput";
+import { useReportPdf } from "../../../hooks/useReportPdf";
 
 export default function APAgingPage() {
   const today = new Date().toISOString().split("T")[0];
@@ -18,6 +19,7 @@ export default function APAgingPage() {
   const rows = summary?.rows ?? [];
   const fmt = (v: number) => v.toLocaleString("en-BD", { minimumFractionDigits: 2 });
   const dateFmt = (d: string) => new Date(d).toLocaleDateString("en-BD");
+  const { downloadPdf, isDownloading } = useReportPdf();
 
   const bucketColors: Record<string, string> = {
     Current: "bg-green-50 text-green-700",
@@ -32,6 +34,8 @@ export default function APAgingPage() {
       title="Accounts Payable Aging"
       subtitle={`Outstanding bills as of ${asOfDate}`}
       loading={isLoading}
+      onExportPdf={() => downloadPdf({ url: reportPdfUrls.apAging, params: { asOfDate }, filename: "APAging.pdf" })}
+      exportingPdf={isDownloading}
     >
       <div className="no-print mb-4">
         <div className="w-64">

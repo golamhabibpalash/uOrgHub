@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
 using uOrgHub.Projects.DTOs.Reports;
+using uOrgHub.Projects.Reporting.Pdf;
 using uOrgHub.Projects.Services;
 using uOrgHub.Shared.Models;
 
@@ -35,6 +36,18 @@ public class ProjectReportsController : BaseController
         return Ok(ApiResponse<ProjectStatementDto>.Ok(result));
     }
 
+    [HttpGet("statement/{projectId:guid}/pdf")]
+    [RequireClaim(Claims.Accounts.Reports.Print)]
+    public async Task<IActionResult> GetProjectStatementPdf(
+        Guid projectId,
+        [FromQuery] DateTime? dateFrom,
+        [FromQuery] DateTime? dateTo)
+    {
+        var result = await _statementService.GetStatementAsync(projectId, dateFrom, dateTo);
+        var bytes = ProjectStatementPdfDocument.BuildSingle(result);
+        return File(bytes, "application/pdf", $"ProjectStatement_{DateTime.UtcNow:yyyyMMdd_HHmmss}.pdf");
+    }
+
     /// <summary>The statement rolled up across every project — organisation-wide totals over a
     /// per-project breakdown, for the "All Projects" option on the report screen.</summary>
     [HttpGet("statement")]
@@ -45,5 +58,16 @@ public class ProjectReportsController : BaseController
     {
         var result = await _statementService.GetConsolidatedStatementAsync(dateFrom, dateTo);
         return Ok(ApiResponse<ConsolidatedProjectStatementDto>.Ok(result));
+    }
+
+    [HttpGet("statement/pdf")]
+    [RequireClaim(Claims.Accounts.Reports.Print)]
+    public async Task<IActionResult> GetConsolidatedProjectStatementPdf(
+        [FromQuery] DateTime? dateFrom,
+        [FromQuery] DateTime? dateTo)
+    {
+        var result = await _statementService.GetConsolidatedStatementAsync(dateFrom, dateTo);
+        var bytes = ProjectStatementPdfDocument.BuildConsolidated(result);
+        return File(bytes, "application/pdf", $"ProjectStatement_AllProjects_{DateTime.UtcNow:yyyyMMdd_HHmmss}.pdf");
     }
 }

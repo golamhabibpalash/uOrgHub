@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getChartOfAccountsReport, ReportFilter } from "../../../api/accounts";
+import { getChartOfAccountsReport, reportPdfUrls, ReportFilter } from "../../../api/accounts";
 import ReportLayout from "../../../components/shared/ReportLayout";
+import { useReportPdf } from "../../../hooks/useReportPdf";
 
 const typeColors: Record<string, string> = {
   Asset: "bg-blue-50 text-blue-700", Liability: "bg-red-50 text-red-700", Equity: "bg-purple-50 text-purple-700",
@@ -18,12 +19,15 @@ export default function ChartOfAccountsReportPage() {
 
   const rows = data?.data?.data ?? [];
   const fmt = (v: number) => v.toLocaleString("en-BD", { minimumFractionDigits: 2 });
+  const { downloadPdf, isDownloading } = useReportPdf();
 
   return (
     <ReportLayout
       title="Chart of Accounts Report"
       subtitle="Complete listing of all accounts"
       loading={isLoading}
+      onExportPdf={() => downloadPdf({ url: reportPdfUrls.chartOfAccountsReport, params: filter, filename: "ChartOfAccountsReport.pdf" })}
+      exportingPdf={isDownloading}
     >
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         <table className="w-full text-sm">

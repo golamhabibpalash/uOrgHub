@@ -932,3 +932,8 @@ export const getConsolidatedProjectStatement = (dateFrom?: string, dateTo?: stri
   apiClient.get<ApiResponse<ConsolidatedProjectStatement>>("/projects/reports/statement", {
     params: { dateFrom, dateTo },
   });
+
+export const reportPdfUrls = {
+  projectStatement: (projectId: string) => `/projects/reports/statement/${projectId}/pdf`,
+  consolidatedProjectStatement: "/projects/reports/statement/pdf",
+};

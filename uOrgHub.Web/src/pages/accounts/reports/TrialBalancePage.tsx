@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getTrialBalance, ReportFilter } from "../../../api/accounts";
+import { getTrialBalance, reportPdfUrls, ReportFilter } from "../../../api/accounts";
 import ReportLayout from "../../../components/shared/ReportLayout";
+import { useReportPdf } from "../../../hooks/useReportPdf";
 
 const typeColors: Record<string, string> = {
   Asset: "text-blue-600", Liability: "text-red-600", Equity: "text-purple-600",
@@ -15,6 +16,7 @@ export default function TrialBalancePage() {
     queryKey: ["report-trial-balance", filter],
     queryFn: () => getTrialBalance(filter),
   });
+  const { downloadPdf, isDownloading } = useReportPdf();
 
   const tb = data?.data?.data;
   const fmt = (v: number) => v.toLocaleString("en-BD", { minimumFractionDigits: 2 });
@@ -24,6 +26,8 @@ export default function TrialBalancePage() {
       title="Trial Balance"
       subtitle="Account-wise debit and credit balances"
       loading={isLoading}
+      onExportPdf={() => downloadPdf({ url: reportPdfUrls.trialBalance, params: filter, filename: "TrialBalance.pdf" })}
+      exportingPdf={isDownloading}
     >
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         <table className="w-full text-sm">

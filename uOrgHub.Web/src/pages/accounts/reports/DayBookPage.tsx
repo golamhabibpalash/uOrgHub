@@ -2,11 +2,12 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { getDayBook, getJournalEntryById, DayBookRow, DayBookType } from "../../../api/accounts";
+import { getDayBook, getJournalEntryById, reportPdfUrls, DayBookRow, DayBookType } from "../../../api/accounts";
 import ReportLayout from "../../../components/shared/ReportLayout";
 import DateInput from "../../../components/shared/DateInput";
 import DataGrid, { DataGridColumn } from "../../../components/shared/DataGrid";
 import { useDataGrid } from "../../../hooks/useDataGrid";
+import { useReportPdf } from "../../../hooks/useReportPdf";
 
 const typeThemes: Record<DayBookType, string> = {
   DR: "bg-red-50 text-red-600",
@@ -74,6 +75,7 @@ export default function DayBookPage() {
     enabled: !!expandedId,
   });
   const detail = detailData?.data?.data;
+  const { downloadPdf, isDownloading } = useReportPdf();
 
   const fmt = (v: number) => v.toLocaleString("en-BD", { minimumFractionDigits: 2 });
   const dateFmt = (d: string) => new Date(d).toLocaleDateString("en-BD");
@@ -261,7 +263,23 @@ export default function DayBookPage() {
   );
 
   return (
-    <ReportLayout title="Day Book" subtitle={subtitle} filters={filters}>
+    <ReportLayout
+      title="Day Book"
+      subtitle={subtitle}
+      filters={filters}
+      onExportPdf={() =>
+        downloadPdf({
+          url: reportPdfUrls.dayBook,
+          params: {
+            ...(paramFrom && { dateFrom: paramFrom }),
+            ...(paramTo && { dateTo: paramTo }),
+            ...(paramType && { type: paramType }),
+          },
+          filename: "DayBook.pdf",
+        })
+      }
+      exportingPdf={isDownloading}
+    >
       <DataGrid
         columns={columns}
         data={rows}

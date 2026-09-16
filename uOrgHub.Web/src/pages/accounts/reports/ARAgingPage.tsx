@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getARAging } from "../../../api/accounts";
+import { getARAging, reportPdfUrls } from "../../../api/accounts";
 import ReportLayout from "../../../components/shared/ReportLayout";
 import DateInput from "../../../components/shared/DateInput";
+import { useReportPdf } from "../../../hooks/useReportPdf";
 
 export default function ARAgingPage() {
   const today = new Date().toISOString().split("T")[0];
@@ -18,6 +19,7 @@ export default function ARAgingPage() {
   const rows = summary?.rows ?? [];
   const fmt = (v: number) => v.toLocaleString("en-BD", { minimumFractionDigits: 2 });
   const dateFmt = (d: string) => new Date(d).toLocaleDateString("en-BD");
+  const { downloadPdf, isDownloading } = useReportPdf();
 
   const bucketColors: Record<string, string> = {
     Current: "bg-green-50 text-green-700",
@@ -32,6 +34,8 @@ export default function ARAgingPage() {
       title="Accounts Receivable Aging"
       subtitle={`Outstanding invoices as of ${asOfDate}`}
       loading={isLoading}
+      onExportPdf={() => downloadPdf({ url: reportPdfUrls.arAging, params: { asOfDate }, filename: "ARAging.pdf" })}
+      exportingPdf={isDownloading}
     >
       <div className="no-print mb-4">
         <div className="w-64">

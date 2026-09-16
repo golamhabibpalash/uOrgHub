@@ -1,10 +1,11 @@
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { getJournalEntryReport, JournalEntryReportRow } from "../../../api/accounts";
+import { getJournalEntryReport, reportPdfUrls, JournalEntryReportRow } from "../../../api/accounts";
 import ReportLayout from "../../../components/shared/ReportLayout";
 import DateInput from "../../../components/shared/DateInput";
 import DataGrid, { DataGridColumn } from "../../../components/shared/DataGrid";
 import { useDataGrid } from "../../../hooks/useDataGrid";
+import { useReportPdf } from "../../../hooks/useReportPdf";
 
 const statusColors: Record<string, string> = {
   Draft: "bg-gray-100 text-gray-600",
@@ -54,6 +55,7 @@ export default function JournalEntryReportPage() {
   const items = data?.data?.data?.items ?? [];
   const totalPages = data?.data?.data?.totalPages ?? 1;
   const totalCount = data?.data?.data?.totalCount ?? 0;
+  const { downloadPdf, isDownloading } = useReportPdf();
 
   const fmt = (v: number) => v.toLocaleString("en-BD", { minimumFractionDigits: 2 });
   const dateFmt = (d: string) => new Date(d).toLocaleDateString("en-BD");
@@ -213,7 +215,23 @@ export default function JournalEntryReportPage() {
   );
 
   return (
-    <ReportLayout title="Journal Entry Report" subtitle={subtitle} filters={filters}>
+    <ReportLayout
+      title="Journal Entry Report"
+      subtitle={subtitle}
+      filters={filters}
+      onExportPdf={() =>
+        downloadPdf({
+          url: reportPdfUrls.journalEntryReport,
+          params: {
+            ...(paramFrom && { dateFrom: paramFrom }),
+            ...(paramTo && { dateTo: paramTo }),
+            ...(paramStatus && { status: paramStatus }),
+          },
+          filename: "JournalEntries.pdf",
+        })
+      }
+      exportingPdf={isDownloading}
+    >
       <DataGrid
         columns={columns}
         data={items}

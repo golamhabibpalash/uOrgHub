@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getReportAccountLedger, getReportAllAccountsLedger, getChartOfAccounts } from "../../../api/accounts";
+import { getReportAccountLedger, getReportAllAccountsLedger, getChartOfAccounts, reportPdfUrls } from "../../../api/accounts";
 import SearchableDropdown from "../../../components/shared/SearchableDropdown";
 import ReportLayout from "../../../components/shared/ReportLayout";
 import DateInput from "../../../components/shared/DateInput";
+import { useReportPdf } from "../../../hooks/useReportPdf";
 
 const ALL_ACCOUNTS = "ALL";
 
@@ -43,6 +44,7 @@ export default function AccountLedgerPage() {
   const isLoading = isAll ? allLoading : singleLoading;
   const rows = singleData?.data?.data ?? [];
   const groups = allData?.data?.data ?? [];
+  const { downloadPdf, isDownloading } = useReportPdf();
 
   const fmt = (v: number) => v.toLocaleString("en-BD", { minimumFractionDigits: 2 });
   const dateFmt = (d: string) => new Date(d).toLocaleDateString("en-BD");
@@ -55,7 +57,22 @@ export default function AccountLedgerPage() {
       : `Transaction history for ${selectedAccount?.label ?? ""}`;
 
   return (
-    <ReportLayout title="Account Ledger" subtitle={subtitle} loading={isLoading}>
+    <ReportLayout
+      title="Account Ledger"
+      subtitle={subtitle}
+      loading={isLoading}
+      onExportPdf={
+        accountId
+          ? () =>
+              downloadPdf({
+                url: isAll ? reportPdfUrls.allAccountsLedger : reportPdfUrls.accountLedger(accountId),
+                params: { dateFrom: dateFrom || undefined, dateTo: dateTo || undefined },
+                filename: "AccountLedger.pdf",
+              })
+          : undefined
+      }
+      exportingPdf={isDownloading}
+    >
       {/* Filters */}
       <div className="no-print mb-4">
         <div className="grid grid-cols-4 gap-3">

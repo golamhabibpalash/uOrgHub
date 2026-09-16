@@ -1012,3 +1012,22 @@ export const getReceiptsPayments = (params: {
   projectId?: string;
 }) =>
   apiClient.get<ApiResponse<ReceiptsPaymentsReport>>("/accounts/reports/receipts-payments", { params });
+
+// ── Report PDF endpoints ────────────────────────────────────────────────
+// Each mirrors its JSON report route with a `/pdf` sibling; used with useReportPdf().
+
+export const reportPdfUrls = {
+  trialBalance: "/accounts/reports/trial-balance/pdf",
+  generalLedger: "/accounts/reports/general-ledger/pdf",
+  incomeStatement: "/accounts/reports/income-statement/pdf",
+  balanceSheet: "/accounts/reports/balance-sheet/pdf",
+  accountLedger: (accountId: string) => `/accounts/reports/account-ledger/${accountId}/pdf`,
+  allAccountsLedger: "/accounts/reports/account-ledger/pdf",
+  dayBook: "/accounts/reports/day-book/pdf",
+  chartOfAccountsReport: "/accounts/reports/chart-of-accounts/pdf",
+  journalEntryReport: "/accounts/reports/journal-entries/pdf",
+  accountGroupSummary: "/accounts/reports/account-group-summary/pdf",
+  arAging: "/accounts/reports/ar-aging/pdf",
+  apAging: "/accounts/reports/ap-aging/pdf",
+  receiptsPayments: "/accounts/reports/receipts-payments/pdf",
+};
