@@ -1,5 +1,10 @@
 import { useRef, useState, useEffect, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Printer, Download, FileDown, FileText, Columns3 } from "lucide-react";
+import { getMyCompany } from "../../api/company";
+
+const escapeHtml = (value: string) =>
+  value.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string);
 
 interface ReportLayoutProps {
   title: string;
@@ -31,6 +36,10 @@ export default function ReportLayout({
 }: ReportLayoutProps) {
   const printRef = useRef<HTMLDivElement>(null);
   const columnMenuRef = useRef<HTMLDivElement>(null);
+
+  // Same query key/staleTime as VoucherDetail.tsx's printed-document header, so the two share
+  // one cached fetch instead of each hitting /company/mine separately.
+  const { data: company } = useQuery({ queryKey: ["my-company"], queryFn: getMyCompany, staleTime: 300000 });
 
   const [columnOptions, setColumnOptions] = useState<PrintColumn[]>([]);
   const [enabledColumns, setEnabledColumns] = useState<string[]>([]);
@@ -157,15 +166,39 @@ export default function ReportLayout({
     // Fallback in case afterprint never fires (some browser/OS print-dialog combinations).
     setTimeout(cleanup, 60000);
 
+    // Reuse the app's own already-computed styles instead of fetching Tailwind fresh from a CDN:
+    // a <script src="cdn.tailwindcss.com"> has to JIT-generate every utility class at print time,
+    // and on a large report that can still be mid-generation when window.print() fires — utility
+    // classes (especially colours) simply hadn't been created yet, printing washed-out/default
+    // colours. Cloning the live page's own <link>/<style> tags is the exact CSS already rendering
+    // correctly on screen, so there's nothing left to race.
+    const appStyleNodes = Array.from(document.querySelectorAll('head link[rel="stylesheet"], head style'));
+    const appStylesHtml = appStyleNodes
+      .map((node) =>
+        node.tagName === "LINK"
+          ? `<link rel="stylesheet" href="${(node as HTMLLinkElement).href}">`
+          : `<style>${node.textContent ?? ""}</style>`
+      )
+      .join("\n");
+    // Belt-and-braces fallback for the unexpected case the live page has no stylesheet nodes to clone.
+    const stylesTag = appStylesHtml || `<script src="https://cdn.tailwindcss.com"></script>`;
+
+    const companyName = company?.name ? escapeHtml(company.name) : "";
+    const companyAddress = company?.address ? escapeHtml(company.address) : "";
+
     printDoc.open();
     printDoc.write(`
       <!DOCTYPE html>
       <html>
         <head>
-          <title>${title}</title>
-          <script src="https://cdn.tailwindcss.com"></script>
+          <title>${escapeHtml(title)}</title>
+          ${stylesTag}
           <style>
             @page { margin: 12mm; }
+
+            /* Forces backgrounds/colours to print at full strength regardless of the browser's
+               "print backgrounds" default (usually off) or any ink-saving heuristic. */
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 
             /* Tailwind's text and spacing utilities are rem-based, so shrinking the root shrinks
                the whole report proportionally — a dense ledger then fits the page without having
@@ -174,7 +207,6 @@ export default function ReportLayout({
             body {
               font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
               color: #1f2937; line-height: 1.35;
-              -webkit-print-color-adjust: exact; print-color-adjust: exact;
             }
 
             .print-header { text-align: center; margin-bottom: 16px; }
@@ -202,8 +234,9 @@ export default function ReportLayout({
             @media print {
               .no-print { display: none !important; }
               a { color: inherit; text-decoration: none; }
-              /* Guaranteed regardless of the Tailwind CDN's timing: a page can render a
-                 compact interactive table for the screen and a full unpaged twin for print. */
+              /* Defensive fallback in case the CDN path above ends up used (no app stylesheet
+                 found to clone): a page can still render a compact interactive table for the
+                 screen and a full unpaged twin for print. */
               .print\\:hidden { display: none !important; }
               .print\\:table { display: table !important; }
               .print\\:block { display: block !important; }
@@ -212,8 +245,10 @@ export default function ReportLayout({
         </head>
         <body>
           <div class="print-header">
-            <h1 style="font-size:16px; font-weight:600; margin:0;">${title}</h1>
-            ${subtitle ? `<p style="font-size:11px; color:#6b7280; margin:4px 0 0;">${subtitle}</p>` : ""}
+            ${companyName ? `<h1 style="font-size:18px; font-weight:700; margin:0; text-transform:uppercase; letter-spacing:0.02em;">${companyName}</h1>` : ""}
+            ${companyAddress ? `<p style="font-size:10px; color:#6b7280; margin:2px 0 0;">${companyAddress}</p>` : ""}
+            <h2 style="font-size:15px; font-weight:600; margin:${companyName ? "10px" : "0"} 0 0;">${escapeHtml(title)}</h2>
+            ${subtitle ? `<p style="font-size:11px; color:#6b7280; margin:4px 0 0;">${escapeHtml(subtitle)}</p>` : ""}
             <p style="font-size:9px; color:#9ca3af; margin:4px 0;">Printed: ${now}</p>
           </div>
           <div id="print-content">${content}</div>
@@ -246,7 +281,7 @@ export default function ReportLayout({
       </html>
     `);
     printDoc.close();
-  }, [title, subtitle, discoverColumns, immediateEnabled]);
+  }, [title, subtitle, discoverColumns, immediateEnabled, company]);
 
   return (
     <div>
