@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import DataGrid from "../../components/shared/DataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
@@ -51,6 +51,8 @@ export default function VendorQuotations() {
     newItems[idx] = { ...newItems[idx], rfqItemId, itemVariantId: line?.itemVariantId ?? "", quotedQuantity: 0, unitPrice: 0 };
     setForm((f) => ({ ...f, items: newItems }));
   }
+
+  const quotationTotal = form.items.reduce((sum, i) => sum + i.quotedQuantity * i.unitPrice, 0);
 
   const isFormValid =
     !!form.rfqId &&
@@ -182,7 +184,7 @@ export default function VendorQuotations() {
         actions={<ExportMenu baseUrl="vendorquotations" filters={{ search: dg.search || undefined, status: filterStatus || undefined }} />}
       />
 
-      <Modal title={editing ? "Edit Quotation" : "Add Quotation"} open={modal} onClose={closeModal}>
+      <Modal title={editing ? "Edit Quotation" : "Add Quotation"} open={modal} onClose={closeModal} size="3xl">
         <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -216,7 +218,7 @@ export default function VendorQuotations() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div><label className="text-xs text-gray-500 mb-1 block">Delivery Days</label>
-              <input type="number" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.deliveryDays} onChange={(e) => setForm((f) => ({ ...f, deliveryDays: parseInt(e.target.value) }))} /></div>
+              <input type="number" min={0} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.deliveryDays || ""} onChange={(e) => setForm((f) => ({ ...f, deliveryDays: parseInt(e.target.value) || 0 }))} /></div>
             {editing && <div><label className="text-xs text-gray-500 mb-1 block">Status</label>
               <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as QuotationStatus }))}>
                 <option value="Received">Received</option><option value="Evaluated">Evaluated</option><option value="Accepted">Accepted</option><option value="Rejected">Rejected</option>
@@ -226,25 +228,85 @@ export default function VendorQuotations() {
             <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.paymentTerms} onChange={(e) => setForm((f) => ({ ...f, paymentTerms: e.target.value }))} /></div>
           <div><label className="text-xs text-gray-500 mb-1 block">Notes</label>
             <textarea rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} /></div>
-          <div className="border-t pt-3">
-            <div className="flex items-center justify-between mb-2"><label className="text-xs text-gray-500">Items</label>
-              <button onClick={addItem} type="button" disabled={!form.rfqId} className="text-xs text-primary-500 disabled:text-gray-300 disabled:cursor-not-allowed">+ Add Item</button></div>
-            {!form.rfqId && <p className="text-xs text-gray-400 mb-2">Select an RFQ above to choose which of its items are being quoted.</p>}
-            {form.items.map((item, idx) => (
-              <div key={idx} className="grid grid-cols-5 gap-2 mb-2 items-end p-2 bg-gray-50 rounded-lg">
-                <SearchableDropdown
-                  options={rfqItemOptions}
-                  value={item.rfqItemId || undefined}
-                  onChange={(v) => selectRFQItem(idx, v ?? "")}
-                  loading={selectedRFQLoading}
-                  placeholder="Select RFQ item..."
-                  className="text-xs"
-                />
-                <input type="number" placeholder="Qty" className="border border-gray-200 rounded px-2 py-1 text-xs" value={item.quotedQuantity} onChange={(e) => updateItem(idx, "quotedQuantity", parseFloat(e.target.value))} />
-                <input type="number" placeholder="Price" className="border border-gray-200 rounded px-2 py-1 text-xs" value={item.unitPrice} onChange={(e) => updateItem(idx, "unitPrice", parseFloat(e.target.value))} />
-                <input placeholder="Notes" className="border border-gray-200 rounded px-2 py-1 text-xs" value={item.notes} onChange={(e) => updateItem(idx, "notes", e.target.value)} />
-                <button onClick={() => removeItem(idx)} className="text-red-500">✕</button>
-              </div>))}
+          <div className="border-t pt-3 mt-3">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-medium text-gray-600">Items</label>
+              <button onClick={addItem} type="button" disabled={!form.rfqId} className="text-xs text-primary-600 hover:underline flex items-center gap-1 disabled:text-gray-300 disabled:no-underline disabled:cursor-not-allowed">
+                <Plus size={12} /> Add Item
+              </button>
+            </div>
+
+            {!form.rfqId && (
+              <div className="text-center py-6 border border-dashed border-gray-200 rounded-lg text-xs text-gray-400">
+                Select an RFQ above to choose which of its items are being quoted.
+              </div>
+            )}
+            {form.rfqId && form.items.length === 0 && (
+              <div className="text-center py-6 border border-dashed border-gray-200 rounded-lg text-xs text-gray-400">
+                No items added yet — click "+ Add Item" to add the first line.
+              </div>
+            )}
+
+            <div className="space-y-2">
+              {form.items.map((item, idx) => {
+                const lineTotal = item.quotedQuantity * item.unitPrice;
+                return (
+                  <div key={idx} className="border border-gray-200 rounded-lg p-3 bg-white">
+                    <div className="flex items-start gap-2 mb-2">
+                      <div className="flex-1">
+                        <label className="text-[11px] text-gray-400 mb-0.5 block">RFQ Item</label>
+                        <SearchableDropdown
+                          options={rfqItemOptions}
+                          value={item.rfqItemId || undefined}
+                          onChange={(v) => selectRFQItem(idx, v ?? "")}
+                          loading={selectedRFQLoading}
+                          placeholder="Select RFQ item..."
+                        />
+                      </div>
+                      <button onClick={() => removeItem(idx)} className="mt-5 text-red-400 hover:text-red-600 p-1 rounded hover:bg-red-50 shrink-0" title="Remove line">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-12 gap-2 items-end">
+                      <div className="col-span-3">
+                        <label className="text-[11px] text-gray-400 mb-0.5 block">Qty</label>
+                        <input type="number" min={0}
+                          className="w-full border border-gray-200 rounded-md px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-1 focus:ring-primary-500"
+                          value={item.quotedQuantity || ""}
+                          onChange={(e) => updateItem(idx, "quotedQuantity", parseFloat(e.target.value) || 0)} />
+                      </div>
+                      <div className="col-span-3">
+                        <label className="text-[11px] text-gray-400 mb-0.5 block">Unit Price</label>
+                        <input type="number" min={0}
+                          className="w-full border border-gray-200 rounded-md px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-1 focus:ring-primary-500"
+                          value={item.unitPrice || ""}
+                          onChange={(e) => updateItem(idx, "unitPrice", parseFloat(e.target.value) || 0)} />
+                      </div>
+                      <div className="col-span-6">
+                        <label className="text-[11px] text-gray-400 mb-0.5 block">Notes</label>
+                        <input
+                          className="w-full border border-gray-200 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                          value={item.notes}
+                          onChange={(e) => updateItem(idx, "notes", e.target.value)}
+                          placeholder="Optional"
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-2 text-right">
+                      <span className="text-xs text-gray-500">Line total: </span>
+                      <span className="text-sm font-semibold text-gray-900">{lineTotal.toLocaleString("en-BD", { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {form.items.length > 0 && (
+              <div className="flex justify-end items-center gap-2 mt-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
+                <span className="text-sm text-gray-600 font-medium">Total</span>
+                <span className="text-base font-bold text-gray-900">{quotationTotal.toLocaleString("en-BD", { minimumFractionDigits: 2 })}</span>
+              </div>
+            )}
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={closeModal} className="px-4 py-2 text-sm border border-gray-200 rounded-lg">Cancel</button>
