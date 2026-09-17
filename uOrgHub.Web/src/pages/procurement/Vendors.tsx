@@ -7,6 +7,9 @@ import ExportMenu from "../../components/shared/ExportMenu";
 import { useDataGrid } from "../../hooks/useDataGrid";
 import { getVendors, createVendor, updateVendor, deleteVendor, Vendor, VendorType, VendorStatus } from "../../api/procurement";
 
+// Mirrors CreateVendorValidator/UpdateVendorValidator in uOrgHub.Procurement — keep in sync.
+const PHONE_PATTERN = /^\+?[\d\s\-()]{7,20}$/;
+
 export default function Vendors() {
   const qc = useQueryClient();
   const dg = useDataGrid({ defaultSortBy: "companyName" });
@@ -14,12 +17,21 @@ export default function Vendors() {
   const [filterType, setFilterType] = useState("");
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Vendor | null>(null);
+  const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState({
     companyName: "", contactPerson: "", email: "", phone: "",
     address: "", tradeLicense: "", tin: "", bin: "",
     vendorType: "Supplier" as VendorType, status: "Active" as VendorStatus,
     creditLimit: 0, paymentTermDays: 30, notes: "",
   });
+
+  const companyNameError = form.companyName.trim() ? undefined : "Company name is required.";
+  const phoneError = !form.phone.trim()
+    ? "Phone number is required."
+    : !PHONE_PATTERN.test(form.phone.trim())
+      ? "Enter a valid phone number (digits, spaces, +, -, ( ) only, 7–20 characters)."
+      : undefined;
+  const isFormValid = !companyNameError && !phoneError;
 
   const { data, isLoading } = useQuery({
     queryKey: ["vendors", ...dg.queryKey, filterStatus, filterType],
@@ -46,6 +58,7 @@ export default function Vendors() {
 
   function openAdd() {
     setEditing(null);
+    setSubmitted(false);
     setForm({
       companyName: "", contactPerson: "", email: "", phone: "",
       address: "", tradeLicense: "", tin: "", bin: "",
@@ -57,6 +70,7 @@ export default function Vendors() {
 
   function openEdit(vendor: Vendor) {
     setEditing(vendor);
+    setSubmitted(false);
     setForm({
       companyName: vendor.companyName,
       contactPerson: vendor.contactPerson ?? "",
@@ -157,8 +171,11 @@ export default function Vendors() {
         <div className="space-y-3">
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Company Name *</label>
-            <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+            <input className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
+                submitted && companyNameError ? "border-red-400 focus:ring-red-400" : "border-gray-200 focus:ring-primary-500"
+              }`}
               value={form.companyName} onChange={(e) => setForm((f) => ({ ...f, companyName: e.target.value }))} />
+            {submitted && companyNameError && <p className="text-xs text-red-500 mt-1">{companyNameError}</p>}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -184,9 +201,12 @@ export default function Vendors() {
                 value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
             </div>
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Phone</label>
-              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+              <label className="text-xs text-gray-500 mb-1 block">Phone *</label>
+              <input className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
+                  submitted && phoneError ? "border-red-400 focus:ring-red-400" : "border-gray-200 focus:ring-primary-500"
+                }`}
                 value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
+              {submitted && phoneError && <p className="text-xs text-red-500 mt-1">{phoneError}</p>}
             </div>
           </div>
           <div>
@@ -243,7 +263,9 @@ export default function Vendors() {
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={closeModal} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-            <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}
+            <button
+              onClick={() => { setSubmitted(true); if (isFormValid) saveMutation.mutate(); }}
+              disabled={saveMutation.isPending}
               className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">
               {saveMutation.isPending ? "Saving..." : "Save"}
             </button>
