@@ -386,3 +386,83 @@ export const deleteGRN = (id: string) =>
 
 export const confirmGRN = (id: string) =>
   apiClient.post<ApiResponse<GoodsReceivedNote>>(`/goodsreceivednotes/${id}/confirm`, {});
+
+// ── Procurement documents (PR/RFQ application letters) ─────────────────────
+// Mirrors uOrgHub.Procurement/DTOs/DocumentDtos.cs exactly.
+
+export interface CompanyInfo {
+  name: string;
+  tagLine?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  logoUrl?: string;
+  currency: string;
+}
+
+export interface DocumentItem {
+  lineNo: number;
+  variantName: string;
+  description?: string;
+  uom?: string;
+  quantity: number;
+  unitCost?: number;
+  totalCost?: number;
+  notes?: string;
+}
+
+export interface PRDocument {
+  id: string;
+  prNumber: string;
+  prDate: string;
+  requiredDate: string;
+  departmentName: string;
+  requestedByName: string;
+  purpose?: string;
+  status: PRStatus;
+  approvedByName?: string;
+  approvedAt?: string;
+  notes?: string;
+  documentText?: string;
+  isDocumentEdited: boolean;
+  documentEditedAt?: string;
+  totalEstimatedCost: number;
+  company: CompanyInfo;
+  items: DocumentItem[];
+}
+
+export interface RfqDocument {
+  id: string;
+  rfqNumber: string;
+  rfqDate: string;
+  closingDate: string;
+  title: string;
+  description?: string;
+  prNumber?: string;
+  prPurpose?: string;
+  status: RFQStatus;
+  notes?: string;
+  documentText?: string;
+  isDocumentEdited: boolean;
+  documentEditedAt?: string;
+  company: CompanyInfo;
+  items: DocumentItem[];
+}
+
+export const getPRDocument = (id: string) =>
+  apiClient.get<ApiResponse<PRDocument>>(`/purchaserequisitions/${id}/document`);
+
+export const savePRDocument = (id: string, documentText: string) =>
+  apiClient.put<ApiResponse<PRDocument>>(`/purchaserequisitions/${id}/document`, { documentText });
+
+export const regeneratePRDocument = (id: string) =>
+  apiClient.post<ApiResponse<PRDocument>>(`/purchaserequisitions/${id}/document/regenerate`, {});
+
+export const getRfqDocument = (id: string) =>
+  apiClient.get<ApiResponse<RfqDocument>>(`/rfqs/${id}/document`);
+
+export const saveRfqDocument = (id: string, documentText: string) =>
+  apiClient.put<ApiResponse<RfqDocument>>(`/rfqs/${id}/document`, { documentText });
+
+export const regenerateRfqDocument = (id: string) =>
+  apiClient.post<ApiResponse<RfqDocument>>(`/rfqs/${id}/document/regenerate`, {});

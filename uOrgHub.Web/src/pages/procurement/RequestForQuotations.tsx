@@ -1,16 +1,19 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, FileText } from "lucide-react";
 import DataGrid from "../../components/shared/DataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
 import SearchableDropdown from "../../components/shared/SearchableDropdown";
 import { useDataGrid } from "../../hooks/useDataGrid";
 import { useApprovedPRLookup, useItemVariantLookup, withCurrentOption } from "../../hooks/useEntityLookup";
-import { getRFQs, createRFQ, updateRFQ, deleteRFQ, RequestForQuotation, RFQStatus } from "../../api/procurement";
+import { getRFQs, createRFQ, updateRFQ, deleteRFQ, getPurchaseRequisitionById, RequestForQuotation, RFQStatus } from "../../api/procurement";
 import DateInput from "../../components/shared/DateInput";
 
 export default function RequestForQuotations() {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const qc = useQueryClient();
   const dg = useDataGrid({ defaultSortBy: "rfqDate" });
   const [filterStatus, setFilterStatus] = useState("");
@@ -92,6 +95,33 @@ export default function RequestForQuotations() {
     setModal(true);
   }
 
+  // "Create RFQ" from a Purchase Requisition row (?fromPR=<id>) — pre-fills the Add form with
+  // that PR's reference and its own items instead of opening a blank one. The param is stripped
+  // once consumed so a refresh/back-navigation doesn't re-trigger the prefill.
+  useEffect(() => {
+    const prId = searchParams.get("fromPR");
+    if (!prId) return;
+    setSearchParams((prev) => { const next = new URLSearchParams(prev); next.delete("fromPR"); return next; }, { replace: true });
+
+    getPurchaseRequisitionById(prId).then((res) => {
+      const pr = res.data.data;
+      if (!pr) return;
+      setEditing(null);
+      setForm({
+        rfqDate: new Date().toISOString().split("T")[0],
+        closingDate: "",
+        prId: pr.id,
+        title: `RFQ for ${pr.prNumber}`,
+        description: pr.purpose ?? "",
+        notes: "",
+        status: "Draft",
+        items: pr.items.map((i) => ({ itemVariantId: i.itemVariantId, requestedQuantity: i.requestedQuantity, notes: i.notes ?? "" })),
+      });
+      setModal(true);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   function closeModal() { setModal(false); setEditing(null); }
 
   function addItem() {
@@ -127,6 +157,7 @@ export default function RequestForQuotations() {
         <div className="flex gap-1">
           <button onClick={() => openEdit(row)} className="p-1 text-blue-600 hover:bg-blue-50 rounded">✏️</button>
           {row.status === "Draft" && <button onClick={() => deleteMutation.mutate(row.id)} className="p-1 text-red-600 hover:bg-red-50 rounded">🗑️</button>}
+          <button onClick={() => navigate(`/procurement/rfqs/${row.id}/document`)} title="Document" className="p-1 text-gray-600 hover:bg-gray-50 rounded"><FileText size={14} /></button>
         </div>
       ),
     },

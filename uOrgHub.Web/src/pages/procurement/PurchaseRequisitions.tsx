@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Send, CheckCircle, XCircle, Trash2 } from "lucide-react";
+import { Plus, Send, CheckCircle, XCircle, Trash2, FileText, FilePlus } from "lucide-react";
 import DataGrid from "../../components/shared/DataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
@@ -11,6 +12,7 @@ import { getPurchaseRequisitions, createPurchaseRequisition, updatePurchaseRequi
 import DateInput from "../../components/shared/DateInput";
 
 export default function PurchaseRequisitions() {
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const dg = useDataGrid({ defaultSortBy: "prDate" });
   const [filterStatus, setFilterStatus] = useState("");
@@ -161,7 +163,10 @@ export default function PurchaseRequisitions() {
               <button onClick={() => { setRejectId(row.id); setRejectModal(true); }} title="Reject" className="p-1 text-red-600 hover:bg-red-50 rounded"><XCircle size={14} /></button>
             </>
           )}
-          {row.status !== "Draft" && <span className="text-xs text-gray-400">—</span>}
+          {row.status === "Approved" && (
+            <button onClick={() => navigate(`/procurement/rfqs?fromPR=${row.id}`)} title="Create RFQ" className="p-1 text-purple-600 hover:bg-purple-50 rounded"><FilePlus size={14} /></button>
+          )}
+          <button onClick={() => navigate(`/procurement/purchase-requisitions/${row.id}/document`)} title="Document" className="p-1 text-gray-600 hover:bg-gray-50 rounded"><FileText size={14} /></button>
         </div>
       ),
     },

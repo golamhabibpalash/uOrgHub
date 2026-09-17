@@ -73,7 +73,9 @@ import StockTransactions from "./pages/inventory/StockTransactions";
 import ProcurementDashboard from "./pages/procurement/ProcurementDashboard";
 import ProcurementVendors from "./pages/procurement/Vendors";
 import PurchaseRequisitions from "./pages/procurement/PurchaseRequisitions";
+import PurchaseRequisitionDocument from "./pages/procurement/PurchaseRequisitionDocument";
 import RequestForQuotations from "./pages/procurement/RequestForQuotations";
+import RfqDocument from "./pages/procurement/RfqDocument";
 import VendorQuotations from "./pages/procurement/VendorQuotations";
 import PurchaseOrders from "./pages/procurement/PurchaseOrders";
 import GoodsReceivedNotes from "./pages/procurement/GoodsReceivedNotes";
@@ -212,7 +214,9 @@ export default function App() {
             <Route path="procurement" element={<ProcurementDashboard />} />
             <Route path="procurement/vendors" element={<ProcurementVendors />} />
             <Route path="procurement/purchase-requisitions" element={<PurchaseRequisitions />} />
+            <Route path="procurement/purchase-requisitions/:id/document" element={<PurchaseRequisitionDocument />} />
             <Route path="procurement/rfqs" element={<RequestForQuotations />} />
+            <Route path="procurement/rfqs/:id/document" element={<RfqDocument />} />
             <Route path="procurement/quotations" element={<VendorQuotations />} />
             <Route path="procurement/purchase-orders" element={<PurchaseOrders />} />
             <Route path="procurement/grns" element={<GoodsReceivedNotes />} />
