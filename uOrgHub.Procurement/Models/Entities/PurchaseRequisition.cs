@@ -19,6 +19,8 @@ public class PurchaseRequisition : BaseEntity
     public DateTime? ApprovedAt { get; set; }
     [MaxLength(500)] public string? RejectionReason { get; set; }
     [MaxLength(1000)] public string? Notes { get; set; }
+    public string? DocumentText { get; set; }
+    public DateTime? DocumentEditedAt { get; set; }
 
     public ICollection<PurchaseRequisitionItem> Items { get; set; } = new List<PurchaseRequisitionItem>();
 }

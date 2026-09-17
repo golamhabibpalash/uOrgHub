@@ -4,10 +4,13 @@ using Microsoft.AspNetCore.Mvc;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
 using uOrgHub.Procurement.DTOs;
+using uOrgHub.Procurement.Features.Documents.Commands;
+using uOrgHub.Procurement.Features.Documents.Queries;
 using uOrgHub.Procurement.Features.RequestForQuotations.Commands;
 using uOrgHub.Procurement.Features.RequestForQuotations.Queries;
 using uOrgHub.Procurement.Models.Enums;
 using uOrgHub.Procurement.Reporting.ExportColumns;
+using uOrgHub.Procurement.Reporting.Pdf;
 using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 
@@ -85,4 +88,39 @@ public class RFQsController : BaseController
         var result = await _mediator.Send(new GetRFQQuotationsQuery(id, request));
         return Ok(ApiResponse<PagedResult<VendorQuotationResponseDto>>.Ok(result));
     }
+
+    [HttpGet("{id:guid}/document")]
+    [RequireClaim(Claims.Procurement.RFQs.Print)]
+    public async Task<IActionResult> GetDocument(Guid id)
+    {
+        var result = await _mediator.Send(new GetRfqDocumentQuery(id, GetUserId()));
+        return Ok(ApiResponse<RfqDocumentResponseDto>.Ok(result));
+    }
+
+    [HttpPut("{id:guid}/document")]
+    [RequireClaim(Claims.Procurement.RFQs.Edit)]
+    public async Task<IActionResult> SaveDocument(Guid id, [FromBody] UpdateRfqDocumentDto dto)
+    {
+        var result = await _mediator.Send(new UpdateRfqDocumentCommand(id, dto, GetUserId()));
+        return Ok(ApiResponse<RfqDocumentResponseDto>.Ok(result, "Application text saved."));
+    }
+
+    [HttpPost("{id:guid}/document/regenerate")]
+    [RequireClaim(Claims.Procurement.RFQs.Edit)]
+    public async Task<IActionResult> RegenerateDocument(Guid id)
+    {
+        var result = await _mediator.Send(new RegenerateRfqDocumentCommand(id, GetUserId()));
+        return Ok(ApiResponse<RfqDocumentResponseDto>.Ok(result, "Application text regenerated from the RFQ data."));
+    }
+
+    [HttpGet("{id:guid}/pdf")]
+    [RequireClaim(Claims.Procurement.RFQs.Print)]
+    public async Task<IActionResult> Pdf(Guid id)
+    {
+        var document = await _mediator.Send(new GetRfqDocumentQuery(id, GetUserId()));
+        var bytes = RfqPdfDocument.Build(document);
+        return File(bytes, "application/pdf", PdfFileName("RFQ"));
+    }
+
+    private static string PdfFileName(string entityName) => $"{entityName}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.pdf";
 }

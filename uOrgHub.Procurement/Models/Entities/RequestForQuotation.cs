@@ -17,6 +17,8 @@ public class RequestForQuotation : BaseEntity
     [MaxLength(1000)] public string? Description { get; set; }
     public RFQStatus Status { get; set; } = RFQStatus.Draft;
     [MaxLength(1000)] public string? Notes { get; set; }
+    public string? DocumentText { get; set; }
+    public DateTime? DocumentEditedAt { get; set; }
 
     public ICollection<RFQItem> Items { get; set; } = new List<RFQItem>();
     public ICollection<VendorQuotation> Quotations { get; set; } = new List<VendorQuotation>();

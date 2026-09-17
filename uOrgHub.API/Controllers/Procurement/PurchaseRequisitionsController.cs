@@ -4,10 +4,13 @@ using Microsoft.AspNetCore.Mvc;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
 using uOrgHub.Procurement.DTOs;
+using uOrgHub.Procurement.Features.Documents.Commands;
+using uOrgHub.Procurement.Features.Documents.Queries;
 using uOrgHub.Procurement.Features.PurchaseRequisitions.Commands;
 using uOrgHub.Procurement.Features.PurchaseRequisitions.Queries;
 using uOrgHub.Procurement.Models.Enums;
 using uOrgHub.Procurement.Reporting.ExportColumns;
+using uOrgHub.Procurement.Reporting.Pdf;
 using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 
@@ -101,4 +104,39 @@ public class PurchaseRequisitionsController : BaseController
         var result = await _mediator.Send(new RejectPRCommand(id, dto));
         return Ok(ApiResponse<PRResponseDto>.Ok(result, "Purchase requisition rejected."));
     }
+
+    [HttpGet("{id:guid}/document")]
+    [RequireClaim(Claims.Procurement.PurchaseRequisitions.Print)]
+    public async Task<IActionResult> GetDocument(Guid id)
+    {
+        var result = await _mediator.Send(new GetPRDocumentQuery(id, GetUserId()));
+        return Ok(ApiResponse<PRDocumentResponseDto>.Ok(result));
+    }
+
+    [HttpPut("{id:guid}/document")]
+    [RequireClaim(Claims.Procurement.PurchaseRequisitions.Edit)]
+    public async Task<IActionResult> SaveDocument(Guid id, [FromBody] UpdatePRDocumentDto dto)
+    {
+        var result = await _mediator.Send(new UpdatePRDocumentCommand(id, dto, GetUserId()));
+        return Ok(ApiResponse<PRDocumentResponseDto>.Ok(result, "Application text saved."));
+    }
+
+    [HttpPost("{id:guid}/document/regenerate")]
+    [RequireClaim(Claims.Procurement.PurchaseRequisitions.Edit)]
+    public async Task<IActionResult> RegenerateDocument(Guid id)
+    {
+        var result = await _mediator.Send(new RegeneratePRDocumentCommand(id, GetUserId()));
+        return Ok(ApiResponse<PRDocumentResponseDto>.Ok(result, "Application text regenerated from the requisition data."));
+    }
+
+    [HttpGet("{id:guid}/pdf")]
+    [RequireClaim(Claims.Procurement.PurchaseRequisitions.Print)]
+    public async Task<IActionResult> Pdf(Guid id)
+    {
+        var document = await _mediator.Send(new GetPRDocumentQuery(id, GetUserId()));
+        var bytes = PurchaseRequisitionPdfDocument.Build(document);
+        return File(bytes, "application/pdf", PdfFileName("PurchaseRequisition"));
+    }
+
+    private static string PdfFileName(string entityName) => $"{entityName}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.pdf";
 }
