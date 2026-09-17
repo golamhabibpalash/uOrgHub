@@ -7,6 +7,7 @@ using uOrgHub.Accounts.Models.Enums;
 using uOrgHub.Accounts.Repositories;
 using uOrgHub.Accounts.Services;
 using uOrgHub.Shared.Data;
+using uOrgHub.Shared.Entities;
 using uOrgHub.Shared.Exceptions;
 using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
@@ -201,7 +202,7 @@ public class CreatePaymentCommandHandler : IRequestHandler<CreatePaymentCommand,
         }
         if (dto.VendorId.HasValue)
         {
-            var vendor = await _context.Set<Models.Entities.Vendor>().FindAsync(new object[] { dto.VendorId.Value }, ct);
+            var vendor = await _context.Set<Vendor>().FindAsync(new object[] { dto.VendorId.Value }, ct);
             return vendor?.PayableAccountId ?? Guid.Empty;
         }
         return Guid.Empty;

@@ -3,9 +3,11 @@ using Microsoft.EntityFrameworkCore;
 using uOrgHub.Accounts.DTOs.AP;
 using uOrgHub.Accounts.Features._Common;
 using uOrgHub.Shared.Data;
+using uOrgHub.Shared.Entities;
 using uOrgHub.Shared.Exceptions;
 using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
+using uOrgHub.Shared.Services;
 
 namespace uOrgHub.Accounts.Features.AP;
 
@@ -22,7 +24,7 @@ public class GetVendorsQueryHandler : IRequestHandler<GetVendorsQuery, PagedResu
 
     public async Task<PagedResult<VendorResponseDto>> Handle(GetVendorsQuery request, CancellationToken ct)
     {
-        var query = _context.Set<Models.Entities.Vendor>()
+        var query = _context.Set<Vendor>()
             .Where(x => !x.IsDeleted);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
@@ -55,10 +57,10 @@ public class GetVendorByIdQueryHandler : IRequestHandler<GetVendorByIdQuery, Ven
 
     public async Task<VendorResponseDto> Handle(GetVendorByIdQuery request, CancellationToken ct)
     {
-        var e = await _context.Set<Models.Entities.Vendor>()
+        var e = await _context.Set<Vendor>()
             .Where(x => !x.IsDeleted && x.Id == request.Id)
             .FirstOrDefaultAsync(ct)
-            ?? throw new NotFoundException(nameof(Models.Entities.Vendor), request.Id);
+            ?? throw new NotFoundException(nameof(Vendor), request.Id);
 
         return VendorMappingHelper.ToDto(e);
     }
@@ -73,14 +75,11 @@ public class CreateVendorCommandHandler : IRequestHandler<CreateVendorCommand, V
     {
         var code = request.Dto.VendorCode;
         if (string.IsNullOrWhiteSpace(code))
-        {
-            var count = await _context.Set<Models.Entities.Vendor>().IgnoreQueryFilters().CountAsync(ct);
-            code = $"VEND-{DateTime.UtcNow.Year}-{(count + 1):D4}";
-        }
-        if (await _context.Set<Models.Entities.Vendor>().AnyAsync(x => x.VendorCode == code && !x.IsDeleted, ct))
+            code = await VendorCodeGenerator.GenerateAsync(_context, ct);
+        if (await _context.Set<Vendor>().AnyAsync(x => x.VendorCode == code && !x.IsDeleted, ct))
             throw new AppException($"Vendor code '{code}' already exists.");
 
-        var entity = new Models.Entities.Vendor
+        var entity = new Vendor
         {
             VendorCode = code,
             Name = request.Dto.Name,
@@ -90,13 +89,14 @@ public class CreateVendorCommandHandler : IRequestHandler<CreateVendorCommand, V
             Address = request.Dto.Address,
             TIN = request.Dto.TIN,
             BIN = request.Dto.BIN,
-            PaymentTermsDays = request.Dto.PaymentTermsDays,
+            PaymentTermDays = request.Dto.PaymentTermsDays,
             PayableAccountId = request.Dto.PayableAccountId,
-            IsActive = true,
+            VendorType = VendorType.Supplier,
+            Status = VendorStatus.Active,
             CreatedAt = DateTime.UtcNow
         };
 
-        _context.Set<Models.Entities.Vendor>().Add(entity);
+        _context.Set<Vendor>().Add(entity);
         await _context.SaveChangesAsync(ct);
         return VendorMappingHelper.ToDto(entity);
     }
@@ -109,10 +109,10 @@ public class UpdateVendorCommandHandler : IRequestHandler<UpdateVendorCommand, V
 
     public async Task<VendorResponseDto> Handle(UpdateVendorCommand request, CancellationToken ct)
     {
-        var entity = await _context.Set<Models.Entities.Vendor>()
+        var entity = await _context.Set<Vendor>()
             .Where(x => !x.IsDeleted && x.Id == request.Id)
             .FirstOrDefaultAsync(ct)
-            ?? throw new NotFoundException(nameof(Models.Entities.Vendor), request.Id);
+            ?? throw new NotFoundException(nameof(Vendor), request.Id);
 
         entity.Name = request.Dto.Name;
         entity.ContactPerson = request.Dto.ContactPerson;
@@ -121,8 +121,10 @@ public class UpdateVendorCommandHandler : IRequestHandler<UpdateVendorCommand, V
         entity.Address = request.Dto.Address;
         entity.TIN = request.Dto.TIN;
         entity.BIN = request.Dto.BIN;
-        entity.PaymentTermsDays = request.Dto.PaymentTermsDays;
-        entity.IsActive = request.Dto.IsActive;
+        entity.PaymentTermDays = request.Dto.PaymentTermsDays;
+        entity.Status = request.Dto.IsActive ? VendorStatus.Active : VendorStatus.Inactive;
+        if (request.Dto.PayableAccountId.HasValue)
+            entity.PayableAccountId = request.Dto.PayableAccountId;
         entity.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync(ct);
@@ -137,10 +139,10 @@ public class DeleteVendorCommandHandler : IRequestHandler<DeleteVendorCommand, U
 
     public async Task<Unit> Handle(DeleteVendorCommand request, CancellationToken ct)
     {
-        var entity = await _context.Set<Models.Entities.Vendor>()
+        var entity = await _context.Set<Vendor>()
             .Where(x => !x.IsDeleted && x.Id == request.Id)
             .FirstOrDefaultAsync(ct)
-            ?? throw new NotFoundException(nameof(Models.Entities.Vendor), request.Id);
+            ?? throw new NotFoundException(nameof(Vendor), request.Id);
 
         entity.IsDeleted = true;
         entity.DeletedAt = DateTime.UtcNow;
@@ -151,7 +153,7 @@ public class DeleteVendorCommandHandler : IRequestHandler<DeleteVendorCommand, U
 
 file static class VendorMappingHelper
 {
-    public static VendorResponseDto ToDto(Models.Entities.Vendor e) => new()
+    public static VendorResponseDto ToDto(Vendor e) => new()
     {
         Id = e.Id,
         VendorCode = e.VendorCode,
@@ -162,8 +164,8 @@ file static class VendorMappingHelper
         Address = e.Address,
         TIN = e.TIN,
         BIN = e.BIN,
-        PaymentTermsDays = e.PaymentTermsDays,
-        IsActive = e.IsActive,
+        PaymentTermsDays = e.PaymentTermDays,
+        IsActive = e.Status == VendorStatus.Active,
         PayableAccountId = e.PayableAccountId
     };
 }

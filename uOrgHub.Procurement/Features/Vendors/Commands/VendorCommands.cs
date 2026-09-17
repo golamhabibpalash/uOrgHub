@@ -2,8 +2,8 @@ using MediatR;
 using uOrgHub.Procurement.DTOs;
 using uOrgHub.Procurement.Features._Common;
 using uOrgHub.Procurement.Mappings;
-using uOrgHub.Procurement.Models.Enums;
 using uOrgHub.Procurement.Repositories;
+using uOrgHub.Shared.Entities;
 using uOrgHub.Shared.Exceptions;
 
 namespace uOrgHub.Procurement.Features.Vendors.Commands;
@@ -29,9 +29,9 @@ public class CreateVendorCommandHandler : IRequestHandler<CreateVendorCommand, V
         return BuildDto(created);
     }
 
-    private static VendorResponseDto BuildDto(Models.Entities.Vendor v) => new()
+    private static VendorResponseDto BuildDto(Vendor v) => new()
     {
-        Id = v.Id, VendorCode = v.VendorCode, CompanyName = v.CompanyName,
+        Id = v.Id, VendorCode = v.VendorCode, CompanyName = v.Name,
         ContactPerson = v.ContactPerson, Email = v.Email, Phone = v.Phone,
         Address = v.Address, TradeLicense = v.TradeLicense, TIN = v.TIN, BIN = v.BIN,
         VendorType = v.VendorType, Status = v.Status,
@@ -50,14 +50,14 @@ public class UpdateVendorCommandHandler : IRequestHandler<UpdateVendorCommand, V
     public async Task<VendorResponseDto> Handle(UpdateVendorCommand request, CancellationToken ct)
     {
         var entity = await _repo.GetByIdAsync(request.Id)
-            ?? throw new NotFoundException(nameof(Models.Entities.Vendor), request.Id);
+            ?? throw new NotFoundException(nameof(Vendor), request.Id);
 
         _mapper.UpdateEntity(request.Dto, entity);
         entity.UpdatedAt = DateTime.UtcNow;
         var updated = await _repo.UpdateAsync(entity);
         return new VendorResponseDto
         {
-            Id = updated.Id, VendorCode = updated.VendorCode, CompanyName = updated.CompanyName,
+            Id = updated.Id, VendorCode = updated.VendorCode, CompanyName = updated.Name,
             ContactPerson = updated.ContactPerson, Email = updated.Email, Phone = updated.Phone,
             Address = updated.Address, TradeLicense = updated.TradeLicense, TIN = updated.TIN, BIN = updated.BIN,
             VendorType = updated.VendorType, Status = updated.Status,
@@ -75,7 +75,7 @@ public class DeleteVendorCommandHandler : IRequestHandler<DeleteVendorCommand, U
     public async Task<Unit> Handle(DeleteVendorCommand request, CancellationToken ct)
     {
         if (!await _repo.ExistsAsync(request.Id))
-            throw new NotFoundException(nameof(Models.Entities.Vendor), request.Id);
+            throw new NotFoundException(nameof(Vendor), request.Id);
         await _repo.DeleteAsync(request.Id);
         return Unit.Value;
     }

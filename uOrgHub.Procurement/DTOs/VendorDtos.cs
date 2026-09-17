@@ -1,4 +1,4 @@
-using uOrgHub.Procurement.Models.Enums;
+using uOrgHub.Shared.Entities;
 
 namespace uOrgHub.Procurement.DTOs;
 

@@ -1,4 +1,4 @@
-using uOrgHub.Procurement.Models.Entities;
+using uOrgHub.Shared.Entities;
 using uOrgHub.Shared.Repositories;
 
 namespace uOrgHub.Procurement.Repositories;

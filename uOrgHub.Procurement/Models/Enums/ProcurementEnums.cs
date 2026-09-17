@@ -1,19 +1,7 @@
 namespace uOrgHub.Procurement.Models.Enums;
 
-public enum VendorType
-{
-    Supplier,
-    Contractor,
-    Consultant,
-    ServiceProvider
-}
-
-public enum VendorStatus
-{
-    Active,
-    Inactive,
-    Blacklisted
-}
+// VendorType/VendorStatus moved to uOrgHub.Shared.Entities.Vendor — Vendor itself now lives in
+// Shared (unified with Accounts' former vendor table), so its enums live alongside it.
 
 public enum PRStatus
 {

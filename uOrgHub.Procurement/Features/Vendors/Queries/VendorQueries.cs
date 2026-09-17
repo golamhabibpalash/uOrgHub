@@ -3,8 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using uOrgHub.Procurement.DTOs;
 using uOrgHub.Procurement.Features._Common;
 using uOrgHub.Procurement.Models.Entities;
-using uOrgHub.Procurement.Models.Enums;
 using uOrgHub.Shared.Data;
+using uOrgHub.Shared.Entities;
 using uOrgHub.Shared.Exceptions;
 using uOrgHub.Shared.Extensions;
 using uOrgHub.Shared.Models;
@@ -30,9 +30,9 @@ public class GetVendorsQueryHandler : IRequestHandler<GetVendorsQuery, PagedResu
         if (request.VendorType.HasValue) query = query.Where(x => x.VendorType == request.VendorType.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.WhereSearch(request.Request.Search, x => x.CompanyName, x => x.VendorCode, x => x.Email);
+            query = query.WhereSearch(request.Request.Search, x => x.Name, x => x.VendorCode, x => x.Email);
 
-        query = query.ApplySorting(request.Request.SortBy ?? "CompanyName", request.Request.SortDescending);
+        query = query.ApplySorting(request.Request.SortBy ?? "CompanyName", request.Request.SortDescending, propertyMappings: new() { ["CompanyName"] = "Name" });
 
         var totalCount = await query.CountAsync(ct);
         var items = await query.Skip((request.Request.Page - 1) * request.Request.PageSize).Take(request.Request.PageSize).ToListAsync(ct);
@@ -46,7 +46,7 @@ public class GetVendorsQueryHandler : IRequestHandler<GetVendorsQuery, PagedResu
 
     internal static VendorResponseDto MapToDto(Vendor v) => new()
     {
-        Id = v.Id, VendorCode = v.VendorCode, CompanyName = v.CompanyName,
+        Id = v.Id, VendorCode = v.VendorCode, CompanyName = v.Name,
         ContactPerson = v.ContactPerson, Email = v.Email, Phone = v.Phone,
         Address = v.Address, TradeLicense = v.TradeLicense, TIN = v.TIN, BIN = v.BIN,
         VendorType = v.VendorType, Status = v.Status,
@@ -68,9 +68,9 @@ public class GetAllVendorsQueryHandler : IRequestHandler<GetAllVendorsQuery, Lis
         if (request.VendorType.HasValue) query = query.Where(x => x.VendorType == request.VendorType.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Search))
-            query = query.WhereSearch(request.Search, x => x.CompanyName, x => x.VendorCode, x => x.Email);
+            query = query.WhereSearch(request.Search, x => x.Name, x => x.VendorCode, x => x.Email);
 
-        query = query.OrderBy(x => x.CompanyName);
+        query = query.OrderBy(x => x.Name);
         var items = await query.ToListAsync(ct);
         return items.Select(GetVendorsQueryHandler.MapToDto).ToList();
     }
@@ -88,7 +88,7 @@ public class GetVendorByIdQueryHandler : IRequestHandler<GetVendorByIdQuery, Ven
 
         return new VendorResponseDto
         {
-            Id = v.Id, VendorCode = v.VendorCode, CompanyName = v.CompanyName,
+            Id = v.Id, VendorCode = v.VendorCode, CompanyName = v.Name,
             ContactPerson = v.ContactPerson, Email = v.Email, Phone = v.Phone,
             Address = v.Address, TradeLicense = v.TradeLicense, TIN = v.TIN, BIN = v.BIN,
             VendorType = v.VendorType, Status = v.Status,
@@ -121,7 +121,7 @@ public class GetVendorQuotationsQueryHandler : IRequestHandler<GetVendorQuotatio
             {
                 Id = q.Id, QuotationNumber = q.QuotationNumber,
                 RFQId = q.RFQId, RFQNumber = q.RequestForQuotation?.RFQNumber ?? string.Empty,
-                VendorId = q.VendorId, VendorName = q.Vendor?.CompanyName ?? string.Empty,
+                VendorId = q.VendorId, VendorName = q.Vendor?.Name ?? string.Empty,
                 QuotationDate = q.QuotationDate, ValidUntil = q.ValidUntil,
                 Status = q.Status, TotalAmount = q.TotalAmount,
                 DeliveryDays = q.DeliveryDays, PaymentTerms = q.PaymentTerms,
@@ -154,7 +154,7 @@ public class GetVendorOrdersQueryHandler : IRequestHandler<GetVendorOrdersQuery,
             {
                 Id = p.Id, PONumber = p.PONumber, PODate = p.PODate,
                 ExpectedDeliveryDate = p.ExpectedDeliveryDate,
-                VendorId = p.VendorId, VendorName = p.Vendor?.CompanyName ?? string.Empty,
+                VendorId = p.VendorId, VendorName = p.Vendor?.Name ?? string.Empty,
                 QuotationId = p.QuotationId, PRId = p.PRId,
                 Status = p.Status, SubTotal = p.SubTotal,
                 TaxAmount = p.TaxAmount, DiscountAmount = p.DiscountAmount, TotalAmount = p.TotalAmount,

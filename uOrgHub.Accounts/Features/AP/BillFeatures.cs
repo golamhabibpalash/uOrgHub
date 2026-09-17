@@ -286,7 +286,7 @@ public class ApproveBillCommandHandler : IRequestHandler<ApproveBillCommand, Bil
                 je.Lines.Add(new Models.Entities.JournalEntryLine { AccountId = line.ExpenseAccountId, DebitAmount = line.LineTotal, Description = line.Description, LineOrder = order++, CostCenterId = line.CostCenterId, CreatedAt = DateTime.UtcNow });
             }
         }
-        je.Lines.Add(new Models.Entities.JournalEntryLine { AccountId = bill.Vendor.PayableAccountId, CreditAmount = bill.TotalAmount, Description = $"AP - {bill.BillNumber}", LineOrder = order, CreatedAt = DateTime.UtcNow });
+        je.Lines.Add(new Models.Entities.JournalEntryLine { AccountId = bill.Vendor.PayableAccountId ?? throw new AppException($"Vendor '{bill.Vendor.Name}' has no payable account set. Set it from Accounts > Vendors before approving this bill."), CreditAmount = bill.TotalAmount, Description = $"AP - {bill.BillNumber}", LineOrder = order, CreatedAt = DateTime.UtcNow });
 
         je.TotalDebit = je.Lines.Sum(l => l.DebitAmount);
         je.TotalCredit = je.Lines.Sum(l => l.CreditAmount);

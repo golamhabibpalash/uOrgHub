@@ -54,7 +54,7 @@ public class GetQuotationsQueryHandler : IRequestHandler<GetQuotationsQuery, Pag
     {
         Id = q.Id, QuotationNumber = q.QuotationNumber,
         RFQId = q.RFQId, RFQNumber = q.RequestForQuotation?.RFQNumber ?? string.Empty,
-        VendorId = q.VendorId, VendorName = q.Vendor?.CompanyName ?? string.Empty,
+        VendorId = q.VendorId, VendorName = q.Vendor?.Name ?? string.Empty,
         QuotationDate = q.QuotationDate, ValidUntil = q.ValidUntil,
         Status = q.Status, TotalAmount = q.TotalAmount,
         DeliveryDays = q.DeliveryDays, PaymentTerms = q.PaymentTerms,

@@ -8,6 +8,7 @@ using uOrgHub.Procurement.Models.Entities;
 using uOrgHub.Procurement.Models.Enums;
 using uOrgHub.Procurement.Repositories;
 using uOrgHub.Shared.Data;
+using uOrgHub.Shared.Entities;
 using uOrgHub.Shared.Exceptions;
 
 namespace uOrgHub.Procurement.Features.VendorQuotations.Commands;

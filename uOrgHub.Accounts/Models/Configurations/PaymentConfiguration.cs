@@ -12,7 +12,8 @@ public class PaymentConfiguration : IEntityTypeConfiguration<Payment>
         b.HasIndex(x => x.PaymentNumber).IsUnique();
         b.HasOne(x => x.Customer).WithMany(x => x.Payments)
          .HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.SetNull);
-        b.HasOne(x => x.Vendor).WithMany(x => x.Payments)
+        // No inverse Vendor.Payments collection — see BillConfiguration for why.
+        b.HasOne(x => x.Vendor).WithMany()
          .HasForeignKey(x => x.VendorId).OnDelete(DeleteBehavior.SetNull);
         b.HasOne(x => x.BankAccount).WithMany()
          .HasForeignKey(x => x.BankAccountId).OnDelete(DeleteBehavior.SetNull);

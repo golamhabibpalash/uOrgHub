@@ -496,9 +496,9 @@ export function useItemVariantLookup() {
 }
 
 // --- Procurement Lookups ---
-// Distinct from useVendorLookup above, which reads Accounts' own acc_vendors table — Procurement
-// keeps its own separate proc_vendors table (see BUSINESS_FLOW.md break #6), so a PO/GRN vendor
-// picker must read from here, not the Accounts one.
+// Both vendor pickers read the same unified `vendors` table (uOrgHub.Shared.Entities.Vendor):
+// Accounts and Procurement keep separate controllers/claims for permissions, but the underlying
+// vendor master is one record, so a PO vendor and a Bill vendor can never silently diverge.
 
 export function useProcurementVendorLookup() {
   const query = useQuery({

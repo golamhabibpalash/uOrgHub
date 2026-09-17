@@ -27,6 +27,10 @@ public class UpdateVendorDto
     public string? BIN { get; set; }
     public int PaymentTermsDays { get; set; }
     public bool IsActive { get; set; }
+    // Unlike Create, this is optional here on purpose: a vendor first created from Procurement has
+    // no payable account yet, and completing it later is exactly what Update is for. Omitted/null
+    // leaves whatever the vendor already has untouched (does not clear a previously-set account).
+    public Guid? PayableAccountId { get; set; }
 }
 
 public class VendorResponseDto
@@ -42,7 +46,7 @@ public class VendorResponseDto
     public string? BIN { get; set; }
     public int PaymentTermsDays { get; set; }
     public bool IsActive { get; set; }
-    public Guid PayableAccountId { get; set; }
+    public Guid? PayableAccountId { get; set; }
 }
 
 public class CreateBillDto

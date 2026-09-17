@@ -65,7 +65,7 @@ public class GetPOsQueryHandler : IRequestHandler<GetPOsQuery, PagedResult<PORes
         Dictionary<Guid, dynamic> variants) => new()
     {
         Id = po.Id, PONumber = po.PONumber, PODate = po.PODate, ExpectedDeliveryDate = po.ExpectedDeliveryDate,
-        VendorId = po.VendorId, VendorName = po.Vendor?.CompanyName ?? string.Empty,
+        VendorId = po.VendorId, VendorName = po.Vendor?.Name ?? string.Empty,
         QuotationId = po.QuotationId, QuotationNumber = po.QuotationId.HasValue ? quotations.GetValueOrDefault(po.QuotationId.Value) : null,
         PRId = po.PRId, PRNumber = po.PRId.HasValue ? prs.GetValueOrDefault(po.PRId.Value) : null,
         Status = po.Status, SubTotal = po.SubTotal, TaxAmount = po.TaxAmount, DiscountAmount = po.DiscountAmount, TotalAmount = po.TotalAmount,

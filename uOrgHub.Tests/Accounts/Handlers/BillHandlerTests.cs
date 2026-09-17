@@ -9,6 +9,7 @@ using uOrgHub.Accounts.Models.Enums;
 using uOrgHub.Accounts.Repositories;
 using uOrgHub.Accounts.Services;
 using uOrgHub.Shared.Data;
+using uOrgHub.Shared.Entities;
 using uOrgHub.Shared.Exceptions;
 using uOrgHub.Shared.Models;
 using uOrgHub.Shared.Services;
@@ -55,7 +56,7 @@ public class BillHandlerTests : IDisposable
         var v = new Vendor
         {
             Id = Guid.NewGuid(), VendorCode = code, Name = "Test Vendor",
-            PaymentTermsDays = 30, IsActive = true, PayableAccountId = Guid.NewGuid()
+            PaymentTermDays = 30, Status = VendorStatus.Active, PayableAccountId = Guid.NewGuid()
         };
         _context.Set<Vendor>().Add(v);
         _context.SaveChanges();

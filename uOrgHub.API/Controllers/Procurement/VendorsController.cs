@@ -6,8 +6,8 @@ using uOrgHub.Auth.Authorization;
 using uOrgHub.Procurement.DTOs;
 using uOrgHub.Procurement.Features.Vendors.Commands;
 using uOrgHub.Procurement.Features.Vendors.Queries;
-using uOrgHub.Procurement.Models.Enums;
 using uOrgHub.Procurement.Reporting.ExportColumns;
+using uOrgHub.Shared.Entities;
 using uOrgHub.Shared.Export;
 using uOrgHub.Shared.Models;
 

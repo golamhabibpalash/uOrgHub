@@ -179,12 +179,12 @@ how much financial visibility it costs.
 | 3 | **RA bills never reach the GL and never become AR invoices** | no `JournalEntry` or `Invoice` creation anywhere in `uOrgHub.Projects/Features/RABills/` | Certified client billing does not appear in the trial balance or income statement; revenue must be re-entered as an AR invoice by hand |
 | 4 | **Payroll never posts to the GL** | no `new JournalEntry` anywhere in `uOrgHub.HR` | Salary expense and the payroll liability never book; labour cost is absent from both the P&L and project costing |
 | 5 | **PO approval books no commitment** | no `JournalEntry` in `uOrgHub.Procurement/Features/PurchaseOrders/` | No commitment accounting — approved-but-unbilled spend isn't reflected against a project's ceiling |
-| 6 | **Vendor and Client/Customer are duplicated across modules** | `Vendor.cs` exists in *both* `uOrgHub.Accounts` and `uOrgHub.Procurement`; `Client` (Projects) and `Customer` (Accounts) are separate with no FK (`uOrgHub.Projects/Models/Entities/Client.cs`) | The vendor you raise a PO to and the vendor you bill are different records; a project's client is not the AR customer you invoice |
+| 6 | **Client/Customer are duplicated across modules** (Vendor unified) | `Client` (Projects) and `Customer` (Accounts) are separate with no FK (`uOrgHub.Projects/Models/Entities/Client.cs`); Vendor used to be split too (`acc_vendors` + `proc_vendors`) but now lives in one shared `vendors` table (`uOrgHub.Shared/Entities/Vendor.cs`) used by both Accounts and Procurement | A project's client is not the AR customer you invoice |
 | 7 | **Issuing stock to a project carries no cost** | `StockTransaction` has no `ProjectId`/`CostCenterId` (`uOrgHub.Inventory/Models/Entities/StockTransaction.cs`) | Consuming inventory into a project doesn't hit that project's cost |
 
 **The natural next links**, in order: bill ← PO/GRN (break 1, unlocks three-way match); RA bill →
-AR invoice → GL (break 3, unlocks revenue reporting); payroll → GL (break 4); unify Vendor and
-Client/Customer (break 6, prerequisite for clean cross-module reporting).
+AR invoice → GL (break 3, unlocks revenue reporting); payroll → GL (break 4); unify
+Client/Customer (remainder of break 6, prerequisite for clean cross-module reporting).
 
 ---
 

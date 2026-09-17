@@ -10,7 +10,9 @@ public class BillConfiguration : IEntityTypeConfiguration<Bill>
     {
         b.HasKey(x => x.Id);
         b.HasIndex(x => x.BillNumber).IsUnique();
-        b.HasOne(x => x.Vendor).WithMany(x => x.Bills)
+        // No inverse Vendor.Bills collection: Vendor now lives in uOrgHub.Shared, which cannot
+        // reference uOrgHub.Accounts.Models.Entities.Bill without a circular project dependency.
+        b.HasOne(x => x.Vendor).WithMany()
          .HasForeignKey(x => x.VendorId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne(x => x.FiscalYear).WithMany()
          .HasForeignKey(x => x.FiscalYearId).OnDelete(DeleteBehavior.Restrict);

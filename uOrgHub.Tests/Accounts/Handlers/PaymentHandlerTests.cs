@@ -9,6 +9,7 @@ using uOrgHub.Accounts.Models.Enums;
 using uOrgHub.Accounts.Repositories;
 using uOrgHub.Accounts.Services;
 using uOrgHub.Shared.Data;
+using uOrgHub.Shared.Entities;
 using uOrgHub.Shared.Exceptions;
 using uOrgHub.Shared.Models;
 
@@ -76,8 +77,8 @@ public class PaymentHandlerTests : IDisposable
             Id = Guid.NewGuid(),
             VendorCode = code,
             Name = "Test Vendor",
-            PaymentTermsDays = 30,
-            IsActive = true,
+            PaymentTermDays = 30,
+            Status = VendorStatus.Active,
             PayableAccountId = Guid.NewGuid()
         };
         _context.Set<Vendor>().Add(v);

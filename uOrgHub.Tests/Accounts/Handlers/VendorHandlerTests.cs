@@ -5,6 +5,7 @@ using uOrgHub.Accounts.DTOs.AP;
 using uOrgHub.Accounts.Features.AP;
 using uOrgHub.Accounts.Models.Entities;
 using uOrgHub.Shared.Data;
+using uOrgHub.Shared.Entities;
 using uOrgHub.Shared.Exceptions;
 using uOrgHub.Shared.Models;
 
@@ -29,7 +30,7 @@ public class VendorHandlerTests : IDisposable
         var v = new Vendor
         {
             Id = Guid.NewGuid(), VendorCode = code, Name = name,
-            PaymentTermsDays = 30, IsActive = true, IsDeleted = isDeleted,
+            PaymentTermDays = 30, Status = VendorStatus.Active, IsDeleted = isDeleted,
             PayableAccountId = Guid.NewGuid()
         };
         _context.Set<Vendor>().Add(v);
@@ -123,7 +124,7 @@ public class VendorHandlerTests : IDisposable
         var result = await handler.Handle(new DeleteVendorCommand(vendor.Id), default);
 
         result.Should().Be(Unit.Value);
-        _context.Set<Vendor>().First(v => v.Id == vendor.Id).IsDeleted.Should().BeTrue();
+        _context.Set<Vendor>().IgnoreQueryFilters().First(v => v.Id == vendor.Id).IsDeleted.Should().BeTrue();
     }
 
     [Fact]
