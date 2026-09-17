@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, FileText } from "lucide-react";
+import { Plus, Trash2, FileText, Eye } from "lucide-react";
 import DataGrid from "../../components/shared/DataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
@@ -155,6 +155,7 @@ export default function RequestForQuotations() {
     {
       key: "actions", label: "", sortable: false, render: (row: RequestForQuotation) => (
         <div className="flex gap-1">
+          <button onClick={() => navigate(`/procurement/rfqs/${row.id}`)} title="View details" className="p-1 text-gray-400 hover:text-primary-600 hover:bg-gray-50 rounded"><Eye size={14} /></button>
           <button onClick={() => openEdit(row)} className="p-1 text-blue-600 hover:bg-blue-50 rounded">✏️</button>
           {row.status === "Draft" && <button onClick={() => deleteMutation.mutate(row.id)} className="p-1 text-red-600 hover:bg-red-50 rounded">🗑️</button>}
           <button onClick={() => navigate(`/procurement/rfqs/${row.id}/document`)} title="Document" className="p-1 text-gray-600 hover:bg-gray-50 rounded"><FileText size={14} /></button>

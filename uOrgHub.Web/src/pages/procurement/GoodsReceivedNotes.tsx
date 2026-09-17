@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, CheckCircle, Trash2 } from "lucide-react";
+import { Plus, CheckCircle, Trash2, Eye } from "lucide-react";
 import DataGrid from "../../components/shared/DataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
@@ -11,6 +12,7 @@ import { getGRNs, createGRN, updateGRN, deleteGRN, confirmGRN, getPurchaseOrderB
 import DateInput from "../../components/shared/DateInput";
 
 export default function GoodsReceivedNotes() {
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const dg = useDataGrid({ defaultSortBy: "grnDate" });
   const [filterStatus, setFilterStatus] = useState("");
@@ -145,6 +147,7 @@ export default function GoodsReceivedNotes() {
     { key: "status", label: "Status", sortable: false, render: (row: GoodsReceivedNote) => <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[row.status]}`}>{row.status}</span> },
     { key: "actions", label: "Actions", sortable: false, render: (row: GoodsReceivedNote) => (
       <div className="flex items-center gap-1">
+        <button onClick={() => navigate(`/procurement/grns/${row.id}`)} title="View details" className="p-1 text-gray-400 hover:text-primary-600 hover:bg-gray-50 rounded"><Eye size={14} /></button>
         {row.status === "Draft" && (
           <>
             <button onClick={() => confirmMutation.mutate(row.id)} title="Confirm" className="p-1 text-green-600 hover:bg-green-50 rounded"><CheckCircle size={14} /></button>
@@ -152,7 +155,6 @@ export default function GoodsReceivedNotes() {
             <button onClick={() => deleteMutation.mutate(row.id)} className="p-1 text-red-600 hover:bg-red-50 rounded">🗑️</button>
           </>
         )}
-        {row.status !== "Draft" && <span className="text-xs text-gray-400">—</span>}
       </div>
     )},
   ];

@@ -73,12 +73,16 @@ import StockTransactions from "./pages/inventory/StockTransactions";
 import ProcurementDashboard from "./pages/procurement/ProcurementDashboard";
 import ProcurementVendors from "./pages/procurement/Vendors";
 import PurchaseRequisitions from "./pages/procurement/PurchaseRequisitions";
+import PurchaseRequisitionDetail from "./pages/procurement/PurchaseRequisitionDetail";
 import PurchaseRequisitionDocument from "./pages/procurement/PurchaseRequisitionDocument";
 import RequestForQuotations from "./pages/procurement/RequestForQuotations";
+import RfqDetail from "./pages/procurement/RfqDetail";
 import RfqDocument from "./pages/procurement/RfqDocument";
 import VendorQuotations from "./pages/procurement/VendorQuotations";
 import PurchaseOrders from "./pages/procurement/PurchaseOrders";
+import PurchaseOrderDetail from "./pages/procurement/PurchaseOrderDetail";
 import GoodsReceivedNotes from "./pages/procurement/GoodsReceivedNotes";
+import GRNDetail from "./pages/procurement/GRNDetail";
 import ProjectsDashboard from "./pages/projects/ProjectsDashboard";
 import AllProjectsPage from "./pages/projects/AllProjectsPage";
 import ProjectDetail from "./pages/projects/ProjectDetail";
@@ -214,12 +218,16 @@ export default function App() {
             <Route path="procurement" element={<ProcurementDashboard />} />
             <Route path="procurement/vendors" element={<ProcurementVendors />} />
             <Route path="procurement/purchase-requisitions" element={<PurchaseRequisitions />} />
+            <Route path="procurement/purchase-requisitions/:id" element={<PurchaseRequisitionDetail />} />
             <Route path="procurement/purchase-requisitions/:id/document" element={<PurchaseRequisitionDocument />} />
             <Route path="procurement/rfqs" element={<RequestForQuotations />} />
+            <Route path="procurement/rfqs/:id" element={<RfqDetail />} />
             <Route path="procurement/rfqs/:id/document" element={<RfqDocument />} />
             <Route path="procurement/quotations" element={<VendorQuotations />} />
             <Route path="procurement/purchase-orders" element={<PurchaseOrders />} />
+            <Route path="procurement/purchase-orders/:id" element={<PurchaseOrderDetail />} />
             <Route path="procurement/grns" element={<GoodsReceivedNotes />} />
+            <Route path="procurement/grns/:id" element={<GRNDetail />} />
             <Route path="projects" element={<ProtectedRoute requiredClaim="Projects.Projects.View"><ProjectsDashboard /></ProtectedRoute>} />
             <Route path="projects/all" element={<ProtectedRoute requiredClaim="Projects.Projects.View"><AllProjectsPage /></ProtectedRoute>} />
             <Route path="projects/categories" element={<ProtectedRoute requiredClaim="Projects.ProjectCategories.View"><ProjectCategories /></ProtectedRoute>} />

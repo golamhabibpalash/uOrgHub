@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Send, CheckCircle, XCircle, Trash2 } from "lucide-react";
+import { Plus, Send, CheckCircle, XCircle, Trash2, Eye } from "lucide-react";
 import DataGrid from "../../components/shared/DataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
@@ -11,6 +12,7 @@ import { getPurchaseOrders, createPurchaseOrder, updatePurchaseOrder, deletePurc
 import DateInput from "../../components/shared/DateInput";
 
 export default function PurchaseOrders() {
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const dg = useDataGrid({ defaultSortBy: "poDate" });
   const [filterStatus, setFilterStatus] = useState("");
@@ -121,6 +123,7 @@ export default function PurchaseOrders() {
     { key: "status", label: "Status", sortable: false, render: (row: PurchaseOrder) => <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[row.status]}`}>{row.status}</span> },
     { key: "actions", label: "Actions", sortable: false, render: (row: PurchaseOrder) => (
       <div className="flex items-center gap-1">
+        <button onClick={() => navigate(`/procurement/purchase-orders/${row.id}`)} title="View details" className="p-1 text-gray-400 hover:text-primary-600 hover:bg-gray-50 rounded"><Eye size={14} /></button>
         {row.status === "Draft" && (
           <>
             <button onClick={() => sendMutation.mutate(row.id)} title="Send" className="p-1 text-blue-600 hover:bg-blue-50 rounded"><Send size={14} /></button>
@@ -134,7 +137,6 @@ export default function PurchaseOrders() {
             <button onClick={() => cancelMutation.mutate(row.id)} title="Cancel" className="p-1 text-red-600 hover:bg-red-50 rounded"><XCircle size={14} /></button>
           </>
         )}
-        {row.status !== "Draft" && row.status !== "Sent" && <span className="text-xs text-gray-400">—</span>}
       </div>
     )},
   ];

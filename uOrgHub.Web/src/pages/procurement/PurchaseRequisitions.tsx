@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Send, CheckCircle, XCircle, Trash2, FileText, FilePlus } from "lucide-react";
+import { Plus, Send, CheckCircle, XCircle, Trash2, FileText, FilePlus, Eye } from "lucide-react";
 import DataGrid from "../../components/shared/DataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
@@ -150,6 +150,7 @@ export default function PurchaseRequisitions() {
     {
       key: "actions", label: "Actions", sortable: false, render: (row: PurchaseRequisition) => (
         <div className="flex items-center gap-1">
+          <button onClick={() => navigate(`/procurement/purchase-requisitions/${row.id}`)} title="View details" className="p-1 text-gray-400 hover:text-primary-600 hover:bg-gray-50 rounded"><Eye size={14} /></button>
           {row.status === "Draft" && (
             <>
               <button onClick={() => submitMutation.mutate(row.id)} title="Submit" className="p-1 text-blue-600 hover:bg-blue-50 rounded"><Send size={14} /></button>
