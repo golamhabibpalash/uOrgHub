@@ -1,8 +1,8 @@
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
-using uOrgHub.HR.Features._Common;
 using uOrgHub.HR.Repositories;
+using uOrgHub.Shared.Behaviors;
 
 namespace uOrgHub.HR;
 

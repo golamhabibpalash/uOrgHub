@@ -1,7 +1,9 @@
 using FluentValidation;
+using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using uOrgHub.Accounts.Repositories;
 using uOrgHub.Accounts.Services;
+using uOrgHub.Shared.Behaviors;
 
 namespace uOrgHub.Accounts;
 
@@ -9,7 +11,11 @@ public static class AccountsServiceExtension
 {
     public static IServiceCollection AddAccountsModule(this IServiceCollection services)
     {
-        services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(AccountsServiceExtension).Assembly));
+        services.AddMediatR(cfg =>
+        {
+            cfg.RegisterServicesFromAssembly(typeof(AccountsServiceExtension).Assembly);
+            cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
+        });
         services.AddValidatorsFromAssembly(typeof(AccountsServiceExtension).Assembly);
 
         services.AddScoped<IAccountGroupRepository, AccountGroupRepository>();

@@ -2,6 +2,7 @@ using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using uOrgHub.Inventory.Repositories;
+using uOrgHub.Shared.Behaviors;
 
 namespace uOrgHub.Inventory;
 
@@ -9,7 +10,11 @@ public static class InventoryServiceExtension
 {
     public static IServiceCollection AddInventoryModule(this IServiceCollection services)
     {
-        services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(InventoryServiceExtension).Assembly));
+        services.AddMediatR(cfg =>
+        {
+            cfg.RegisterServicesFromAssembly(typeof(InventoryServiceExtension).Assembly);
+            cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
+        });
         services.AddValidatorsFromAssembly(typeof(InventoryServiceExtension).Assembly);
 
         services.AddScoped<IInventoryTypeRepository, InventoryTypeRepository>();

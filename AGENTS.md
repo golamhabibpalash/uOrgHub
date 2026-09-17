@@ -1,67 +1,62 @@
 # uOrgHub — Agent Instructions
 
-## Quick Commands
+Modular-monolith ERP: .NET 8 API + PostgreSQL 16 + React 19/Vite/TS frontend (`uOrgHub.Web`).
+`CODING_STANDARDS.md` is the style authority, but its §3/§6 **Services+Repository layout is stale** — the code uses MediatR slices. Follow the rules there, match existing modules for layout. Reference module: `uOrgHub.HR`.
+
+## Commands (backend from root, frontend from `uOrgHub.Web`)
 
 ```bash
-# Backend
-dotnet build uOrgHub.sln
-dotnet test
-dotnet run --project uOrgHub.API
-dotnet ef migrations add AddXxx \
-  --project uOrgHub.Shared --startup-project uOrgHub.API --output-dir Data/Migrations
+docker compose up -d                          # postgres:16 on localhost:5433 (DB orgHub / postgres / Admin1234!)
+dotnet build                                  # solution gate — must compile (CI blocks on this)
+dotnet test --filter "FullyQualifiedName~DepartmentHandler"  # single test class
+dotnet run --project uOrgHub.API              # API → http://localhost:5177, Swagger at /swagger
+dotnet ef migrations add AddXxx --project uOrgHub.Shared/uOrgHub.Shared.csproj \
+  --startup-project uOrgHub.API/uOrgHub.API.csproj --output-dir Data/Migrations
 
-# Frontend
-cd uOrgHub.Web
-npm run build    # tsc -b && vite build
-npm run lint     # eslint .
-npm run dev
+cd uOrgHub.Web && npm run build               # tsc -b && vite build (CI gate) | npm run lint | npm run dev
 ```
 
-## Architecture
+- SDK pinned by `global.json` (8.0.400, rollForward latestPatch).
+- `dotnet test` needs **no database** — `uOrgHub.Tests/TestDb.cs` uses EF InMemory. The API itself needs postgres (auto-migrates + seeds on startup); if DB is down it logs a warning and still starts.
+- CI (`/.github/workflows/ci.yml`): build gates; `dotnet test` and `npm run lint` are `continue-on-error` (known pre-existing failures) — still fix what you touch, but don't chase the backlog.
+- No frontend test runner (`playwright` dep is browser-automation only).
+- README's "port 5432" is wrong — local dev is **5433** per `docker-compose.yml` + `appsettings*.json`.
 
-- **Modular monolith**: .NET 8 + PostgreSQL 16 + React/TS (Vite + TanStack Query + Tailwind).
-- Modules: `uOrgHub.API` (entrypoint, controllers, middleware), `uOrgHub.Shared` (AppDbContext, BaseEntity, ApiResponse, shared helpers), `uOrgHub.Auth`, `uOrgHub.HR`, `uOrgHub.Accounts`, `uOrgHub.Inventory`, `uOrgHub.Procurement`, `uOrgHub.Projects`, `uOrgHub.Settings`, `uOrgHub.Tests`.
-- All migrations live in `uOrgHub.Shared/Data/Migrations/`; Program.cs auto-migrates on startup then runs seeds (`IAuthSeeder`, `SettingsSeeder`).
-- EF Configurations: `uOrgHub.{Module}/Models/Configurations/{Entity}Configuration.cs` (IEntityTypeConfiguration).
-
-## Current API pattern: MediatR — the `Services/` layout is STALE
-
-`CODING_STANDARDS.md` holds the root conventions, but its **Services layer structure is outdated**. Current modules use MediatR feature slices:
+## Backend pattern (Controller → MediatR → Handler → Repository → AppDbContext)
 
 ```
-uOrgHub.{Module}/Features/{Feature}/Commands/{Feature}Commands.cs   # records + handlers
-uOrgHub.{Module}/Features/{Feature}/Queries/{Feature}Queries.cs
+uOrgHub.{Module}/Features/{Area}/Commands/{Entity}Commands.cs  # record XxxCommand : ICommand<T> + handler
+uOrgHub.{Module}/Features/{Area}/Queries/{Entity}Queries.cs
+uOrgHub.{Module}/{DTOs,Models/Entities+Configurations+Enums,Mappings,Repositories,Reporting}/
+uOrgHub.{Module}/{Module}ServiceExtension.cs  # AddMediatR + ValidationBehavior + validators + repos; registered in Program.cs
 ```
 
-- Pattern: `record XxxCommand(...) : ICommand<ResultDto>` (and `IQuery<T>`) with a sibling `XxxCommandHandler : IRequestHandler<XxxCommand, ResultDto>`. Controllers call `_mediator.Send(...)`.
-- Marker interfaces + `ValidationBehavior` live in `Features/_Common/ICommand.cs` (validates FluentValidation + dynamic `IValidationRuleEngine`).
-- Each module's `{Module}ServiceExtension.cs` registers `AddMediatR(RegisterServicesFromAssembly + AddOpenBehavior(ValidationBehavior<,>))` plus `AddValidatorsFromAssembly`.
-- Accounts also has **legacy `Services/` for some flows** — when editing, mirror whatever that file/feature already does.
+- Validation: shared `uOrgHub.Shared/Behaviors/ValidationBehavior<,>`, wired via `AddOpenBehavior` in all 5 modules. It validates the request plus every nested property with a registered validator — commands wrap DTOs (`CreatePRCommand(CreatePRDto Dto)`), so write validators against the **DTO**, never the command. Dynamic `IValidationRuleEngine` rules match the DTO-derived entity name (`CreateEmployeeDto` → `Employee`).
+- Package versions are split: MediatR unified at 12.4.1, but FluentValidation is 11.9.x everywhere except Accounts/Procurement/Projects (12.1.1) — match the local csproj when adding refs or NU1605 fails the build. Test validator doubles must be public top-level types (assembly scan skips nested/private).
+- Some modules also keep `Services/` for domain flows (`Accounts/`, `Projects/`, `Auth/`, `Settings/`) — mirror whatever the file you're editing already does.
+- New module checklist: class lib + `{Module}ServiceExtension` + register in `Program.cs` + controllers in `uOrgHub.API/Controllers/{Module}/` + claims in `uOrgHub.Auth/Authorization/Claims.cs` + `src/api/{module}.ts` + `src/pages/{module}/`.
 
-## Controllers
+## Controllers / auth / responses
 
-- In `uOrgHub.API/Controllers/{Module}/`, inherit `BaseController`, `[Authorize]`, route `api/v1/[controller]`, `{id:guid}` constraints.
-- Endpoints are permission-gated with `[RequireClaim(Claims.{Module}.{Entity}.{Action})]` — constants in `uOrgHub.Auth/Authorization/Claims.cs`. Add both the attribute AND a `Claims` constant when creating an endpoint.
-- Return `ApiResponse<T>.Ok(...)`; throw typed exceptions from `uOrgHub.Shared/Exceptions` (global ExceptionMiddleware handles them). Never return raw entities.
+- Inherit `BaseController`, `[Authorize]`, route `api/v1/[controller]`, `{id:guid}` constraints. Gate with `[RequireClaim(Claims.{Module}.{Entity}.{Action})]` — add the `Claims` constant too.
+- Return `ApiResponse<T>.Ok(...)` (paged: `ApiResponse<PagedResult<T>>`); throw typed `uOrgHub.Shared/Exceptions` (`NotFoundException`, `AppException`). Never return raw entities or null.
+- Middleware order in `Program.cs` is deliberate — don't reorder (Maintenance → Exception → AccessLog → Auth → Permission).
 
-## Shared helpers (uOrgHub.Shared/Extensions + Models)
+## Data conventions
 
-- `WhereSearch(query, term, props...)` — case-insensitive ILike partial search; `ApplySorting(sortBy, sortDesc)` — both used by every list query. `PaginationRequest` / `PagedResult<T>` drive all list endpoints.
-- Export: `IExportService` (Shared) + `Reporting/ExportColumns/{Entity}ExportColumns.cs` per module; list pages expose `[HttpGet("export?format=csv|xlsx")]`.
+`Guid` PK · `BaseEntity` · soft delete only (always `!x.IsDeleted`) · `DateTime.UtcNow` · `[Table]` prefix per module (`hr_ acc_ inv_ proc_ proj_`) · Mapperly only (never AutoMapper/hand-map) · FluentValidation in `DTOs/Validators/` · async + `CancellationToken`.
+- List queries: `WhereSearch(term, props...)` (Postgres `ILIKE`, don't hand-roll `Contains`/`ToLower`) + `ApplySorting(sortBy, sortDesc)` · `PaginationRequest`/`PagedResult<T>` · export via `IExportService` + per-module `ExportColumns/`.
 
-## Conventions (CODING_STANDARDS.md is source of truth)
+## Migrations / deploy
 
-`Guid` PK · `DateTime.UtcNow` only · soft delete only (always filter `!x.IsDeleted`) · Riok.Mapperly, never AutoMapper · FluentValidation on Create/Update DTOs in `DTOs/Validators/` · async + `CancellationToken` everywhere · `[Table("inv_...")]` prefix per module (`hr_`, `acc_`, `inv_`, `proc_`, `proj_`).
-
-## Database
-
-- Local dev: root `docker-compose.yml` → postgres:16 on `localhost:5433`, DB `orgHub`, user `postgres`, pwd `Admin1234!`.
-- `deploy/docker-compose.yml` is instance-agnostic — never run directly; use `sudo ./deploy/deploy.sh <instance>` (`deploy/README.md`, `deploy/RUNBOOK-*.md`).
+- All migrations live in `uOrgHub.Shared/Data/Migrations/`; never edit by hand. `Program.cs` runs `Migrate()` then `IAuthSeeder` + `SettingsSeeder`.
+- Deploy: never run `deploy/docker-compose.yml` directly — `sudo ./deploy/deploy.sh <instance>` (`deploy/README.md`). `VITE_API_URL` is **baked at build time**, so each instance has its own web image tag. Secrets via `.env` (copy `.env.example`); never commit.
 
 ## Frontend
 
-- Base URL: `VITE_API_URL` else `http://localhost:5177/api/v1` (`src/api/client.ts`). 401 auto-refreshes token; 403 dispatches `auth:forbidden` window event.
-- List pages use `DataGrid` + `useDataGrid` + `ExportMenu` (CODING_STANDARDS.md §18). Query params are camelCase and map to backend `PaginationRequest`.
+- All calls via `src/api/client.ts` (JWT inject + 401 refresh queue + toasts); 403 fires `auth:forbidden`. Shapes in `src/types/api.ts` mirror `ApiResponse`/`PagedResult`.
+- List pages: `DataGrid` + `useDataGrid` + `ExportMenu` only (never `DataTable`/`Pagination`); query params camelCase → `PaginationRequest`. Pattern: `CODING_STANDARDS.md` §18.
+- State: Zustand `authStore`; routing react-router v7; only `/uploads` is proxied to the API in `vite.config.ts`.
 
 ## Git
 
