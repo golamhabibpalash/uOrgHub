@@ -24,10 +24,10 @@ public class CreateJobPostingDtoValidatorTests
     }
 
     [Fact]
-    public void Empty_job_code_fails()
+    public void Empty_job_code_passes_code_is_auto_generated()
     {
         var dto = ValidDto(); dto.JobCode = "";
-        _validator.Validate(dto).IsValid.Should().BeFalse();
+        _validator.Validate(dto).IsValid.Should().BeTrue();
     }
 
     [Fact]

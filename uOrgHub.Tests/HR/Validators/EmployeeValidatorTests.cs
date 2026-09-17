@@ -28,10 +28,10 @@ public class CreateEmployeeDtoValidatorTests
     }
 
     [Fact]
-    public void Empty_employee_code_fails()
+    public void Empty_employee_code_passes_code_is_auto_generated()
     {
         var dto = ValidDto(); dto.EmployeeCode = "";
-        _validator.Validate(dto).IsValid.Should().BeFalse();
+        _validator.Validate(dto).IsValid.Should().BeTrue();
     }
 
     [Fact]

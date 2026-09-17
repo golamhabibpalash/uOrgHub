@@ -155,7 +155,8 @@ public class ApproveLeaveRequestDtoValidatorTests
     {
         LeaveRequestId = Guid.NewGuid(),
         ApproverId = Guid.NewGuid(),
-        ApprovalLevel = 1
+        ApprovalLevel = 1,
+        IsApproved = true
     };
 
     [Fact]
@@ -197,5 +198,19 @@ public class ApproveLeaveRequestDtoValidatorTests
     {
         var dto = ValidDto(); dto.Comments = new string('C', 1001);
         _validator.Validate(dto).IsValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Reject_without_reason_fails()
+    {
+        var dto = ValidDto(); dto.IsApproved = false;
+        _validator.Validate(dto).IsValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Reject_with_reason_passes()
+    {
+        var dto = ValidDto(); dto.IsApproved = false; dto.RejectReason = "Insufficient cover";
+        _validator.Validate(dto).IsValid.Should().BeTrue();
     }
 }
