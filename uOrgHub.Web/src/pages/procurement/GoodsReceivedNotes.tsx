@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, CheckCircle } from "lucide-react";
+import { Plus, CheckCircle, Trash2 } from "lucide-react";
 import DataGrid from "../../components/shared/DataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
@@ -58,6 +58,8 @@ export default function GoodsReceivedNotes() {
     };
     setForm((f) => ({ ...f, items: newItems }));
   }
+
+  const totalReceivedValue = form.items.reduce((sum, i) => sum + i.receivedQuantity * i.unitCost, 0);
 
   const isFormValid =
     !!form.poId &&
@@ -196,7 +198,7 @@ export default function GoodsReceivedNotes() {
         actions={<ExportMenu baseUrl="goodsreceivednotes" filters={{ search: dg.search || undefined, status: filterStatus || undefined }} />}
       />
 
-      <Modal title={editing ? "Edit GRN" : "Create GRN"} open={modal} onClose={closeModal}>
+      <Modal title={editing ? "Edit GRN" : "Create GRN"} open={modal} onClose={closeModal} size="3xl">
         <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
           <div className="grid grid-cols-2 gap-3">
             <div><label className="text-xs text-gray-500 mb-1 block">GRN Date *</label>
@@ -245,26 +247,89 @@ export default function GoodsReceivedNotes() {
           </div>
           <div><label className="text-xs text-gray-500 mb-1 block">Notes</label>
             <textarea rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} /></div>
-          <div className="border-t pt-3">
-            <div className="flex items-center justify-between mb-2"><label className="text-xs text-gray-500">Items</label>
-              <button onClick={addItem} type="button" disabled={!form.poId} className="text-xs text-primary-500 disabled:text-gray-300 disabled:cursor-not-allowed">+ Add Item</button></div>
-            {!form.poId && <p className="text-xs text-gray-400 mb-2">Select a Purchase Order above to choose which of its items were received.</p>}
-            {form.items.map((item, idx) => (
-              <div key={idx} className="grid grid-cols-7 gap-2 mb-2 items-end p-2 bg-gray-50 rounded-lg">
-                <SearchableDropdown
-                  options={poItemOptions}
-                  value={item.poItemId || undefined}
-                  onChange={(v) => selectPOItem(idx, v ?? "")}
-                  loading={selectedPOLoading}
-                  placeholder="Select PO item..."
-                  className="col-span-2 text-xs"
-                />
-                <input type="number" placeholder="Ordered" disabled className="border border-gray-200 rounded px-2 py-1 text-xs bg-gray-100" value={item.orderedQuantity} readOnly />
-                <input type="number" placeholder="Received" className="border border-gray-200 rounded px-2 py-1 text-xs" value={item.receivedQuantity} onChange={(e) => updateItem(idx, "receivedQuantity", parseFloat(e.target.value))} />
-                <input type="number" placeholder="Rejected" className="border border-gray-200 rounded px-2 py-1 text-xs" value={item.rejectedQuantity} onChange={(e) => updateItem(idx, "rejectedQuantity", parseFloat(e.target.value))} />
-                <input type="number" placeholder="Unit Cost" className="border border-gray-200 rounded px-2 py-1 text-xs" value={item.unitCost} onChange={(e) => updateItem(idx, "unitCost", parseFloat(e.target.value))} />
-                <button onClick={() => removeItem(idx)} className="text-red-500">✕</button>
-              </div>))}
+          <div className="border-t pt-3 mt-3">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-medium text-gray-600">Items</label>
+              <button onClick={addItem} type="button" disabled={!form.poId} className="text-xs text-primary-600 hover:underline flex items-center gap-1 disabled:text-gray-300 disabled:no-underline disabled:cursor-not-allowed">
+                <Plus size={12} /> Add Item
+              </button>
+            </div>
+
+            {!form.poId && (
+              <div className="text-center py-6 border border-dashed border-gray-200 rounded-lg text-xs text-gray-400">
+                Select a Purchase Order above to choose which of its items were received.
+              </div>
+            )}
+            {form.poId && form.items.length === 0 && (
+              <div className="text-center py-6 border border-dashed border-gray-200 rounded-lg text-xs text-gray-400">
+                No items added yet — click "+ Add Item" to add the first line.
+              </div>
+            )}
+
+            <div className="space-y-2">
+              {form.items.map((item, idx) => {
+                const lineTotal = item.receivedQuantity * item.unitCost;
+                return (
+                  <div key={idx} className="border border-gray-200 rounded-lg p-3 bg-white">
+                    <div className="flex items-start gap-2 mb-2">
+                      <div className="flex-1">
+                        <label className="text-[11px] text-gray-400 mb-0.5 block">PO Item</label>
+                        <SearchableDropdown
+                          options={poItemOptions}
+                          value={item.poItemId || undefined}
+                          onChange={(v) => selectPOItem(idx, v ?? "")}
+                          loading={selectedPOLoading}
+                          placeholder="Select PO item..."
+                        />
+                      </div>
+                      <button onClick={() => removeItem(idx)} className="mt-5 text-red-400 hover:text-red-600 p-1 rounded hover:bg-red-50 shrink-0" title="Remove line">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-12 gap-2 items-end">
+                      <div className="col-span-3">
+                        <label className="text-[11px] text-gray-400 mb-0.5 block">Ordered</label>
+                        <input type="number" disabled readOnly
+                          className="w-full border border-gray-200 rounded-md px-2 py-1.5 text-sm text-right bg-gray-100 text-gray-500"
+                          value={item.orderedQuantity} />
+                      </div>
+                      <div className="col-span-3">
+                        <label className="text-[11px] text-gray-400 mb-0.5 block">Received</label>
+                        <input type="number" min={0}
+                          className="w-full border border-gray-200 rounded-md px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-1 focus:ring-primary-500"
+                          value={item.receivedQuantity || ""}
+                          onChange={(e) => updateItem(idx, "receivedQuantity", parseFloat(e.target.value) || 0)} />
+                      </div>
+                      <div className="col-span-3">
+                        <label className="text-[11px] text-gray-400 mb-0.5 block">Rejected</label>
+                        <input type="number" min={0}
+                          className="w-full border border-gray-200 rounded-md px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-1 focus:ring-primary-500"
+                          value={item.rejectedQuantity || ""}
+                          onChange={(e) => updateItem(idx, "rejectedQuantity", parseFloat(e.target.value) || 0)} />
+                      </div>
+                      <div className="col-span-3">
+                        <label className="text-[11px] text-gray-400 mb-0.5 block">Unit Cost</label>
+                        <input type="number" min={0}
+                          className="w-full border border-gray-200 rounded-md px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-1 focus:ring-primary-500"
+                          value={item.unitCost || ""}
+                          onChange={(e) => updateItem(idx, "unitCost", parseFloat(e.target.value) || 0)} />
+                      </div>
+                    </div>
+                    <div className="mt-2 text-right">
+                      <span className="text-xs text-gray-500">Line total: </span>
+                      <span className="text-sm font-semibold text-gray-900">{lineTotal.toLocaleString("en-BD", { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {form.items.length > 0 && (
+              <div className="flex justify-end items-center gap-2 mt-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
+                <span className="text-sm text-gray-600 font-medium">Total Received Value</span>
+                <span className="text-base font-bold text-gray-900">{totalReceivedValue.toLocaleString("en-BD", { minimumFractionDigits: 2 })}</span>
+              </div>
+            )}
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={closeModal} className="px-4 py-2 text-sm border border-gray-200 rounded-lg">Cancel</button>
