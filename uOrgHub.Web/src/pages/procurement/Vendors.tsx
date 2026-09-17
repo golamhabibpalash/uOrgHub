@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import DataGrid from "../../components/shared/DataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
+import ReportLayout from "../../components/shared/ReportLayout";
 import { useDataGrid } from "../../hooks/useDataGrid";
 import { getVendors, createVendor, updateVendor, deleteVendor, Vendor, VendorType, VendorStatus } from "../../api/procurement";
 
@@ -114,58 +115,72 @@ export default function Vendors() {
     { key: "creditLimit", label: "Credit Limit", render: (row: Vendor) => <span>${row.creditLimit.toLocaleString()}</span> },
   ];
 
+  // Search, both status/type filters and export live in one row (ReportLayout's `filters` slot)
+  // instead of being split across two rows, and Print/Columns come from ReportLayout for free —
+  // the same printing experience the Accounts reports already use.
+  const filters = (
+    <div className="flex flex-wrap items-center gap-3">
+      <div className="relative flex-1 min-w-[200px] max-w-sm">
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Search vendors..."
+          value={dg.search}
+          onChange={(e) => dg.setSearch(e.target.value)}
+          className="w-full text-sm border border-gray-200 rounded-lg pl-9 pr-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500"
+        />
+      </div>
+      <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); dg.setPage(1); }}
+        className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500">
+        <option value="">All Status</option>
+        <option value="Active">Active</option>
+        <option value="Inactive">Inactive</option>
+        <option value="Blacklisted">Blacklisted</option>
+      </select>
+      <select value={filterType} onChange={(e) => { setFilterType(e.target.value); dg.setPage(1); }}
+        className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500">
+        <option value="">All Types</option>
+        <option value="Supplier">Supplier</option>
+        <option value="Contractor">Contractor</option>
+        <option value="Consultant">Consultant</option>
+        <option value="ServiceProvider">Service Provider</option>
+      </select>
+      <div className="ml-auto">
+        <ExportMenu baseUrl="vendors" filters={{ search: dg.search || undefined, status: filterStatus || undefined, type: filterType || undefined }} />
+      </div>
+    </div>
+  );
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-base font-medium text-gray-900">Vendors</h2>
-          <p className="text-xs text-gray-400">Manage vendor database</p>
-        </div>
-        <button onClick={openAdd} className="flex items-center gap-2 bg-primary-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-primary-600">
-          <Plus size={15} /> Add Vendor
-        </button>
-      </div>
-
-      <DataGrid
-        columns={columns}
-        data={items}
-        loading={isLoading}
-        sortBy={dg.sortBy}
-        sortDescending={dg.sortDescending}
-        onSort={dg.handleSort}
-        search={dg.search}
-        onSearch={dg.setSearch}
-        searchPlaceholder="Search vendors..."
-        page={dg.page}
-        totalPages={totalPages}
-        onPageChange={dg.setPage}
-        pageSize={dg.pageSize}
-        onPageSizeChange={dg.setPageSize}
-        totalCount={totalCount}
-        onEdit={openEdit}
-        onDelete={(row) => deleteMutation.mutate(row.id)}
-        emptyMessage="No vendors found"
-        toolbarPrefix={
-          <>
-            <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); dg.setPage(1); }}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500">
-              <option value="">All Status</option>
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-              <option value="Blacklisted">Blacklisted</option>
-            </select>
-            <select value={filterType} onChange={(e) => { setFilterType(e.target.value); dg.setPage(1); }}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500">
-              <option value="">All Types</option>
-              <option value="Supplier">Supplier</option>
-              <option value="Contractor">Contractor</option>
-              <option value="Consultant">Consultant</option>
-              <option value="ServiceProvider">Service Provider</option>
-            </select>
-          </>
+      <ReportLayout
+        title="Vendors"
+        subtitle="Manage vendor database"
+        filters={filters}
+        headerActions={
+          <button onClick={openAdd} className="flex items-center gap-2 bg-primary-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-primary-600">
+            <Plus size={15} /> Add Vendor
+          </button>
         }
-        actions={<ExportMenu baseUrl="vendors" filters={{ search: dg.search || undefined, status: filterStatus || undefined, type: filterType || undefined }} />}
-      />
+      >
+        <DataGrid
+          columns={columns}
+          data={items}
+          loading={isLoading}
+          sortBy={dg.sortBy}
+          sortDescending={dg.sortDescending}
+          onSort={dg.handleSort}
+          page={dg.page}
+          totalPages={totalPages}
+          onPageChange={dg.setPage}
+          pageSize={dg.pageSize}
+          onPageSizeChange={dg.setPageSize}
+          totalCount={totalCount}
+          onEdit={openEdit}
+          onDelete={(row) => deleteMutation.mutate(row.id)}
+          emptyMessage="No vendors found"
+        />
+      </ReportLayout>
 
       <Modal title={editing ? "Edit Vendor" : "Add Vendor"} open={modal} onClose={closeModal}>
         <div className="space-y-3">

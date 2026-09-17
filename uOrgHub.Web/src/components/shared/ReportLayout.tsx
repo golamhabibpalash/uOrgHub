@@ -16,6 +16,9 @@ interface ReportLayoutProps {
   onExportCsv?: () => void;
   onExportPdf?: () => void;
   exportingPdf?: boolean;
+  /** A page-specific action (e.g. "Add Vendor") rendered before the Print/Columns buttons, so a
+   * plain list page can get this layout's print/column-picker without losing its create button. */
+  headerActions?: React.ReactNode;
 }
 
 interface PrintColumn {
@@ -33,6 +36,7 @@ export default function ReportLayout({
   onExportCsv,
   onExportPdf,
   exportingPdf,
+  headerActions,
 }: ReportLayoutProps) {
   const printRef = useRef<HTMLDivElement>(null);
   const columnMenuRef = useRef<HTMLDivElement>(null);
@@ -313,6 +317,7 @@ export default function ReportLayout({
           {subtitle && <p className="text-xs text-gray-400">{subtitle}</p>}
         </div>
         <div className="flex items-center gap-2">
+          {headerActions}
           {onExportExcel && (
             <button onClick={onExportExcel} className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600">
               <FileDown size={14} /> Excel
