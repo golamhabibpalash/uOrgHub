@@ -245,26 +245,18 @@ export default function ReportLayout({
               .print\\:table { display: table !important; }
               .print\\:block { display: block !important; }
 
-              /* The report pages lean on Tailwind's lighter grays/mid-tone accents for on-screen
-                 visual hierarchy (text-gray-500 alone appears 150+ times across these pages) — on
-                 paper that same weight reads as faint, low-contrast text. Reprint every shade that
-                 shows up in the reports at a deep, unambiguous ink color; darker shades (700+) are
-                 already print-legible and are left alone. */
-              .text-gray-300, .text-gray-400, .text-gray-500 { color: #1f2937 !important; }
-              .text-gray-600 { color: #111827 !important; }
-              .border-gray-100, .border-gray-200 { border-color: #9ca3af !important; }
-
-              .text-red-500, .text-red-600 { color: #7f1d1d !important; }
-              .text-green-600 { color: #14532d !important; }
-              .text-blue-600, .text-blue-700 { color: #1e3a8a !important; }
-              .text-purple-600, .text-purple-700 { color: #581c87 !important; }
-              .text-orange-600, .text-orange-700 { color: #7c2d12 !important; }
-              .text-yellow-600, .text-yellow-700 { color: #713f12 !important; }
-              .text-indigo-600 { color: #312e81 !important; }
-              .text-amber-600 { color: #78350f !important; }
-              .text-emerald-600 { color: #064e3b !important; }
-              .border-red-100, .border-red-200 { border-color: #f87171 !important; }
-              .border-green-100 { border-color: #4ade80 !important; }
+              /* Black-ink printing: every report prints in pure black on white, no
+                 matter what accent colours the screen version uses (status pills,
+                 type badges, summary widgets, muted helper text). The !important
+                 flags also override the print header's own inline gray styles. */
+              body, body *, body *::before, body *::after {
+                color: #000 !important;
+                background: transparent !important;
+                border-color: #000 !important;
+                box-shadow: none !important;
+                text-shadow: none !important;
+              }
+              a { text-decoration: none; }
             }
           </style>
         </head>

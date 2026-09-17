@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getChartOfAccountsReport, reportPdfUrls, ReportFilter } from "../../../api/accounts";
+import { getChartOfAccountsReport, reportPdfUrls, ReportFilter, AccountGroupType } from "../../../api/accounts";
 import ReportLayout from "../../../components/shared/ReportLayout";
 import { useReportPdf } from "../../../hooks/useReportPdf";
 
@@ -9,8 +9,19 @@ const typeColors: Record<string, string> = {
   Income: "bg-green-50 text-green-700", Expense: "bg-orange-50 text-orange-700",
 };
 
+const accountTypes: AccountGroupType[] = ["Asset", "Liability", "Equity", "Income", "Expense"];
+
+const selectClass =
+  "text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500 text-gray-600";
+
 export default function ChartOfAccountsReportPage() {
-  const [filter] = useState<ReportFilter>({});
+  const [accountType, setAccountType] = useState<AccountGroupType | "">("");
+  const [status, setStatus] = useState<"Active" | "Inactive" | "">("");
+
+  const filter: ReportFilter = {
+    ...(accountType && { accountType }),
+    ...(status && { status }),
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ["report-chart-of-accounts", filter],
@@ -21,10 +32,43 @@ export default function ChartOfAccountsReportPage() {
   const fmt = (v: number) => v.toLocaleString("en-BD", { minimumFractionDigits: 2 });
   const { downloadPdf, isDownloading } = useReportPdf();
 
+  function resetFilters() {
+    setAccountType("");
+    setStatus("");
+  }
+
+  const filters = (
+    <div className="flex flex-wrap items-end gap-3">
+      <div>
+        <label className="text-xs text-gray-500 mb-1 block">Account Type</label>
+        <select className={selectClass} value={accountType} onChange={(e) => setAccountType(e.target.value as AccountGroupType | "")}>
+          <option value="">All types</option>
+          {accountTypes.map((t) => (
+            <option key={t} value={t}>{t}</option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className="text-xs text-gray-500 mb-1 block">Status</label>
+        <select className={selectClass} value={status} onChange={(e) => setStatus(e.target.value as "Active" | "Inactive" | "")}>
+          <option value="">All</option>
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+      </div>
+      {(accountType || status) && (
+        <button onClick={resetFilters} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-500">
+          Clear
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <ReportLayout
       title="Chart of Accounts Report"
       subtitle="Complete listing of all accounts"
+      filters={filters}
       loading={isLoading}
       onExportPdf={() => downloadPdf({ url: reportPdfUrls.chartOfAccountsReport, params: filter, filename: "ChartOfAccountsReport.pdf" })}
       exportingPdf={isDownloading}

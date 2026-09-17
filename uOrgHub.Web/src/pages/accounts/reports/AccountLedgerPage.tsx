@@ -56,10 +56,40 @@ export default function AccountLedgerPage() {
       ? "Transaction history for all accounts"
       : `Transaction history for ${selectedAccount?.label ?? ""}`;
 
+  const filters = (
+    <div className="grid grid-cols-4 gap-3">
+      <SearchableDropdown
+        label="Account *"
+        options={accountOptions}
+        value={accountId}
+        onChange={(v) => setAccountId(v ?? "")}
+        placeholder="Select account"
+        searchPlaceholder="Search accounts..."
+      />
+      <div>
+        <label className="text-xs text-gray-500 mb-1 block">Date From</label>
+        <DateInput className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+      </div>
+      <div>
+        <label className="text-xs text-gray-500 mb-1 block">Date To</label>
+        <DateInput className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+      </div>
+      <div className="flex items-end">
+        <button
+          onClick={() => { setAccountId(""); setDateFrom(""); setDateTo(""); }}
+          className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 w-full"
+        >
+          Clear
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <ReportLayout
       title="Account Ledger"
       subtitle={subtitle}
+      filters={filters}
       loading={isLoading}
       onExportPdf={
         accountId
@@ -73,36 +103,6 @@ export default function AccountLedgerPage() {
       }
       exportingPdf={isDownloading}
     >
-      {/* Filters */}
-      <div className="no-print mb-4">
-        <div className="grid grid-cols-4 gap-3">
-          <SearchableDropdown
-            label="Account *"
-            options={accountOptions}
-            value={accountId}
-            onChange={(v) => setAccountId(v ?? "")}
-            placeholder="Select account"
-            searchPlaceholder="Search accounts..."
-          />
-          <div>
-            <label className="text-xs text-gray-500 mb-1 block">Date From</label>
-            <DateInput className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-          </div>
-          <div>
-            <label className="text-xs text-gray-500 mb-1 block">Date To</label>
-            <DateInput className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
-          </div>
-          <div className="flex items-end">
-            <button
-              onClick={() => { setAccountId(""); setDateFrom(""); setDateTo(""); }}
-              className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 w-full"
-            >
-              Clear
-            </button>
-          </div>
-        </div>
-      </div>
-
       {!accountId ? (
         <div className="text-center py-12 text-sm text-gray-400">Select an account above to view ledger transactions</div>
       ) : isAll ? (

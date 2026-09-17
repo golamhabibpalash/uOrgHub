@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getAccountGroupSummary, reportPdfUrls, ReportFilter } from "../../../api/accounts";
+import { getAccountGroupSummary, reportPdfUrls, ReportFilter, AccountGroupType } from "../../../api/accounts";
 import ReportLayout from "../../../components/shared/ReportLayout";
 import { useReportPdf } from "../../../hooks/useReportPdf";
 
@@ -9,8 +9,17 @@ const typeColors: Record<string, string> = {
   Income: "text-green-600", Expense: "text-orange-600",
 };
 
+const accountTypes: AccountGroupType[] = ["Asset", "Liability", "Equity", "Income", "Expense"];
+
+const selectClass =
+  "text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500 text-gray-600";
+
 export default function AccountGroupSummaryPage() {
-  const [filter] = useState<ReportFilter>({});
+  const [accountType, setAccountType] = useState<AccountGroupType | "">("");
+
+  const filter: ReportFilter = {
+    ...(accountType && { accountType }),
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ["report-account-group-summary", filter],
@@ -24,10 +33,30 @@ export default function AccountGroupSummaryPage() {
   const totalCredit = rows.reduce((s, r) => s + r.totalCredit, 0);
   const { downloadPdf, isDownloading } = useReportPdf();
 
+  const filters = (
+    <div className="flex flex-wrap items-end gap-3">
+      <div>
+        <label className="text-xs text-gray-500 mb-1 block">Account Type</label>
+        <select className={selectClass} value={accountType} onChange={(e) => setAccountType(e.target.value as AccountGroupType | "")}>
+          <option value="">All types</option>
+          {accountTypes.map((t) => (
+            <option key={t} value={t}>{t}</option>
+          ))}
+        </select>
+      </div>
+      {accountType && (
+        <button onClick={() => setAccountType("")} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-500">
+          Clear
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <ReportLayout
       title="Account Group Summary"
       subtitle="Group-wise account balance summaries"
+      filters={filters}
       loading={isLoading}
       onExportPdf={() => downloadPdf({ url: reportPdfUrls.accountGroupSummary, params: filter, filename: "AccountGroupSummary.pdf" })}
       exportingPdf={isDownloading}

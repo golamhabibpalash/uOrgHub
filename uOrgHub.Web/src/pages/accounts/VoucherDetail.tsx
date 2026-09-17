@@ -111,7 +111,16 @@ export default function VoucherDetail() {
           <script src="https://cdn.tailwindcss.com"></script>
           <style>
             @page { margin: 15mm; }
-            body { font-family: 'Inter', sans-serif; color: #111827; -webkit-print-color-adjust: exact; }
+            body { font-family: 'Inter', sans-serif; color: #000; }
+            /* Black-ink printing: the voucher document prints in pure black on
+               white regardless of the on-screen type theme or status colours. */
+            body, body *, body *::before, body *::after {
+              color: #000 !important;
+              background: transparent !important;
+              border-color: #000 !important;
+              box-shadow: none !important;
+              text-shadow: none !important;
+            }
           </style>
         </head>
         <body>${content}<script>window.print();</script></body>

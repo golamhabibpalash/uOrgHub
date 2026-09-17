@@ -33,17 +33,16 @@ export default function APAgingPage() {
     <ReportLayout
       title="Accounts Payable Aging"
       subtitle={`Outstanding bills as of ${asOfDate}`}
-      loading={isLoading}
-      onExportPdf={() => downloadPdf({ url: reportPdfUrls.apAging, params: { asOfDate }, filename: "APAging.pdf" })}
-      exportingPdf={isDownloading}
-    >
-      <div className="no-print mb-4">
+      filters={
         <div className="w-64">
           <label className="text-xs text-gray-500 mb-1 block">As of Date</label>
           <DateInput className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={asOfDate} onChange={(e) => setAsOfDate(e.target.value)} />
         </div>
-      </div>
-
+      }
+      loading={isLoading}
+      onExportPdf={() => downloadPdf({ url: reportPdfUrls.apAging, params: { asOfDate }, filename: "APAging.pdf" })}
+      exportingPdf={isDownloading}
+    >
       {summary && (
         <div className="grid grid-cols-5 gap-3 mb-4">
           {[
