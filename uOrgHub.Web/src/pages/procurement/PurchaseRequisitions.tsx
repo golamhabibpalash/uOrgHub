@@ -118,9 +118,9 @@ export default function PurchaseRequisitions() {
     setForm(f => ({ ...f, items: [...f.items, { itemVariantId: "", warehouseId: "", requestedQuantity: 0, estimatedUnitCost: 0, notes: "" }] }));
   }
 
-  function updateItem(index: number, field: string, value: any) {
+  function updateItem<K extends keyof (typeof form.items)[number]>(index: number, field: K, value: (typeof form.items)[number][K]) {
     const newItems = [...form.items];
-    (newItems[index] as any)[field] = value;
+    newItems[index] = { ...newItems[index], [field]: value };
     setForm(f => ({ ...f, items: newItems }));
   }
 

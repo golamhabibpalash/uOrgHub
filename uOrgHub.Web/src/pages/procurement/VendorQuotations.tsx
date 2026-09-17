@@ -4,8 +4,10 @@ import { Plus } from "lucide-react";
 import DataGrid from "../../components/shared/DataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
 import { useDataGrid } from "../../hooks/useDataGrid";
-import { getVendorQuotations, createVendorQuotation, updateVendorQuotation, deleteVendorQuotation, VendorQuotation, QuotationStatus } from "../../api/procurement";
+import { useSentRFQLookup, useProcurementVendorLookup, withCurrentOption } from "../../hooks/useEntityLookup";
+import { getVendorQuotations, createVendorQuotation, updateVendorQuotation, deleteVendorQuotation, getRFQById, VendorQuotation, QuotationStatus } from "../../api/procurement";
 import DateInput from "../../components/shared/DateInput";
 
 export default function VendorQuotations() {
@@ -20,6 +22,42 @@ export default function VendorQuotations() {
     status: "Received" as QuotationStatus,
     items: [] as { rfqItemId: string; itemVariantId: string; quotedQuantity: number; unitPrice: number; notes: string }[],
   });
+
+  const { options: rfqOptionsRaw, isLoading: rfqsLoading } = useSentRFQLookup();
+  const { options: vendorOptionsRaw, isLoading: vendorsLoading } = useProcurementVendorLookup();
+  const rfqOptions = withCurrentOption(rfqOptionsRaw, editing?.rfqId, editing?.rfqNumber);
+  const vendorOptions = withCurrentOption(vendorOptionsRaw, editing?.vendorId, editing?.vendorName);
+
+  // A quotation's line items are quotes against the selected RFQ's own lines, so fetching that
+  // RFQ's detail once it's chosen is what populates the "RFQ Item" picker below, and what fills
+  // in itemVariantId automatically — mirrors the GRN page's PO-item picker.
+  const { data: selectedRFQData, isLoading: selectedRFQLoading } = useQuery({
+    queryKey: ["rfq-detail", form.rfqId],
+    queryFn: () => getRFQById(form.rfqId),
+    enabled: !!form.rfqId,
+  });
+  const rfqItemOptions = (selectedRFQData?.data?.data?.items ?? []).map((i) => ({
+    value: i.id,
+    label: `${i.variantName} (${i.variantSKU}) — qty ${i.requestedQuantity}`,
+    searchText: `${i.variantName} ${i.variantSKU}`,
+  }));
+
+  function selectRFQItem(idx: number, rfqItemId: string) {
+    const line = selectedRFQData?.data?.data?.items.find((i) => i.id === rfqItemId);
+    const newItems = [...form.items];
+    // Quoted quantity/price were keyed to whichever RFQ line was previously selected — carrying
+    // them over to a different line risks recording a mismatched quote, so they reset whenever
+    // the RFQ item selection changes.
+    newItems[idx] = { ...newItems[idx], rfqItemId, itemVariantId: line?.itemVariantId ?? "", quotedQuantity: 0, unitPrice: 0 };
+    setForm((f) => ({ ...f, items: newItems }));
+  }
+
+  const isFormValid =
+    !!form.rfqId &&
+    !!form.vendorId &&
+    !!form.validUntil &&
+    form.items.length > 0 &&
+    form.items.every((i) => i.rfqItemId && i.itemVariantId && i.quotedQuantity > 0);
 
   const { data, isLoading } = useQuery({
     queryKey: ["vendor-quotations", ...dg.queryKey, filterStatus],
@@ -71,9 +109,9 @@ export default function VendorQuotations() {
     setForm(f => ({ ...f, items: [...f.items, { rfqItemId: "", itemVariantId: "", quotedQuantity: 0, unitPrice: 0, notes: "" }] }));
   }
 
-  function updateItem(idx: number, field: string, value: any) {
+  function updateItem<K extends keyof (typeof form.items)[number]>(idx: number, field: K, value: (typeof form.items)[number][K]) {
     const newItems = [...form.items];
-    (newItems[idx] as any)[field] = value;
+    newItems[idx] = { ...newItems[idx], [field]: value };
     setForm(f => ({ ...f, items: newItems }));
   }
 
@@ -147,10 +185,28 @@ export default function VendorQuotations() {
       <Modal title={editing ? "Edit Quotation" : "Add Quotation"} open={modal} onClose={closeModal}>
         <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
           <div className="grid grid-cols-2 gap-3">
-            <div><label className="text-xs text-gray-500 mb-1 block">RFQ ID *</label>
-              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.rfqId} onChange={(e) => setForm((f) => ({ ...f, rfqId: e.target.value }))} /></div>
-            <div><label className="text-xs text-gray-500 mb-1 block">Vendor ID *</label>
-              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.vendorId} onChange={(e) => setForm((f) => ({ ...f, vendorId: e.target.value }))} /></div>
+            <div>
+              <SearchableDropdown
+                label="RFQ" required
+                options={rfqOptions}
+                value={form.rfqId || undefined}
+                onChange={(v) => setForm((f) => ({ ...f, rfqId: v ?? "", items: [] }))}
+                loading={rfqsLoading}
+                placeholder="Select RFQ..."
+                className="w-full"
+              />
+            </div>
+            <div>
+              <SearchableDropdown
+                label="Vendor" required
+                options={vendorOptions}
+                value={form.vendorId || undefined}
+                onChange={(v) => setForm((f) => ({ ...f, vendorId: v ?? "" }))}
+                loading={vendorsLoading}
+                placeholder="Select vendor..."
+                className="w-full"
+              />
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div><label className="text-xs text-gray-500 mb-1 block">Quote Date *</label>
@@ -172,19 +228,29 @@ export default function VendorQuotations() {
             <textarea rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} /></div>
           <div className="border-t pt-3">
             <div className="flex items-center justify-between mb-2"><label className="text-xs text-gray-500">Items</label>
-              <button onClick={addItem} type="button" className="text-xs text-primary-500">+ Add Item</button></div>
+              <button onClick={addItem} type="button" disabled={!form.rfqId} className="text-xs text-primary-500 disabled:text-gray-300 disabled:cursor-not-allowed">+ Add Item</button></div>
+            {!form.rfqId && <p className="text-xs text-gray-400 mb-2">Select an RFQ above to choose which of its items are being quoted.</p>}
             {form.items.map((item, idx) => (
               <div key={idx} className="grid grid-cols-5 gap-2 mb-2 items-end p-2 bg-gray-50 rounded-lg">
-                <input placeholder="RFQItem ID" className="border border-gray-200 rounded px-2 py-1 text-xs" value={item.rfqItemId} onChange={(e) => updateItem(idx, "rfqItemId", e.target.value)} />
-                <input placeholder="Item ID" className="border border-gray-200 rounded px-2 py-1 text-xs" value={item.itemVariantId} onChange={(e) => updateItem(idx, "itemVariantId", e.target.value)} />
+                <SearchableDropdown
+                  options={rfqItemOptions}
+                  value={item.rfqItemId || undefined}
+                  onChange={(v) => selectRFQItem(idx, v ?? "")}
+                  loading={selectedRFQLoading}
+                  placeholder="Select RFQ item..."
+                  className="text-xs"
+                />
                 <input type="number" placeholder="Qty" className="border border-gray-200 rounded px-2 py-1 text-xs" value={item.quotedQuantity} onChange={(e) => updateItem(idx, "quotedQuantity", parseFloat(e.target.value))} />
                 <input type="number" placeholder="Price" className="border border-gray-200 rounded px-2 py-1 text-xs" value={item.unitPrice} onChange={(e) => updateItem(idx, "unitPrice", parseFloat(e.target.value))} />
+                <input placeholder="Notes" className="border border-gray-200 rounded px-2 py-1 text-xs" value={item.notes} onChange={(e) => updateItem(idx, "notes", e.target.value)} />
                 <button onClick={() => removeItem(idx)} className="text-red-500">✕</button>
               </div>))}
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={closeModal} className="px-4 py-2 text-sm border border-gray-200 rounded-lg">Cancel</button>
-            <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg disabled:opacity-50">
+            <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !isFormValid}
+              title={isFormValid ? undefined : "RFQ, Vendor, Valid Until and at least one complete item line are required"}
+              className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg disabled:opacity-50">
               {saveMutation.isPending ? "Saving..." : "Save"}
             </button>
           </div>

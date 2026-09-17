@@ -4,8 +4,10 @@ import { Plus, CheckCircle } from "lucide-react";
 import DataGrid from "../../components/shared/DataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
 import { useDataGrid } from "../../hooks/useDataGrid";
-import { getGRNs, createGRN, updateGRN, deleteGRN, confirmGRN, GoodsReceivedNote, GRNStatus } from "../../api/procurement";
+import { useWarehouseLookup, useEmployeeLookup, useReceivablePurchaseOrderLookup, withCurrentOption } from "../../hooks/useEntityLookup";
+import { getGRNs, createGRN, updateGRN, deleteGRN, confirmGRN, getPurchaseOrderById, GoodsReceivedNote, GRNStatus } from "../../api/procurement";
 import DateInput from "../../components/shared/DateInput";
 
 export default function GoodsReceivedNotes() {
@@ -19,6 +21,50 @@ export default function GoodsReceivedNotes() {
     notes: "", invoiceNumber: "", invoiceDate: "",
     items: [] as { poItemId: string; itemVariantId: string; orderedQuantity: number; receivedQuantity: number; rejectedQuantity: number; unitCost: number; notes: string }[],
   });
+
+  const { options: warehouseOptions, isLoading: warehousesLoading } = useWarehouseLookup();
+  const { options: employeeOptions, isLoading: employeesLoading } = useEmployeeLookup();
+  const { options: poOptionsRaw, isLoading: posLoading } = useReceivablePurchaseOrderLookup();
+  const poOptions = withCurrentOption(poOptionsRaw, editing?.poId, editing?.poNumber);
+
+  // The line items a GRN can be built from are exactly the selected PO's own lines — not any
+  // item in the catalogue — so fetching that PO's detail once it's chosen is what populates the
+  // "PO Item" picker below, and what fills in itemVariantId/orderedQuantity automatically.
+  const { data: selectedPOData, isLoading: selectedPOLoading } = useQuery({
+    queryKey: ["purchase-order-detail", form.poId],
+    queryFn: () => getPurchaseOrderById(form.poId),
+    enabled: !!form.poId,
+  });
+  const poItemOptions = (selectedPOData?.data?.data?.items ?? []).map((i) => ({
+    value: i.id,
+    label: `${i.variantName} (${i.variantSKU}) — ${i.orderedQuantity - i.receivedQuantity} remaining of ${i.orderedQuantity}`,
+    searchText: `${i.variantName} ${i.variantSKU}`,
+  }));
+
+  function selectPOItem(idx: number, poItemId: string) {
+    const line = selectedPOData?.data?.data?.items.find((i) => i.id === poItemId);
+    const newItems = [...form.items];
+    newItems[idx] = {
+      ...newItems[idx],
+      poItemId,
+      itemVariantId: line?.itemVariantId ?? "",
+      orderedQuantity: line?.orderedQuantity ?? 0,
+      // Received/rejected/cost were keyed to whichever line was previously selected — carrying
+      // them over to a different line risks recording a mismatched received quantity, so they
+      // reset whenever the PO item selection changes.
+      receivedQuantity: 0,
+      rejectedQuantity: 0,
+      unitCost: 0,
+    };
+    setForm((f) => ({ ...f, items: newItems }));
+  }
+
+  const isFormValid =
+    !!form.poId &&
+    !!form.warehouseId &&
+    !!form.receivedById &&
+    form.items.length > 0 &&
+    form.items.every((i) => i.poItemId && i.itemVariantId && i.receivedQuantity > 0);
 
   const { data, isLoading } = useQuery({
     queryKey: ["grns", ...dg.queryKey, filterStatus],
@@ -73,9 +119,9 @@ export default function GoodsReceivedNotes() {
     setForm(f => ({ ...f, items: [...f.items, { poItemId: "", itemVariantId: "", orderedQuantity: 0, receivedQuantity: 0, rejectedQuantity: 0, unitCost: 0, notes: "" }] }));
   }
 
-  function updateItem(idx: number, field: string, value: any) {
+  function updateItem<K extends keyof (typeof form.items)[number]>(idx: number, field: K, value: (typeof form.items)[number][K]) {
     const newItems = [...form.items];
-    (newItems[idx] as any)[field] = value;
+    newItems[idx] = { ...newItems[idx], [field]: value };
     setForm(f => ({ ...f, items: newItems }));
   }
 
@@ -155,14 +201,41 @@ export default function GoodsReceivedNotes() {
           <div className="grid grid-cols-2 gap-3">
             <div><label className="text-xs text-gray-500 mb-1 block">GRN Date *</label>
               <DateInput className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.grnDate} onChange={(e) => setForm((f) => ({ ...f, grnDate: e.target.value }))} /></div>
-            <div><label className="text-xs text-gray-500 mb-1 block">PO ID *</label>
-              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.poId} onChange={(e) => setForm((f) => ({ ...f, poId: e.target.value }))} /></div>
+            <div>
+              <SearchableDropdown
+                label="Purchase Order" required
+                options={poOptions}
+                value={form.poId || undefined}
+                onChange={(v) => setForm((f) => ({ ...f, poId: v ?? "", items: [] }))}
+                loading={posLoading}
+                placeholder="Select PO..."
+                className="w-full"
+              />
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div><label className="text-xs text-gray-500 mb-1 block">Warehouse ID *</label>
-              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.warehouseId} onChange={(e) => setForm((f) => ({ ...f, warehouseId: e.target.value }))} /></div>
-            <div><label className="text-xs text-gray-500 mb-1 block">Received By ID *</label>
-              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.receivedById} onChange={(e) => setForm((f) => ({ ...f, receivedById: e.target.value }))} /></div>
+            <div>
+              <SearchableDropdown
+                label="Warehouse" required
+                options={warehouseOptions}
+                value={form.warehouseId || undefined}
+                onChange={(v) => setForm((f) => ({ ...f, warehouseId: v ?? "" }))}
+                loading={warehousesLoading}
+                placeholder="Select warehouse..."
+                className="w-full"
+              />
+            </div>
+            <div>
+              <SearchableDropdown
+                label="Received By" required
+                options={employeeOptions}
+                value={form.receivedById || undefined}
+                onChange={(v) => setForm((f) => ({ ...f, receivedById: v ?? "" }))}
+                loading={employeesLoading}
+                placeholder="Select employee..."
+                className="w-full"
+              />
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div><label className="text-xs text-gray-500 mb-1 block">Invoice Number</label>
@@ -174,19 +247,30 @@ export default function GoodsReceivedNotes() {
             <textarea rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} /></div>
           <div className="border-t pt-3">
             <div className="flex items-center justify-between mb-2"><label className="text-xs text-gray-500">Items</label>
-              <button onClick={addItem} type="button" className="text-xs text-primary-500">+ Add Item</button></div>
+              <button onClick={addItem} type="button" disabled={!form.poId} className="text-xs text-primary-500 disabled:text-gray-300 disabled:cursor-not-allowed">+ Add Item</button></div>
+            {!form.poId && <p className="text-xs text-gray-400 mb-2">Select a Purchase Order above to choose which of its items were received.</p>}
             {form.items.map((item, idx) => (
               <div key={idx} className="grid grid-cols-7 gap-2 mb-2 items-end p-2 bg-gray-50 rounded-lg">
-                <input placeholder="PO Item" className="border border-gray-200 rounded px-2 py-1 text-xs col-span-2" value={item.poItemId} onChange={(e) => updateItem(idx, "poItemId", e.target.value)} />
-                <input type="number" placeholder="Ordered" className="border border-gray-200 rounded px-2 py-1 text-xs" value={item.orderedQuantity} onChange={(e) => updateItem(idx, "orderedQuantity", parseFloat(e.target.value))} />
+                <SearchableDropdown
+                  options={poItemOptions}
+                  value={item.poItemId || undefined}
+                  onChange={(v) => selectPOItem(idx, v ?? "")}
+                  loading={selectedPOLoading}
+                  placeholder="Select PO item..."
+                  className="col-span-2 text-xs"
+                />
+                <input type="number" placeholder="Ordered" disabled className="border border-gray-200 rounded px-2 py-1 text-xs bg-gray-100" value={item.orderedQuantity} readOnly />
                 <input type="number" placeholder="Received" className="border border-gray-200 rounded px-2 py-1 text-xs" value={item.receivedQuantity} onChange={(e) => updateItem(idx, "receivedQuantity", parseFloat(e.target.value))} />
                 <input type="number" placeholder="Rejected" className="border border-gray-200 rounded px-2 py-1 text-xs" value={item.rejectedQuantity} onChange={(e) => updateItem(idx, "rejectedQuantity", parseFloat(e.target.value))} />
+                <input type="number" placeholder="Unit Cost" className="border border-gray-200 rounded px-2 py-1 text-xs" value={item.unitCost} onChange={(e) => updateItem(idx, "unitCost", parseFloat(e.target.value))} />
                 <button onClick={() => removeItem(idx)} className="text-red-500">✕</button>
               </div>))}
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={closeModal} className="px-4 py-2 text-sm border border-gray-200 rounded-lg">Cancel</button>
-            <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg disabled:opacity-50">
+            <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !isFormValid}
+              title={isFormValid ? undefined : "Purchase Order, Warehouse, Received By and at least one complete item line are required"}
+              className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg disabled:opacity-50">
               {saveMutation.isPending ? "Saving..." : "Save"}
             </button>
           </div>

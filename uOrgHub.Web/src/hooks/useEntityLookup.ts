@@ -11,12 +11,31 @@ import {
 import { getChartOfAccounts, getAllAccountGroups, getCostCenters, getCustomers, getVendors, getFiscalYears, getBankAccounts, getVoucherAccountOptions, AccountGroupType, VoucherAccountOption, VoucherType } from "../api/accounts";
 import { getInventoryTypes, getInventoryCategories, getUnitsOfMeasure, getWarehouses, getItemVariants } from "../api/inventory";
 import { getProjectCategories, getClients, getProjects } from "../api/projects";
+import {
+  getVendors as getProcurementVendors,
+  getPurchaseRequisitions,
+  getVendorQuotations,
+  getPurchaseOrders,
+  getRFQs,
+} from "../api/procurement";
 
 type OptionMapper<T> = (item: T) => SelectOption;
 
 function toOptions<T>(data: T[] | null | undefined, mapper: OptionMapper<T>): SelectOption[] {
   if (!data) return [];
   return data.map(mapper);
+}
+
+/**
+ * Several lookups above filter to only the options valid for a *new* selection (e.g. POs still
+ * receivable, vendors still active, RFQs still open) — but a record being edited may already
+ * reference a value that no longer passes that filter (a PO that's since become FullyReceived,
+ * a vendor deactivated after the fact). Without this, editing such a record would show its
+ * reference field as blank even though the saved value is still perfectly valid to keep as-is.
+ */
+export function withCurrentOption(options: SelectOption[], currentValue: string | undefined | null, currentLabel: string | undefined | null): SelectOption[] {
+  if (!currentValue || options.some((o) => o.value === currentValue)) return options;
+  return [{ value: currentValue, label: currentLabel ? `${currentLabel} (current)` : currentValue }, ...options];
 }
 
 // --- HR Lookups ---
@@ -471,6 +490,100 @@ export function useItemVariantLookup() {
       label: `${v.itemBaseName} — ${v.variantName} (${v.sku})`,
       searchText: `${v.itemBaseName} ${v.variantName} ${v.sku}`,
     })),
+    [query.data],
+  );
+  return { options, isLoading: query.isLoading };
+}
+
+// --- Procurement Lookups ---
+// Distinct from useVendorLookup above, which reads Accounts' own acc_vendors table — Procurement
+// keeps its own separate proc_vendors table (see BUSINESS_FLOW.md break #6), so a PO/GRN vendor
+// picker must read from here, not the Accounts one.
+
+export function useProcurementVendorLookup() {
+  const query = useQuery({
+    queryKey: ["procurement-vendors-all"],
+    queryFn: () => getProcurementVendors({ page: 1, pageSize: 200 }, "Active"),
+    staleTime: 60000,
+  });
+  const options = useMemo(
+    () => toOptions(query.data?.data?.data?.items, (v) => ({
+      value: v.id,
+      label: `${v.companyName} (${v.vendorCode})`,
+      searchText: `${v.companyName} ${v.vendorCode} ${v.contactPerson ?? ""}`,
+    })),
+    [query.data],
+  );
+  return { options, isLoading: query.isLoading };
+}
+
+export function useApprovedPRLookup() {
+  const query = useQuery({
+    queryKey: ["purchase-requisitions-approved"],
+    queryFn: () => getPurchaseRequisitions({ page: 1, pageSize: 200 }, "Approved"),
+    staleTime: 30000,
+  });
+  const options = useMemo(
+    () => toOptions(query.data?.data?.data?.items, (pr) => ({
+      value: pr.id,
+      label: `${pr.prNumber} — ${pr.departmentName}`,
+      searchText: `${pr.prNumber} ${pr.departmentName} ${pr.purpose ?? ""}`,
+    })),
+    [query.data],
+  );
+  return { options, isLoading: query.isLoading };
+}
+
+export function useAcceptedQuotationLookup() {
+  const query = useQuery({
+    queryKey: ["vendor-quotations-accepted"],
+    queryFn: () => getVendorQuotations({ page: 1, pageSize: 200 }, "Accepted"),
+    staleTime: 30000,
+  });
+  const options = useMemo(
+    () => toOptions(query.data?.data?.data?.items, (q) => ({
+      value: q.id,
+      label: `${q.quotationNumber} — ${q.vendorName}`,
+      searchText: `${q.quotationNumber} ${q.vendorName}`,
+    })),
+    [query.data],
+  );
+  return { options, isLoading: query.isLoading };
+}
+
+// RFQs currently open for quotes — used by the Vendor Quotation "RFQ" picker.
+export function useSentRFQLookup() {
+  const query = useQuery({
+    queryKey: ["rfqs-sent"],
+    queryFn: () => getRFQs({ page: 1, pageSize: 200 }, "Sent"),
+    staleTime: 30000,
+  });
+  const options = useMemo(
+    () => toOptions(query.data?.data?.data?.items, (rfq) => ({
+      value: rfq.id,
+      label: `${rfq.rfqNumber} — ${rfq.title}`,
+      searchText: `${rfq.rfqNumber} ${rfq.title}`,
+    })),
+    [query.data],
+  );
+  return { options, isLoading: query.isLoading };
+}
+
+// POs that can still receive goods against them — used by the GRN "Purchase Order" picker.
+// Only Confirmed/PartiallyReceived POs are eligible: CreateGRNCommandHandler (uOrgHub.Procurement/
+// Features/GoodsReceivedNotes/Commands/GRNCommands.cs) rejects any other status, so a "Sent" PO
+// must not be offered here — it would pass this picker but fail on save.
+export function useReceivablePurchaseOrderLookup() {
+  const query = useQuery({
+    queryKey: ["purchase-orders-receivable"],
+    queryFn: () => getPurchaseOrders({ page: 1, pageSize: 200 }),
+    staleTime: 30000,
+  });
+  const options = useMemo(
+    () => toOptions(
+      query.data?.data?.data?.items?.filter((po) => po.status === "Confirmed" || po.status === "PartiallyReceived"),
+      (po) => ({ value: po.id, label: `${po.poNumber} — ${po.vendorName}`, searchText: `${po.poNumber} ${po.vendorName}` }),
+    ),
     [query.data],
   );
   return { options, isLoading: query.isLoading };

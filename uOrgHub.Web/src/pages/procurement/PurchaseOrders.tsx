@@ -4,7 +4,9 @@ import { Plus, Send, CheckCircle, XCircle } from "lucide-react";
 import DataGrid from "../../components/shared/DataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
 import { useDataGrid } from "../../hooks/useDataGrid";
+import { useProcurementVendorLookup, useApprovedPRLookup, useAcceptedQuotationLookup, useItemVariantLookup, withCurrentOption } from "../../hooks/useEntityLookup";
 import { getPurchaseOrders, createPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder, sendPO, confirmPO, cancelPO, PurchaseOrder, POStatus } from "../../api/procurement";
 import DateInput from "../../components/shared/DateInput";
 
@@ -20,6 +22,20 @@ export default function PurchaseOrders() {
     items: [] as { itemVariantId: string; orderedQuantity: number; unitPrice: number; taxPercent: number; discountPercent: number; notes: string }[],
   });
 
+  const { options: vendorOptionsRaw, isLoading: vendorsLoading } = useProcurementVendorLookup();
+  const { options: prOptionsRaw, isLoading: prsLoading } = useApprovedPRLookup();
+  const { options: quotationOptionsRaw, isLoading: quotationsLoading } = useAcceptedQuotationLookup();
+  const { options: itemVariantOptions, isLoading: itemVariantsLoading } = useItemVariantLookup();
+  const vendorOptions = withCurrentOption(vendorOptionsRaw, editing?.vendorId, editing?.vendorName);
+  const prOptions = withCurrentOption(prOptionsRaw, editing?.prId, editing?.prNumber);
+  const quotationOptions = withCurrentOption(quotationOptionsRaw, editing?.quotationId, editing?.quotationNumber);
+
+  const isFormValid =
+    !!form.vendorId &&
+    !!form.expectedDeliveryDate &&
+    form.items.length > 0 &&
+    form.items.every((i) => i.itemVariantId && i.orderedQuantity > 0);
+
   const { data, isLoading } = useQuery({
     queryKey: ["purchase-orders", ...dg.queryKey, filterStatus],
     queryFn: () => getPurchaseOrders(dg.queryParams,
@@ -31,9 +47,12 @@ export default function PurchaseOrders() {
   const totalCount = data?.data?.data?.totalCount ?? 0;
 
   const saveMutation = useMutation({
-    mutationFn: () => editing
-      ? updatePurchaseOrder(editing.id, { ...form, items: form.items.map(i => ({ ...i })) })
-      : createPurchaseOrder({ ...form, items: form.items.map(i => ({ ...i })) }),
+    mutationFn: () => {
+      // quotationId/prId are optional references — send undefined (omitted), never an empty
+      // string, since the backend's nullable Guid can't parse "" (this was the PR page's bug).
+      const payload = { ...form, quotationId: form.quotationId || undefined, prId: form.prId || undefined, items: form.items.map(i => ({ ...i })) };
+      return editing ? updatePurchaseOrder(editing.id, payload) : createPurchaseOrder(payload);
+    },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["purchase-orders"] }); closeModal(); },
   });
 
@@ -73,9 +92,9 @@ export default function PurchaseOrders() {
     setForm(f => ({ ...f, items: [...f.items, { itemVariantId: "", orderedQuantity: 0, unitPrice: 0, taxPercent: 0, discountPercent: 0, notes: "" }] }));
   }
 
-  function updateItem(idx: number, field: string, value: any) {
+  function updateItem<K extends keyof (typeof form.items)[number]>(idx: number, field: K, value: (typeof form.items)[number][K]) {
     const newItems = [...form.items];
-    (newItems[idx] as any)[field] = value;
+    newItems[idx] = { ...newItems[idx], [field]: value };
     setForm(f => ({ ...f, items: newItems }));
   }
 
@@ -169,14 +188,43 @@ export default function PurchaseOrders() {
               <DateInput className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.expectedDeliveryDate} onChange={(e) => setForm((f) => ({ ...f, expectedDeliveryDate: e.target.value }))} /></div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div><label className="text-xs text-gray-500 mb-1 block">Vendor ID *</label>
-              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.vendorId} onChange={(e) => setForm((f) => ({ ...f, vendorId: e.target.value }))} /></div>
-            <div><label className="text-xs text-gray-500 mb-1 block">Quotation Ref</label>
-              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.quotationId} onChange={(e) => setForm((f) => ({ ...f, quotationId: e.target.value }))} /></div>
+            <div>
+              <SearchableDropdown
+                label="Vendor" required
+                options={vendorOptions}
+                value={form.vendorId || undefined}
+                onChange={(v) => setForm((f) => ({ ...f, vendorId: v ?? "" }))}
+                loading={vendorsLoading}
+                placeholder="Select vendor..."
+                className="w-full"
+              />
+            </div>
+            <div>
+              <SearchableDropdown
+                label="Quotation Ref (optional)"
+                options={quotationOptions}
+                value={form.quotationId || undefined}
+                onChange={(v) => setForm((f) => ({ ...f, quotationId: v ?? "" }))}
+                loading={quotationsLoading}
+                placeholder="Select accepted quotation..."
+                clearable
+                className="w-full"
+              />
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div><label className="text-xs text-gray-500 mb-1 block">PR Reference</label>
-              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.prId} onChange={(e) => setForm((f) => ({ ...f, prId: e.target.value }))} /></div>
+            <div>
+              <SearchableDropdown
+                label="PR Reference (optional)"
+                options={prOptions}
+                value={form.prId || undefined}
+                onChange={(v) => setForm((f) => ({ ...f, prId: v ?? "" }))}
+                loading={prsLoading}
+                placeholder="Select approved PR..."
+                clearable
+                className="w-full"
+              />
+            </div>
             <div><label className="text-xs text-gray-500 mb-1 block">Payment Terms</label>
               <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={form.paymentTerms} onChange={(e) => setForm((f) => ({ ...f, paymentTerms: e.target.value }))} /></div>
           </div>
@@ -189,7 +237,14 @@ export default function PurchaseOrders() {
               <button onClick={addItem} type="button" className="text-xs text-primary-500">+ Add Item</button></div>
             {form.items.map((item, idx) => (
               <div key={idx} className="grid grid-cols-6 gap-2 mb-2 items-end p-2 bg-gray-50 rounded-lg">
-                <input placeholder="Item ID" className="border border-gray-200 rounded px-2 py-1 text-xs col-span-2" value={item.itemVariantId} onChange={(e) => updateItem(idx, "itemVariantId", e.target.value)} />
+                <SearchableDropdown
+                  options={itemVariantOptions}
+                  value={item.itemVariantId || undefined}
+                  onChange={(v) => updateItem(idx, "itemVariantId", v ?? "")}
+                  loading={itemVariantsLoading}
+                  placeholder="Select item..."
+                  className="col-span-2 text-xs"
+                />
                 <input type="number" placeholder="Qty" className="border border-gray-200 rounded px-2 py-1 text-xs" value={item.orderedQuantity} onChange={(e) => updateItem(idx, "orderedQuantity", parseFloat(e.target.value))} />
                 <input type="number" placeholder="Price" className="border border-gray-200 rounded px-2 py-1 text-xs" value={item.unitPrice} onChange={(e) => updateItem(idx, "unitPrice", parseFloat(e.target.value))} />
                 <button onClick={() => removeItem(idx)} className="text-red-500">✕</button>
@@ -197,7 +252,9 @@ export default function PurchaseOrders() {
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={closeModal} className="px-4 py-2 text-sm border border-gray-200 rounded-lg">Cancel</button>
-            <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg disabled:opacity-50">
+            <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !isFormValid}
+              title={isFormValid ? undefined : "Vendor, Expected Delivery and at least one complete item line are required"}
+              className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg disabled:opacity-50">
               {saveMutation.isPending ? "Saving..." : "Save"}
             </button>
           </div>

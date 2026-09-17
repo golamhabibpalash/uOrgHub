@@ -4,7 +4,9 @@ import { Plus } from "lucide-react";
 import DataGrid from "../../components/shared/DataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
 import { useDataGrid } from "../../hooks/useDataGrid";
+import { useApprovedPRLookup, useItemVariantLookup, withCurrentOption } from "../../hooks/useEntityLookup";
 import { getRFQs, createRFQ, updateRFQ, deleteRFQ, RequestForQuotation, RFQStatus } from "../../api/procurement";
 import DateInput from "../../components/shared/DateInput";
 
@@ -25,6 +27,16 @@ export default function RequestForQuotations() {
     items: [] as { itemVariantId: string; requestedQuantity: number; notes: string }[],
   });
 
+  const { options: prOptionsRaw, isLoading: prsLoading } = useApprovedPRLookup();
+  const prOptions = withCurrentOption(prOptionsRaw, editing?.prId, editing?.prNumber);
+  const { options: itemVariantOptions, isLoading: itemVariantsLoading } = useItemVariantLookup();
+
+  const isFormValid =
+    !!form.closingDate &&
+    !!form.title &&
+    form.items.length > 0 &&
+    form.items.every((i) => i.itemVariantId && i.requestedQuantity > 0);
+
   const { data, isLoading } = useQuery({
     queryKey: ["rfqs", ...dg.queryKey, filterStatus],
     queryFn: () => getRFQs(dg.queryParams,
@@ -36,9 +48,12 @@ export default function RequestForQuotations() {
   const totalCount = data?.data?.data?.totalCount ?? 0;
 
   const saveMutation = useMutation({
-    mutationFn: () => editing
-      ? updateRFQ(editing.id, { ...form, items: form.items.map(i => ({ ...i })) })
-      : createRFQ({ ...form, items: form.items.map(i => ({ ...i })) }),
+    mutationFn: () => {
+      // prId is an optional reference — send undefined (omitted), never an empty string, since
+      // the backend's nullable Guid can't parse "".
+      const payload = { ...form, prId: form.prId || undefined, items: form.items.map(i => ({ ...i })) };
+      return editing ? updateRFQ(editing.id, payload) : createRFQ(payload);
+    },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["rfqs"] }); closeModal(); },
   });
 
@@ -83,9 +98,9 @@ export default function RequestForQuotations() {
     setForm(f => ({ ...f, items: [...f.items, { itemVariantId: "", requestedQuantity: 0, notes: "" }] }));
   }
 
-  function updateItem(idx: number, field: string, value: any) {
+  function updateItem<K extends keyof (typeof form.items)[number]>(idx: number, field: K, value: (typeof form.items)[number][K]) {
     const newItems = [...form.items];
-    (newItems[idx] as any)[field] = value;
+    newItems[idx] = { ...newItems[idx], [field]: value };
     setForm(f => ({ ...f, items: newItems }));
   }
 
@@ -180,9 +195,16 @@ export default function RequestForQuotations() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">PR Reference</label>
-              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                value={form.prId} onChange={(e) => setForm((f) => ({ ...f, prId: e.target.value }))} />
+              <SearchableDropdown
+                label="PR Reference (optional)"
+                options={prOptions}
+                value={form.prId || undefined}
+                onChange={(v) => setForm((f) => ({ ...f, prId: v ?? "" }))}
+                loading={prsLoading}
+                placeholder="Select approved PR..."
+                clearable
+                className="w-full"
+              />
             </div>
             {editing && (
               <div>
@@ -209,8 +231,14 @@ export default function RequestForQuotations() {
             </div>
             {form.items.map((item, idx) => (
               <div key={idx} className="grid grid-cols-4 gap-2 mb-2 items-end p-2 bg-gray-50 rounded-lg">
-                <input placeholder="Item Variant ID" className="border border-gray-200 rounded px-2 py-1 text-xs"
-                  value={item.itemVariantId} onChange={(e) => updateItem(idx, "itemVariantId", e.target.value)} />
+                <SearchableDropdown
+                  options={itemVariantOptions}
+                  value={item.itemVariantId || undefined}
+                  onChange={(v) => updateItem(idx, "itemVariantId", v ?? "")}
+                  loading={itemVariantsLoading}
+                  placeholder="Select item..."
+                  className="text-xs"
+                />
                 <input type="number" placeholder="Qty" className="border border-gray-200 rounded px-2 py-1 text-xs"
                   value={item.requestedQuantity} onChange={(e) => updateItem(idx, "requestedQuantity", parseFloat(e.target.value))} />
                 <input placeholder="Notes" className="border border-gray-200 rounded px-2 py-1 text-xs"
@@ -221,7 +249,8 @@ export default function RequestForQuotations() {
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={closeModal} className="px-4 py-2 text-sm border border-gray-200 rounded-lg">Cancel</button>
-            <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}
+            <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !isFormValid}
+              title={isFormValid ? undefined : "Closing Date, Title and at least one complete item line are required"}
               className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg disabled:opacity-50">
               {saveMutation.isPending ? "Saving..." : "Save"}
             </button>
