@@ -8,7 +8,7 @@ import { useWarehouseLookup } from "../../hooks/useEntityLookup";
 import { getStockBalances, getItemVariants, StockBalance } from "../../api/inventory";
 
 export default function StockBalances() {
-  const dg = useDataGrid({ defaultSortBy: "name" });
+  const dg = useDataGrid({ defaultSortBy: "variantSKU" });
   const [filterWarehouseId, setFilterWarehouseId] = useState("");
   const [filterVariantId, setFilterVariantId] = useState("");
 

@@ -30,7 +30,14 @@ public class GetStockBalancesQueryHandler : IRequestHandler<GetStockBalancesQuer
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
             query = query.WhereSearch(request.Request.Search, x => x.ItemVariant.SKU, x => x.Warehouse.Name);
 
-        query = query.OrderBy(x => x.ItemVariant.SKU);
+        query = query.ApplySorting(request.Request.SortBy ?? "ItemVariant.SKU", request.Request.SortDescending, propertyMappings: new()
+        {
+            ["variantSKU"] = "ItemVariant.SKU",
+            ["variantName"] = "ItemVariant.VariantName",
+            ["itemBaseName"] = "ItemVariant.Item.BaseName",
+            ["warehouseName"] = "Warehouse.Name",
+            ["warehouseCode"] = "Warehouse.Code",
+        });
 
         var totalCount = await query.CountAsync(ct);
         var items = await query.Skip((request.Request.Page - 1) * request.Request.PageSize).Take(request.Request.PageSize).ToListAsync(ct);

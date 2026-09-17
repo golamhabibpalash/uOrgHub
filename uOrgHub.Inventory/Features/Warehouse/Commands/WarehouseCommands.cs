@@ -1,8 +1,10 @@
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using uOrgHub.Inventory.DTOs;
 using uOrgHub.Inventory.Features._Common;
 using uOrgHub.Inventory.Mappings;
 using uOrgHub.Inventory.Repositories;
+using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
 
 namespace uOrgHub.Inventory.Features.Warehouse.Commands;
@@ -51,12 +53,25 @@ public class UpdateWarehouseCommandHandler : IRequestHandler<UpdateWarehouseComm
 public class DeleteWarehouseCommandHandler : IRequestHandler<DeleteWarehouseCommand, Unit>
 {
     private readonly IWarehouseRepository _repo;
-    public DeleteWarehouseCommandHandler(IWarehouseRepository repo) => _repo = repo;
+    private readonly AppDbContext _context;
+    public DeleteWarehouseCommandHandler(IWarehouseRepository repo, AppDbContext context) { _repo = repo; _context = context; }
 
     public async Task<Unit> Handle(DeleteWarehouseCommand request, CancellationToken ct)
     {
         if (!await _repo.ExistsAsync(request.Id))
             throw new NotFoundException(nameof(Models.Entities.Warehouse), request.Id);
+
+        var hasStock = await _context.Set<Models.Entities.StockBalance>()
+            .AnyAsync(b => !b.IsDeleted && b.QuantityOnHand != 0 &&
+                (b.WarehouseId == request.Id), ct);
+        if (hasStock)
+            throw new AppException("Cannot delete a warehouse that still has stock on hand.");
+
+        var hasTransactions = await _context.Set<Models.Entities.StockTransaction>()
+            .AnyAsync(t => !t.IsDeleted && (t.WarehouseId == request.Id || t.FromWarehouseId == request.Id), ct);
+        if (hasTransactions)
+            throw new AppException("Cannot delete a warehouse referenced by existing stock transactions.");
+
         await _repo.DeleteAsync(request.Id);
         return Unit.Value;
     }

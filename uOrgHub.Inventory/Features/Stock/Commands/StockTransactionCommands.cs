@@ -82,6 +82,14 @@ public class UpdateStockTransactionCommandHandler : IRequestHandler<UpdateStockT
         if (entity.Status != StockTransactionStatus.Draft)
             throw new AppException("Only Draft transactions can be updated.");
 
+        if (entity.TransactionType == StockTransactionType.Transfer)
+        {
+            if (!request.Dto.FromWarehouseId.HasValue)
+                throw new AppException("FromWarehouseId is required for Transfer transactions.");
+            if (request.Dto.FromWarehouseId.Value == request.Dto.WarehouseId)
+                throw new AppException("Transfer source and destination warehouse must be different.");
+        }
+
         entity.TransactionDate = request.Dto.TransactionDate;
         entity.ItemVariantId = request.Dto.ItemVariantId;
         entity.WarehouseId = request.Dto.WarehouseId;
@@ -120,8 +128,12 @@ public class DeleteStockTransactionCommandHandler : IRequestHandler<DeleteStockT
 
     public async Task<Unit> Handle(DeleteStockTransactionCommand request, CancellationToken ct)
     {
-        if (!await _repo.ExistsAsync(request.Id))
-            throw new NotFoundException(nameof(Models.Entities.StockTransaction), request.Id);
+        var entity = await _repo.GetByIdAsync(request.Id)
+            ?? throw new NotFoundException(nameof(Models.Entities.StockTransaction), request.Id);
+
+        if (entity.Status != StockTransactionStatus.Draft)
+            throw new AppException("Only Draft transactions can be deleted. Cancel a confirmed transaction with a reversal instead.");
+
         await _repo.DeleteAsync(request.Id);
         return Unit.Value;
     }
@@ -144,11 +156,15 @@ public class ConfirmStockTransactionCommandHandler : IRequestHandler<ConfirmStoc
         if (entity.Status != StockTransactionStatus.Draft)
             throw new AppException("Only Draft transactions can be confirmed.");
 
+        await using var dbTransaction = await _context.Database.BeginTransactionAsync(ct);
+
         await UpdateStockBalances(entity, ct);
 
         entity.Status = StockTransactionStatus.Confirmed;
         entity.UpdatedAt = DateTime.UtcNow;
         var updated = await _txnRepo.UpdateAsync(entity);
+
+        await dbTransaction.CommitAsync(ct);
 
         var variant = await _context.Set<Models.Entities.ItemVariant>().FindAsync(new object[] { updated.ItemVariantId }, ct);
         var warehouse = await _context.Set<Models.Entities.Warehouse>().FindAsync(new object[] { updated.WarehouseId }, ct);
@@ -174,46 +190,59 @@ public class ConfirmStockTransactionCommandHandler : IRequestHandler<ConfirmStoc
         {
             case StockTransactionType.GoodsReceived:
             case StockTransactionType.Return:
+            case StockTransactionType.Adjustment:
             {
-                var balance = await _balanceRepo.GetOrCreateAsync(txn.ItemVariantId, txn.WarehouseId);
-                balance.QuantityOnHand += txn.Quantity;
-                balance.LastUpdated = DateTime.UtcNow;
-                await _balanceRepo.UpdateAsync(balance);
+                await _balanceRepo.GetOrCreateAsync(txn.ItemVariantId, txn.WarehouseId);
+                await IncrementBalanceAsync(txn.ItemVariantId, txn.WarehouseId, txn.Quantity, ct);
                 break;
             }
             case StockTransactionType.GoodsIssued:
             {
-                var balance = await _balanceRepo.GetOrCreateAsync(txn.ItemVariantId, txn.WarehouseId);
-                balance.QuantityOnHand -= txn.Quantity;
-                balance.LastUpdated = DateTime.UtcNow;
-                await _balanceRepo.UpdateAsync(balance);
+                await _balanceRepo.GetOrCreateAsync(txn.ItemVariantId, txn.WarehouseId);
+                await DecrementBalanceAsync(txn.ItemVariantId, txn.WarehouseId, txn.Quantity, ct);
                 break;
             }
             case StockTransactionType.Transfer:
             {
                 if (!txn.FromWarehouseId.HasValue)
                     throw new AppException("FromWarehouseId is required for Transfer transactions.");
+                if (txn.FromWarehouseId.Value == txn.WarehouseId)
+                    throw new AppException("Transfer source and destination warehouse must be different.");
 
-                var fromBalance = await _balanceRepo.GetOrCreateAsync(txn.ItemVariantId, txn.FromWarehouseId.Value);
-                fromBalance.QuantityOnHand -= txn.Quantity;
-                fromBalance.LastUpdated = DateTime.UtcNow;
-                await _balanceRepo.UpdateAsync(fromBalance);
+                await _balanceRepo.GetOrCreateAsync(txn.ItemVariantId, txn.FromWarehouseId.Value);
+                await DecrementBalanceAsync(txn.ItemVariantId, txn.FromWarehouseId.Value, txn.Quantity, ct);
 
-                var toBalance = await _balanceRepo.GetOrCreateAsync(txn.ItemVariantId, txn.WarehouseId);
-                toBalance.QuantityOnHand += txn.Quantity;
-                toBalance.LastUpdated = DateTime.UtcNow;
-                await _balanceRepo.UpdateAsync(toBalance);
-                break;
-            }
-            case StockTransactionType.Adjustment:
-            {
-                var balance = await _balanceRepo.GetOrCreateAsync(txn.ItemVariantId, txn.WarehouseId);
-                balance.QuantityOnHand += txn.Quantity;
-                balance.LastUpdated = DateTime.UtcNow;
-                await _balanceRepo.UpdateAsync(balance);
+                await _balanceRepo.GetOrCreateAsync(txn.ItemVariantId, txn.WarehouseId);
+                await IncrementBalanceAsync(txn.ItemVariantId, txn.WarehouseId, txn.Quantity, ct);
                 break;
             }
         }
+    }
+
+    // Applied as a single atomic UPDATE (not read-modify-write) so concurrent confirmations of
+    // the same item/warehouse balance can't silently lose one side's effect.
+    private async Task IncrementBalanceAsync(Guid itemVariantId, Guid warehouseId, decimal quantity, CancellationToken ct)
+    {
+        await _context.Set<Models.Entities.StockBalance>()
+            .Where(b => b.ItemVariantId == itemVariantId && b.WarehouseId == warehouseId && !b.IsDeleted)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(b => b.QuantityOnHand, b => b.QuantityOnHand + quantity)
+                .SetProperty(b => b.LastUpdated, DateTime.UtcNow), ct);
+    }
+
+    // The WHERE clause re-checks QuantityOnHand as part of the same atomic UPDATE, so this both
+    // prevents the balance from going negative and closes the lost-update race a plain
+    // read-then-write would have under concurrent confirmations.
+    private async Task DecrementBalanceAsync(Guid itemVariantId, Guid warehouseId, decimal quantity, CancellationToken ct)
+    {
+        var affected = await _context.Set<Models.Entities.StockBalance>()
+            .Where(b => b.ItemVariantId == itemVariantId && b.WarehouseId == warehouseId && !b.IsDeleted && b.QuantityOnHand >= quantity)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(b => b.QuantityOnHand, b => b.QuantityOnHand - quantity)
+                .SetProperty(b => b.LastUpdated, DateTime.UtcNow), ct);
+
+        if (affected == 0)
+            throw new AppException("Insufficient stock on hand for this transaction.");
     }
 }
 
@@ -242,6 +271,9 @@ public class CancelStockTransactionCommandHandler : IRequestHandler<CancelStockT
 
         var variant = await _context.Set<Models.Entities.ItemVariant>().FindAsync(new object[] { updated.ItemVariantId }, ct);
         var warehouse = await _context.Set<Models.Entities.Warehouse>().FindAsync(new object[] { updated.WarehouseId }, ct);
+        Models.Entities.Warehouse? fromWarehouse = null;
+        if (updated.FromWarehouseId.HasValue)
+            fromWarehouse = await _context.Set<Models.Entities.Warehouse>().FindAsync(new object[] { updated.FromWarehouseId.Value }, ct);
 
         return new StockTransactionResponseDto
         {
@@ -249,6 +281,7 @@ public class CancelStockTransactionCommandHandler : IRequestHandler<CancelStockT
             TransactionType = updated.TransactionType, Status = updated.Status,
             ItemVariantId = updated.ItemVariantId, VariantSKU = variant?.SKU ?? string.Empty, VariantName = variant?.VariantName ?? string.Empty,
             WarehouseId = updated.WarehouseId, WarehouseName = warehouse?.Name ?? string.Empty,
+            FromWarehouseId = updated.FromWarehouseId, FromWarehouseName = fromWarehouse?.Name,
             Quantity = updated.Quantity, UnitCost = updated.UnitCost,
             ReferenceNumber = updated.ReferenceNumber, Notes = updated.Notes, CreatedAt = updated.CreatedAt
         };

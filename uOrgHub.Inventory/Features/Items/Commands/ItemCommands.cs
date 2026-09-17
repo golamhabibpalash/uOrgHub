@@ -109,12 +109,19 @@ public class UpdateItemCommandHandler : IRequestHandler<UpdateItemCommand, ItemR
 public class DeleteItemCommandHandler : IRequestHandler<DeleteItemCommand, Unit>
 {
     private readonly IItemRepository _repo;
-    public DeleteItemCommandHandler(IItemRepository repo) => _repo = repo;
+    private readonly AppDbContext _context;
+    public DeleteItemCommandHandler(IItemRepository repo, AppDbContext context) { _repo = repo; _context = context; }
 
     public async Task<Unit> Handle(DeleteItemCommand request, CancellationToken ct)
     {
         if (!await _repo.ExistsAsync(request.Id))
             throw new NotFoundException(nameof(Models.Entities.Item), request.Id);
+
+        var hasVariants = await _context.Set<Models.Entities.ItemVariant>()
+            .AnyAsync(v => !v.IsDeleted && v.ItemId == request.Id, ct);
+        if (hasVariants)
+            throw new AppException("Cannot delete an item that still has variants. Delete its variants first.");
+
         await _repo.DeleteAsync(request.Id);
         return Unit.Value;
     }

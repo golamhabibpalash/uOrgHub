@@ -4,7 +4,9 @@ import { Plus, Send, CheckCircle, XCircle } from "lucide-react";
 import DataGrid from "../../components/shared/DataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
 import { useDataGrid } from "../../hooks/useDataGrid";
+import { useDepartmentLookup, useEmployeeLookup, useWarehouseLookup, useItemVariantLookup } from "../../hooks/useEntityLookup";
 import { getPurchaseRequisitions, createPurchaseRequisition, updatePurchaseRequisition, deletePurchaseRequisition, submitPR, approvePR, rejectPR, PurchaseRequisition, PRStatus } from "../../api/procurement";
 import DateInput from "../../components/shared/DateInput";
 
@@ -26,6 +28,18 @@ export default function PurchaseRequisitions() {
     notes: "",
     items: [] as { itemVariantId: string; warehouseId: string; requestedQuantity: number; estimatedUnitCost: number; notes: string }[],
   });
+
+  const { options: departmentOptions, isLoading: departmentsLoading } = useDepartmentLookup();
+  const { options: employeeOptions, isLoading: employeesLoading } = useEmployeeLookup();
+  const { options: warehouseOptions, isLoading: warehousesLoading } = useWarehouseLookup();
+  const { options: itemVariantOptions, isLoading: itemVariantsLoading } = useItemVariantLookup();
+
+  const isFormValid =
+    !!form.departmentId &&
+    !!form.requestedById &&
+    !!form.requiredDate &&
+    form.items.length > 0 &&
+    form.items.every((i) => i.itemVariantId && i.warehouseId && i.requestedQuantity > 0);
 
   const { data, isLoading } = useQuery({
     queryKey: ["purchase-requisitions", ...dg.queryKey, filterStatus],
@@ -210,6 +224,32 @@ export default function PurchaseRequisitions() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
+              <SearchableDropdown
+                label="Department"
+                required
+                options={departmentOptions}
+                value={form.departmentId || undefined}
+                onChange={(v) => setForm((f) => ({ ...f, departmentId: v ?? "" }))}
+                loading={departmentsLoading}
+                placeholder="Select department..."
+                className="w-full"
+              />
+            </div>
+            <div>
+              <SearchableDropdown
+                label="Requested By"
+                required
+                options={employeeOptions}
+                value={form.requestedById || undefined}
+                onChange={(v) => setForm((f) => ({ ...f, requestedById: v ?? "" }))}
+                loading={employeesLoading}
+                placeholder="Select employee..."
+                className="w-full"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
               <label className="text-xs text-gray-500 mb-1 block">Purpose</label>
               <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
                 value={form.purpose} onChange={(e) => setForm((f) => ({ ...f, purpose: e.target.value }))} />
@@ -228,8 +268,22 @@ export default function PurchaseRequisitions() {
             </div>
             {form.items.map((item, idx) => (
               <div key={idx} className="grid grid-cols-5 gap-2 mb-2 items-end p-2 bg-gray-50 rounded-lg">
-                <input placeholder="Item ID" className="border border-gray-200 rounded px-2 py-1 text-xs" value={item.itemVariantId} onChange={(e) => updateItem(idx, "itemVariantId", e.target.value)} />
-                <input placeholder="Warehouse ID" className="border border-gray-200 rounded px-2 py-1 text-xs" value={item.warehouseId} onChange={(e) => updateItem(idx, "warehouseId", e.target.value)} />
+                <SearchableDropdown
+                  options={itemVariantOptions}
+                  value={item.itemVariantId || undefined}
+                  onChange={(v) => updateItem(idx, "itemVariantId", v ?? "")}
+                  loading={itemVariantsLoading}
+                  placeholder="Select item..."
+                  className="text-xs"
+                />
+                <SearchableDropdown
+                  options={warehouseOptions}
+                  value={item.warehouseId || undefined}
+                  onChange={(v) => updateItem(idx, "warehouseId", v ?? "")}
+                  loading={warehousesLoading}
+                  placeholder="Select warehouse..."
+                  className="text-xs"
+                />
                 <input type="number" placeholder="Qty" className="border border-gray-200 rounded px-2 py-1 text-xs" value={item.requestedQuantity} onChange={(e) => updateItem(idx, "requestedQuantity", parseFloat(e.target.value))} />
                 <input type="number" placeholder="Est. Cost" className="border border-gray-200 rounded px-2 py-1 text-xs" value={item.estimatedUnitCost} onChange={(e) => updateItem(idx, "estimatedUnitCost", parseFloat(e.target.value))} />
                 <button onClick={() => removeItem(idx)} className="text-red-500 hover:bg-red-50 p-1 rounded">✕</button>
@@ -239,7 +293,8 @@ export default function PurchaseRequisitions() {
 
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={closeModal} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-            <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}
+            <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !isFormValid}
+              title={isFormValid ? undefined : "Department, Requested By, Required Date and at least one complete item line are required"}
               className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">
               {saveMutation.isPending ? "Saving..." : "Save"}
             </button>

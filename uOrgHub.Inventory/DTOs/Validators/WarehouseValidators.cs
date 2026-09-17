@@ -42,6 +42,11 @@ public class CreateStockTransactionValidator : AbstractValidator<CreateStockTran
             .NotEmpty()
             .When(x => x.TransactionType == Models.Enums.StockTransactionType.Transfer)
             .WithMessage("FromWarehouseId is required for Transfer transactions.");
+        RuleFor(x => x)
+            .Must(x => x.FromWarehouseId != x.WarehouseId)
+            .When(x => x.TransactionType == Models.Enums.StockTransactionType.Transfer)
+            .WithMessage("Transfer source and destination warehouse must be different.")
+            .WithName("FromWarehouseId");
     }
 }
 

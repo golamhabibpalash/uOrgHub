@@ -16,7 +16,7 @@ interface AttrRow { attributeDefinitionId: string; value: string }
 
 export default function ItemVariants() {
   const qc = useQueryClient();
-  const dg = useDataGrid({ defaultSortBy: "name" });
+  const dg = useDataGrid({ defaultSortBy: "sku" });
   const [filterItemId, setFilterItemId] = useState("");
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<ItemVariant | null>(null);

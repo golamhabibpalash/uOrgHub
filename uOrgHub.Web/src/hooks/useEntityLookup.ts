@@ -9,7 +9,7 @@ import {
   getAllSalaryGrades,
 } from "../api/hr";
 import { getChartOfAccounts, getAllAccountGroups, getCostCenters, getCustomers, getVendors, getFiscalYears, getBankAccounts, getVoucherAccountOptions, AccountGroupType, VoucherAccountOption, VoucherType } from "../api/accounts";
-import { getInventoryTypes, getInventoryCategories, getUnitsOfMeasure, getWarehouses } from "../api/inventory";
+import { getInventoryTypes, getInventoryCategories, getUnitsOfMeasure, getWarehouses, getItemVariants } from "../api/inventory";
 import { getProjectCategories, getClients, getProjects } from "../api/projects";
 
 type OptionMapper<T> = (item: T) => SelectOption;
@@ -454,6 +454,23 @@ export function useWarehouseLookup() {
   });
   const options = useMemo(
     () => toOptions(query.data?.data?.data?.items, (w) => ({ value: w.id, label: w.name })),
+    [query.data],
+  );
+  return { options, isLoading: query.isLoading };
+}
+
+export function useItemVariantLookup() {
+  const query = useQuery({
+    queryKey: ["item-variants-all"],
+    queryFn: () => getItemVariants({ page: 1, pageSize: 200 }),
+    staleTime: 60000,
+  });
+  const options = useMemo(
+    () => toOptions(query.data?.data?.data?.items, (v) => ({
+      value: v.id,
+      label: `${v.itemBaseName} — ${v.variantName} (${v.sku})`,
+      searchText: `${v.itemBaseName} ${v.variantName} ${v.sku}`,
+    })),
     [query.data],
   );
   return { options, isLoading: query.isLoading };

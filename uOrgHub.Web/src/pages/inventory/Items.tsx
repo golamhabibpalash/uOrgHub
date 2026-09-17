@@ -14,7 +14,7 @@ import {
 
 export default function Items() {
   const qc = useQueryClient();
-  const dg = useDataGrid({ defaultSortBy: "name" });
+  const dg = useDataGrid({ defaultSortBy: "baseName" });
   const { options: typeOptions, isLoading: typesLoading } = useInventoryTypeLookup();
   const { options: catOptions, isLoading: catsLoading } = useInventoryCategoryLookup();
   const { options: uomOptions, isLoading: uomsLoading } = useUnitOfMeasureLookup();
