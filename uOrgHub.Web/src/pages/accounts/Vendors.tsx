@@ -71,7 +71,7 @@ export default function Vendors() {
 
   function openEdit(v: Vendor) {
     setEditing(v);
-    setForm({ name: v.name, contactPerson: v.contactPerson ?? "", email: v.email ?? "", phone: v.phone ?? "", address: v.address ?? "", tin: v.tin ?? "", bin: v.bin ?? "", paymentTermsDays: v.paymentTermsDays, payableAccountId: v.payableAccountId, isActive: v.isActive });
+    setForm({ name: v.name, contactPerson: v.contactPerson ?? "", email: v.email ?? "", phone: v.phone ?? "", address: v.address ?? "", tin: v.tin ?? "", bin: v.bin ?? "", paymentTermsDays: v.paymentTermsDays, payableAccountId: v.payableAccountId ?? "", isActive: v.isActive });
     setSaveError("");
     setModal(true);
   }
@@ -98,6 +98,21 @@ export default function Vendors() {
           {row.isActive ? "Active" : "Inactive"}
         </span>
       ),
+    },
+    {
+      key: "payableAccountId",
+      label: "Payable Account",
+      sortable: false,
+      // A vendor first created from Procurement has no payable account yet — flagged here since a
+      // Bill can't be raised against it until someone completes this from the Edit form.
+      render: (row: Vendor) =>
+        row.payableAccountId ? (
+          <span className="text-xs text-gray-400">Set</span>
+        ) : (
+          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700" title="Set a payable account before billing this vendor">
+            Not set
+          </span>
+        ),
     },
   ];
 

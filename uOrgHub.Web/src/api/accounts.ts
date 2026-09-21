@@ -554,7 +554,9 @@ export interface Vendor {
   bin?: string;
   paymentTermsDays: number;
   isActive: boolean;
-  payableAccountId: string;
+  // Nullable: a vendor first created from Procurement has no payable account yet — Accounts can
+  // set one later via Update. Required to actually raise a Bill against the vendor.
+  payableAccountId?: string;
 }
 
 export const getVendors = (params: PaginationRequest) =>
