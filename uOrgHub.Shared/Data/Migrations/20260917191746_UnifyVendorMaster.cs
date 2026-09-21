@@ -11,6 +11,10 @@ namespace uOrgHub.Shared.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // Drop only the FK constraints first — NOT the tables themselves. acc_vendors and
+            // proc_vendors keep existing, with their data intact, until every row has been copied
+            // into the new unified `vendors` table below. Dropping them up front (as EF's naive
+            // auto-generated diff would) destroys any existing vendor/bill/PO data with no way back.
             migrationBuilder.DropForeignKey(
                 name: "FK_acc_bills_acc_vendors_VendorId",
                 table: "acc_bills");
@@ -26,12 +30,6 @@ namespace uOrgHub.Shared.Data.Migrations
             migrationBuilder.DropForeignKey(
                 name: "FK_proc_vendor_quotations_proc_vendors_VendorId",
                 table: "proc_vendor_quotations");
-
-            migrationBuilder.DropTable(
-                name: "acc_vendors");
-
-            migrationBuilder.DropTable(
-                name: "proc_vendors");
 
             migrationBuilder.CreateTable(
                 name: "vendors",
@@ -83,6 +81,39 @@ namespace uOrgHub.Shared.Data.Migrations
                 column: "VendorCode",
                 unique: true);
 
+            // Copy every row from both legacy tables into the new unified table, preserving each
+            // row's original Id. Every FK that pointed at acc_vendors/proc_vendors (acc_bills,
+            // acc_payments, proc_purchase_orders, proc_vendor_quotations) keeps the exact same Guid
+            // values in its VendorId column — only the constraint below is retargeted at the new
+            // table, so no dependent row's FK value needs touching, and no vendor's identity changes.
+            migrationBuilder.Sql(@"
+                INSERT INTO vendors (
+                    ""Id"", ""VendorCode"", ""Name"", ""ContactPerson"", ""Email"", ""Phone"", ""Address"",
+                    ""TIN"", ""BIN"", ""TradeLicense"", ""VendorType"", ""Status"", ""CreditLimit"",
+                    ""PaymentTermDays"", ""Notes"", ""PayableAccountId"",
+                    ""CreatedAt"", ""CreatedBy"", ""UpdatedAt"", ""UpdatedBy"", ""IsDeleted"", ""DeletedAt"", ""DeletedBy""
+                )
+                SELECT
+                    ""Id"", ""VendorCode"", ""Name"", ""ContactPerson"", ""Email"", ""Phone"", ""Address"",
+                    ""TIN"", ""BIN"", NULL, 0, CASE WHEN ""IsActive"" THEN 0 ELSE 1 END, 0,
+                    ""PaymentTermsDays"", NULL, ""PayableAccountId"",
+                    ""CreatedAt"", ""CreatedBy"", ""UpdatedAt"", ""UpdatedBy"", ""IsDeleted"", ""DeletedAt"", ""DeletedBy""
+                FROM acc_vendors;
+
+                INSERT INTO vendors (
+                    ""Id"", ""VendorCode"", ""Name"", ""ContactPerson"", ""Email"", ""Phone"", ""Address"",
+                    ""TIN"", ""BIN"", ""TradeLicense"", ""VendorType"", ""Status"", ""CreditLimit"",
+                    ""PaymentTermDays"", ""Notes"", ""PayableAccountId"",
+                    ""CreatedAt"", ""CreatedBy"", ""UpdatedAt"", ""UpdatedBy"", ""IsDeleted"", ""DeletedAt"", ""DeletedBy""
+                )
+                SELECT
+                    ""Id"", ""VendorCode"", ""CompanyName"", ""ContactPerson"", ""Email"", ""Phone"", ""Address"",
+                    ""TIN"", ""BIN"", ""TradeLicense"", ""VendorType"", ""Status"", ""CreditLimit"",
+                    ""PaymentTermDays"", ""Notes"", NULL,
+                    ""CreatedAt"", ""CreatedBy"", ""UpdatedAt"", ""UpdatedBy"", ""IsDeleted"", ""DeletedAt"", ""DeletedBy""
+                FROM proc_vendors;
+            ");
+
             migrationBuilder.AddForeignKey(
                 name: "FK_acc_bills_vendors_VendorId",
                 table: "acc_bills",
@@ -114,6 +145,14 @@ namespace uOrgHub.Shared.Data.Migrations
                 principalTable: "vendors",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Restrict);
+
+            // Only now — after every row is copied and every dependent FK repointed at the new
+            // table — are the legacy tables actually dropped.
+            migrationBuilder.DropTable(
+                name: "acc_vendors");
+
+            migrationBuilder.DropTable(
+                name: "proc_vendors");
         }
 
         /// <inheritdoc />
