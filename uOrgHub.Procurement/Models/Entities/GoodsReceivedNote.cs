@@ -6,8 +6,10 @@ using uOrgHub.Shared.Entities;
 namespace uOrgHub.Procurement.Models.Entities;
 
 [Table("proc_goods_received_notes")]
-public class GoodsReceivedNote : BaseEntity
+public class GoodsReceivedNote : BaseEntity, ICompanyScoped
 {
+    public Guid CompanyId { get; set; }
+
     [Required] [MaxLength(30)] public string GRNNumber { get; set; } = string.Empty;
     public DateTime GRNDate { get; set; } = DateTime.UtcNow;
     public Guid POId { get; set; }

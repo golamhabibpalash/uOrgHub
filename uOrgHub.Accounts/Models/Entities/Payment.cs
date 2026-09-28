@@ -6,8 +6,10 @@ using uOrgHub.Shared.Entities;
 namespace uOrgHub.Accounts.Models.Entities;
 
 [Table("acc_payments")]
-public class Payment : BaseEntity
+public class Payment : BaseEntity, ICompanyScoped
 {
+    public Guid CompanyId { get; set; }
+
     [Required][MaxLength(30)] public string PaymentNumber { get; set; } = string.Empty;
     public PaymentType PaymentType { get; set; }
     public PaymentMethod PaymentMethod { get; set; }

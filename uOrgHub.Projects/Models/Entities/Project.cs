@@ -6,8 +6,13 @@ using uOrgHub.Shared.Entities;
 namespace uOrgHub.Projects.Models.Entities;
 
 [Table("proj_projects")]
-public class Project : BaseEntity
+public class Project : BaseEntity, ICompanyScoped
 {
+    // Sister-concern isolation (SISTER_CONCERN_PLAN.md) — the single anchor for this module;
+    // every other Projects entity reaches it via ProjectId and inherits scoping through it, so
+    // nothing else in this module needs its own CompanyId.
+    public Guid CompanyId { get; set; }
+
     [Required][MaxLength(20)]   public string ProjectCode { get; set; } = string.Empty;
     [Required][MaxLength(300)]  public string ProjectName { get; set; } = string.Empty;
 

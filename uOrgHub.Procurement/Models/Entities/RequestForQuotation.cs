@@ -6,8 +6,10 @@ using uOrgHub.Shared.Entities;
 namespace uOrgHub.Procurement.Models.Entities;
 
 [Table("proc_request_for_quotations")]
-public class RequestForQuotation : BaseEntity
+public class RequestForQuotation : BaseEntity, ICompanyScoped
 {
+    public Guid CompanyId { get; set; }
+
     [Required] [MaxLength(30)] public string RFQNumber { get; set; } = string.Empty;
     public DateTime RFQDate { get; set; } = DateTime.UtcNow;
     public DateTime ClosingDate { get; set; }

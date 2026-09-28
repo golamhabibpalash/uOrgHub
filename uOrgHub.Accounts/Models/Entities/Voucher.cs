@@ -6,8 +6,10 @@ using uOrgHub.Shared.Entities;
 namespace uOrgHub.Accounts.Models.Entities;
 
 [Table("acc_vouchers")]
-public class Voucher : BaseEntity
+public class Voucher : BaseEntity, ICompanyScoped
 {
+    public Guid CompanyId { get; set; }
+
     [Required]
     [MaxLength(30)]
     public string VoucherNumber { get; set; } = string.Empty;

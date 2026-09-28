@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using uOrgHub.Procurement.Models.Entities;
+using uOrgHub.Shared.Entities;
 
 namespace uOrgHub.Procurement.Models.Configurations;
 
@@ -9,7 +10,9 @@ public class RequestForQuotationConfiguration : IEntityTypeConfiguration<Request
     public void Configure(EntityTypeBuilder<RequestForQuotation> b)
     {
         b.HasKey(x => x.Id);
-        b.HasIndex(x => x.RFQNumber).IsUnique();
+        // Composite: see PurchaseRequisitionConfiguration for why RFQNumber can't stay globally unique.
+        b.HasIndex(x => new { x.CompanyId, x.RFQNumber }).IsUnique();
+        b.HasOne<Company>().WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Restrict);
 
         b.HasOne(x => x.PurchaseRequisition)
          .WithMany()

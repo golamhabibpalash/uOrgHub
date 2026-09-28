@@ -6,8 +6,10 @@ using uOrgHub.Shared.Entities;
 namespace uOrgHub.Accounts.Models.Entities;
 
 [Table("acc_journalentries")]
-public class JournalEntry : BaseEntity
+public class JournalEntry : BaseEntity, ICompanyScoped
 {
+    public Guid CompanyId { get; set; }
+
     [Required]
     [MaxLength(30)]
     public string EntryNumber { get; set; } = string.Empty;

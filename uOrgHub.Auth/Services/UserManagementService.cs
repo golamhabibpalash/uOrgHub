@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using uOrgHub.Auth.DTOs;
 using uOrgHub.Auth.Models.Entities;
 using uOrgHub.Shared.Data;
+using uOrgHub.Shared.Entities;
 using uOrgHub.Shared.Models;
 using uOrgHub.Shared.Services;
 
@@ -54,6 +55,27 @@ public class UserManagementService : IUserManagementService
                 AssignedAt = DateTime.UtcNow,
             });
         }
+
+        // Sister-concern isolation (SISTER_CONCERN_PLAN.md): a new user needs at least one
+        // UserCompany row before they carry a "company_id" JWT claim at all, or AppDbContext's
+        // scope filter treats them as company-less (sees everything, isolated from nothing). No
+        // per-user company picker exists yet — every install has exactly one company in practice
+        // today — so default to membership in every company that currently exists, first as the
+        // default. An admin can prune a multi-company user's access later once that UI exists.
+        var companies = await _db.Set<Company>().Where(c => !c.IsDeleted).OrderBy(c => c.CreatedAt).ToListAsync();
+        for (var i = 0; i < companies.Count; i++)
+        {
+            _db.Set<UserCompany>().Add(new UserCompany
+            {
+                UserId = user.Id,
+                CompanyId = companies[i].Id,
+                IsDefault = i == 0,
+                RoleInCompany = "Member",
+                AssignedBy = createdBy,
+                AssignedAt = DateTime.UtcNow,
+            });
+        }
+
         await _db.SaveChangesAsync();
 
         await _email.SendAsync(user.Email, "Welcome to uOrgHub ERP",

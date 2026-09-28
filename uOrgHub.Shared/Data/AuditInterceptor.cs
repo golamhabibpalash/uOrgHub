@@ -52,5 +52,19 @@ public class AuditInterceptor : SaveChangesInterceptor
                 entry.Entity.UpdatedBy = userName;
             }
         }
+
+        // Sister-concern isolation (SISTER_CONCERN_PLAN.md). Separate loop from the one above:
+        // NumberingSequence is company-scoped but does not inherit BaseEntity, so it wouldn't be
+        // reached by Entries<BaseEntity>(). Handlers never set CompanyId themselves — it's
+        // stamped here from the caller's JWT, same as CreatedBy just above.
+        var companyIdClaim = httpContextAccessor?.HttpContext?.User?.FindFirst("company_id")?.Value;
+        if (Guid.TryParse(companyIdClaim, out var companyId))
+        {
+            foreach (var entry in context.ChangeTracker.Entries<ICompanyScoped>())
+            {
+                if (entry.State == EntityState.Added && entry.Entity.CompanyId == Guid.Empty)
+                    entry.Entity.CompanyId = companyId;
+            }
+        }
     }
 }

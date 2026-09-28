@@ -6,8 +6,10 @@ using uOrgHub.Shared.Entities;
 namespace uOrgHub.Accounts.Models.Entities;
 
 [Table("acc_budgets")]
-public class Budget : BaseEntity
+public class Budget : BaseEntity, ICompanyScoped
 {
+    public Guid CompanyId { get; set; }
+
     [Required][MaxLength(200)] public string Name { get; set; } = string.Empty;
     [MaxLength(500)]           public string? Description { get; set; }
     public BudgetStatus Status { get; set; } = BudgetStatus.Draft;

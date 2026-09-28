@@ -6,8 +6,10 @@ using uOrgHub.Shared.Entities;
 namespace uOrgHub.Inventory.Models.Entities;
 
 [Table("inv_stock_transactions")]
-public class StockTransaction : BaseEntity
+public class StockTransaction : BaseEntity, ICompanyScoped
 {
+    public Guid CompanyId { get; set; }
+
     [Required] [MaxLength(30)] public string TransactionNumber { get; set; } = string.Empty;
     public DateTime TransactionDate { get; set; } = DateTime.UtcNow;
     public StockTransactionType TransactionType { get; set; }

@@ -2,18 +2,21 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using uOrgHub.Shared.Data;
 
 #nullable disable
 
-namespace uOrgHub.Shared.Migrations
+namespace uOrgHub.Shared.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260921110705_UnifySisterConcernProcurementPhase2")]
+    partial class UnifySisterConcernProcurementPhase2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -5250,9 +5253,6 @@ namespace uOrgHub.Shared.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("CompanyId")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
@@ -5292,8 +5292,6 @@ namespace uOrgHub.Shared.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CompanyId");
-
                     b.HasIndex("WarehouseId");
 
                     b.HasIndex("ItemVariantId", "WarehouseId")
@@ -5306,9 +5304,6 @@ namespace uOrgHub.Shared.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CompanyId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
@@ -5376,10 +5371,10 @@ namespace uOrgHub.Shared.Migrations
 
                     b.HasIndex("ItemVariantId");
 
-                    b.HasIndex("WarehouseId");
-
-                    b.HasIndex("CompanyId", "TransactionNumber")
+                    b.HasIndex("TransactionNumber")
                         .IsUnique();
+
+                    b.HasIndex("WarehouseId");
 
                     b.ToTable("inv_stock_transactions");
                 });
@@ -5492,9 +5487,6 @@ namespace uOrgHub.Shared.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
-                    b.Property<Guid>("CompanyId")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("ContactPerson")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
@@ -5539,7 +5531,7 @@ namespace uOrgHub.Shared.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CompanyId", "Code")
+                    b.HasIndex("Code")
                         .IsUnique();
 
                     b.ToTable("inv_warehouses");
@@ -6652,9 +6644,6 @@ namespace uOrgHub.Shared.Migrations
                     b.Property<Guid>("ClientId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("CompanyId")
-                        .HasColumnType("uuid");
-
                     b.Property<decimal>("ContractValue")
                         .HasColumnType("decimal(18,2)");
 
@@ -6727,7 +6716,7 @@ namespace uOrgHub.Shared.Migrations
 
                     b.HasIndex("ClientId");
 
-                    b.HasIndex("CompanyId", "ProjectCode")
+                    b.HasIndex("ProjectCode")
                         .IsUnique();
 
                     b.ToTable("proj_projects");
@@ -9689,12 +9678,6 @@ namespace uOrgHub.Shared.Migrations
 
             modelBuilder.Entity("uOrgHub.Inventory.Models.Entities.StockBalance", b =>
                 {
-                    b.HasOne("uOrgHub.Shared.Entities.Company", null)
-                        .WithMany()
-                        .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("uOrgHub.Inventory.Models.Entities.ItemVariant", "ItemVariant")
                         .WithMany()
                         .HasForeignKey("ItemVariantId")
@@ -9714,12 +9697,6 @@ namespace uOrgHub.Shared.Migrations
 
             modelBuilder.Entity("uOrgHub.Inventory.Models.Entities.StockTransaction", b =>
                 {
-                    b.HasOne("uOrgHub.Shared.Entities.Company", null)
-                        .WithMany()
-                        .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("uOrgHub.Inventory.Models.Entities.Warehouse", "FromWarehouse")
                         .WithMany()
                         .HasForeignKey("FromWarehouseId")
@@ -9761,15 +9738,6 @@ namespace uOrgHub.Shared.Migrations
                     b.Navigation("AttributeDefinition");
 
                     b.Navigation("ItemVariant");
-                });
-
-            modelBuilder.Entity("uOrgHub.Inventory.Models.Entities.Warehouse", b =>
-                {
-                    b.HasOne("uOrgHub.Shared.Entities.Company", null)
-                        .WithMany()
-                        .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("uOrgHub.Procurement.Models.Entities.GRNItem", b =>
@@ -10017,12 +9985,6 @@ namespace uOrgHub.Shared.Migrations
                     b.HasOne("uOrgHub.Projects.Models.Entities.Client", "Client")
                         .WithMany("Projects")
                         .HasForeignKey("ClientId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("uOrgHub.Shared.Entities.Company", null)
-                        .WithMany()
-                        .HasForeignKey("CompanyId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 

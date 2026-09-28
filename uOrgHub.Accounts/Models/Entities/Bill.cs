@@ -6,8 +6,10 @@ using uOrgHub.Shared.Entities;
 namespace uOrgHub.Accounts.Models.Entities;
 
 [Table("acc_bills")]
-public class Bill : BaseEntity
+public class Bill : BaseEntity, ICompanyScoped
 {
+    public Guid CompanyId { get; set; }
+
     [Required][MaxLength(30)]  public string BillNumber { get; set; } = string.Empty;
     [MaxLength(50)]            public string? VendorBillNumber { get; set; }
     public Guid VendorId { get; set; }

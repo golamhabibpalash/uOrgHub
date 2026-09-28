@@ -2,18 +2,21 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using uOrgHub.Shared.Data;
 
 #nullable disable
 
-namespace uOrgHub.Shared.Migrations
+namespace uOrgHub.Shared.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260921101647_UnifySisterConcernAccountsPhase1")]
+    partial class UnifySisterConcernAccountsPhase1
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -619,9 +622,6 @@ namespace uOrgHub.Shared.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
-                    b.Property<Guid>("CompanyId")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
@@ -667,12 +667,12 @@ namespace uOrgHub.Shared.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Code")
+                        .IsUnique();
+
                     b.HasIndex("ParentCostCenterId");
 
                     b.HasIndex("ProjectId");
-
-                    b.HasIndex("CompanyId", "Code")
-                        .IsUnique();
 
                     b.ToTable("acc_cost_centers");
                 });
@@ -767,9 +767,6 @@ namespace uOrgHub.Shared.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("CompanyId")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
@@ -810,8 +807,6 @@ namespace uOrgHub.Shared.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CompanyId");
 
                     b.ToTable("acc_fiscalyears");
                 });
@@ -5250,9 +5245,6 @@ namespace uOrgHub.Shared.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("CompanyId")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
@@ -5292,8 +5284,6 @@ namespace uOrgHub.Shared.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CompanyId");
-
                     b.HasIndex("WarehouseId");
 
                     b.HasIndex("ItemVariantId", "WarehouseId")
@@ -5306,9 +5296,6 @@ namespace uOrgHub.Shared.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CompanyId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
@@ -5376,10 +5363,10 @@ namespace uOrgHub.Shared.Migrations
 
                     b.HasIndex("ItemVariantId");
 
-                    b.HasIndex("WarehouseId");
-
-                    b.HasIndex("CompanyId", "TransactionNumber")
+                    b.HasIndex("TransactionNumber")
                         .IsUnique();
+
+                    b.HasIndex("WarehouseId");
 
                     b.ToTable("inv_stock_transactions");
                 });
@@ -5492,9 +5479,6 @@ namespace uOrgHub.Shared.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
-                    b.Property<Guid>("CompanyId")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("ContactPerson")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
@@ -5539,7 +5523,7 @@ namespace uOrgHub.Shared.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CompanyId", "Code")
+                    b.HasIndex("Code")
                         .IsUnique();
 
                     b.ToTable("inv_warehouses");
@@ -5616,9 +5600,6 @@ namespace uOrgHub.Shared.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("CompanyId")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
@@ -5674,10 +5655,10 @@ namespace uOrgHub.Shared.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("POId");
-
-                    b.HasIndex("CompanyId", "GRNNumber")
+                    b.HasIndex("GRNNumber")
                         .IsUnique();
+
+                    b.HasIndex("POId");
 
                     b.ToTable("proc_goods_received_notes");
                 });
@@ -5692,9 +5673,6 @@ namespace uOrgHub.Shared.Migrations
                         .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid?>("ApprovedById")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CompanyId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
@@ -5768,14 +5746,14 @@ namespace uOrgHub.Shared.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("PONumber")
+                        .IsUnique();
+
                     b.HasIndex("PRId");
 
                     b.HasIndex("QuotationId");
 
                     b.HasIndex("VendorId");
-
-                    b.HasIndex("CompanyId", "PONumber")
-                        .IsUnique();
 
                     b.ToTable("proc_purchase_orders");
                 });
@@ -5855,9 +5833,6 @@ namespace uOrgHub.Shared.Migrations
                     b.Property<Guid?>("ApprovedById")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("CompanyId")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
@@ -5920,7 +5895,7 @@ namespace uOrgHub.Shared.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CompanyId", "PRNumber")
+                    b.HasIndex("PRNumber")
                         .IsUnique();
 
                     b.ToTable("proc_purchase_requisitions");
@@ -6040,9 +6015,6 @@ namespace uOrgHub.Shared.Migrations
                     b.Property<DateTime>("ClosingDate")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<Guid>("CompanyId")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
@@ -6102,7 +6074,7 @@ namespace uOrgHub.Shared.Migrations
 
                     b.HasIndex("PRId");
 
-                    b.HasIndex("CompanyId", "RFQNumber")
+                    b.HasIndex("RFQNumber")
                         .IsUnique();
 
                     b.ToTable("proc_request_for_quotations");
@@ -6112,9 +6084,6 @@ namespace uOrgHub.Shared.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CompanyId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
@@ -6175,10 +6144,10 @@ namespace uOrgHub.Shared.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("VendorId");
-
-                    b.HasIndex("CompanyId", "QuotationNumber")
+                    b.HasIndex("QuotationNumber")
                         .IsUnique();
+
+                    b.HasIndex("VendorId");
 
                     b.HasIndex("RFQId", "VendorId")
                         .IsUnique();
@@ -6652,9 +6621,6 @@ namespace uOrgHub.Shared.Migrations
                     b.Property<Guid>("ClientId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("CompanyId")
-                        .HasColumnType("uuid");
-
                     b.Property<decimal>("ContractValue")
                         .HasColumnType("decimal(18,2)");
 
@@ -6727,7 +6693,7 @@ namespace uOrgHub.Shared.Migrations
 
                     b.HasIndex("ClientId");
 
-                    b.HasIndex("CompanyId", "ProjectCode")
+                    b.HasIndex("ProjectCode")
                         .IsUnique();
 
                     b.ToTable("proj_projects");
@@ -8711,12 +8677,6 @@ namespace uOrgHub.Shared.Migrations
 
             modelBuilder.Entity("uOrgHub.Accounts.Models.Entities.CostCenter", b =>
                 {
-                    b.HasOne("uOrgHub.Shared.Entities.Company", null)
-                        .WithMany()
-                        .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("uOrgHub.Accounts.Models.Entities.CostCenter", "ParentCostCenter")
                         .WithMany("Children")
                         .HasForeignKey("ParentCostCenterId")
@@ -8734,15 +8694,6 @@ namespace uOrgHub.Shared.Migrations
                         .IsRequired();
 
                     b.Navigation("ReceivableAccount");
-                });
-
-            modelBuilder.Entity("uOrgHub.Accounts.Models.Entities.FiscalYear", b =>
-                {
-                    b.HasOne("uOrgHub.Shared.Entities.Company", null)
-                        .WithMany()
-                        .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("uOrgHub.Accounts.Models.Entities.Invoice", b =>
@@ -9689,12 +9640,6 @@ namespace uOrgHub.Shared.Migrations
 
             modelBuilder.Entity("uOrgHub.Inventory.Models.Entities.StockBalance", b =>
                 {
-                    b.HasOne("uOrgHub.Shared.Entities.Company", null)
-                        .WithMany()
-                        .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("uOrgHub.Inventory.Models.Entities.ItemVariant", "ItemVariant")
                         .WithMany()
                         .HasForeignKey("ItemVariantId")
@@ -9714,12 +9659,6 @@ namespace uOrgHub.Shared.Migrations
 
             modelBuilder.Entity("uOrgHub.Inventory.Models.Entities.StockTransaction", b =>
                 {
-                    b.HasOne("uOrgHub.Shared.Entities.Company", null)
-                        .WithMany()
-                        .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("uOrgHub.Inventory.Models.Entities.Warehouse", "FromWarehouse")
                         .WithMany()
                         .HasForeignKey("FromWarehouseId")
@@ -9763,15 +9702,6 @@ namespace uOrgHub.Shared.Migrations
                     b.Navigation("ItemVariant");
                 });
 
-            modelBuilder.Entity("uOrgHub.Inventory.Models.Entities.Warehouse", b =>
-                {
-                    b.HasOne("uOrgHub.Shared.Entities.Company", null)
-                        .WithMany()
-                        .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("uOrgHub.Procurement.Models.Entities.GRNItem", b =>
                 {
                     b.HasOne("uOrgHub.Procurement.Models.Entities.GoodsReceivedNote", "GoodsReceivedNote")
@@ -9793,12 +9723,6 @@ namespace uOrgHub.Shared.Migrations
 
             modelBuilder.Entity("uOrgHub.Procurement.Models.Entities.GoodsReceivedNote", b =>
                 {
-                    b.HasOne("uOrgHub.Shared.Entities.Company", null)
-                        .WithMany()
-                        .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("uOrgHub.Procurement.Models.Entities.PurchaseOrder", "PurchaseOrder")
                         .WithMany("GoodsReceivedNotes")
                         .HasForeignKey("POId")
@@ -9810,12 +9734,6 @@ namespace uOrgHub.Shared.Migrations
 
             modelBuilder.Entity("uOrgHub.Procurement.Models.Entities.PurchaseOrder", b =>
                 {
-                    b.HasOne("uOrgHub.Shared.Entities.Company", null)
-                        .WithMany()
-                        .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("uOrgHub.Procurement.Models.Entities.PurchaseRequisition", "PurchaseRequisition")
                         .WithMany()
                         .HasForeignKey("PRId")
@@ -9850,15 +9768,6 @@ namespace uOrgHub.Shared.Migrations
                     b.Navigation("PurchaseOrder");
                 });
 
-            modelBuilder.Entity("uOrgHub.Procurement.Models.Entities.PurchaseRequisition", b =>
-                {
-                    b.HasOne("uOrgHub.Shared.Entities.Company", null)
-                        .WithMany()
-                        .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("uOrgHub.Procurement.Models.Entities.PurchaseRequisitionItem", b =>
                 {
                     b.HasOne("uOrgHub.Procurement.Models.Entities.PurchaseRequisition", "PurchaseRequisition")
@@ -9883,12 +9792,6 @@ namespace uOrgHub.Shared.Migrations
 
             modelBuilder.Entity("uOrgHub.Procurement.Models.Entities.RequestForQuotation", b =>
                 {
-                    b.HasOne("uOrgHub.Shared.Entities.Company", null)
-                        .WithMany()
-                        .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("uOrgHub.Procurement.Models.Entities.PurchaseRequisition", "PurchaseRequisition")
                         .WithMany()
                         .HasForeignKey("PRId")
@@ -9899,12 +9802,6 @@ namespace uOrgHub.Shared.Migrations
 
             modelBuilder.Entity("uOrgHub.Procurement.Models.Entities.VendorQuotation", b =>
                 {
-                    b.HasOne("uOrgHub.Shared.Entities.Company", null)
-                        .WithMany()
-                        .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("uOrgHub.Procurement.Models.Entities.RequestForQuotation", "RequestForQuotation")
                         .WithMany("Quotations")
                         .HasForeignKey("RFQId")
@@ -10017,12 +9914,6 @@ namespace uOrgHub.Shared.Migrations
                     b.HasOne("uOrgHub.Projects.Models.Entities.Client", "Client")
                         .WithMany("Projects")
                         .HasForeignKey("ClientId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("uOrgHub.Shared.Entities.Company", null)
-                        .WithMany()
-                        .HasForeignKey("CompanyId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 

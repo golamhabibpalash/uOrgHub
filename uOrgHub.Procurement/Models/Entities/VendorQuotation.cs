@@ -6,8 +6,10 @@ using uOrgHub.Shared.Entities;
 namespace uOrgHub.Procurement.Models.Entities;
 
 [Table("proc_vendor_quotations")]
-public class VendorQuotation : BaseEntity
+public class VendorQuotation : BaseEntity, ICompanyScoped
 {
+    public Guid CompanyId { get; set; }
+
     [Required] [MaxLength(30)] public string QuotationNumber { get; set; } = string.Empty;
     public Guid RFQId { get; set; }
     public RequestForQuotation RequestForQuotation { get; set; } = null!;

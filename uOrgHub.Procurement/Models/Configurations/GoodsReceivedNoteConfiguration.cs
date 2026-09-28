@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using uOrgHub.Procurement.Models.Entities;
+using uOrgHub.Shared.Entities;
 
 namespace uOrgHub.Procurement.Models.Configurations;
 
@@ -9,7 +10,9 @@ public class GoodsReceivedNoteConfiguration : IEntityTypeConfiguration<GoodsRece
     public void Configure(EntityTypeBuilder<GoodsReceivedNote> b)
     {
         b.HasKey(x => x.Id);
-        b.HasIndex(x => x.GRNNumber).IsUnique();
+        // Composite: see PurchaseRequisitionConfiguration for why GRNNumber can't stay globally unique.
+        b.HasIndex(x => new { x.CompanyId, x.GRNNumber }).IsUnique();
+        b.HasOne<Company>().WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Restrict);
 
         b.HasOne(x => x.PurchaseOrder)
          .WithMany(x => x.GoodsReceivedNotes)

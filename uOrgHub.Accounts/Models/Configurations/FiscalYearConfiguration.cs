@@ -5,16 +5,12 @@ using uOrgHub.Shared.Entities;
 
 namespace uOrgHub.Accounts.Models.Configurations;
 
-public class BudgetConfiguration : IEntityTypeConfiguration<Budget>
+public class FiscalYearConfiguration : IEntityTypeConfiguration<FiscalYear>
 {
-    public void Configure(EntityTypeBuilder<Budget> b)
+    public void Configure(EntityTypeBuilder<FiscalYear> b)
     {
         b.HasKey(x => x.Id);
         b.HasIndex(x => x.CompanyId);
         b.HasOne<Company>().WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Restrict);
-        b.HasOne(x => x.FiscalYear).WithMany()
-         .HasForeignKey(x => x.FiscalYearId).OnDelete(DeleteBehavior.Restrict);
-        b.HasOne(x => x.CostCenter).WithMany()
-         .HasForeignKey(x => x.CostCenterId).OnDelete(DeleteBehavior.SetNull);
     }
 }

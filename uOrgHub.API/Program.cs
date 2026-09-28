@@ -34,6 +34,7 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 
 builder.Services.AddScoped<AuditInterceptor>();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentCompanyAccessor, CurrentCompanyAccessor>();
 
 // JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

@@ -6,8 +6,10 @@ using uOrgHub.Shared.Entities;
 namespace uOrgHub.Procurement.Models.Entities;
 
 [Table("proc_purchase_requisitions")]
-public class PurchaseRequisition : BaseEntity
+public class PurchaseRequisition : BaseEntity, ICompanyScoped
 {
+    public Guid CompanyId { get; set; }
+
     [Required] [MaxLength(30)] public string PRNumber { get; set; } = string.Empty;
     public DateTime PRDate { get; set; } = DateTime.UtcNow;
     public DateTime RequiredDate { get; set; }

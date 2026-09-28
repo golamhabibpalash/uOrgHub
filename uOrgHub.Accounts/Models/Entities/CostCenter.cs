@@ -5,8 +5,10 @@ using uOrgHub.Shared.Entities;
 namespace uOrgHub.Accounts.Models.Entities;
 
 [Table("acc_cost_centers")]
-public class CostCenter : BaseEntity
+public class CostCenter : BaseEntity, ICompanyScoped
 {
+    public Guid CompanyId { get; set; }
+
     [Required][MaxLength(20)]  public string Code { get; set; } = string.Empty;
     [Required][MaxLength(200)] public string Name { get; set; } = string.Empty;
     [MaxLength(500)]           public string? Description { get; set; }

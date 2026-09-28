@@ -5,8 +5,10 @@ using uOrgHub.Shared.Entities;
 namespace uOrgHub.Inventory.Models.Entities;
 
 [Table("inv_stock_balances")]
-public class StockBalance : BaseEntity
+public class StockBalance : BaseEntity, ICompanyScoped
 {
+    public Guid CompanyId { get; set; }
+
     [Required] public Guid ItemVariantId { get; set; }
     public ItemVariant ItemVariant { get; set; } = null!;
     [Required] public Guid WarehouseId { get; set; }
