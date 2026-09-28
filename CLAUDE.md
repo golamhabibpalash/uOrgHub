@@ -23,6 +23,7 @@ A few rules to keep front of mind:
 - Mapping is **Riok.Mapperly only** — never AutoMapper, never hand-mapping in handlers/controllers.
 - Controllers always return `ApiResponse<T>` (`uOrgHub.Shared/Models/ApiResponse.cs`); paged endpoints return `ApiResponse<PagedResult<T>>`.
 - Table names carry a module prefix via `[Table("...")]`: `hr_`, `acc_`, `inv_`, `proc_`, `proj_`.
+- Commit messages: `{type}: {desc}`, type ∈ `feat | fix | refactor | init | migration | test`.
 
 > Note: CODING_STANDARDS.md §3/§6 describe an older Service+Repository layout. The code has
 > since moved to **CQRS with MediatR** (see Architecture below). The *rules* in the standards
@@ -53,9 +54,9 @@ Each business module (`uOrgHub.HR`, `uOrgHub.Accounts`, `uOrgHub.Inventory`,
 Supporting libraries: `uOrgHub.Shared` (BaseEntity, `AppDbContext`, `ApiResponse`,
 exceptions, `WhereSearch` — see below), `uOrgHub.Auth` (JWT + claims, below),
 `uOrgHub.Settings` (system settings + `ValidationRuleEngine`). `uOrgHub.HR` is still the
-reference module. `uOrgHub.Projects/Services/` holds domain services (financial
-rollups, cost-limit checks) alongside its normal MediatR handlers — not the old
-Service+Repository pattern.
+reference module. Some modules also keep a `Services/` folder for domain flows alongside
+their MediatR handlers (e.g. `uOrgHub.Projects/Services/`: financial rollups, cost-limit
+checks) — not the old Service+Repository pattern; mirror whatever the file you're editing does.
 
 Cross-module search convention: all list/search endpoints filter via the `WhereSearch()`
 extension (`uOrgHub.Shared/Extensions/`), which emits PostgreSQL `ILIKE` for
@@ -75,7 +76,7 @@ uOrgHub.{Module}/
 ├── Models/Entities/ + Models/Configurations/ (EF) + Models/Enums/
 ├── Mappings/{Entity}Mapper.cs                     # [Mapper] partial class
 ├── Repositories/I{Entity}Repository.cs + {Entity}Repository.cs
-├── Reporting/                                     # export column definitions
+├── Reporting/                                     # export column definitions (consumed by shared IExportService)
 └── {Module}ServiceExtension.cs                    # AddMediatR, validators, repos
 ```
 - Commands/queries are `record`s implementing `ICommand<T>` / `IRequest<T>`; handlers implement `IRequestHandler<,>`.
@@ -83,7 +84,9 @@ uOrgHub.{Module}/
 - Throw typed exceptions from `uOrgHub.Shared/Exceptions/` (`NotFoundException`, `AppException`); `ExceptionMiddleware` translates them. Never return null/raw exceptions.
 
 Controllers live in `uOrgHub.API/Controllers/{Module}/`, inherit `BaseController`, are
-`[Authorize]` by default, and gate actions with `[RequireClaim(Claims....)]`. Auth lives in
+`[Authorize]` by default, route as `api/v1/[controller]` with `{id:guid}` constraints, return
+`ApiResponse<T>.Ok(...)`, and gate actions with `[RequireClaim(Claims....)]` — a new claim
+also needs its constant added in `Claims.cs`. Auth lives in
 `uOrgHub.Auth` (JWT + claim-based permissions: `Authorization/Claims.cs`, `Roles.cs`,
 `AuthorizationCatalog.cs`); `PermissionMiddleware` enforces claims. Middleware order in
 `Program.cs` is deliberate — don't reorder (Maintenance → Exception → AccessLog →
@@ -131,7 +134,8 @@ React 19 + Vite + TypeScript + Tailwind + shadcn/ui. State: Zustand (`src/store/
 - `src/pages/{module}/` — page components, one folder per module.
 - Backend `ApiResponse<T>` / `PagedResult<T>` shapes mirrored in `src/types/api.ts`.
 - Every list page uses the shared `DataGrid` component (`src/components/shared/DataGrid.tsx`)
-  + `useDataGrid` hook (`src/hooks/useDataGrid.ts`) for paging/sort/search/filter state — don't
+  + `useDataGrid` hook (`src/hooks/useDataGrid.ts`) for paging/sort/search/filter state, plus
+  `ExportMenu` (`src/components/shared/ExportMenu.tsx`) for exports — don't
   use the old `DataTable`/`Pagination` components. See CODING_STANDARDS.md §18 for the exact
   page-component pattern and the `DataGridColumn`/`useDataGrid` APIs.
 - A 403 response fires a global `auth:forbidden` event (handled in `client.ts`) rather than
@@ -163,7 +167,8 @@ There is no frontend unit-test runner (`playwright` is a dependency but only for
 automation). All automated tests are backend xUnit in `uOrgHub.Tests`.
 
 EF Core migrations (live in `uOrgHub.Shared/Data/Migrations/`, applied automatically on API
-startup via `db.Database.Migrate()` in `Program.cs`):
+startup via `db.Database.Migrate()` in `Program.cs`, followed by `IAuthSeeder` and
+`SettingsSeeder` — seeding is skipped if migration fails):
 ```bash
 dotnet ef migrations add Add{Module}Module \
   --project uOrgHub.Shared/uOrgHub.Shared.csproj \

@@ -20,7 +20,7 @@ Accounts module. A journal entry is balanced double-entry (`TotalDebit == TotalC
 counts toward reports only when its status is `Posted`
 (`uOrgHub.Accounts/Models/Enums/JournalEntryStatus.cs`: `Draft, Posted, Cancelled`).
 
-**Only five actions post to the ledger.** Everything else upstream — requisitions, purchase
+**Only six actions post to the ledger.** Everything else upstream — requisitions, purchase
 orders, goods receipts, RA bills — is paperwork that does not touch the books until it funnels
 into one of these:
 
@@ -31,8 +31,9 @@ into one of these:
 | 3 | **Payment created** | Bank *or* AP (settlement) | AR *or* Bank | `uOrgHub.Accounts/Features/Payment/PaymentFeatures.cs:210-241` |
 | 4 | **Project expense approved** | chosen debit account (carries the project cost center) | chosen credit account | `uOrgHub.Projects/Features/ProjectExpenses/Commands/ProjectExpenseCommands.cs:142-180` |
 | 5 | **Manual journal / bank transaction** | as entered | as entered | `uOrgHub.Accounts/Services/JournalEntryService.cs`, `uOrgHub.Accounts/Features/Banking/BankingFeatures.cs` |
+| 6 | **Depreciation run posted** (monthly) | Depreciation Expense (per asset, carries the asset's `CostCenterId`) | Accumulated Depreciation (contra-asset) | `uOrgHub.Accounts/Features/FixedAssets/DepreciationRunFeatures.cs` |
 
-All five route through `IJournalEntryService` (`PostAsync` / `CancelAsync`), which is the single
+All six route through `IJournalEntryService` (`PostAsync` / `CancelAsync`), which is the single
 choke point that moves account balances. Posting a bill or invoice stamps each expense/revenue
 line with its **cost center**, and that stamp is what makes project costing possible (section 4).
 
@@ -77,6 +78,17 @@ is entered by hand in Accounts with no reference back to the PO or GRN. Approvin
 settles the bill: allocating a payment raises `Bill.PaidAmount` and flips the bill to
 `PartiallyPaid` / `Paid` (`PaymentFeatures.cs:143-162`), and the payment's own journal entry
 posts **Dr AP / Cr Bank**.
+
+**Capital purchases (machinery, vehicles, equipment).** An excavator is not stock: it is bought on
+the same PR → PO → Bill chain, but the bill line goes to the asset category's balance-sheet
+account (e.g. *Plant & Machinery*) instead of an expense, so approval posts **Dr Plant & Machinery /
+Cr AP**. The item is then registered as a `FixedAsset` (`uOrgHub.Accounts/Models/Entities/FixedAsset.cs`)
+linked to that bill — the register itself never posts the acquisition, so the cost is booked exactly
+once. From then on the monthly depreciation run (§1 row 6) moves cost to expense. Runs must go month
+by month; a run for a later month catches up skipped months per asset, and reversal goes
+newest-first (it cancels the entry and restores each asset's accumulated depreciation).
+Not built yet: disposal (sale/scrap gain-loss), deploying assets to projects with an internal hire
+charge, external rental, and turning a GRN into an asset automatically.
 
 ---
 

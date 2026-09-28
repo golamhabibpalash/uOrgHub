@@ -8,7 +8,7 @@ import {
   getActiveLeaveTypes,
   getAllSalaryGrades,
 } from "../api/hr";
-import { getChartOfAccounts, getAllAccountGroups, getCostCenters, getCustomers, getVendors, getFiscalYears, getBankAccounts, getVoucherAccountOptions, AccountGroupType, VoucherAccountOption, VoucherType } from "../api/accounts";
+import { getChartOfAccounts, getAllAccountGroups, getCostCenters, getCustomers, getVendors, getFiscalYears, getBankAccounts, getVoucherAccountOptions, getAllAssetCategories, getBills, AccountGroupType, VoucherAccountOption, VoucherType } from "../api/accounts";
 import { getInventoryTypes, getInventoryCategories, getUnitsOfMeasure, getWarehouses, getItemVariants } from "../api/inventory";
 import { getProjectCategories, getClients, getProjects } from "../api/projects";
 import {
@@ -319,6 +319,51 @@ export function useBankAccountLookup() {
       label: `${b.accountName} (${b.bankName ?? ""})`,
       searchText: `${b.accountName} ${b.bankName ?? ""} ${b.accountNumber ?? ""}`,
     })),
+    [query.data],
+  );
+  return { options, isLoading: query.isLoading };
+}
+
+/**
+ * Asset categories for the fixed-asset form. The raw records come back too: picking a category
+ * pre-fills the asset's useful life, method and salvage value from the category defaults.
+ */
+export function useAssetCategoryLookup() {
+  const query = useQuery({
+    queryKey: ["asset-categories-all"],
+    queryFn: getAllAssetCategories,
+    staleTime: 60000,
+  });
+  const categories = useMemo(() => query.data?.data?.data ?? [], [query.data]);
+  const options = useMemo(
+    () => toOptions(
+      categories.filter((c) => c.isActive),
+      (c) => ({ value: c.id, label: `${c.code} — ${c.name}`, searchText: `${c.name} ${c.code}` }),
+    ),
+    [categories],
+  );
+  return { options, categories, isLoading: query.isLoading };
+}
+
+/**
+ * Approved vendor bills, for linking a fixed asset to the bill that paid for it. Draft bills have
+ * not reached the ledger yet, and void/cancelled ones never will — the server rejects both links.
+ */
+export function useApprovedBillLookup() {
+  const query = useQuery({
+    queryKey: ["bills-approved"],
+    queryFn: () => getBills({ page: 1, pageSize: 100 }),
+    staleTime: 30000,
+  });
+  const options = useMemo(
+    () => toOptions(
+      query.data?.data?.data?.items?.filter((b) => b.status === "Received" || b.status === "PartiallyPaid" || b.status === "Paid" || b.status === "Overdue"),
+      (b) => ({
+        value: b.id,
+        label: `${b.billNumber} — ${b.vendorName} (${b.totalAmount.toLocaleString("en-BD", { minimumFractionDigits: 2 })})`,
+        searchText: `${b.billNumber} ${b.vendorName} ${b.vendorBillNumber ?? ""}`,
+      }),
+    ),
     [query.data],
   );
   return { options, isLoading: query.isLoading };

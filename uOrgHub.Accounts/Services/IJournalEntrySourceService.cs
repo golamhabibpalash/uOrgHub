@@ -3,7 +3,7 @@ namespace uOrgHub.Accounts.Services;
 /// <summary>
 /// The document a journal entry was generated from, when it was not written by hand.
 /// </summary>
-/// <param name="DocumentType">"Voucher", "Bill", "Invoice" or "Payment".</param>
+/// <param name="DocumentType">"Voucher", "Bill", "Invoice", "Payment" or "Depreciation".</param>
 /// <param name="DocumentNumber">The document's own number, e.g. "DR-202608-000001".</param>
 /// <param name="DocumentStatus">Where that document currently sits in its workflow.</param>
 public record JournalEntrySource(string DocumentType, string DocumentNumber, string DocumentStatus);

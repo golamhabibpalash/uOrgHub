@@ -15,6 +15,20 @@ export type PaymentMethod = "Cash" | "BankTransfer" | "Cheque" | "CreditCard" | 
 export type BudgetStatus = "Draft" | "Approved" | "Active" | "Closed" | "Cancelled";
 export type VoucherType = "Debit" | "Credit" | "Contra";
 export type VoucherStatus = "Draft" | "Submitted" | "Approved" | "Posted" | "Rejected" | "Cancelled";
+export type DepreciationMethod = "StraightLine" | "DecliningBalance";
+export type FixedAssetStatus = "Active" | "Idle" | "UnderMaintenance";
+export type DepreciationRunStatus = "Posted" | "Reversed";
+
+export const depreciationMethodLabels: Record<DepreciationMethod, string> = {
+  StraightLine: "Straight line",
+  DecliningBalance: "Declining balance (double)",
+};
+
+export const fixedAssetStatusLabels: Record<FixedAssetStatus, string> = {
+  Active: "Active",
+  Idle: "Idle",
+  UnderMaintenance: "Under maintenance",
+};
 
 // ── Account Groups ─────────────────────────────────────────────────────────
 
@@ -150,10 +164,11 @@ export interface JournalEntry {
   postedAt?: string;
   createdAt: string;
   /**
-   * Set when a Voucher, Bill, Invoice or Payment generated this entry. Such an entry belongs to
-   * that document's workflow — it cannot be posted, edited, deleted or cancelled from this screen.
+   * Set when a Voucher, Bill, Invoice, Payment or Depreciation run generated this entry. Such an
+   * entry belongs to that document's workflow — it cannot be posted, edited, deleted or cancelled
+   * from this screen.
    */
-  sourceDocumentType?: "Voucher" | "Bill" | "Invoice" | "Payment";
+  sourceDocumentType?: "Voucher" | "Bill" | "Invoice" | "Payment" | "Depreciation";
   sourceDocumentNumber?: string;
   sourceDocumentStatus?: string;
   isSystemGenerated: boolean;
@@ -706,6 +721,207 @@ export const approveBudget = (id: string) =>
 
 export const deleteBudget = (id: string) =>
   apiClient.delete<ApiResponse<null>>(`/accounts/budgets/${id}`);
+
+// ── Fixed Assets ───────────────────────────────────────────────────────────
+
+export interface AssetCategory {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+  depreciationMethod: DepreciationMethod;
+  usefulLifeMonths: number;
+  salvageValuePercent: number;
+  assetAccountId: string;
+  assetAccountName?: string;
+  accumulatedDepreciationAccountId: string;
+  accumulatedDepreciationAccountName?: string;
+  depreciationExpenseAccountId: string;
+  depreciationExpenseAccountName?: string;
+  isActive: boolean;
+}
+
+export interface AssetCategoryPayload {
+  code?: string;
+  name: string;
+  description?: string;
+  depreciationMethod: DepreciationMethod;
+  usefulLifeMonths: number;
+  salvageValuePercent: number;
+  assetAccountId: string;
+  accumulatedDepreciationAccountId: string;
+  depreciationExpenseAccountId: string;
+  isActive?: boolean;
+}
+
+export const getAssetCategories = (params: PaginationRequest) =>
+  apiClient.get<ApiResponse<PagedResult<AssetCategory>>>("/accounts/asset-categories", { params });
+
+export const getAllAssetCategories = () =>
+  apiClient.get<ApiResponse<AssetCategory[]>>("/accounts/asset-categories/all");
+
+export const createAssetCategory = (data: AssetCategoryPayload) =>
+  apiClient.post<ApiResponse<AssetCategory>>("/accounts/asset-categories", data);
+
+export const updateAssetCategory = (id: string, data: AssetCategoryPayload) =>
+  apiClient.put<ApiResponse<AssetCategory>>(`/accounts/asset-categories/${id}`, data);
+
+export const deleteAssetCategory = (id: string) =>
+  apiClient.delete<ApiResponse<string>>(`/accounts/asset-categories/${id}`);
+
+export interface FixedAsset {
+  id: string;
+  assetCode: string;
+  name: string;
+  description?: string;
+  categoryId: string;
+  categoryName?: string;
+  manufacturer?: string;
+  model?: string;
+  serialNumber?: string;
+  chassisNumber?: string;
+  engineNumber?: string;
+  registrationNumber?: string;
+  purchaseDate: string;
+  depreciationStartDate: string;
+  purchaseCost: number;
+  salvageValue: number;
+  usefulLifeMonths: number;
+  depreciationMethod: DepreciationMethod;
+  openingAccumulatedDepreciation: number;
+  accumulatedDepreciation: number;
+  bookValue: number;
+  lastDepreciationDate?: string;
+  vendorId?: string;
+  vendorName?: string;
+  billId?: string;
+  billBillNumber?: string;
+  costCenterId?: string;
+  costCenterName?: string;
+  location?: string;
+  status: FixedAssetStatus;
+  notes?: string;
+  /** Once true, category, cost, salvage, life, method and start date are locked server-side. */
+  hasPostedDepreciation: boolean;
+}
+
+export interface FixedAssetPayload {
+  assetCode?: string;
+  name: string;
+  description?: string;
+  categoryId: string;
+  manufacturer?: string;
+  model?: string;
+  serialNumber?: string;
+  chassisNumber?: string;
+  engineNumber?: string;
+  registrationNumber?: string;
+  purchaseDate: string;
+  depreciationStartDate?: string;
+  purchaseCost: number;
+  salvageValue?: number;
+  usefulLifeMonths?: number;
+  depreciationMethod?: DepreciationMethod;
+  /** Create only: depreciation already charged before go-live, and the month-end it covers. */
+  openingAccumulatedDepreciation?: number;
+  openingDepreciatedUpTo?: string;
+  vendorId?: string;
+  billId?: string;
+  costCenterId?: string;
+  location?: string;
+  status: FixedAssetStatus;
+  notes?: string;
+}
+
+export interface FixedAssetSummary {
+  assetCount: number;
+  totalCost: number;
+  totalAccumulatedDepreciation: number;
+  totalBookValue: number;
+}
+
+export interface FixedAssetDepreciationHistory {
+  depreciationRunId: string;
+  runNumber: string;
+  periodEndDate: string;
+  status: DepreciationRunStatus;
+  months: number;
+  amount: number;
+  accumulatedAfter: number;
+}
+
+export const getFixedAssets = (params: PaginationRequest, categoryId?: string, status?: string) =>
+  apiClient.get<ApiResponse<PagedResult<FixedAsset>>>("/accounts/fixed-assets", { params: { ...params, categoryId, status } });
+
+export const getFixedAssetSummary = () =>
+  apiClient.get<ApiResponse<FixedAssetSummary>>("/accounts/fixed-assets/summary");
+
+export const getFixedAssetById = (id: string) =>
+  apiClient.get<ApiResponse<FixedAsset>>(`/accounts/fixed-assets/${id}`);
+
+export const getFixedAssetDepreciationHistory = (id: string) =>
+  apiClient.get<ApiResponse<FixedAssetDepreciationHistory[]>>(`/accounts/fixed-assets/${id}/depreciation-history`);
+
+export const createFixedAsset = (data: FixedAssetPayload) =>
+  apiClient.post<ApiResponse<FixedAsset>>("/accounts/fixed-assets", data);
+
+export const updateFixedAsset = (id: string, data: FixedAssetPayload) =>
+  apiClient.put<ApiResponse<FixedAsset>>(`/accounts/fixed-assets/${id}`, data);
+
+export const deleteFixedAsset = (id: string) =>
+  apiClient.delete<ApiResponse<string>>(`/accounts/fixed-assets/${id}`);
+
+export interface DepreciationLine {
+  fixedAssetId: string;
+  assetCode: string;
+  assetName: string;
+  categoryName: string;
+  months: number;
+  amount: number;
+  purchaseCost: number;
+  accumulatedBefore: number;
+  accumulatedAfter: number;
+  bookValueAfter: number;
+}
+
+export interface DepreciationPreview {
+  year: number;
+  month: number;
+  periodEndDate: string;
+  totalAmount: number;
+  lines: DepreciationLine[];
+}
+
+export interface DepreciationRun {
+  id: string;
+  runNumber: string;
+  periodYear: number;
+  periodMonth: number;
+  periodEndDate: string;
+  totalAmount: number;
+  status: DepreciationRunStatus;
+  notes?: string;
+  journalEntryId?: string;
+  journalEntryEntryNumber?: string;
+  createdAt: string;
+  createdBy: string;
+  reversedAt?: string;
+  reversedBy?: string;
+  assetCount: number;
+  lines: DepreciationLine[];
+}
+
+export const getDepreciationRuns = (params: PaginationRequest, year?: number) =>
+  apiClient.get<ApiResponse<PagedResult<DepreciationRun>>>("/accounts/depreciation-runs", { params: { ...params, year } });
+
+export const previewDepreciation = (year: number, month: number) =>
+  apiClient.get<ApiResponse<DepreciationPreview>>("/accounts/depreciation-runs/preview", { params: { year, month } });
+
+export const postDepreciationRun = (data: { year: number; month: number; notes?: string }) =>
+  apiClient.post<ApiResponse<DepreciationRun>>("/accounts/depreciation-runs", data);
+
+export const reverseDepreciationRun = (id: string) =>
+  apiClient.post<ApiResponse<DepreciationRun>>(`/accounts/depreciation-runs/${id}/reverse`, {});
 
 // ── Accounting Reports ─────────────────────────────────────────────────────
 

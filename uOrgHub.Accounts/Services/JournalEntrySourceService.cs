@@ -8,7 +8,7 @@ namespace uOrgHub.Accounts.Services;
 /// <summary>
 /// Answers "where did this journal entry come from?" and enforces the answer.
 ///
-/// Four documents generate entries — Voucher, Bill, Invoice and Payment — and each has its own
+/// Five documents generate entries — Voucher, Bill, Invoice, Payment and Depreciation run — and each has its own
 /// approval workflow that decides when the entry may be posted, reversed or discarded. An entry
 /// reached directly from the Journal Entries screen bypasses that workflow entirely: a voucher
 /// still awaiting approval would have its money hit the ledger, and the voucher would go on
@@ -60,12 +60,21 @@ public class JournalEntrySourceService : IJournalEntrySourceService
             .Select(x => new { EntryId = x.JournalEntryId!.Value, Number = x.PaymentNumber, Status = "Recorded" })
             .ToListAsync(ct);
 
+        // A depreciation run's entry must be unwound through the run, which also rolls back each
+        // asset's accumulated depreciation — cancelling the entry alone would leave the register
+        // claiming depreciation the ledger no longer carries.
+        var depreciationRuns = await _db.Set<DepreciationRun>()
+            .Where(x => !x.IsDeleted && x.JournalEntryId != null && ids.Contains(x.JournalEntryId.Value))
+            .Select(x => new { EntryId = x.JournalEntryId!.Value, Number = x.RunNumber, Status = x.Status.ToString() })
+            .ToListAsync(ct);
+
         // First writer wins. An entry can only legitimately belong to one document, so a second
         // claim would be data corruption rather than something to merge.
         foreach (var x in vouchers) result.TryAdd(x.EntryId, new JournalEntrySource("Voucher", x.Number, x.Status));
         foreach (var x in bills) result.TryAdd(x.EntryId, new JournalEntrySource("Bill", x.Number, x.Status));
         foreach (var x in invoices) result.TryAdd(x.EntryId, new JournalEntrySource("Invoice", x.Number, x.Status));
         foreach (var x in payments) result.TryAdd(x.EntryId, new JournalEntrySource("Payment", x.Number, x.Status));
+        foreach (var x in depreciationRuns) result.TryAdd(x.EntryId, new JournalEntrySource("Depreciation", x.Number, x.Status));
 
         return result;
     }
@@ -92,6 +101,7 @@ public class JournalEntrySourceService : IJournalEntrySourceService
             "Bill" => "Use the bill's own approve or void action instead.",
             "Invoice" => "Use the invoice's own post or void action instead.",
             "Payment" => "Use the payment's own void action instead.",
+            "Depreciation" => "Reverse the depreciation run instead — that also restores each asset's accumulated depreciation.",
             _ => "Use the source document's own workflow instead.",
         };
 

@@ -240,23 +240,26 @@ public class AccountingReportService : IAccountingReportService
 
             if (balance == 0) balance = account.CurrentBalance;
 
+            // Signed, not Math.Abs: `balance` is already on the section's normal side, so a negative
+            // one is a contra balance — Accumulated Depreciation under Assets, or an overdrawn bank —
+            // and must reduce its section's total rather than inflate it.
             var line = new BalanceSheetLineDto(
-                $"[{account.AccountCode}] {account.AccountName}", Math.Abs(balance), false, null
+                $"[{account.AccountCode}] {account.AccountName}", balance, false, null
             );
 
             switch (account.AccountType)
             {
                 case AccountGroupType.Asset:
                     assetLines.Add(line);
-                    totalAssets += Math.Abs(balance);
+                    totalAssets += balance;
                     break;
                 case AccountGroupType.Liability:
                     liabilityLines.Add(line);
-                    totalLiabilities += Math.Abs(balance);
+                    totalLiabilities += balance;
                     break;
                 case AccountGroupType.Equity:
                     equityLines.Add(line);
-                    totalEquity += Math.Abs(balance);
+                    totalEquity += balance;
                     break;
             }
         }

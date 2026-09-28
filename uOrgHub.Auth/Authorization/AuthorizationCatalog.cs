@@ -50,6 +50,7 @@ public static class AuthorizationCatalog
             "Delete" => $"Delete {subject}",
             "Approve" => $"Approve {subject}",
             "Post" => $"Post {subject}",
+            "Reverse" => $"Reverse {subject}",
             "Process" => $"Process {subject}",
             "AssignRoles" => $"Assign roles to {subject}",
             "Print" => $"Print {subject}",

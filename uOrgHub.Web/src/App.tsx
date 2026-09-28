@@ -46,6 +46,9 @@ import AccountsVendors from "./pages/accounts/Vendors";
 import Bills from "./pages/accounts/Bills";
 import Payments from "./pages/accounts/Payments";
 import Budgets from "./pages/accounts/Budgets";
+import AssetCategories from "./pages/accounts/AssetCategories";
+import FixedAssets from "./pages/accounts/FixedAssets";
+import Depreciation from "./pages/accounts/Depreciation";
 import ReportsDashboard from "./pages/accounts/reports/ReportsDashboard";
 import TrialBalancePage from "./pages/accounts/reports/TrialBalancePage";
 import IncomeStatementPage from "./pages/accounts/reports/IncomeStatementPage";
@@ -191,6 +194,9 @@ export default function App() {
             <Route path="accounts/bills" element={<Bills />} />
             <Route path="accounts/payments" element={<Payments />} />
             <Route path="accounts/budgets" element={<Budgets />} />
+            <Route path="accounts/asset-categories" element={<ProtectedRoute requiredClaim="Accounts.AssetCategories.View"><AssetCategories /></ProtectedRoute>} />
+            <Route path="accounts/fixed-assets" element={<ProtectedRoute requiredClaim="Accounts.FixedAssets.View"><FixedAssets /></ProtectedRoute>} />
+            <Route path="accounts/depreciation" element={<ProtectedRoute requiredClaim="Accounts.Depreciation.View"><Depreciation /></ProtectedRoute>} />
             <Route path="accounts/reports" element={<ReportsDashboard />} />
             <Route path="accounts/reports/trial-balance" element={<ProtectedRoute requiredClaim="Accounts.Reports.View"><TrialBalancePage /></ProtectedRoute>} />
             <Route path="accounts/reports/income-statement" element={<ProtectedRoute requiredClaim="Accounts.Reports.View"><IncomeStatementPage /></ProtectedRoute>} />

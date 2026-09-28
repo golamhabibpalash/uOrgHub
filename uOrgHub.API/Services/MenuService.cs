@@ -41,6 +41,9 @@ public class MenuService : IMenuService
             new("acc-bills", "Bills", "FileText", "/accounts/bills", Claims.Accounts.Bills.View, null, null, null),
             new("acc-payments", "Payments", "CreditCard", "/accounts/payments", Claims.Accounts.Payments.View, null, null, null),
             new("acc-budgets", "Budgets", "PiggyBank", "/accounts/budgets", Claims.Accounts.Budgets.View, null, null, null),
+            new("acc-asset-categories", "Asset Categories", "Tag", "/accounts/asset-categories", Claims.Accounts.AssetCategories.View, null, null, null),
+            new("acc-fixed-assets", "Fixed Assets", "Truck", "/accounts/fixed-assets", Claims.Accounts.FixedAssets.View, null, null, null),
+            new("acc-depreciation", "Depreciation", "TrendingDown", "/accounts/depreciation", Claims.Accounts.Depreciation.View, null, null, null),
             new("acc-reports", "Reports", "BarChart3", "/accounts/reports", Claims.Accounts.Reports.View, null, null, null),
         ]),
 
