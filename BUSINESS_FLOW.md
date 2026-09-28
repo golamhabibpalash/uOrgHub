@@ -181,10 +181,12 @@ how much financial visibility it costs.
 | 5 | **PO approval books no commitment** | no `JournalEntry` in `uOrgHub.Procurement/Features/PurchaseOrders/` | No commitment accounting — approved-but-unbilled spend isn't reflected against a project's ceiling |
 | 6 | **Client/Customer are duplicated across modules** (Vendor unified) | `Client` (Projects) and `Customer` (Accounts) are separate with no FK (`uOrgHub.Projects/Models/Entities/Client.cs`); Vendor used to be split too (`acc_vendors` + `proc_vendors`) but now lives in one shared `vendors` table (`uOrgHub.Shared/Entities/Vendor.cs`) used by both Accounts and Procurement | A project's client is not the AR customer you invoice |
 | 7 | **Issuing stock to a project carries no cost** | `StockTransaction` has no `ProjectId`/`CostCenterId` (`uOrgHub.Inventory/Models/Entities/StockTransaction.cs`) | Consuming inventory into a project doesn't hit that project's cost |
+| 8 | **Sister-concern (multi-company) isolation is partial.** All of Accounts' (`Bill`, `Voucher`, `Invoice`, `Payment`, `Budget`, `BankAccount`, `JournalEntry`, `NumberingSequence`, `FiscalYear`, `CostCenter`), Procurement's (`PurchaseRequisition`, `RequestForQuotation`, `VendorQuotation`, `PurchaseOrder`, `GoodsReceivedNote`), Projects' (`Project`), and Inventory's (`Warehouse`, `StockBalance`, `StockTransaction`) anchors are company-scoped; only HR remains globally shared | `SISTER_CONCERN_PLAN.md` §1, §6 | A second `Company` can run fully separate Accounts books, procure-to-pay documents, projects, and stock levels today, but payroll and HR expense requests are still visible group-wide — not yet a fully separate sister concern. Phased rollout for the rest in `SISTER_CONCERN_PLAN.md` §6 |
 
 **The natural next links**, in order: bill ← PO/GRN (break 1, unlocks three-way match); RA bill →
 AR invoice → GL (break 3, unlocks revenue reporting); payroll → GL (break 4); unify
-Client/Customer (remainder of break 6, prerequisite for clean cross-module reporting).
+Client/Customer (remainder of break 6, prerequisite for clean cross-module reporting); finish
+sister-concern isolation (break 8 — HR is the only module left, see `SISTER_CONCERN_PLAN.md` §6).
 
 ---
 

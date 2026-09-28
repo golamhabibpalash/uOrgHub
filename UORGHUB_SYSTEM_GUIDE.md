@@ -88,6 +88,12 @@ The first page you see is the **Company Setup Wizard**. This runs only once.
 - Default theme settings are applied
 - The system becomes fully operational
 
+> **Multi-company note:** the schema already allows more than one `companies` row and a user can
+> be linked to several via `auth_user_companies`, but no business data (vendors, bills, POs,
+> projects, etc.) is actually scoped by company today — everything is shared globally regardless
+> of how many companies exist. Adding a second company row does not give you a second, separate
+> set of books yet. See `SISTER_CONCERN_PLAN.md` for the planned design.
+
 ### Step 2: Create Admin User & Roles
 
 After company setup, the **first user is created as a Super Admin**. This user has every permission and can:

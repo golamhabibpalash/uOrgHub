@@ -13,7 +13,8 @@ uOrgHub — a modular ERP for a civil construction company. .NET 8 Web API backe
 rules, soft-delete, table prefixes, commit format. **Follow it.** Other root docs worth
 knowing: `BUSINESS_FLOW.md` (procure-to-pay / order-to-cash / project money flows),
 `UORGHUB_SYSTEM_GUIDE.md` (feature-level system guide), `AGENTS.md` (condensed rules),
-`CFL_DEPLOYMENT_INFO.md` + `deploy/README.md` (multi-instance deployment).
+`CFL_DEPLOYMENT_INFO.md` + `deploy/README.md` (multi-instance deployment),
+`SISTER_CONCERN_PLAN.md` (multi-company/sister-concern isolation — see the scoping section below).
 
 A few rules to keep front of mind:
 
@@ -69,7 +70,7 @@ Module folder layout (see `uOrgHub.HR` as the reference module):
 uOrgHub.{Module}/
 ├── Features/{Area}/Commands/{Entity}Commands.cs   # records + IRequestHandler, write side
 ├── Features/{Area}/Queries/{Entity}Queries.cs     # records + IRequestHandler, read side
-├── Features/_Common/                              # ICommand<T>, ValidationBehavior, etc.
+├── Features/_Common/                              # ICommand<T> (ValidationBehavior is shared: uOrgHub.Shared/Behaviors/)
 ├── DTOs/  (+ DTOs/Validators/  FluentValidation)
 ├── Models/Entities/ + Models/Configurations/ (EF) + Models/Enums/
 ├── Mappings/{Entity}Mapper.cs                     # [Mapper] partial class
@@ -85,7 +86,8 @@ Controllers live in `uOrgHub.API/Controllers/{Module}/`, inherit `BaseController
 `[Authorize]` by default, and gate actions with `[RequireClaim(Claims....)]`. Auth lives in
 `uOrgHub.Auth` (JWT + claim-based permissions: `Authorization/Claims.cs`, `Roles.cs`,
 `AuthorizationCatalog.cs`); `PermissionMiddleware` enforces claims. Middleware order in
-`Program.cs` is deliberate — don't reorder.
+`Program.cs` is deliberate — don't reorder (Maintenance → Exception → AccessLog →
+Authentication → Authorization → Permission).
 
 ### Server-generated PDFs
 
@@ -95,6 +97,22 @@ Two separate QuestPDF template systems, not one shared "reports" layer:
 - `uOrgHub.Procurement/Reporting/Pdf/` + `ProcurementDocumentPage.cs` — letterhead-style
   documents (PR/RFQ today; reuse this one, not the Shared tabular one, for future PO/GRN
   documents).
+
+### Sister-concern (multi-company) scoping
+
+Company-owned documents are isolated per company (`SISTER_CONCERN_PLAN.md`) — currently Accounts,
+Procurement (PR/RFQ/quotation/PO/GRN), Inventory (warehouses/stock) and Projects; HR is not
+scoped. Isolation uses a marker interface, `uOrgHub.Shared.Entities.ICompanyScoped` (bare
+`Guid CompanyId`). To scope a new
+entity: implement the interface, add the `CompanyId` column + FK/index in that entity's own
+`IEntityTypeConfiguration<T>` as normal — nothing in `uOrgHub.Shared` needs touching.
+`AppDbContext` discovers every `ICompanyScoped` type by reflection after configurations are
+applied and adds the read-time filter itself (it has to: a filter closing over `AppDbContext`
+instance state can only be declared in `OnModelCreating`, and `Shared` can't name business-module
+entity types directly). `AuditInterceptor` stamps `CompanyId` on create from the JWT's
+`"company_id"` claim — handlers never set it themselves; code that needs the active company reads
+`ICurrentCompanyAccessor` (`uOrgHub.Shared/Services/`), not the claim directly. No claim in
+context (seeders, tests, migrations) means "don't filter", not "show nothing".
 
 ### Money-flow map
 
