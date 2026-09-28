@@ -1,5 +1,5 @@
 import apiClient from './client';
-import type { UserProfileDto } from '../store/authStore';
+import type { UserProfileDto, UserCompanyDto } from '../store/authStore';
 
 export interface LoginRequest { username: string; password: string; rememberMe?: boolean; }
 export interface LoginResponse {
@@ -211,3 +211,10 @@ export const getAccessLogs = (params?: AccessLogFilterParams) =>
 
 export const getMyAccessLogs = (params?: AccessLogFilterParams) =>
   apiClient.get<{ data: PagedResult<AccessLogDto> }>('access-logs/my', { params }).then(unwrap);
+
+// Sister concerns (SISTER_CONCERN_PLAN.md)
+export const getMyCompanies = () =>
+  apiClient.get<{ data: UserCompanyDto[] }>('company/my-companies').then(unwrap);
+
+export const switchCompany = (companyId: string) =>
+  apiClient.post<{ data: TokenResponse }>(`company/switch/${companyId}`).then(unwrap);

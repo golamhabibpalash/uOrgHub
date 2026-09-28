@@ -7,6 +7,7 @@ using uOrgHub.API.Reporting.ExportColumns;
 using uOrgHub.Auth.Authorization;
 using uOrgHub.Auth.DTOs;
 using uOrgHub.Auth.Models.Entities;
+using uOrgHub.Auth.Services;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Entities;
 using uOrgHub.Shared.Exceptions;
@@ -21,14 +22,17 @@ public class CompanyController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly IExportService _exportService;
+    private readonly IAuthService _authService;
 
-    public CompanyController(AppDbContext db, IExportService exportService)
+    public CompanyController(AppDbContext db, IExportService exportService, IAuthService authService)
     {
         _db = db;
         _exportService = exportService;
+        _authService = authService;
     }
 
     private Guid GetUserId() => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+    private string GetIpAddress() => HttpContext.Connection.RemoteIpAddress?.ToString() ?? "0.0.0.0";
 
     [HttpGet("status")]
     public async Task<IActionResult> GetStatus()
@@ -162,6 +166,35 @@ public class CompanyController : ControllerBase
             ?? throw new AppException("No company found for current user.");
 
         return Ok(ApiResponse<CompanyDto>.Ok(MapDto(company)));
+    }
+
+    /// <summary>Sister concerns (SISTER_CONCERN_PLAN.md) the current user belongs to, for the
+    /// company switcher — unlike <see cref="GetAll"/>, no admin claim required: any signed-in
+    /// user can see (and switch between) their own companies.</summary>
+    [HttpGet("my-companies")]
+    [Authorize]
+    public async Task<IActionResult> GetMyCompanies()
+    {
+        var userId = GetUserId();
+        var companies = await _db.Set<UserCompany>()
+            .Include(uc => uc.Company)
+            .Where(uc => uc.UserId == userId && !uc.IsDeleted && uc.Company != null && !uc.Company.IsDeleted)
+            .OrderByDescending(uc => uc.IsDefault).ThenBy(uc => uc.Company.Name)
+            .Select(uc => new UserCompanyDto(uc.CompanyId, uc.Company.Name, uc.IsDefault))
+            .ToListAsync();
+
+        return Ok(ApiResponse<List<UserCompanyDto>>.Ok(companies));
+    }
+
+    /// <summary>Re-issues the caller's tokens scoped to a different sister concern they belong
+    /// to. The frontend replaces its stored access/refresh tokens and user profile with the
+    /// response, same shape as login/refresh.</summary>
+    [HttpPost("switch/{companyId:guid}")]
+    [Authorize]
+    public async Task<IActionResult> SwitchCompany(Guid companyId)
+    {
+        var result = await _authService.SwitchCompanyAsync(GetUserId(), companyId, GetIpAddress());
+        return Ok(ApiResponse<TokenResponseDto>.Ok(result));
     }
 
     [HttpGet("{id:guid}")]

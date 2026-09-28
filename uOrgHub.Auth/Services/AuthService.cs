@@ -144,13 +144,38 @@ public class AuthService : IAuthService
         var roles = user.UserRoles.Where(ur => !ur.IsDeleted).Select(ur => ur.Role.Name).ToList();
         var claims = (await _users.GetUserClaimsAsync(user.Id)).Where(c => c.IsGranted).Select(c => c.Name).ToList();
 
-        var accessToken = _jwt.GenerateAccessToken(user, roles, claims);
-        var newRefresh = _jwt.GenerateRefreshToken(user.Id, ipAddress);
+        // Carry the session's active company forward rather than resetting to the user's default
+        // — otherwise a mid-session company switch (SwitchCompanyAsync) would silently revert the
+        // next time the access token expires and this fires.
+        var accessToken = _jwt.GenerateAccessToken(user, roles, claims, stored.CompanyId);
+        var newRefresh = _jwt.GenerateRefreshToken(user.Id, ipAddress, stored.CompanyId);
         newRefresh.ReplacedByToken = stored.Token;
         await _tokens.AddRefreshTokenAsync(newRefresh);
 
         var expiry = int.Parse(_config["JwtSettings:AccessTokenExpiryMinutes"] ?? "15");
-        return new TokenResponseDto(accessToken, newRefresh.Token, expiry * 60, await MapProfileAsync(user, roles, claims));
+        return new TokenResponseDto(accessToken, newRefresh.Token, expiry * 60, await MapProfileAsync(user, roles, claims, stored.CompanyId));
+    }
+
+    public async Task<TokenResponseDto> SwitchCompanyAsync(Guid userId, Guid companyId, string ipAddress)
+    {
+        if (!await _users.HasCompanyAccessAsync(userId, companyId))
+            throw new AppException("You do not have access to that company.");
+
+        var user = await _users.GetByIdWithDetailsAsync(userId) ?? throw new AppException("User not found.");
+        var roles = user.UserRoles.Where(ur => !ur.IsDeleted).Select(ur => ur.Role.Name).ToList();
+        var claims = (await _users.GetUserClaimsAsync(userId)).Where(c => c.IsGranted).Select(c => c.Name).ToList();
+
+        // A fresh token pair, same as a normal refresh — any refresh token minted before the
+        // switch still carries the old CompanyId and will keep working until it naturally expires
+        // or is next used to refresh (at which point it reissues itself with its own stale
+        // company, not this one); that's an accepted rough edge rather than a security hole, since
+        // it can only ever re-scope the session back to a company the same user already belongs to.
+        var accessToken = _jwt.GenerateAccessToken(user, roles, claims, companyId);
+        var refreshToken = _jwt.GenerateRefreshToken(userId, ipAddress, companyId);
+        await _tokens.AddRefreshTokenAsync(refreshToken);
+
+        var expiry = int.Parse(_config["JwtSettings:AccessTokenExpiryMinutes"] ?? "15");
+        return new TokenResponseDto(accessToken, refreshToken.Token, expiry * 60, await MapProfileAsync(user, roles, claims, companyId));
     }
 
     public async Task LogoutAsync(Guid userId, string sessionToken)
@@ -205,13 +230,13 @@ public class AuthService : IAuthService
         await _log.LogAsync(BuildLog(userId, user.Username, "PasswordChanged", true, null, null, null));
     }
 
-    public async Task<UserProfileDto> GetProfileAsync(Guid userId)
+    public async Task<UserProfileDto> GetProfileAsync(Guid userId, Guid? activeCompanyId = null)
     {
         var user = await _users.GetByIdWithDetailsAsync(userId)
             ?? throw new AppException("User not found.", 404);
         var roles = user.UserRoles.Where(ur => !ur.IsDeleted).Select(ur => ur.Role.Name).ToList();
         var claims = (await _users.GetUserClaimsAsync(userId)).Where(c => c.IsGranted).Select(c => c.Name).ToList();
-        return await MapProfileAsync(user, roles, claims);
+        return await MapProfileAsync(user, roles, claims, activeCompanyId);
     }
 
     public async Task<UserProfileDto> UpdateProfileAsync(Guid userId, UpdateProfileDto dto)
@@ -267,9 +292,10 @@ public class AuthService : IAuthService
         var userWithDetails = await _users.GetByIdWithDetailsAsync(user.Id) ?? user;
         var roles = userWithDetails.UserRoles.Where(ur => !ur.IsDeleted).Select(ur => ur.Role.Name).ToList();
         var claims = (await _users.GetUserClaimsAsync(user.Id)).Where(c => c.IsGranted).Select(c => c.Name).ToList();
+        var companyId = await _users.GetDefaultCompanyIdAsync(user.Id);
 
-        var accessToken = _jwt.GenerateAccessToken(userWithDetails, roles, claims);
-        var refreshToken = _jwt.GenerateRefreshToken(user.Id, ipAddress);
+        var accessToken = _jwt.GenerateAccessToken(userWithDetails, roles, claims, companyId);
+        var refreshToken = _jwt.GenerateRefreshToken(user.Id, ipAddress, companyId);
         await _tokens.AddRefreshTokenAsync(refreshToken);
 
         var session = new UserSession
@@ -289,7 +315,7 @@ public class AuthService : IAuthService
         await _log.LogAsync(BuildLog(user.Id, user.Username, "Login", true, ipAddress, userAgent, null));
 
         var expiry = int.Parse(_config["JwtSettings:AccessTokenExpiryMinutes"] ?? "15");
-        var profile = await MapProfileAsync(userWithDetails, roles, claims);
+        var profile = await MapProfileAsync(userWithDetails, roles, claims, companyId);
 
         return new LoginResponseDto(false, null, null, null, null, accessToken, refreshToken.Token, profile);
     }
@@ -301,7 +327,7 @@ public class AuthService : IAuthService
         return null;
     }
 
-    private async Task<UserProfileDto> MapProfileAsync(ApplicationUser user, List<string> roles, List<string> claims)
+    private async Task<UserProfileDto> MapProfileAsync(ApplicationUser user, List<string> roles, List<string> claims, Guid? activeCompanyId = null)
     {
         var picture = user.ProfilePicture;
         if (user.EmployeeId.HasValue && _pictureResolver is not null)
@@ -311,10 +337,16 @@ public class AuthService : IAuthService
                 picture = empPicture;
         }
 
+        var companies = await _users.GetUserCompaniesAsync(user.Id);
+        var companyDtos = companies.Select(c => new UserCompanyDto(c.Id, c.Name, c.IsDefault)).ToList();
+        var resolvedActiveId = activeCompanyId ?? companies.FirstOrDefault(c => c.IsDefault)?.Id;
+        var activeCompanyName = companies.FirstOrDefault(c => c.Id == resolvedActiveId)?.Name;
+
         return new UserProfileDto(user.Id, user.Username, user.Email, user.PhoneNumber,
             user.FirstName, user.LastName, $"{user.FirstName} {user.LastName}",
             user.EmployeeId, user.IsActive, user.IsTwoFactorEnabled, user.TwoFactorMethod,
-            roles, claims, user.LastLoginAt, picture);
+            roles, claims, user.LastLoginAt, picture,
+            resolvedActiveId, activeCompanyName, companyDtos);
     }
 
     private static UserAccessLog BuildLog(Guid? userId, string? username, string action, bool success, string? ip, string? ua, string? details) =>

@@ -14,7 +14,7 @@ public class JwtService : IJwtService
 
     public JwtService(IConfiguration config) => _config = config;
 
-    public string GenerateAccessToken(ApplicationUser user, List<string> roles, List<string> claims)
+    public string GenerateAccessToken(ApplicationUser user, List<string> roles, List<string> claims, Guid? companyId = null)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["JwtSettings:SecretKey"]!));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -33,6 +33,12 @@ public class JwtService : IJwtService
         tokenClaims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
         tokenClaims.AddRange(claims.Select(c => new Claim("permission", c)));
 
+        // The active sister concern (SISTER_CONCERN_PLAN.md) — AppDbContext's global query filter
+        // and AuditInterceptor both read this claim by name. Absent for a user with no company
+        // assigned yet; AppDbContext treats that as "don't filter" rather than "show nothing".
+        if (companyId.HasValue)
+            tokenClaims.Add(new Claim("company_id", companyId.Value.ToString()));
+
         var expiry = int.Parse(_config["JwtSettings:AccessTokenExpiryMinutes"] ?? "15");
 
         var token = new JwtSecurityToken(
@@ -46,7 +52,7 @@ public class JwtService : IJwtService
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    public RefreshToken GenerateRefreshToken(Guid userId, string ipAddress)
+    public RefreshToken GenerateRefreshToken(Guid userId, string ipAddress, Guid? companyId = null)
     {
         var bytes = new byte[64];
         using var rng = RandomNumberGenerator.Create();
@@ -60,6 +66,9 @@ public class JwtService : IJwtService
             Token = Convert.ToBase64String(bytes),
             ExpiresAt = DateTime.UtcNow.AddDays(refreshDays),
             CreatedByIp = ipAddress,
+            // Carried forward on refresh so a rotated access token keeps the session's active
+            // company instead of silently reverting to the user's default (AuthService.RefreshTokenAsync).
+            CompanyId = companyId,
         };
     }
 

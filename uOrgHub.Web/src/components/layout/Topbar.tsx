@@ -1,4 +1,5 @@
 import { Bell, Search } from "lucide-react";
+import CompanySwitcher from "./CompanySwitcher";
 
 interface TopbarProps {
   title: string;
@@ -24,6 +25,7 @@ export default function Topbar({ title, breadcrumb }: TopbarProps) {
             className="pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg w-44 focus:outline-none focus:ring-1 focus:ring-primary-500"
           />
         </div>
+        <CompanySwitcher />
         <button className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50">
           <Bell size={16} className="text-gray-500" />
         </button>

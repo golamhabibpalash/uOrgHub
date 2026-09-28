@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+export interface UserCompanyDto {
+  id: string;
+  name: string;
+  isDefault: boolean;
+}
+
 export interface UserProfileDto {
   id: string;
   username: string;
@@ -17,6 +23,13 @@ export interface UserProfileDto {
   claims: string[];
   lastLoginAt?: string;
   profilePicture?: string;
+  // Sister-concern isolation (SISTER_CONCERN_PLAN.md) — the company baked into the current JWT,
+  // and every company this user can switch into.
+  activeCompanyId?: string;
+  activeCompanyName?: string;
+  // Optional: a user object rehydrated from localStorage written before this field existed won't
+  // have it — never assume it's present.
+  companies?: UserCompanyDto[];
 }
 
 interface AuthState {

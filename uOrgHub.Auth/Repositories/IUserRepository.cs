@@ -18,4 +18,12 @@ public interface IUserRepository
     Task SetUserRolesAsync(Guid userId, List<Guid> roleIds, string assignedBy);
     Task AddUserClaimAsync(Guid userId, Guid claimId, bool isGranted, string assignedBy);
     Task RemoveUserClaimAsync(Guid userId, Guid claimId);
+
+    // Sister-concern isolation (SISTER_CONCERN_PLAN.md).
+    Task<Guid?> GetDefaultCompanyIdAsync(Guid userId);
+    Task<bool> HasCompanyAccessAsync(Guid userId, Guid companyId);
+    Task<List<UserCompanyOption>> GetUserCompaniesAsync(Guid userId);
 }
+
+/// <summary>Lightweight projection of a user's UserCompany membership.</summary>
+public record UserCompanyOption(Guid Id, string Name, bool IsDefault);

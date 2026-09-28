@@ -10,6 +10,11 @@ public class RefreshToken
 
     public Guid UserId { get; set; }
 
+    // The sister concern that was active when this token was issued (SISTER_CONCERN_PLAN.md) —
+    // RefreshTokenAsync reuses it so a rotated access token keeps the session's active company
+    // instead of silently reverting to the user's default.
+    public Guid? CompanyId { get; set; }
+
     [Required, MaxLength(500)]
     public string Token { get; set; } = string.Empty;
 

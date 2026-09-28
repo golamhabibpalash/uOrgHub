@@ -144,4 +144,22 @@ public class UserRepository : IUserRepository
             await _db.SaveChangesAsync();
         }
     }
+
+    public async Task<Guid?> GetDefaultCompanyIdAsync(Guid userId) =>
+        await _db.Set<UserCompany>()
+            .Where(uc => uc.UserId == userId && !uc.IsDeleted)
+            .OrderByDescending(uc => uc.IsDefault)
+            .ThenBy(uc => uc.AssignedAt)
+            .Select(uc => (Guid?)uc.CompanyId)
+            .FirstOrDefaultAsync();
+
+    public async Task<bool> HasCompanyAccessAsync(Guid userId, Guid companyId) =>
+        await _db.Set<UserCompany>().AnyAsync(uc => uc.UserId == userId && uc.CompanyId == companyId && !uc.IsDeleted);
+
+    public async Task<List<UserCompanyOption>> GetUserCompaniesAsync(Guid userId) =>
+        await _db.Set<UserCompany>()
+            .Where(uc => uc.UserId == userId && !uc.IsDeleted)
+            .OrderByDescending(uc => uc.IsDefault).ThenBy(uc => uc.Company.Name)
+            .Select(uc => new UserCompanyOption(uc.CompanyId, uc.Company.Name, uc.IsDefault))
+            .ToListAsync();
 }

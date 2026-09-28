@@ -54,8 +54,14 @@ public record UserProfileDto(
     List<string> Roles,
     List<string> Claims,
     DateTime? LastLoginAt,
-    string? ProfilePicture
+    string? ProfilePicture,
+    Guid? ActiveCompanyId,
+    string? ActiveCompanyName,
+    List<UserCompanyDto> Companies
 );
+
+/// <summary>One sister concern (SISTER_CONCERN_PLAN.md) the current user can switch into.</summary>
+public record UserCompanyDto(Guid Id, string Name, bool IsDefault);
 
 public record ResetPasswordDto(
     string Email,

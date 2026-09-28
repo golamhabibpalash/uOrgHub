@@ -26,6 +26,7 @@ public class AuthController : ControllerBase
     private Guid GetUserId() => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
     private string GetIpAddress() => HttpContext.Connection.RemoteIpAddress?.ToString() ?? "0.0.0.0";
     private string GetUserAgent() => Request.Headers["User-Agent"].FirstOrDefault() ?? "Unknown";
+    private Guid? GetCompanyId() => Guid.TryParse(User.FindFirstValue("company_id"), out var id) ? id : null;
 
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequestDto dto)
@@ -97,7 +98,7 @@ public class AuthController : ControllerBase
     [RequireClaim(Claims.Self.ViewProfile)]
     public async Task<IActionResult> GetProfile()
     {
-        var profile = await _authService.GetProfileAsync(GetUserId());
+        var profile = await _authService.GetProfileAsync(GetUserId(), GetCompanyId());
         return Ok(ApiResponse<UserProfileDto>.Ok(profile));
     }
 
