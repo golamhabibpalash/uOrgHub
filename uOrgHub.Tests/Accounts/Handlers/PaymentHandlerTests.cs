@@ -519,4 +519,132 @@ public class PaymentHandlerTests : IDisposable
 
         await act.Should().ThrowAsync<NotFoundException>();
     }
+
+    // =========================================================================
+    // Voucher generation
+    // =========================================================================
+
+    private BankAccount SeedBankAccount()
+    {
+        var bank = new BankAccount
+        {
+            Id = Guid.NewGuid(),
+            AccountNumber = "0001",
+            AccountName = "Operating",
+            BankName = "Test Bank",
+            ChartOfAccountId = Guid.NewGuid()
+        };
+        _context.Set<BankAccount>().Add(bank);
+        _context.SaveChanges();
+        return bank;
+    }
+
+    private CreatePaymentDto VoucherDto(PaymentType type, Guid? customerId, Guid? vendorId, Guid? bankAccountId) => new()
+    {
+        PaymentNumber = "PAY-V01",
+        PaymentType = type,
+        PaymentMethod = PaymentMethod.BankTransfer,
+        PaymentDate = new DateTime(2026, 9, 1),
+        Amount = 750,
+        FiscalYearId = Guid.NewGuid(),
+        CustomerId = customerId,
+        VendorId = vendorId,
+        BankAccountId = bankAccountId,
+        CreateVoucher = true
+    };
+
+    [Fact]
+    public async Task Create_with_voucher_for_vendor_generates_posted_debit_voucher_on_the_same_entry()
+    {
+        var vendor = SeedVendor();
+        var bank = SeedBankAccount();
+        var handler = new CreatePaymentCommandHandler(_context, _numbering, _jeService, _jeRepository);
+
+        var result = await handler.Handle(
+            new CreatePaymentCommand(VoucherDto(PaymentType.VendorPayment, null, vendor.Id, bank.Id), "clerk"), default);
+
+        var voucher = _context.Set<Voucher>().Single();
+        voucher.VoucherType.Should().Be(VoucherType.Debit);
+        voucher.Status.Should().Be(VoucherStatus.Posted);
+        voucher.Amount.Should().Be(750);
+        voucher.DebitAccountId.Should().Be(vendor.PayableAccountId!.Value);
+        voucher.CreditAccountId.Should().Be(bank.ChartOfAccountId);
+        voucher.ReferenceNumber.Should().Be("PAY-V01");
+        voucher.PostedBy.Should().Be("clerk");
+        voucher.JournalEntryId.Should().Be(result.JournalEntryId);
+        _context.Set<JournalEntry>().Should().HaveCount(1, "the voucher documents the payment's entry, not a second one");
+        result.VoucherId.Should().Be(voucher.Id);
+        result.VoucherNumber.Should().Be(voucher.VoucherNumber);
+    }
+
+    [Fact]
+    public async Task Create_with_voucher_for_customer_generates_credit_voucher()
+    {
+        var customer = SeedCustomer();
+        var bank = SeedBankAccount();
+        var handler = new CreatePaymentCommandHandler(_context, _numbering, _jeService, _jeRepository);
+
+        await handler.Handle(new CreatePaymentCommand(VoucherDto(PaymentType.CustomerPayment, customer.Id, null, bank.Id)), default);
+
+        var voucher = _context.Set<Voucher>().Single();
+        voucher.VoucherType.Should().Be(VoucherType.Credit);
+        voucher.DebitAccountId.Should().Be(bank.ChartOfAccountId);
+        voucher.CreditAccountId.Should().Be(customer.ReceivableAccountId);
+    }
+
+    [Fact]
+    public async Task Create_without_voucher_flag_creates_no_voucher()
+    {
+        var vendor = SeedVendor();
+        var bank = SeedBankAccount();
+        var handler = new CreatePaymentCommandHandler(_context, _numbering, _jeService, _jeRepository);
+        var dto = VoucherDto(PaymentType.VendorPayment, null, vendor.Id, bank.Id);
+        dto.CreateVoucher = false;
+
+        var result = await handler.Handle(new CreatePaymentCommand(dto), default);
+
+        result.JournalEntryId.Should().NotBeNull();
+        result.VoucherId.Should().BeNull();
+        _context.Set<Voucher>().Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Create_with_voucher_but_no_bank_account_fails_and_saves_nothing()
+    {
+        var vendor = SeedVendor();
+        var handler = new CreatePaymentCommandHandler(_context, _numbering, _jeService, _jeRepository);
+
+        var act = () => handler.Handle(new CreatePaymentCommand(VoucherDto(PaymentType.VendorPayment, null, vendor.Id, null)), default);
+
+        await act.Should().ThrowAsync<AppException>().WithMessage("*bank/cash account*");
+        _context.Set<Payment>().Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Create_with_voucher_when_vendor_has_no_payable_account_fails()
+    {
+        var vendor = SeedVendor();
+        vendor.PayableAccountId = null;
+        _context.SaveChanges();
+        var bank = SeedBankAccount();
+        var handler = new CreatePaymentCommandHandler(_context, _numbering, _jeService, _jeRepository);
+
+        var act = () => handler.Handle(new CreatePaymentCommand(VoucherDto(PaymentType.VendorPayment, null, vendor.Id, bank.Id)), default);
+
+        await act.Should().ThrowAsync<AppException>().WithMessage("*payable account*");
+        _context.Set<Payment>().Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Void_cancels_the_generated_voucher()
+    {
+        var vendor = SeedVendor();
+        var bank = SeedBankAccount();
+        var created = await new CreatePaymentCommandHandler(_context, _numbering, _jeService, _jeRepository)
+            .Handle(new CreatePaymentCommand(VoucherDto(PaymentType.VendorPayment, null, vendor.Id, bank.Id)), default);
+
+        await new VoidPaymentCommandHandler(_context, _jeService).Handle(new VoidPaymentCommand(created.Id), default);
+
+        _context.Set<Voucher>().Single().Status.Should().Be(VoucherStatus.Cancelled);
+    }
 }

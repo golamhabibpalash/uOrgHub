@@ -24,5 +24,7 @@ public class PaymentConfiguration : IEntityTypeConfiguration<Payment>
          .HasForeignKey(x => x.FiscalYearId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne(x => x.JournalEntry).WithMany()
          .HasForeignKey(x => x.JournalEntryId).OnDelete(DeleteBehavior.SetNull);
+        b.HasOne(x => x.Voucher).WithMany()
+         .HasForeignKey(x => x.VoucherId).OnDelete(DeleteBehavior.SetNull);
     }
 }

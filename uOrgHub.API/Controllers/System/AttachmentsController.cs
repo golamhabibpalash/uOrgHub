@@ -50,7 +50,7 @@ public class AttachmentsController : BaseController
         CancellationToken ct)
     {
         var target = _registry.Resolve(request.EntityType);
-        if (!await HasClaimAsync(target.EditClaim))
+        if (!await HasAnyClaimAsync(target.AllEditClaims))
             return Forbid();
 
         if (file == null || file.Length == 0)
@@ -90,7 +90,7 @@ public class AttachmentsController : BaseController
 
         // Deleting needs edit rights on the parent record — or being the person who uploaded it.
         var isUploader = string.Equals(attachment.UploadedBy, User.FindFirst("username")?.Value, StringComparison.OrdinalIgnoreCase);
-        if (!isUploader && !await HasClaimAsync(_registry.Resolve(attachment.EntityType).EditClaim))
+        if (!isUploader && !await HasAnyClaimAsync(_registry.Resolve(attachment.EntityType).AllEditClaims))
             return Forbid();
 
         await _service.DeleteAsync(id, ct);
@@ -99,4 +99,12 @@ public class AttachmentsController : BaseController
 
     private Task<bool> HasClaimAsync(string claimName)
         => _permissions.HasClaimAsync(GetUserId(), claimName);
+
+    private async Task<bool> HasAnyClaimAsync(IEnumerable<string> claimNames)
+    {
+        foreach (var claim in claimNames)
+            if (await HasClaimAsync(claim))
+                return true;
+        return false;
+    }
 }

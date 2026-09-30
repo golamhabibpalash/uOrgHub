@@ -38,6 +38,16 @@ public static class AttachmentsRegistration
             EntityType = "Bill",
             ViewClaim = Claims.Accounts.Bills.View,
             EditClaim = Claims.Accounts.Bills.Edit,
+            AdditionalEditClaims = [Claims.Accounts.Bills.Create],
+        });
+
+        // Payments have no edit screen — whoever records the payment attaches its receipt.
+        registry.Register(new AttachmentTargetDefinition
+        {
+            EntityType = "Payment",
+            ViewClaim = Claims.Accounts.Payments.View,
+            EditClaim = Claims.Accounts.Payments.Edit,
+            AdditionalEditClaims = [Claims.Accounts.Payments.Create],
         });
 
         // Register further targets here, e.g. invoices, employees, purchase orders.

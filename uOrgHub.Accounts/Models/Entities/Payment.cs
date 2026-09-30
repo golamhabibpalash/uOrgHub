@@ -34,5 +34,13 @@ public class Payment : BaseEntity, ICompanyScoped
     public Guid? JournalEntryId { get; set; }
     public JournalEntry? JournalEntry { get; set; }
 
+    /// <summary>
+    /// The Debit/Credit voucher generated alongside this payment when the user asked for one. It is
+    /// born Posted and shares <see cref="JournalEntryId"/> — it documents the payment's entry rather
+    /// than producing a second one, so the money is never booked twice.
+    /// </summary>
+    public Guid? VoucherId { get; set; }
+    public Voucher? Voucher { get; set; }
+
     public ICollection<PaymentAllocation> Allocations { get; set; } = new List<PaymentAllocation>();
 }

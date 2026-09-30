@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using uOrgHub.Accounts.DTOs.Payment;
 using uOrgHub.Accounts.Features._Common;
+using uOrgHub.Accounts.Features.Voucher;
 using uOrgHub.Accounts.Models.Entities;
 using uOrgHub.Accounts.Models.Enums;
 using uOrgHub.Accounts.Repositories;
@@ -16,7 +17,7 @@ namespace uOrgHub.Accounts.Features.Payment;
 
 public record GetPaymentsQuery(PaginationRequest Request, Guid? CustomerId = null, Guid? VendorId = null) : IQuery<PagedResult<PaymentResponseDto>>;
 public record GetPaymentByIdQuery(Guid Id) : IQuery<PaymentResponseDto>;
-public record CreatePaymentCommand(CreatePaymentDto Dto) : ICommand<PaymentResponseDto>;
+public record CreatePaymentCommand(CreatePaymentDto Dto, string CreatedBy = "system") : ICommand<PaymentResponseDto>;
 public record VoidPaymentCommand(Guid Id) : ICommand<PaymentResponseDto>;
 public record GetAllPaymentsForExportQuery : IQuery<List<PaymentResponseDto>>;
 
@@ -31,6 +32,7 @@ public class GetPaymentsQueryHandler : IRequestHandler<GetPaymentsQuery, PagedRe
             .Include(x => x.Customer)
             .Include(x => x.Vendor)
             .Include(x => x.Allocations)
+            .Include(x => x.Voucher)
             .Where(x => !x.IsDeleted);
 
         if (request.CustomerId.HasValue)
@@ -73,6 +75,7 @@ public class GetPaymentByIdQueryHandler : IRequestHandler<GetPaymentByIdQuery, P
             .Include(x => x.Customer)
             .Include(x => x.Vendor)
             .Include(x => x.Allocations)
+            .Include(x => x.Voucher)
             .Where(x => !x.IsDeleted && x.Id == request.Id)
             .FirstOrDefaultAsync(ct)
             ?? throw new NotFoundException(nameof(Models.Entities.Payment), request.Id);
@@ -108,6 +111,19 @@ public class CreatePaymentCommandHandler : IRequestHandler<CreatePaymentCommand,
         var totalAllocated = request.Dto.Allocations.Sum(a => a.AllocatedAmount);
         if (totalAllocated > request.Dto.Amount)
             throw new AppException("Total allocated amount cannot exceed payment amount.");
+
+        // Check the voucher's prerequisites before anything is written, so ticking "create voucher"
+        // either produces payment + voucher together or fails cleanly with nothing saved.
+        Models.Entities.BankAccount? bankAccount = null;
+        var arApAccountId = Guid.Empty;
+        if (request.Dto.BankAccountId.HasValue)
+        {
+            bankAccount = await _context.Set<Models.Entities.BankAccount>()
+                .FirstOrDefaultAsync(b => b.Id == request.Dto.BankAccountId.Value && !b.IsDeleted, ct);
+            arApAccountId = await ResolveArApAccountIdAsync(request.Dto, ct);
+        }
+        if (request.Dto.CreateVoucher)
+            EnsureVoucherPossible(request.Dto, bankAccount, arApAccountId);
 
         var entity = new Models.Entities.Payment
         {
@@ -170,28 +186,91 @@ public class CreatePaymentCommandHandler : IRequestHandler<CreatePaymentCommand,
         _context.Set<Models.Entities.Payment>().Add(entity);
         await _context.SaveChangesAsync(ct);
 
-        if (request.Dto.BankAccountId.HasValue)
+        if (bankAccount != null && arApAccountId != Guid.Empty)
         {
-            var bankAccount = await _context.Set<Models.Entities.BankAccount>()
-                .FirstOrDefaultAsync(b => b.Id == request.Dto.BankAccountId.Value && !b.IsDeleted, ct);
+            var je = await BuildAndSavePaymentJeAsync(entity, bankAccount.ChartOfAccountId, arApAccountId, ct);
+            await _jeService.PostAsync(je.Id, "System");
+            entity.JournalEntryId = je.Id;
 
-            if (bankAccount != null)
-            {
-                var arApAccountId = await ResolveArApAccountIdAsync(request.Dto, ct);
-                if (arApAccountId != Guid.Empty)
-                {
-                    var je = await BuildAndSavePaymentJeAsync(entity, bankAccount.ChartOfAccountId, arApAccountId, ct);
-                    await _jeService.PostAsync(je.Id, "System");
-                    entity.JournalEntryId = je.Id;
-                    await _context.SaveChangesAsync(ct);
-                }
-            }
+            if (request.Dto.CreateVoucher)
+                entity.Voucher = await BuildPostedVoucherAsync(entity, je, request.CreatedBy, ct);
+
+            await _context.SaveChangesAsync(ct);
         }
 
         await _context.Entry(entity).Reference(x => x.Customer).LoadAsync(ct);
         await _context.Entry(entity).Reference(x => x.Vendor).LoadAsync(ct);
         return PaymentMappingHelper.ToDto(entity);
     }
+
+    private static void EnsureVoucherPossible(CreatePaymentDto dto, Models.Entities.BankAccount? bankAccount, Guid arApAccountId)
+    {
+        if (!dto.CustomerId.HasValue && !dto.VendorId.HasValue)
+            throw new AppException("A voucher can only be created for a payment to a vendor or from a customer.");
+
+        if (bankAccount is null)
+            throw new AppException("Select the bank/cash account the money moved through to create a voucher.");
+
+        if (arApAccountId == Guid.Empty)
+            throw new AppException(dto.CustomerId.HasValue
+                ? "The customer has no receivable account set, so no voucher can be created. Set one on the customer first."
+                : "The vendor has no payable account set, so no voucher can be created. Set one on the vendor first.");
+    }
+
+    /// <summary>
+    /// A voucher documenting the payment's already-posted journal entry. It skips the
+    /// submit/approve/post workflow on purpose: running it would generate a second entry and book
+    /// the payment twice. Money out becomes a Debit voucher, money in a Credit voucher — the same
+    /// split <see cref="BuildAndSavePaymentJeAsync"/> uses.
+    /// </summary>
+    private async Task<Models.Entities.Voucher> BuildPostedVoucherAsync(
+        Models.Entities.Payment payment, Models.Entities.JournalEntry je, string user, CancellationToken ct)
+    {
+        var debitLine = je.Lines.First(l => l.DebitAmount > 0);
+        var creditLine = je.Lines.First(l => l.CreditAmount > 0);
+        var voucherType = IsInflow(payment) ? VoucherType.Credit : VoucherType.Debit;
+
+        var voucherNumber = await _numbering.GenerateNextAsync("Voucher", VoucherAccountRules.NumberPrefix(voucherType));
+
+        var partyName = payment.CustomerId.HasValue
+            ? (await _context.Set<Models.Entities.Customer>().FindAsync(new object[] { payment.CustomerId.Value }, ct))?.Name
+            : (await _context.Set<Vendor>().FindAsync(new object[] { payment.VendorId!.Value }, ct))?.Name;
+
+        var now = DateTime.UtcNow;
+        var voucher = new Models.Entities.Voucher
+        {
+            VoucherNumber = voucherNumber,
+            VoucherType = voucherType,
+            VoucherDate = payment.PaymentDate,
+            ReferenceNumber = payment.PaymentNumber,
+            FiscalYearId = payment.FiscalYearId,
+            Name = partyName,
+            Description = voucherType == VoucherType.Credit
+                ? $"Received from {partyName} against payment {payment.PaymentNumber}"
+                : $"Paid to {partyName} against payment {payment.PaymentNumber}",
+            DebitAccountId = debitLine.AccountId,
+            CreditAccountId = creditLine.AccountId,
+            Amount = payment.Amount,
+            Status = VoucherStatus.Posted,
+            JournalEntryId = je.Id,
+            PreparedBy = user,
+            SubmittedBy = user,
+            SubmittedAt = now,
+            ApprovedBy = user,
+            ApprovedAt = now,
+            PostedBy = user,
+            PostedAt = now,
+            CreatedBy = user,
+            CreatedAt = now
+        };
+        _context.Set<Models.Entities.Voucher>().Add(voucher);
+        return voucher;
+    }
+
+    // Inflow: CustomerPayment, AdvanceFromCustomer, or a vendor-side Refund (vendor refunds us)
+    private static bool IsInflow(Models.Entities.Payment payment)
+        => payment.PaymentType is PaymentType.CustomerPayment or PaymentType.AdvanceFromCustomer
+            || (payment.PaymentType == PaymentType.Refund && payment.VendorId.HasValue);
 
     private async Task<Guid> ResolveArApAccountIdAsync(CreatePaymentDto dto, CancellationToken ct)
     {
@@ -212,9 +291,7 @@ public class CreatePaymentCommandHandler : IRequestHandler<CreatePaymentCommand,
     {
         var entryNumber = await _jeRepository.GenerateEntryNumberAsync();
 
-        // Inflow: CustomerPayment, AdvanceFromCustomer, or a vendor-side Refund (vendor refunds us)
-        var isInflow = payment.PaymentType is PaymentType.CustomerPayment or PaymentType.AdvanceFromCustomer
-            || (payment.PaymentType == PaymentType.Refund && payment.VendorId.HasValue);
+        var isInflow = IsInflow(payment);
 
         var je = new Models.Entities.JournalEntry
         {
@@ -264,6 +341,7 @@ public class VoidPaymentCommandHandler : IRequestHandler<VoidPaymentCommand, Pay
             .Include(x => x.Customer)
             .Include(x => x.Vendor)
             .Include(x => x.Allocations)
+            .Include(x => x.Voucher)
             .Where(x => !x.IsDeleted && x.Id == request.Id)
             .FirstOrDefaultAsync(ct)
             ?? throw new NotFoundException(nameof(Models.Entities.Payment), request.Id);
@@ -297,6 +375,13 @@ public class VoidPaymentCommandHandler : IRequestHandler<VoidPaymentCommand, Pay
         if (entity.JournalEntryId.HasValue)
             await _jeService.CancelAsync(entity.JournalEntryId.Value);
 
+        // The generated voucher documents the entry just cancelled, so it goes with it.
+        if (entity.Voucher is { Status: not VoucherStatus.Cancelled } voucher)
+        {
+            voucher.Status = VoucherStatus.Cancelled;
+            voucher.UpdatedAt = DateTime.UtcNow;
+        }
+
         entity.IsDeleted = true;
         entity.DeletedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(ct);
@@ -315,6 +400,7 @@ public class GetAllPaymentsForExportQueryHandler : IRequestHandler<GetAllPayment
             .Include(x => x.Customer)
             .Include(x => x.Vendor)
             .Include(x => x.Allocations)
+            .Include(x => x.Voucher)
             .Where(x => !x.IsDeleted)
             .OrderByDescending(x => x.PaymentDate)
             .ToListAsync(ct);
@@ -342,6 +428,8 @@ file static class PaymentMappingHelper
         BankAccountId = e.BankAccountId,
         FiscalYearId = e.FiscalYearId,
         JournalEntryId = e.JournalEntryId,
+        VoucherId = e.VoucherId,
+        VoucherNumber = e.Voucher?.VoucherNumber,
         Allocations = e.Allocations.Where(a => !a.IsDeleted).Select(a => new PaymentAllocationResponseDto
         {
             Id = a.Id,

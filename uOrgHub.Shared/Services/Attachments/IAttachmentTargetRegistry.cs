@@ -15,6 +15,14 @@ public class AttachmentTargetDefinition
 
     /// <summary>Claim needed to upload or delete attachments of this type.</summary>
     public required string EditClaim { get; init; }
+
+    /// <summary>
+    /// Further claims that also allow upload/delete — typically the record's Create claim, so the
+    /// person entering a record can attach its paperwork in the same step without Edit rights.
+    /// </summary>
+    public IReadOnlyList<string> AdditionalEditClaims { get; init; } = [];
+
+    public IEnumerable<string> AllEditClaims => AdditionalEditClaims.Prepend(EditClaim);
 }
 
 /// <summary>

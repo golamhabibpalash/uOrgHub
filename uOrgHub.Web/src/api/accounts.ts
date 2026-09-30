@@ -683,7 +683,16 @@ export interface Payment {
   bankAccountId?: string;
   fiscalYearId: string;
   journalEntryId?: string;
+  /** Posted Debit/Credit voucher generated with the payment, when one was requested. */
+  voucherId?: string;
+  voucherNumber?: string;
   allocations: PaymentAllocation[];
+}
+
+export interface CreatePaymentPayload extends Omit<Partial<Payment>, "allocations"> {
+  /** Also generate a posted voucher documenting the payment's journal entry. */
+  createVoucher?: boolean;
+  allocations: { invoiceId?: string; billId?: string; allocatedAmount: number }[];
 }
 
 export const getPayments = (params: PaginationRequest, customerId?: string, vendorId?: string) =>
@@ -692,7 +701,7 @@ export const getPayments = (params: PaginationRequest, customerId?: string, vend
 export const getPaymentById = (id: string) =>
   apiClient.get<ApiResponse<Payment>>(`/accounts/payments/${id}`);
 
-export const createPayment = (data: Partial<Payment>) =>
+export const createPayment = (data: CreatePaymentPayload) =>
   apiClient.post<ApiResponse<Payment>>("/accounts/payments", data);
 
 // ── Budgets ────────────────────────────────────────────────────────────────

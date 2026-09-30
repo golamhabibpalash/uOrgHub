@@ -86,7 +86,8 @@ function formErrors(form: BillForm, isEdit: boolean): string[] {
 export default function Bills() {
   const qc = useQueryClient();
   const { hasClaim, hasRole } = useAuthStore();
-  const canEditAttachments = hasRole("Admin") || hasClaim("Accounts.Bills.Edit");
+  // Mirrors the "Bill" attachment target: Edit, or Create so the person entering a bill can attach it.
+  const canEditAttachments = hasRole("Admin") || hasClaim("Accounts.Bills.Edit") || hasClaim("Accounts.Bills.Create");
 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
@@ -178,7 +179,7 @@ export default function Bills() {
     onSuccess: ({ bill, uploaded }) => {
       qc.invalidateQueries({ queryKey: ["bills"] });
       if (bill?.id && uploaded > 0) qc.invalidateQueries({ queryKey: ["attachments", ATTACHMENT_ENTITY, bill.id] });
-      closeModal();
+      closeModal(true);
     },
     onError: onSaveError("Failed to save bill."),
   });
@@ -196,7 +197,7 @@ export default function Bills() {
       };
       return updateBill(editingId, payload as unknown as Parameters<typeof updateBill>[1]);
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["bills"] }); closeModal(); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["bills"] }); closeModal(true); },
     onError: onSaveError("Failed to update bill."),
   });
 
@@ -260,8 +261,8 @@ export default function Bills() {
     }
   }
 
-  function closeModal() {
-    if (saving) return;
+  function closeModal(force = false) {
+    if (saving && !force) return;
     setModal(false);
     setSaveError("");
     setEditingId(null);
@@ -409,7 +410,7 @@ export default function Bills() {
         <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
       </div>
 
-      <Modal title={editingId ? "Edit Bill" : "New Bill"} open={modal} onClose={closeModal} size="5xl">
+      <Modal title={editingId ? "Edit Bill" : "New Bill"} open={modal} onClose={() => closeModal()} size="5xl">
         <div className="space-y-5">
           {(saveError || validationErrors.length > 0) && (
             <div className="flex gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
@@ -535,7 +536,7 @@ export default function Bills() {
           </section>
 
           <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
-            <button onClick={closeModal} disabled={saving} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50">Cancel</button>
+            <button onClick={() => closeModal()} disabled={saving} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50">Cancel</button>
             <button onClick={submit} disabled={saving} className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">
               {saving
                 ? (pendingFiles.length > 0 && !editingId ? "Saving & uploading..." : "Saving...")

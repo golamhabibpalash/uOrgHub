@@ -58,7 +58,7 @@ public class PaymentsController : BaseController
     [RequireClaim(Claims.Accounts.Payments.Create)]
     public async Task<IActionResult> Create([FromBody] CreatePaymentDto dto)
     {
-        var result = await _mediator.Send(new CreatePaymentCommand(dto));
+        var result = await _mediator.Send(new CreatePaymentCommand(dto, GetUserName()));
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, ApiResponse<PaymentResponseDto>.Ok(result, "Payment recorded successfully."));
     }
 

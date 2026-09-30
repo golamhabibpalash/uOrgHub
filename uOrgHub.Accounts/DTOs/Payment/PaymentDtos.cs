@@ -16,6 +16,14 @@ public class CreatePaymentDto
     public Guid? VendorId { get; set; }
     public Guid? BankAccountId { get; set; }
     public Guid FiscalYearId { get; set; }
+
+    /// <summary>
+    /// Also generate a posted Debit (money out) or Credit (money in) voucher for this payment.
+    /// Requires a bank account and a party with a payable/receivable account, since the voucher
+    /// documents the payment's journal entry.
+    /// </summary>
+    public bool CreateVoucher { get; set; }
+
     public List<CreatePaymentAllocationDto> Allocations { get; set; } = new();
 }
 
@@ -44,6 +52,8 @@ public class PaymentResponseDto
     public Guid? BankAccountId { get; set; }
     public Guid FiscalYearId { get; set; }
     public Guid? JournalEntryId { get; set; }
+    public Guid? VoucherId { get; set; }
+    public string? VoucherNumber { get; set; }
     public List<PaymentAllocationResponseDto> Allocations { get; set; } = new();
 }
 
