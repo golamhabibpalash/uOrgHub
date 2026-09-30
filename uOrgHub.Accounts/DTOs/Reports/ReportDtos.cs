@@ -173,11 +173,13 @@ public record DashboardSummaryDto(
 );
 
 /// <summary>
-/// Narrows an aging report. The date range is on the document date (bill/invoice date); it does not
-/// change how aging is measured, which is always against <see cref="AsOfDate"/>.
+/// Narrows an aging report by document date (bill/invoice date) and search. Aging is measured as of
+/// the end of the range: <see cref="AsOfDate"/> when given, otherwise <see cref="DateTo"/>,
+/// otherwise today — see <see cref="EffectiveAsOf"/>.
 /// </summary>
 public class AgingFilterDto
 {
+    /// <summary>Kept for existing callers; the AP aging page now sends only the range.</summary>
     public DateTime? AsOfDate { get; set; }
     public DateTime? DateFrom { get; set; }
     public DateTime? DateTo { get; set; }
@@ -186,6 +188,8 @@ public class AgingFilterDto
     public string? Search { get; set; }
 
     public bool HasNarrowing => DateFrom.HasValue || DateTo.HasValue || !string.IsNullOrWhiteSpace(Search);
+
+    public DateTime EffectiveAsOf => (AsOfDate ?? DateTo ?? DateTime.UtcNow).Date;
 }
 
 public record AgingRowDto(

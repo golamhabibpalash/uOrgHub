@@ -15,10 +15,11 @@ export default function APAgingPage() {
   // Filters live in the URL, like the other report pages, so a narrowed report survives a reload
   // and can be shared as a link.
   const [params, setParams] = useSearchParams();
-  const asOfDate = params.get("asOf") || today;
   const dateFrom = params.get("from") ?? "";
   const dateTo = params.get("to") ?? "";
   const search = params.get("search") ?? "";
+  // The end of the range is also the date bills are aged against; an open range ages as of today.
+  const asOfDate = dateTo || today;
 
   const setParam = (key: string, value: string) => {
     const next = new URLSearchParams(params);
@@ -37,7 +38,6 @@ export default function APAgingPage() {
   }, [searchInput]);
 
   const filter: AgingFilter = {
-    asOfDate,
     dateFrom: dateFrom || undefined,
     dateTo: dateTo || undefined,
     search: search || undefined,
@@ -47,7 +47,6 @@ export default function APAgingPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["report-ap-aging", filter],
     queryFn: () => getAPAging(filter),
-    enabled: !!asOfDate,
     placeholderData: keepPreviousData,
   });
 
@@ -75,15 +74,11 @@ export default function APAgingPage() {
   return (
     <ReportLayout
       title="Accounts Payable Aging"
-      subtitle={`Outstanding bills as of ${asOfDate}${
-        dateFrom || dateTo ? ` · dated ${dateFrom || "…"} to ${dateTo || "…"}` : ""
-      }${search ? ` · matching "${search}"` : ""}`}
+      subtitle={`Outstanding bills as of ${asOfDate}${dateFrom ? ` · dated from ${dateFrom}` : ""}${
+        search ? ` · matching "${search}"` : ""
+      }`}
       filters={
         <div className="flex flex-wrap items-end gap-3">
-          <div>
-            <label className="text-xs text-gray-500 mb-1 block">As of Date</label>
-            <DateInput className={inputClass} value={asOfDate} onChange={(e) => setParam("asOf", e.target.value)} />
-          </div>
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Bill Date From</label>
             <DateInput className={inputClass} value={dateFrom} onChange={(e) => setParam("from", e.target.value)} />
@@ -91,6 +86,7 @@ export default function APAgingPage() {
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Bill Date To</label>
             <DateInput className={inputClass} value={dateTo} onChange={(e) => setParam("to", e.target.value)} />
+            <p className="text-[11px] text-gray-400 mt-1">Aged as of this date (today if empty)</p>
           </div>
           <div className="flex-1 min-w-[220px] max-w-sm">
             <label className="text-xs text-gray-500 mb-1 block">Search</label>

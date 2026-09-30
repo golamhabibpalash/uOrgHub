@@ -641,8 +641,10 @@ public class AccountingReportService : IAccountingReportService
 
         if (filter?.DateFrom is { } from)
             query = query.Where(b => b.BillDate >= from.Date);
-        if (filter?.DateTo is { } to)
-            query = query.Where(b => b.BillDate < to.Date.AddDays(1)); // whole "to" day, whatever the time part
+        // A bill that did not exist yet on the as-of date cannot be outstanding on it. The range's
+        // "to" and the as-of date are normally the same day; the earlier of the two wins.
+        var upTo = filter?.DateTo is { } to && to.Date < asOfDate.Date ? to.Date : asOfDate.Date;
+        query = query.Where(b => b.BillDate < upTo.AddDays(1)); // whole last day, whatever the time part
 
         query = query.WhereSearch(filter?.Search,
             b => b.Vendor.Name,

@@ -38,7 +38,7 @@ public class APAgingReportTests
     private static async Task<List<string>> Numbers(AgingFilterDto? filter)
     {
         using var ctx = Seed();
-        var report = await new AccountingReportService(ctx).GetAPAgingReportAsync(AsOf, filter);
+        var report = await new AccountingReportService(ctx).GetAPAgingReportAsync(filter?.EffectiveAsOf ?? AsOf, filter);
         return report.Rows.Select(r => r.DocumentNumber).OrderBy(n => n).ToList();
     }
 
@@ -56,6 +56,29 @@ public class APAgingReportTests
     {
         (await Numbers(new AgingFilterDto { DateFrom = new DateTime(2026, 9, 1) })).Should().Equal("BILL-004");
         (await Numbers(new AgingFilterDto { DateTo = new DateTime(2026, 7, 1) })).Should().Equal("BILL-001");
+    }
+
+    [Fact]
+    public async Task Date_to_is_also_the_aging_date()
+    {
+        using var ctx = Seed();
+        var filter = new AgingFilterDto { DateTo = new DateTime(2026, 8, 31) };
+
+        var report = await new AccountingReportService(ctx).GetAPAgingReportAsync(filter.EffectiveAsOf, filter);
+
+        // BILL-001 (10 Jun, due 10 Jul) is 52 days overdue on 31 Aug, not 82 as it would be today.
+        report.Rows.Single(r => r.DocumentNumber == "BILL-001").DaysOverdue.Should().Be(52);
+        report.Rows.Should().NotContain(r => r.DocumentNumber == "BILL-004", "it is dated after 31 Aug");
+    }
+
+    [Fact]
+    public async Task Bills_dated_after_the_as_of_date_are_never_included()
+    {
+        using var ctx = Seed();
+
+        var report = await new AccountingReportService(ctx).GetAPAgingReportAsync(new DateTime(2026, 8, 6));
+
+        report.Rows.Select(r => r.DocumentNumber).Should().BeEquivalentTo("BILL-001", "BILL-002");
     }
 
     [Theory]

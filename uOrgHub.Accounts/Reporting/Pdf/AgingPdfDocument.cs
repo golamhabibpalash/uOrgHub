@@ -59,12 +59,8 @@ internal static class AgingPdfDocument
     private static string Subtitle(DateTime asOfDate, AgingFilterDto? filter)
     {
         var parts = new List<string> { $"As of {PdfFormat.Date(asOfDate)}" };
-        if (filter?.DateFrom is { } from && filter.DateTo is { } to)
-            parts.Add($"Dated {PdfFormat.Date(from)} – {PdfFormat.Date(to)}");
-        else if (filter?.DateFrom is { } onlyFrom)
-            parts.Add($"Dated from {PdfFormat.Date(onlyFrom)}");
-        else if (filter?.DateTo is { } onlyTo)
-            parts.Add($"Dated up to {PdfFormat.Date(onlyTo)}");
+        if (filter?.DateFrom is { } from)
+            parts.Add($"Bills dated from {PdfFormat.Date(from)}");
         if (!string.IsNullOrWhiteSpace(filter?.Search))
             parts.Add($"Matching \"{filter.Search.Trim()}\"");
         return string.Join(" · ", parts);

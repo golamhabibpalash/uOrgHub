@@ -256,7 +256,7 @@ public class AccountingReportsController : BaseController
     [RequireClaim(Claims.Accounts.Reports.View)]
     public async Task<IActionResult> GetAPAging([FromQuery] AgingFilterDto filter)
     {
-        var result = await _reportService.GetAPAgingReportAsync(filter.AsOfDate ?? DateTime.UtcNow, filter);
+        var result = await _reportService.GetAPAgingReportAsync(filter.EffectiveAsOf, filter);
         return Ok(ApiResponse<AgingSummaryDto>.Ok(result));
     }
 
@@ -264,7 +264,7 @@ public class AccountingReportsController : BaseController
     [RequireClaim(Claims.Accounts.Reports.Print)]
     public async Task<IActionResult> GetAPAgingPdf([FromQuery] AgingFilterDto filter)
     {
-        var effectiveDate = filter.AsOfDate ?? DateTime.UtcNow;
+        var effectiveDate = filter.EffectiveAsOf;
         var result = await _reportService.GetAPAgingReportAsync(effectiveDate, filter);
         var bytes = APAgingPdfDocument.Build(result, effectiveDate, filter);
         return File(bytes, "application/pdf", PdfFileName("APAging"));

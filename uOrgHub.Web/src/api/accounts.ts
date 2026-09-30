@@ -1324,9 +1324,8 @@ export interface AgingSummary {
 export const getARAging = (asOfDate?: string) =>
   apiClient.get<ApiResponse<AgingSummary>>("/accounts/reports/ar-aging", { params: { asOfDate } });
 
-/** dateFrom/dateTo narrow by bill date; aging itself is always measured against asOfDate. */
+/** Narrows by bill date; bills are aged as of dateTo (today when omitted). */
 export interface AgingFilter {
-  asOfDate?: string;
   dateFrom?: string;
   dateTo?: string;
   /** Vendor name, bill number or the vendor's own bill number. */
