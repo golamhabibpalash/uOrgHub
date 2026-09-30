@@ -147,7 +147,7 @@ public class AuthService : IAuthService
         // Carry the session's active company forward rather than resetting to the user's default
         // — otherwise a mid-session company switch (SwitchCompanyAsync) would silently revert the
         // next time the access token expires and this fires.
-        var accessToken = _jwt.GenerateAccessToken(user, roles, claims, stored.CompanyId);
+        var accessToken = _jwt.GenerateAccessToken(user, roles, stored.CompanyId);
         var newRefresh = _jwt.GenerateRefreshToken(user.Id, ipAddress, stored.CompanyId);
         newRefresh.ReplacedByToken = stored.Token;
         await _tokens.AddRefreshTokenAsync(newRefresh);
@@ -170,7 +170,7 @@ public class AuthService : IAuthService
         // or is next used to refresh (at which point it reissues itself with its own stale
         // company, not this one); that's an accepted rough edge rather than a security hole, since
         // it can only ever re-scope the session back to a company the same user already belongs to.
-        var accessToken = _jwt.GenerateAccessToken(user, roles, claims, companyId);
+        var accessToken = _jwt.GenerateAccessToken(user, roles, companyId);
         var refreshToken = _jwt.GenerateRefreshToken(userId, ipAddress, companyId);
         await _tokens.AddRefreshTokenAsync(refreshToken);
 
@@ -294,7 +294,7 @@ public class AuthService : IAuthService
         var claims = (await _users.GetUserClaimsAsync(user.Id)).Where(c => c.IsGranted).Select(c => c.Name).ToList();
         var companyId = await _users.GetDefaultCompanyIdAsync(user.Id);
 
-        var accessToken = _jwt.GenerateAccessToken(userWithDetails, roles, claims, companyId);
+        var accessToken = _jwt.GenerateAccessToken(userWithDetails, roles, companyId);
         var refreshToken = _jwt.GenerateRefreshToken(user.Id, ipAddress, companyId);
         await _tokens.AddRefreshTokenAsync(refreshToken);
 

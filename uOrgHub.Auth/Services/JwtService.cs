@@ -14,7 +14,7 @@ public class JwtService : IJwtService
 
     public JwtService(IConfiguration config) => _config = config;
 
-    public string GenerateAccessToken(ApplicationUser user, List<string> roles, List<string> claims, Guid? companyId = null)
+    public string GenerateAccessToken(ApplicationUser user, List<string> roles, Guid? companyId = null)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["JwtSettings:SecretKey"]!));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -31,7 +31,6 @@ public class JwtService : IJwtService
         };
 
         tokenClaims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
-        tokenClaims.AddRange(claims.Select(c => new Claim("permission", c)));
 
         // The active sister concern (SISTER_CONCERN_PLAN.md) — AppDbContext's global query filter
         // and AuditInterceptor both read this claim by name. Absent for a user with no company
