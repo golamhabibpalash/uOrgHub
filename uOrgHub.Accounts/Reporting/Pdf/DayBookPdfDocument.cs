@@ -13,7 +13,7 @@ public static class DayBookPdfDocument
             new("Entry #", r => r.EntryNumber, 1.2f),
             new("Type", r => r.Type, 0.7f),
             new("Reference", r => r.ReferenceNumber ?? "", 1.2f),
-            new("Description", r => r.Description, 2.3f),
+            new("Description", r => r.Reversal is null ? r.Description : $"[{r.Reversal} – not in totals] {r.Description}", 2.3f),
             new("Debit", r => PdfFormat.Amount(r.DebitTotal), 1.2f, true),
             new("Credit", r => PdfFormat.Amount(r.CreditTotal), 1.2f, true),
             new("Status", r => r.Status, 1),

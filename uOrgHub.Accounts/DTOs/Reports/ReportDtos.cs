@@ -119,7 +119,13 @@ public record DayBookRowDto(
     string Type,
     decimal DebitTotal,
     decimal CreditTotal,
-    string CreatedBy
+    string CreatedBy,
+    /// <summary>
+    /// "Reversed" for the original entry of a voucher undone by "Correct this voucher", "Reversal" for
+    /// the mirror entry that undid it, otherwise null. Both stay listed for audit but are left out of
+    /// the totals — together they moved nothing, and counting either inflates the day's figures.
+    /// </summary>
+    string? Reversal = null
 );
 
 public record DayBookReportDto(

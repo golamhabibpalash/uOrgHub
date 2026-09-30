@@ -449,6 +449,19 @@ public class AccountingReportService : IAccountingReportService
             .GroupBy(v => v.EntryId)
             .ToDictionary(g => g.Key, g => g.First().VoucherType);
 
+        var reversedOriginals = await _db.Set<Voucher>()
+            .Where(v => !v.IsDeleted && v.Status == VoucherStatus.Reversed
+                && v.JournalEntryId != null && entryIds.Contains(v.JournalEntryId.Value))
+            .Select(v => v.JournalEntryId!.Value)
+            .ToListAsync();
+        var reversalEntries = await _db.Set<Voucher>()
+            .Where(v => !v.IsDeleted && v.Status == VoucherStatus.Reversed
+                && v.ReversalJournalEntryId != null && entryIds.Contains(v.ReversalJournalEntryId.Value))
+            .Select(v => v.ReversalJournalEntryId!.Value)
+            .ToListAsync();
+        string? ReversalRole(Guid entryId) =>
+            reversedOriginals.Contains(entryId) ? "Reversed" : reversalEntries.Contains(entryId) ? "Reversal" : null;
+
         var items = rows.Select(j => new DayBookRowDto(
             j.Id,
             j.EntryDate,
@@ -466,12 +479,16 @@ public class AccountingReportService : IAccountingReportService
                 : "JV",
             j.TotalDebit,
             j.TotalCredit,
-            j.CreatedBy
+            j.CreatedBy,
+            ReversalRole(j.Id)
         )).ToList();
 
         // Grand totals cover every filtered entry, not just the page, so the footer stays correct
         // as the user pages through the register. Resolved in a single aggregate over the query.
+        // A reversed voucher's own entry and its reversal cancel each other out, so neither counts.
         var totals = await query
+            .Where(j => !_db.Set<Voucher>().Any(v => !v.IsDeleted && v.Status == VoucherStatus.Reversed
+                && (v.JournalEntryId == j.Id || v.ReversalJournalEntryId == j.Id)))
             .GroupBy(j => 1)
             .Select(g => new { Debit = g.Sum(j => j.TotalDebit), Credit = g.Sum(j => j.TotalCredit) })
             .FirstOrDefaultAsync();

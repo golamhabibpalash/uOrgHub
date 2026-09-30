@@ -159,6 +159,14 @@ export default function DayBookPage() {
         <div className="flex flex-col gap-1">
           <span className="font-mono text-gray-600 tabular-nums whitespace-nowrap">{row.entryNumber}</span>
           <span className="text-[11px] text-gray-400">{dateFmt(row.entryDate)}</span>
+          {row.reversal && (
+            <span
+              className="w-fit text-[10px] px-1.5 py-0.5 rounded bg-orange-50 text-orange-700"
+              title="Undone by “Correct this voucher” — listed for audit, not counted in totals"
+            >
+              {row.reversal}
+            </span>
+          )}
         </div>
       ),
     },
@@ -192,14 +200,16 @@ export default function DayBookPage() {
       label: "Debit",
       className: "text-right tabular-nums",
       headerClassName: "text-right",
-      render: (row) => (row.debitTotal > 0 ? fmt(row.debitTotal) : "—"),
+      render: (row) =>
+        row.debitTotal > 0 ? <span className={row.reversal ? "line-through text-gray-400" : ""}>{fmt(row.debitTotal)}</span> : "—",
     },
     {
       key: "creditTotal",
       label: "Credit",
       className: "text-right tabular-nums",
       headerClassName: "text-right",
-      render: (row) => (row.creditTotal > 0 ? fmt(row.creditTotal) : "—"),
+      render: (row) =>
+        row.creditTotal > 0 ? <span className={row.reversal ? "line-through text-gray-400" : ""}>{fmt(row.creditTotal)}</span> : "—",
     },
     {
       key: "status",
@@ -330,7 +340,7 @@ export default function DayBookPage() {
         }
       />
       {totalCount > 0 && (
-        <div className="mt-3 flex justify-end">
+        <div className="mt-3 flex flex-col items-end gap-1">
           <div className="flex items-center gap-8 bg-gray-50 border border-gray-200 rounded-lg px-5 py-2.5">
             <div className="flex items-baseline gap-2">
               <span className="text-xs text-gray-500">Total Debit</span>
@@ -341,6 +351,9 @@ export default function DayBookPage() {
               <span className="text-sm font-semibold tabular-nums text-gray-900">{fmt(report?.totalCredit ?? 0)}</span>
             </div>
           </div>
+          <p className="text-[11px] text-gray-400">
+            Reversed vouchers and their reversal entries are listed but not included in the totals.
+          </p>
         </div>
       )}
     </ReportLayout>

@@ -1195,6 +1195,8 @@ export interface DayBookRow {
   debitTotal: number;
   creditTotal: number;
   createdBy: string;
+  /** Entry of a voucher undone by "Correct this voucher" (or the reversal itself) — listed, not totalled. */
+  reversal?: "Reversed" | "Reversal" | null;
 }
 
 export interface ChartOfAccountsReportRow {

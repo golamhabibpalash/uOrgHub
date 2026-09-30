@@ -389,4 +389,29 @@ public class ReceiptsPaymentsReportTests
         dayBook.Rows.Items.Select(r => r.EntryNumber).Should().BeEquivalentTo("DR-1", "JV-REV-DR-1");
         dayBook.Rows.Items.Should().OnlyContain(r => r.Type == "DR");
     }
+
+    [Fact]
+    public async Task Day_book_totals_leave_out_a_reversed_voucher_and_its_reversal_but_still_list_them()
+    {
+        using var ctx = NewContext();
+        SeedAccounts(ctx);
+        // 22 Sep: other activity 1,000, the mistaken 500, and its 560 correction; reversal dated 30 Sep.
+        SeedVoucherEntry(ctx, "DR-OTHER", new DateTime(2026, 9, 22), VoucherType.Debit, ConveyanceId, BankId, 1000m, SiteAId);
+        SeedVoucherEntry(ctx, "DR-000671", new DateTime(2026, 9, 22), VoucherType.Debit, ConveyanceId, CashId, 500m, SiteAId);
+        SeedReversal(ctx, "DR-000671", new DateTime(2026, 9, 30));
+        SeedVoucherEntry(ctx, "DR-000900", new DateTime(2026, 9, 22), VoucherType.Debit, ConveyanceId, CashId, 560m, SiteAId);
+        var service = new AccountingReportService(ctx);
+        var page = new uOrgHub.Shared.Models.PaginationRequest { Page = 1, PageSize = 50 };
+
+        var sep22 = await service.GetDayBookAsync(new DayBookFilterDto(new DateTime(2026, 9, 22), new DateTime(2026, 9, 22, 23, 59, 59), null), page);
+        var sep30 = await service.GetDayBookAsync(new DayBookFilterDto(new DateTime(2026, 9, 30), new DateTime(2026, 9, 30, 23, 59, 59), null), page);
+
+        sep22.TotalDebit.Should().Be(1560m, "1,000 + the 560 correction; the reversed 500 no longer counts");
+        sep22.Rows.Items.Should().HaveCount(3, "the reversed voucher stays listed for audit");
+        sep22.Rows.Items.Single(r => r.EntryNumber == "DR-000671").Reversal.Should().Be("Reversed");
+        sep22.Rows.Items.Where(r => r.EntryNumber != "DR-000671").Should().OnlyContain(r => r.Reversal == null);
+
+        sep30.TotalDebit.Should().Be(0m, "the reversal entry is not new activity");
+        sep30.Rows.Items.Single().Reversal.Should().Be("Reversal");
+    }
 }
