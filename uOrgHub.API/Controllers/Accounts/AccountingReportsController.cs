@@ -254,19 +254,19 @@ public class AccountingReportsController : BaseController
 
     [HttpGet("ap-aging")]
     [RequireClaim(Claims.Accounts.Reports.View)]
-    public async Task<IActionResult> GetAPAging([FromQuery] DateTime? asOfDate)
+    public async Task<IActionResult> GetAPAging([FromQuery] AgingFilterDto filter)
     {
-        var result = await _reportService.GetAPAgingReportAsync(asOfDate ?? DateTime.UtcNow);
+        var result = await _reportService.GetAPAgingReportAsync(filter.AsOfDate ?? DateTime.UtcNow, filter);
         return Ok(ApiResponse<AgingSummaryDto>.Ok(result));
     }
 
     [HttpGet("ap-aging/pdf")]
     [RequireClaim(Claims.Accounts.Reports.Print)]
-    public async Task<IActionResult> GetAPAgingPdf([FromQuery] DateTime? asOfDate)
+    public async Task<IActionResult> GetAPAgingPdf([FromQuery] AgingFilterDto filter)
     {
-        var effectiveDate = asOfDate ?? DateTime.UtcNow;
-        var result = await _reportService.GetAPAgingReportAsync(effectiveDate);
-        var bytes = APAgingPdfDocument.Build(result, effectiveDate);
+        var effectiveDate = filter.AsOfDate ?? DateTime.UtcNow;
+        var result = await _reportService.GetAPAgingReportAsync(effectiveDate, filter);
+        var bytes = APAgingPdfDocument.Build(result, effectiveDate, filter);
         return File(bytes, "application/pdf", PdfFileName("APAging"));
     }
 

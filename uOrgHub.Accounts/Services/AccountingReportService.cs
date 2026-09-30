@@ -632,13 +632,24 @@ public class AccountingReportService : IAccountingReportService
         return BuildAgingSummary(rows);
     }
 
-    public async Task<AgingSummaryDto> GetAPAgingReportAsync(DateTime asOfDate)
+    public async Task<AgingSummaryDto> GetAPAgingReportAsync(DateTime asOfDate, AgingFilterDto? filter = null)
     {
-        var bills = await _db.Set<Bill>()
+        var query = _db.Set<Bill>()
             .Include(b => b.Vendor)
             .Where(b => !b.IsDeleted)
-            .Where(b => b.Status != BillStatus.Paid && b.Status != BillStatus.Cancelled && b.Status != BillStatus.Void)
-            .ToListAsync();
+            .Where(b => b.Status != BillStatus.Paid && b.Status != BillStatus.Cancelled && b.Status != BillStatus.Void);
+
+        if (filter?.DateFrom is { } from)
+            query = query.Where(b => b.BillDate >= from.Date);
+        if (filter?.DateTo is { } to)
+            query = query.Where(b => b.BillDate < to.Date.AddDays(1)); // whole "to" day, whatever the time part
+
+        query = query.WhereSearch(filter?.Search,
+            b => b.Vendor.Name,
+            b => b.BillNumber,
+            b => b.VendorBillNumber!);
+
+        var bills = await query.ToListAsync();
 
         var rows = bills.Select(b =>
         {

@@ -1,19 +1,62 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { getAPAging, reportPdfUrls } from "../../../api/accounts";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { Search } from "lucide-react";
+import { getAPAging, reportPdfUrls, type AgingFilter } from "../../../api/accounts";
 import ReportLayout from "../../../components/shared/ReportLayout";
 import DateInput from "../../../components/shared/DateInput";
 import { useReportPdf } from "../../../hooks/useReportPdf";
 
+const inputClass = "border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500";
+
 export default function APAgingPage() {
   const today = new Date().toISOString().split("T")[0];
-  const [asOfDate, setAsOfDate] = useState(today);
+
+  // Filters live in the URL, like the other report pages, so a narrowed report survives a reload
+  // and can be shared as a link.
+  const [params, setParams] = useSearchParams();
+  const asOfDate = params.get("asOf") || today;
+  const dateFrom = params.get("from") ?? "";
+  const dateTo = params.get("to") ?? "";
+  const search = params.get("search") ?? "";
+
+  const setParam = (key: string, value: string) => {
+    const next = new URLSearchParams(params);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    setParams(next, { replace: true });
+  };
+
+  // Typing stays instant; the request waits until the user pauses.
+  const [searchInput, setSearchInput] = useState(search);
+  useEffect(() => {
+    if (searchInput === search) return;
+    const timer = setTimeout(() => setParam("search", searchInput.trim()), 350);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput]);
+
+  const filter: AgingFilter = {
+    asOfDate,
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
+    search: search || undefined,
+  };
+  const isNarrowed = Boolean(dateFrom || dateTo || search);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["report-ap-aging", asOfDate],
-    queryFn: () => getAPAging(asOfDate),
+    queryKey: ["report-ap-aging", filter],
+    queryFn: () => getAPAging(filter),
     enabled: !!asOfDate,
+    placeholderData: keepPreviousData,
   });
+
+  function clearFilters() {
+    setSearchInput("");
+    const next = new URLSearchParams(params);
+    ["from", "to", "search"].forEach((k) => next.delete(k));
+    setParams(next, { replace: true });
+  }
 
   const summary = data?.data?.data;
   const rows = summary?.rows ?? [];
@@ -32,15 +75,48 @@ export default function APAgingPage() {
   return (
     <ReportLayout
       title="Accounts Payable Aging"
-      subtitle={`Outstanding bills as of ${asOfDate}`}
+      subtitle={`Outstanding bills as of ${asOfDate}${
+        dateFrom || dateTo ? ` · dated ${dateFrom || "…"} to ${dateTo || "…"}` : ""
+      }${search ? ` · matching "${search}"` : ""}`}
       filters={
-        <div className="w-64">
-          <label className="text-xs text-gray-500 mb-1 block">As of Date</label>
-          <DateInput className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" value={asOfDate} onChange={(e) => setAsOfDate(e.target.value)} />
+        <div className="flex flex-wrap items-end gap-3">
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">As of Date</label>
+            <DateInput className={inputClass} value={asOfDate} onChange={(e) => setParam("asOf", e.target.value)} />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Bill Date From</label>
+            <DateInput className={inputClass} value={dateFrom} onChange={(e) => setParam("from", e.target.value)} />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Bill Date To</label>
+            <DateInput className={inputClass} value={dateTo} onChange={(e) => setParam("to", e.target.value)} />
+          </div>
+          <div className="flex-1 min-w-[220px] max-w-sm">
+            <label className="text-xs text-gray-500 mb-1 block">Search</label>
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Vendor, bill # or vendor bill #"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className={`w-full pl-9 ${inputClass}`}
+              />
+            </div>
+          </div>
+          {isNarrowed && (
+            <button
+              onClick={clearFilters}
+              className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-500"
+            >
+              Clear
+            </button>
+          )}
         </div>
       }
       loading={isLoading}
-      onExportPdf={() => downloadPdf({ url: reportPdfUrls.apAging, params: { asOfDate }, filename: "APAging.pdf" })}
+      onExportPdf={() => downloadPdf({ url: reportPdfUrls.apAging, params: filter, filename: "APAging.pdf" })}
       exportingPdf={isDownloading}
     >
       {summary && (
@@ -107,7 +183,9 @@ export default function APAgingPage() {
           )}
         </table>
         {rows.length === 0 && !isLoading && (
-          <div className="text-center py-12 text-sm text-gray-400">No outstanding bills found</div>
+          <div className="text-center py-12 text-sm text-gray-400">
+            {isNarrowed ? "No outstanding bills match these filters" : "No outstanding bills found"}
+          </div>
         )}
       </div>
     </ReportLayout>

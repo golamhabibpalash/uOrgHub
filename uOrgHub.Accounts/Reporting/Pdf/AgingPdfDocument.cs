@@ -9,7 +9,7 @@ namespace uOrgHub.Accounts.Reporting.Pdf;
 /// <summary>Shared layout for AR/AP Aging (same DTO, differs only by title and party label).</summary>
 internal static class AgingPdfDocument
 {
-    public static byte[] Build(string title, string partyLabel, AgingSummaryDto report, DateTime asOfDate)
+    public static byte[] Build(string title, string partyLabel, AgingSummaryDto report, DateTime asOfDate, AgingFilterDto? filter = null)
     {
         var columns = new List<PdfColumn<AgingRowDto>>
         {
@@ -26,7 +26,7 @@ internal static class AgingPdfDocument
 
         var totals = new Dictionary<int, string> { [0] = "Totals", [6] = PdfFormat.Amount(report.TotalOutstanding) };
 
-        return ReportPdfPage.Generate(title, $"As of {PdfFormat.Date(asOfDate)}", null, null, content =>
+        return ReportPdfPage.Generate(title, Subtitle(asOfDate, filter), null, null, content =>
         {
             content.Column(column =>
             {
@@ -53,5 +53,20 @@ internal static class AgingPdfDocument
             var value = box.Item().Text(PdfFormat.Amount(amount)).FontSize(emphasize ? 11 : 10);
             if (emphasize) value.Bold();
         });
+    }
+
+    /// <summary>A narrowed report must say so on paper, or its totals read as the whole ledger.</summary>
+    private static string Subtitle(DateTime asOfDate, AgingFilterDto? filter)
+    {
+        var parts = new List<string> { $"As of {PdfFormat.Date(asOfDate)}" };
+        if (filter?.DateFrom is { } from && filter.DateTo is { } to)
+            parts.Add($"Dated {PdfFormat.Date(from)} – {PdfFormat.Date(to)}");
+        else if (filter?.DateFrom is { } onlyFrom)
+            parts.Add($"Dated from {PdfFormat.Date(onlyFrom)}");
+        else if (filter?.DateTo is { } onlyTo)
+            parts.Add($"Dated up to {PdfFormat.Date(onlyTo)}");
+        if (!string.IsNullOrWhiteSpace(filter?.Search))
+            parts.Add($"Matching \"{filter.Search.Trim()}\"");
+        return string.Join(" · ", parts);
     }
 }

@@ -172,6 +172,22 @@ public record DashboardSummaryDto(
     int RecentTransactions
 );
 
+/// <summary>
+/// Narrows an aging report. The date range is on the document date (bill/invoice date); it does not
+/// change how aging is measured, which is always against <see cref="AsOfDate"/>.
+/// </summary>
+public class AgingFilterDto
+{
+    public DateTime? AsOfDate { get; set; }
+    public DateTime? DateFrom { get; set; }
+    public DateTime? DateTo { get; set; }
+
+    /// <summary>Party name, document number, or the party's own reference number.</summary>
+    public string? Search { get; set; }
+
+    public bool HasNarrowing => DateFrom.HasValue || DateTo.HasValue || !string.IsNullOrWhiteSpace(Search);
+}
+
 public record AgingRowDto(
     Guid Id,
     string CustomerOrVendor,
