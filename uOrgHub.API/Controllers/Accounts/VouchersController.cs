@@ -131,6 +131,18 @@ public class VouchersController : BaseController
         return Ok(ApiResponse<VoucherResponseDto>.Ok(result, $"Voucher posted. Journal Entry {result.JournalEntryNumber} posted successfully."));
     }
 
+    /// <summary>
+    /// "Correct this voucher": reverses a posted voucher with a mirror entry and returns the corrected
+    /// draft copy to edit. Gated by its own claim, deliberately not part of the default Accountant role.
+    /// </summary>
+    [HttpPost("{id:guid}/reverse")]
+    [RequireClaim(Claims.Accounts.Vouchers.Reverse)]
+    public async Task<IActionResult> Reverse(Guid id, [FromBody] ReverseVoucherDto dto)
+    {
+        var result = await _mediator.Send(new ReverseVoucherCommand(id, dto, GetUserName()));
+        return Ok(ApiResponse<VoucherResponseDto>.Ok(result, $"Voucher reversed. Correction {result.VoucherNumber} created as a draft."));
+    }
+
     [HttpPost("{id:guid}/reject")]
     [RequireClaim(Claims.Accounts.Vouchers.Reject)]
     public async Task<IActionResult> Reject(Guid id, [FromBody] RejectVoucherDto dto)

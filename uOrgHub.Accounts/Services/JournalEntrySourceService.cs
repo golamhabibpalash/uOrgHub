@@ -43,6 +43,13 @@ public class JournalEntrySourceService : IJournalEntrySourceService
             .Select(x => new { EntryId = x.JournalEntryId!.Value, Number = x.VoucherNumber, Status = x.Status.ToString() })
             .ToListAsync(ct);
 
+        // A voucher's reversal ("Correct this voucher") is part of the voucher's history too — it
+        // must not be cancelled on its own, or the wrong original amount silently comes back.
+        var voucherReversals = await _db.Set<Voucher>()
+            .Where(x => !x.IsDeleted && x.ReversalJournalEntryId != null && ids.Contains(x.ReversalJournalEntryId.Value))
+            .Select(x => new { EntryId = x.ReversalJournalEntryId!.Value, Number = x.VoucherNumber, Status = x.Status.ToString() })
+            .ToListAsync(ct);
+
         var bills = await _db.Set<Bill>()
             .Where(x => !x.IsDeleted && x.JournalEntryId != null && ids.Contains(x.JournalEntryId.Value))
             .Select(x => new { EntryId = x.JournalEntryId!.Value, Number = x.BillNumber, Status = x.Status.ToString() })
@@ -78,6 +85,7 @@ public class JournalEntrySourceService : IJournalEntrySourceService
         // First writer wins. An entry can only legitimately belong to one document, so a second
         // claim would be data corruption rather than something to merge.
         foreach (var x in vouchers) result.TryAdd(x.EntryId, new JournalEntrySource("Voucher", x.Number, x.Status));
+        foreach (var x in voucherReversals) result.TryAdd(x.EntryId, new JournalEntrySource("Voucher", x.Number, x.Status));
         foreach (var x in bills) result.TryAdd(x.EntryId, new JournalEntrySource("Bill", x.Number, x.Status));
         foreach (var x in invoices) result.TryAdd(x.EntryId, new JournalEntrySource("Invoice", x.Number, x.Status));
         foreach (var x in payments) result.TryAdd(x.EntryId, new JournalEntrySource("Payment", x.Number, x.Status));
@@ -105,6 +113,8 @@ public class JournalEntrySourceService : IJournalEntrySourceService
     {
         var where = source.DocumentType switch
         {
+            "Voucher" when source.DocumentStatus == nameof(Models.Enums.VoucherStatus.Reversed)
+                => "It records the voucher's correction and stays as part of its history.",
             "Voucher" => "Approve and post the voucher instead — posting it posts this entry.",
             "Bill" => "Use the bill's own approve or void action instead.",
             "Invoice" => "Use the invoice's own post or void action instead.",

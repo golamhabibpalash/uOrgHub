@@ -97,4 +97,24 @@ public class Voucher : BaseEntity, ICompanyScoped
     public string? PostedBy { get; set; }
 
     public DateTime? PostedAt { get; set; }
+
+    // ── Correction ("Correct this voucher") ─────────────────────────────────────────────────────
+    // A posted voucher is never edited. It is reversed by a mirror entry and a corrected draft copy
+    // takes its place, so the ledger keeps the full history: original, reversal, correction.
+
+    /// <summary>The mirror entry that cancels this voucher's own entry out, from its own date.</summary>
+    public Guid? ReversalJournalEntryId { get; set; }
+    public JournalEntry? ReversalJournalEntry { get; set; }
+
+    [MaxLength(100)]
+    public string? ReversedBy { get; set; }
+
+    public DateTime? ReversedAt { get; set; }
+
+    [MaxLength(500)]
+    public string? ReversalReason { get; set; }
+
+    /// <summary>On a correction draft: the reversed voucher it replaces.</summary>
+    public Guid? CorrectsVoucherId { get; set; }
+    public Voucher? CorrectsVoucher { get; set; }
 }

@@ -24,5 +24,9 @@ public class VoucherConfiguration : IEntityTypeConfiguration<Voucher>
             .HasForeignKey(x => x.CreditAccountId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne(x => x.JournalEntry).WithMany()
             .HasForeignKey(x => x.JournalEntryId).OnDelete(DeleteBehavior.SetNull);
+        b.HasOne(x => x.ReversalJournalEntry).WithMany()
+            .HasForeignKey(x => x.ReversalJournalEntryId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(x => x.CorrectsVoucher).WithMany()
+            .HasForeignKey(x => x.CorrectsVoucherId).OnDelete(DeleteBehavior.Restrict);
     }
 }

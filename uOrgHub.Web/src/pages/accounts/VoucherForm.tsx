@@ -155,6 +155,7 @@ export default function VoucherForm() {
       voucherId={id}
       voucherNumber={voucher?.voucherNumber}
       voucherType={voucherType}
+      correctsVoucherNumber={voucher?.correctsVoucherNumber}
       initialForm={
         voucher
           ? {
@@ -184,9 +185,11 @@ interface VoucherFormFieldsProps {
   voucherNumber?: string;
   voucherType: VoucherType;
   initialForm: FormState;
+  /** Set when this draft was created by "Correct this voucher". */
+  correctsVoucherNumber?: string;
 }
 
-function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm }: VoucherFormFieldsProps) {
+function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm, correctsVoucherNumber }: VoucherFormFieldsProps) {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const isEdit = Boolean(voucherId);
@@ -590,6 +593,16 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm 
           {isEdit ? `Edit ${theme.label}` : theme.label}
         </h1>
       </div>
+
+      {correctsVoucherNumber && (
+        <div className="flex gap-2 text-sm text-orange-800 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 mb-4">
+          <Info size={16} className="shrink-0 mt-0.5" />
+          <p>
+            This is the correction for <b>{correctsVoucherNumber}</b>, which has been reversed. Fix what was wrong
+            (amount, account, party…), save, then submit it for approval as usual.
+          </p>
+        </div>
+      )}
 
       {/* Colour-coded banner: red for money out, green for money in */}
       <div className={`relative overflow-hidden border rounded-xl px-5 py-4 mb-4 ${theme.banner}`}>

@@ -35,6 +35,8 @@ public record ApproveVoucherCommand(Guid Id, string ApprovedBy) : ICommand<Vouch
 public record PostVoucherCommand(Guid Id, string PostedBy) : ICommand<VoucherResponseDto>;
 public record RejectVoucherCommand(Guid Id, string Reason, string RejectedBy) : ICommand<VoucherResponseDto>;
 public record CancelVoucherCommand(Guid Id) : ICommand<VoucherResponseDto>;
+/// <summary>"Correct this voucher" — returns the corrected draft copy that replaces the reversed voucher.</summary>
+public record ReverseVoucherCommand(Guid Id, ReverseVoucherDto Dto, string ReversedBy) : ICommand<VoucherResponseDto>;
 public record GetAllVouchersForExportQuery : IQuery<List<VoucherResponseDto>>;
 public record GetVoucherAccountOptionsQuery(VoucherType VoucherType) : IQuery<VoucherAccountOptionsDto>;
 
@@ -106,7 +108,9 @@ public class GetVoucherByIdQueryHandler : IRequestHandler<GetVoucherByIdQuery, V
             .FirstOrDefaultAsync(x => x.Id == request.Id, ct)
             ?? throw new NotFoundException(nameof(Models.Entities.Voucher), request.Id);
 
-        return _mapper.ToDto(entity);
+        var dto = _mapper.ToDto(entity);
+        await VoucherQueryHelper.AddCorrectionLinksAsync(_context, dto, ct);
+        return dto;
     }
 }
 
@@ -402,10 +406,14 @@ public class CancelVoucherCommandHandler : IRequestHandler<CancelVoucherCommand,
             ?? throw new NotFoundException(nameof(Models.Entities.Voucher), request.Id);
 
         if (entity.Status == VoucherStatus.Posted)
-            throw new AppException("Posted vouchers cannot be cancelled. Reverse the journal entry instead.");
+            throw new AppException("Posted vouchers cannot be cancelled. Use \"Correct this voucher\" to reverse it instead.");
 
         if (entity.Status == VoucherStatus.Cancelled)
             throw new AppException("Voucher is already cancelled.");
+
+        // Its entry and the reversal are both posted history; cancelling would delete one of them.
+        if (entity.Status == VoucherStatus.Reversed)
+            throw new AppException("Reversed vouchers are part of the ledger's history and cannot be cancelled.");
 
         if (entity.JournalEntryId.HasValue)
         {
@@ -421,6 +429,155 @@ public class CancelVoucherCommandHandler : IRequestHandler<CancelVoucherCommand,
 
         await VoucherGuard.ReloadReferencedAsync(_context, entity, ct);
         return _mapper.ToDto(entity);
+    }
+}
+
+/// <summary>
+/// "Correct this voucher". A posted voucher is never edited: this posts a mirror entry (same
+/// accounts, sides swapped, same cost center) dated on the reversal date, marks the voucher
+/// Reversed, and creates a Draft copy linked to it for the user to fix and send through the normal
+/// submit → approve → post flow. The original entry stays posted in its own period, so reports
+/// already produced for that period do not change underneath anyone.
+/// </summary>
+public class ReverseVoucherCommandHandler : IRequestHandler<ReverseVoucherCommand, VoucherResponseDto>
+{
+    private readonly AppDbContext _context;
+    private readonly IJournalEntryService _jeService;
+    private readonly IDocumentNumberingService _numbering;
+    private readonly VoucherMapper _mapper = new();
+
+    public ReverseVoucherCommandHandler(AppDbContext context, IJournalEntryService jeService, IDocumentNumberingService numbering)
+    {
+        _context = context;
+        _jeService = jeService;
+        _numbering = numbering;
+    }
+
+    public async Task<VoucherResponseDto> Handle(ReverseVoucherCommand request, CancellationToken ct)
+    {
+        var reason = request.Dto.Reason?.Trim() ?? string.Empty;
+        if (reason.Length == 0)
+            throw new ValidationException(new List<string> { "Give a reason for correcting this voucher." });
+        if (reason.Length > 500)
+            throw new ValidationException(new List<string> { "Reason must be 500 characters or fewer." });
+
+        var original = await VoucherQueryHelper.BaseQuery(_context)
+            .FirstOrDefaultAsync(x => x.Id == request.Id, ct)
+            ?? throw new NotFoundException(nameof(Models.Entities.Voucher), request.Id);
+
+        if (original.Status != VoucherStatus.Posted)
+            throw new AppException($"Only posted vouchers can be corrected. {original.VoucherNumber} is {original.Status}.");
+
+        if (!original.JournalEntryId.HasValue)
+            throw new AppException($"Voucher {original.VoucherNumber} has no journal entry to reverse.");
+
+        // A payment's voucher shares the payment's entry; reversing it here would leave the payment
+        // (and the bills/invoices it settled) claiming money the ledger no longer shows.
+        var payment = await _context.Set<Models.Entities.Payment>()
+            .Where(p => !p.IsDeleted && p.VoucherId == original.Id)
+            .Select(p => p.PaymentNumber)
+            .FirstOrDefaultAsync(ct);
+        if (payment != null)
+            throw new AppException(
+                $"Voucher {original.VoucherNumber} was generated by payment {payment}. Void the payment and record it again instead.");
+
+        var reversalDate = (request.Dto.ReversalDate ?? DateTime.UtcNow).Date;
+        if (reversalDate < original.VoucherDate.Date)
+            throw new ValidationException(new List<string>
+            {
+                $"Reversal date cannot be before the voucher's own date ({original.VoucherDate:dd MMM yyyy})."
+            });
+        var fiscalYear = await OpenFiscalYearForAsync(reversalDate, ct);
+
+        // 1. Mirror entry, posted straight away.
+        var mirror = await _jeService.CreateAsync(new CreateJournalEntryDto
+        {
+            EntryDate = reversalDate,
+            ReferenceNumber = original.VoucherNumber,
+            Description = $"Reversal of voucher {original.VoucherNumber} - {reason}",
+            Lines =
+            [
+                new CreateJournalEntryLineDto
+                {
+                    AccountId = original.CreditAccountId,
+                    Description = $"Reversal: {original.Description}",
+                    DebitAmount = original.Amount,
+                    CostCenterId = original.CostCenterId,
+                    LineOrder = 1
+                },
+                new CreateJournalEntryLineDto
+                {
+                    AccountId = original.DebitAccountId,
+                    Description = $"Reversal: {original.Description}",
+                    CreditAmount = original.Amount,
+                    CostCenterId = original.CostCenterId,
+                    LineOrder = 2
+                }
+            ]
+        });
+        await _jeService.PostAsync(mirror.Id, request.ReversedBy);
+
+        var mirrorEntry = await _context.Set<Models.Entities.JournalEntry>().FirstOrDefaultAsync(x => x.Id == mirror.Id, ct);
+        if (mirrorEntry is not null)
+            mirrorEntry.CreatedBy = request.ReversedBy;
+
+        // 2. Mark the original.
+        var now = DateTime.UtcNow;
+        original.Status = VoucherStatus.Reversed;
+        original.ReversalJournalEntryId = mirror.Id;
+        original.ReversedBy = request.ReversedBy;
+        original.ReversedAt = now;
+        original.ReversalReason = reason;
+        original.UpdatedAt = now;
+        original.UpdatedBy = request.ReversedBy;
+
+        // 3. Draft copy to fix. Dated with the reversal so the reversal and its replacement land in
+        //    the same period; the user can change anything before submitting it.
+        var correction = new Models.Entities.Voucher
+        {
+            VoucherNumber = await _numbering.GenerateNextAsync("Voucher", VoucherAccountRules.NumberPrefix(original.VoucherType)),
+            VoucherType = original.VoucherType,
+            VoucherDate = reversalDate,
+            ReferenceNumber = original.ReferenceNumber,
+            FiscalYearId = fiscalYear.Id,
+            ProjectId = original.ProjectId,
+            CostCenterId = original.CostCenterId,
+            Name = original.Name,
+            Section = original.Section,
+            Description = original.Description,
+            DebitAccountId = original.DebitAccountId,
+            CreditAccountId = original.CreditAccountId,
+            Amount = original.Amount,
+            PreparedBy = original.PreparedBy,
+            ReceivedBy = original.ReceivedBy,
+            Status = VoucherStatus.Draft,
+            CorrectsVoucherId = original.Id,
+            CreatedAt = now,
+            CreatedBy = request.ReversedBy
+        };
+        _context.Set<Models.Entities.Voucher>().Add(correction);
+        await _context.SaveChangesAsync(ct);
+
+        await VoucherGuard.ReloadReferencedAsync(_context, correction, ct);
+        await _context.Entry(correction).Reference(x => x.CorrectsVoucher).LoadAsync(ct);
+        return _mapper.ToDto(correction);
+    }
+
+    private async Task<Models.Entities.FiscalYear> OpenFiscalYearForAsync(DateTime date, CancellationToken ct)
+    {
+        var fy = await _context.Set<Models.Entities.FiscalYear>()
+            .Where(x => !x.IsDeleted && x.StartDate <= date && x.EndDate >= date)
+            .OrderByDescending(x => x.StartDate)
+            .FirstOrDefaultAsync(ct)
+            ?? throw new ValidationException(new List<string> { $"No fiscal year covers {date:dd MMM yyyy}." });
+
+        if (fy.Status == FiscalYearStatus.Closed)
+            throw new ValidationException(new List<string>
+            {
+                $"Fiscal year '{fy.Name}' is closed. Choose a reversal date in an open fiscal year."
+            });
+
+        return fy;
     }
 }
 
@@ -533,7 +690,27 @@ file static class VoucherQueryHelper
             .Include(x => x.FiscalYear)
             .Include(x => x.CostCenter)
             .Include(x => x.JournalEntry)
+            .Include(x => x.ReversalJournalEntry)
+            .Include(x => x.CorrectsVoucher)
             .Where(x => !x.IsDeleted);
+
+    /// <summary>
+    /// The links that point *at* this voucher — its correction, and the payment that generated it —
+    /// live on other rows, so they are looked up rather than mapped. Detail view only; lists skip it.
+    /// </summary>
+    public static async Task AddCorrectionLinksAsync(AppDbContext context, VoucherResponseDto dto, CancellationToken ct)
+    {
+        var correction = await context.Set<Models.Entities.Voucher>()
+            .Where(x => !x.IsDeleted && x.CorrectsVoucherId == dto.Id && x.Status != VoucherStatus.Cancelled)
+            .OrderByDescending(x => x.CreatedAt)
+            .Select(x => new { x.Id, x.VoucherNumber })
+            .FirstOrDefaultAsync(ct);
+        dto.CorrectedByVoucherId = correction?.Id;
+        dto.CorrectedByVoucherNumber = correction?.VoucherNumber;
+
+        dto.IsPaymentVoucher = await context.Set<Models.Entities.Payment>()
+            .AnyAsync(p => !p.IsDeleted && p.VoucherId == dto.Id, ct);
+    }
 }
 
 file static class VoucherJournal

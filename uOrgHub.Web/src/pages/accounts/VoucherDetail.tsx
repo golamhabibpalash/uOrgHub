@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -10,6 +10,8 @@ import {
   XCircle,
   Ban,
   BookOpen,
+  Undo2,
+  Info,
 } from "lucide-react";
 import Modal from "../../components/shared/Modal";
 import ConfirmDialog from "../../components/shared/ConfirmDialog";
@@ -21,6 +23,7 @@ import {
   getVoucherJournalEntry,
   postVoucher,
   rejectVoucher,
+  reverseVoucher,
   submitVoucher,
   Voucher,
   VoucherStatus,
@@ -31,6 +34,7 @@ import { getMyCompany } from "../../api/company";
 import { useAuthStore } from "../../store/authStore";
 import { amountInWords, formatTaka } from "../../utils/format";
 import { extractApiError } from "../../utils/apiError";
+import DateInput from "../../components/shared/DateInput";
 
 const statusColors: Record<VoucherStatus, string> = {
   Draft: "bg-gray-100 text-gray-600",
@@ -39,7 +43,10 @@ const statusColors: Record<VoucherStatus, string> = {
   Posted: "bg-green-50 text-green-700",
   Rejected: "bg-red-50 text-red-700",
   Cancelled: "bg-gray-100 text-gray-400",
+  Reversed: "bg-orange-50 text-orange-700",
 };
+
+const today = () => new Date().toISOString().split("T")[0];
 
 const workflow: VoucherStatus[] = ["Draft", "Submitted", "Approved", "Posted"];
 
@@ -65,6 +72,9 @@ export default function VoucherDetail() {
   const [rejectReason, setRejectReason] = useState("");
   const [cancelOpen, setCancelOpen] = useState(false);
   const [journalOpen, setJournalOpen] = useState(false);
+  const [correctOpen, setCorrectOpen] = useState(false);
+  const [correctReason, setCorrectReason] = useState("");
+  const [correctDate, setCorrectDate] = useState(today);
 
   const { data, isLoading } = useQuery({
     queryKey: ["voucher", id],
@@ -74,6 +84,8 @@ export default function VoucherDetail() {
 
   const { hasClaim, hasRole } = useAuthStore();
   const canEditAttachments = hasRole("Admin") || hasClaim("Accounts.Vouchers.Edit");
+  // Its own permission, deliberately not part of the default Accountant role.
+  const canCorrect = hasRole("Admin") || hasClaim("Accounts.Vouchers.Reverse");
 
   const { data: company } = useQuery({ queryKey: ["my-company"], queryFn: getMyCompany, staleTime: 300000 });
 
@@ -95,6 +107,20 @@ export default function VoucherDetail() {
       setRejectOpen(false);
       setCancelOpen(false);
       setRejectReason("");
+    },
+    onError: (err: unknown) => setError(extractApiError(err)),
+  });
+
+  const correctMutation = useMutation({
+    mutationFn: () => reverseVoucher(id!, correctReason.trim(), correctDate || undefined),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["voucher", id] });
+      qc.invalidateQueries({ queryKey: ["vouchers"] });
+      qc.invalidateQueries({ queryKey: ["journal-entries"] });
+      setCorrectOpen(false);
+      const draft = res.data.data;
+      // Straight into the corrected draft — fixing it is the whole point of the action.
+      if (draft?.id) navigate(`/accounts/vouchers/${draft.id}/edit`);
     },
     onError: (err: unknown) => setError(extractApiError(err)),
   });
@@ -152,7 +178,7 @@ export default function VoucherDetail() {
     voucher.voucherType
   ];
   const currentStep = workflow.indexOf(voucher.status);
-  const isClosed = voucher.status === "Rejected" || voucher.status === "Cancelled";
+  const isClosed = voucher.status === "Rejected" || voucher.status === "Cancelled" || voucher.status === "Reversed";
 
   const busy = actionMutation.isPending;
 
@@ -193,6 +219,47 @@ export default function VoucherDetail() {
       {error && (
         <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
           {error}
+        </div>
+      )}
+
+      {voucher.status === "Reversed" && (
+        <div className="flex gap-2 text-sm text-orange-800 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 mb-4">
+          <Undo2 size={16} className="shrink-0 mt-0.5" />
+          <div className="space-y-0.5">
+            <p>
+              <b>Reversed</b> by {voucher.reversedBy} on {voucher.reversedAt?.split("T")[0]}
+              {voucher.reversalJournalEntryNumber && <> — reversal entry {voucher.reversalJournalEntryNumber}</>}.
+            </p>
+            {voucher.reversalReason && <p>Reason: {voucher.reversalReason}</p>}
+            {voucher.correctedByVoucherId && (
+              <p>
+                Corrected by{" "}
+                <Link to={`/accounts/vouchers/${voucher.correctedByVoucherId}`} className="font-medium underline">
+                  {voucher.correctedByVoucherNumber}
+                </Link>
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {voucher.correctsVoucherId && (
+        <div className="flex gap-2 text-sm text-blue-800 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mb-4">
+          <Info size={16} className="shrink-0 mt-0.5" />
+          <p>
+            Correction for{" "}
+            <Link to={`/accounts/vouchers/${voucher.correctsVoucherId}`} className="font-medium underline">
+              {voucher.correctsVoucherNumber}
+            </Link>
+            , which was reversed.
+          </p>
+        </div>
+      )}
+
+      {voucher.status === "Posted" && voucher.isPaymentVoucher && canCorrect && (
+        <div className="flex gap-2 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 mb-4">
+          <Info size={14} className="shrink-0 mt-0.5" />
+          <p>This voucher was generated by a payment. To correct it, void the payment and record it again.</p>
         </div>
       )}
 
@@ -274,13 +341,28 @@ export default function VoucherDetail() {
           </button>
         )}
 
-        {voucher.status !== "Posted" && voucher.status !== "Cancelled" && (
+        {voucher.status !== "Posted" && voucher.status !== "Cancelled" && voucher.status !== "Reversed" && (
           <button
             onClick={() => { setError(""); setCancelOpen(true); }}
             disabled={busy}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 disabled:opacity-50"
           >
             <Ban size={14} /> Cancel
+          </button>
+        )}
+
+        {voucher.status === "Posted" && canCorrect && !voucher.isPaymentVoucher && (
+          <button
+            onClick={() => {
+              setError("");
+              setCorrectReason("");
+              setCorrectDate(today());
+              setCorrectOpen(true);
+            }}
+            disabled={busy}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-orange-200 text-orange-700 rounded-lg hover:bg-orange-50 disabled:opacity-50"
+          >
+            <Undo2 size={14} /> Correct this voucher
           </button>
         )}
 
@@ -381,6 +463,63 @@ export default function VoucherDetail() {
           companyAddress={company?.address}
         />
       </div>
+
+      {/* Correct dialog */}
+      <Modal title={`Correct ${voucher.voucherNumber}`} open={correctOpen} onClose={() => !correctMutation.isPending && setCorrectOpen(false)} size="md">
+        <div className="space-y-4">
+          {error && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>
+          )}
+          <div className="text-sm text-gray-600 space-y-1.5">
+            <p>Posted vouchers can't be edited. This will:</p>
+            <ol className="list-decimal pl-5 space-y-1 text-xs text-gray-500">
+              <li>Post a reversal entry that cancels this voucher's {formatTaka(voucher.amount)} out of the ledger.</li>
+              <li>Mark {voucher.voucherNumber} as <b>Reversed</b> — it stays on record with your reason.</li>
+              <li>Open a new draft copy for you to fix and send for approval.</li>
+            </ol>
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">
+              What was wrong? <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              rows={3}
+              maxLength={500}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+              value={correctReason}
+              onChange={(e) => setCorrectReason(e.target.value)}
+              placeholder="e.g. Amount should be 560, not 500"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Reversal date</label>
+            <DateInput
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+              value={correctDate}
+              onChange={(e) => setCorrectDate(e.target.value)}
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              Today by default, so periods already reported stay unchanged. Can't be before {voucher.voucherDate?.split("T")[0]}.
+            </p>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              onClick={() => setCorrectOpen(false)}
+              disabled={correctMutation.isPending}
+              className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => correctMutation.mutate()}
+              disabled={!correctReason.trim() || correctMutation.isPending}
+              className="px-4 py-2 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50"
+            >
+              {correctMutation.isPending ? "Reversing…" : "Reverse & create correction"}
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Reject dialog */}
       <Modal title="Reject Voucher" open={rejectOpen} onClose={() => setRejectOpen(false)} size="md">

@@ -17,6 +17,7 @@ const statusColors: Record<VoucherStatus, string> = {
   Posted: "bg-green-50 text-green-700",
   Rejected: "bg-red-50 text-red-700",
   Cancelled: "bg-gray-100 text-gray-400",
+  Reversed: "bg-orange-50 text-orange-700",
 };
 
 const selectClass =
@@ -314,6 +315,7 @@ export default function Vouchers() {
               <option value="Posted">Posted</option>
               <option value="Rejected">Rejected</option>
               <option value="Cancelled">Cancelled</option>
+              <option value="Reversed">Reversed</option>
             </select>
           </div>
         }

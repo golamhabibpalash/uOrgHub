@@ -81,7 +81,10 @@ public static class AuthorizationCatalog
         {
             new(Roles.Admin, "Full system access. Implicitly granted every claim.", Array.Empty<string>()),
             new(Roles.HRManager, "Manages everything in the HR module.", hr.Concat(self).ToList()),
-            new(Roles.Accountant, "Manages everything in the Accounts module.", accounts.Concat(self).ToList()),
+            // Reversing a posted voucher rewrites the ledger's story, so it is granted deliberately to
+            // named users/roles rather than bundled with the everyday Accountant role.
+            new(Roles.Accountant, "Manages everything in the Accounts module.",
+                accounts.Where(c => c != Claims.Accounts.Vouchers.Reverse).Concat(self).ToList()),
             new(Roles.InventoryManager, "Manages everything in the Inventory module plus read on Procurement.",
                 inventory.Concat(procurement.Where(c => c.EndsWith(".View")))
                          .Concat(self).ToList()),

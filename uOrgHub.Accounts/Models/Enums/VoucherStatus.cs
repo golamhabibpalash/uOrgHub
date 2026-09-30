@@ -7,5 +7,11 @@ public enum VoucherStatus
     Approved,
     Posted,
     Rejected,
-    Cancelled
+    Cancelled,
+
+    /// <summary>
+    /// Was posted, then undone by a mirror journal entry ("Correct this voucher"). Its original entry
+    /// stays posted in its own period; the reversal entry cancels it out from the reversal date.
+    /// </summary>
+    Reversed
 }

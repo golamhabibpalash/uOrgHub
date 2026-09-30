@@ -8,6 +8,8 @@ namespace uOrgHub.Accounts.Mappings;
 public partial class VoucherMapper
 {
     [MapperIgnoreTarget(nameof(Voucher.CostCenter))]
+    [MapperIgnoreTarget(nameof(Voucher.ReversalJournalEntry))]
+    [MapperIgnoreTarget(nameof(Voucher.CorrectsVoucher))]
     public partial Voucher ToEntity(CreateVoucherDto dto);
 
     [MapperIgnoreTarget(nameof(Voucher.Id))]
@@ -33,6 +35,13 @@ public partial class VoucherMapper
     [MapperIgnoreTarget(nameof(Voucher.IsDeleted))]
     [MapperIgnoreTarget(nameof(Voucher.DeletedAt))]
     [MapperIgnoreTarget(nameof(Voucher.DeletedBy))]
+    [MapperIgnoreTarget(nameof(Voucher.ReversalJournalEntry))]
+    [MapperIgnoreTarget(nameof(Voucher.ReversalJournalEntryId))]
+    [MapperIgnoreTarget(nameof(Voucher.ReversedBy))]
+    [MapperIgnoreTarget(nameof(Voucher.ReversedAt))]
+    [MapperIgnoreTarget(nameof(Voucher.ReversalReason))]
+    [MapperIgnoreTarget(nameof(Voucher.CorrectsVoucher))]
+    [MapperIgnoreTarget(nameof(Voucher.CorrectsVoucherId))]
     public partial void UpdateEntity(UpdateVoucherDto dto, Voucher entity);
 
     [MapProperty([nameof(Voucher.FiscalYear), nameof(FiscalYear.Name)], [nameof(VoucherResponseDto.FiscalYearName)])]
@@ -41,6 +50,11 @@ public partial class VoucherMapper
     [MapProperty([nameof(Voucher.DebitAccount), nameof(ChartOfAccount.AccountName)], [nameof(VoucherResponseDto.DebitAccountName)])]
     [MapProperty([nameof(Voucher.CreditAccount), nameof(ChartOfAccount.AccountName)], [nameof(VoucherResponseDto.CreditAccountName)])]
     [MapProperty([nameof(Voucher.JournalEntry), nameof(JournalEntry.EntryNumber)], [nameof(VoucherResponseDto.JournalEntryNumber)])]
+    [MapProperty([nameof(Voucher.ReversalJournalEntry), nameof(JournalEntry.EntryNumber)], [nameof(VoucherResponseDto.ReversalJournalEntryNumber)])]
+    [MapProperty([nameof(Voucher.CorrectsVoucher), nameof(Voucher.VoucherNumber)], [nameof(VoucherResponseDto.CorrectsVoucherNumber)])]
+    [MapperIgnoreTarget(nameof(VoucherResponseDto.CorrectedByVoucherId))]
+    [MapperIgnoreTarget(nameof(VoucherResponseDto.CorrectedByVoucherNumber))]
+    [MapperIgnoreTarget(nameof(VoucherResponseDto.IsPaymentVoucher))]
     public partial VoucherResponseDto ToDto(Voucher entity);
 
     /// <summary>
