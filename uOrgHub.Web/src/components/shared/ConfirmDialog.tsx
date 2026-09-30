@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { AlertTriangle, X } from "lucide-react";
 
 interface ConfirmDialogProps {
@@ -30,8 +31,9 @@ export default function ConfirmDialog({
       ? "bg-red-600 hover:bg-red-700 text-white"
       : "bg-primary-500 hover:bg-primary-600 text-white";
 
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40">
+  // Portaled so it still covers the viewport when opened from inside a (transformed) Modal.
+  return createPortal(
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-md mx-4 flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
@@ -66,6 +68,7 @@ export default function ConfirmDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

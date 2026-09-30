@@ -75,6 +75,14 @@ public class AttachmentService : IAttachmentService
         // Empty-name guard above covers null; trim so we never store padded names.
         fileName = fileName.Trim();
 
+        fileContent = await EnsureSeekableAsync(fileContent, ct);
+        var header = new byte[FileSignature.HeaderLength];
+        var read = await fileContent.ReadAtLeastAsync(header, header.Length, throwOnEndOfStream: false, ct);
+        fileContent.Position = 0;
+        if (!FileSignature.Matches(extension, header.AsSpan(0, read)))
+            throw new Shared.Exceptions.AppException(
+                $"The file content does not match its '{extension}' extension.");
+
         var storageKey = await _storage.SaveAsync(fileContent, fileName, ct);
 
         var attachment = new Attachment
@@ -123,6 +131,18 @@ public class AttachmentService : IAttachmentService
         attachment.IsDeleted = true;
         attachment.DeletedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Signature sniffing needs to rewind; buffer non-seekable streams (size is already capped).</summary>
+    private static async Task<Stream> EnsureSeekableAsync(Stream stream, CancellationToken ct)
+    {
+        if (stream.CanSeek)
+            return stream;
+
+        var buffer = new MemoryStream();
+        await stream.CopyToAsync(buffer, ct);
+        buffer.Position = 0;
+        return buffer;
     }
 
     /// <summary>

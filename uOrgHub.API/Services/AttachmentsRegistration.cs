@@ -33,7 +33,14 @@ public static class AttachmentsRegistration
             EditClaim = Claims.Accounts.Vouchers.Edit,
         });
 
-        // Register further targets here, e.g. bills, invoices, employees, purchase orders.
+        registry.Register(new AttachmentTargetDefinition
+        {
+            EntityType = "Bill",
+            ViewClaim = Claims.Accounts.Bills.View,
+            EditClaim = Claims.Accounts.Bills.Edit,
+        });
+
+        // Register further targets here, e.g. invoices, employees, purchase orders.
 
         return registry;
     }

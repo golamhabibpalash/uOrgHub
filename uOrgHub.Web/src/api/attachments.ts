@@ -12,7 +12,8 @@ export interface Attachment {
   uploadedAt: string;
 }
 
-const MAX_SIZE_BYTES = 2 * 1024 * 1024;
+/** Mirrors SecureFileStorageOptions.MaxFileSizeBytes on the backend. */
+export const MAX_ATTACHMENT_SIZE_BYTES = 2 * 1024 * 1024;
 
 /** Mirrors the backend whitelist in SecureFileStorageOptions — reject obvious ones before upload. */
 export const ALLOWED_EXTENSIONS = [
@@ -20,12 +21,45 @@ export const ALLOWED_EXTENSIONS = [
   ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".csv", ".txt",
 ];
 
+/** Value for a file input's `accept` attribute. */
+export const ATTACHMENT_ACCEPT = ALLOWED_EXTENSIONS.join(",");
+
+export function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export function validateAttachmentFile(file: File): string | null {
-  if (file.size <= 0) return "The selected file is empty.";
-  if (file.size > MAX_SIZE_BYTES) return "File exceeds the maximum size of 2 MB.";
+  if (file.size <= 0) return `"${file.name}" is empty.`;
+  if (file.size > MAX_ATTACHMENT_SIZE_BYTES)
+    return `"${file.name}" is ${formatFileSize(file.size)} — the maximum is ${formatFileSize(MAX_ATTACHMENT_SIZE_BYTES)}.`;
   const ext = `.${file.name.split(".").pop()?.toLowerCase() ?? ""}`;
-  if (!ALLOWED_EXTENSIONS.includes(ext)) return `File type '${ext}' is not allowed.`;
+  if (!ALLOWED_EXTENSIONS.includes(ext)) return `"${file.name}": file type '${ext}' is not allowed.`;
   return null;
+}
+
+/** Images and PDFs render in the in-app viewer; everything else is download-only. */
+export function isPreviewable(contentType: string) {
+  return contentType.startsWith("image/") || contentType === "application/pdf";
+}
+
+/**
+ * Content type for a local (not yet uploaded) file. Browsers sometimes leave File.type empty, so
+ * fall back to the extension — same mapping the backend uses when it stores the file.
+ */
+export function contentTypeForFile(file: File): string {
+  if (file.type) return file.type;
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  switch (ext) {
+    case "jpg":
+    case "jpeg": return "image/jpeg";
+    case "png": return "image/png";
+    case "gif": return "image/gif";
+    case "webp": return "image/webp";
+    case "pdf": return "application/pdf";
+    default: return "application/octet-stream";
+  }
 }
 
 export async function getAttachments(entityType: string, entityId: string): Promise<Attachment[]> {
@@ -68,11 +102,13 @@ export async function downloadAttachment(attachment: Attachment) {
   URL.revokeObjectURL(url);
 }
 
-/** Loads a file as an object URL for inline image preview. Caller must revoke it. */
+/** Loads a file as an object URL for in-app image/PDF preview. Caller must revoke it. */
 export async function getAttachmentPreviewUrl(attachment: Attachment): Promise<string> {
-  const { data } = await apiClient.get(`/attachments/${attachment.id}/download`, {
+  const { data } = await apiClient.get<Blob>(`/attachments/${attachment.id}/download`, {
     params: { inline: true },
     responseType: "blob",
   });
-  return URL.createObjectURL(data);
+  // Re-wrap with the recorded type so the browser's PDF viewer kicks in even if a proxy
+  // rewrote the response's Content-Type.
+  return URL.createObjectURL(new Blob([data], { type: attachment.contentType }));
 }
