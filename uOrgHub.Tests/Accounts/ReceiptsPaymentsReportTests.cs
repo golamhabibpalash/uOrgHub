@@ -302,4 +302,91 @@ public class ReceiptsPaymentsReportTests
         report.Payments.Should().BeEmpty();
         report.Transfers.Should().BeEmpty();
     }
+
+    // ── "Correct this voucher" ────────────────────────────────────────────────────────────────
+
+    /// <summary>Posts the mirror entry "Correct this voucher" creates and links it to the voucher.</summary>
+    private static void SeedReversal(AppDbContext ctx, string voucherNumber, DateTime date)
+    {
+        var v = ctx.Set<Voucher>().Single(x => x.VoucherNumber == voucherNumber);
+        var entry = new JournalEntry
+        {
+            Id = Guid.NewGuid(), EntryNumber = "JV-REV-" + voucherNumber, EntryDate = date,
+            Description = "Reversal of voucher " + voucherNumber, Status = JournalEntryStatus.Posted,
+            TotalDebit = v.Amount, TotalCredit = v.Amount,
+        };
+        ctx.Set<JournalEntry>().Add(entry);
+        ctx.Set<JournalEntryLine>().AddRange(
+            new JournalEntryLine { Id = Guid.NewGuid(), JournalEntryId = entry.Id, AccountId = v.CreditAccountId, DebitAmount = v.Amount, CostCenterId = v.CostCenterId, LineOrder = 0 },
+            new JournalEntryLine { Id = Guid.NewGuid(), JournalEntryId = entry.Id, AccountId = v.DebitAccountId, CreditAmount = v.Amount, CostCenterId = v.CostCenterId, LineOrder = 1 });
+        v.Status = VoucherStatus.Reversed;
+        v.ReversalJournalEntryId = entry.Id;
+        ctx.SaveChanges();
+    }
+
+    [Fact]
+    public async Task A_voucher_reversed_in_the_same_period_drops_out_of_payments_and_is_not_a_receipt()
+    {
+        using var ctx = NewContext();
+        SeedAccounts(ctx);
+        SeedVoucherEntry(ctx, "DR-1", new DateTime(2026, 8, 5), VoucherType.Debit, ConveyanceId, CashId, 500m, SiteAId);
+        SeedReversal(ctx, "DR-1", new DateTime(2026, 8, 20));
+
+        var report = await new AccountingReportService(ctx).GetReceiptsPaymentsAsync(August2026);
+
+        report.TotalPayments.Should().Be(0m);
+        report.Payments.Should().BeEmpty();
+        report.TotalReceiptsExclTransfers.Should().Be(0m, "the reversal is not money received");
+        report.Receipts.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Reverse_and_re_enter_in_the_same_period_shows_only_the_corrected_amount()
+    {
+        using var ctx = NewContext();
+        SeedAccounts(ctx);
+        SeedVoucherEntry(ctx, "DR-1", new DateTime(2026, 8, 5), VoucherType.Debit, ConveyanceId, CashId, 500m, SiteAId);
+        SeedReversal(ctx, "DR-1", new DateTime(2026, 8, 20));
+        SeedVoucherEntry(ctx, "DR-2", new DateTime(2026, 8, 20), VoucherType.Debit, ConveyanceId, CashId, 560m, SiteAId);
+
+        var report = await new AccountingReportService(ctx).GetReceiptsPaymentsAsync(August2026);
+
+        report.TotalPayments.Should().Be(560m);
+        report.Payments.Single().Rows.Single().Amount.Should().Be(560m);
+    }
+
+    [Fact]
+    public async Task A_reversal_in_a_later_period_reduces_that_periods_payments_and_leaves_the_original_period_alone()
+    {
+        using var ctx = NewContext();
+        SeedAccounts(ctx);
+        SeedVoucherEntry(ctx, "DR-1", new DateTime(2026, 8, 5), VoucherType.Debit, ConveyanceId, CashId, 500m, SiteAId);
+        SeedReversal(ctx, "DR-1", new DateTime(2026, 9, 10));
+        SeedVoucherEntry(ctx, "DR-2", new DateTime(2026, 9, 10), VoucherType.Debit, ConveyanceId, CashId, 560m, SiteAId);
+        var service = new AccountingReportService(ctx);
+
+        var august = await service.GetReceiptsPaymentsAsync(August2026);
+        var september = await service.GetReceiptsPaymentsAsync(
+            new ReceiptsPaymentsFilterDto(new DateTime(2026, 9, 1), new DateTime(2026, 9, 30), null, null, null));
+
+        august.TotalPayments.Should().Be(500m, "an already-reported period is not rewritten");
+        september.TotalPayments.Should().Be(60m, "−500 reversal + 560 correction");
+        september.TotalReceiptsExclTransfers.Should().Be(0m);
+    }
+
+    [Fact]
+    public async Task Day_book_labels_a_reversal_entry_with_its_vouchers_type()
+    {
+        using var ctx = NewContext();
+        SeedAccounts(ctx);
+        SeedVoucherEntry(ctx, "DR-1", new DateTime(2026, 8, 5), VoucherType.Debit, ConveyanceId, CashId, 500m, SiteAId);
+        SeedReversal(ctx, "DR-1", new DateTime(2026, 8, 20));
+
+        var dayBook = await new AccountingReportService(ctx).GetDayBookAsync(
+            new DayBookFilterDto(null, null, "DR"),
+            new uOrgHub.Shared.Models.PaginationRequest { Page = 1, PageSize = 50 });
+
+        dayBook.Rows.Items.Select(r => r.EntryNumber).Should().BeEquivalentTo("DR-1", "JV-REV-DR-1");
+        dayBook.Rows.Items.Should().OnlyContain(r => r.Type == "DR");
+    }
 }

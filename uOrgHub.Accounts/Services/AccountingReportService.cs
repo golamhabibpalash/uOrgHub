@@ -416,10 +416,11 @@ public class AccountingReportService : IAccountingReportService
         {
             query = type switch
             {
-                "DR" => query.Where(j => _db.Set<Voucher>().Any(v => !v.IsDeleted && v.JournalEntryId == j.Id && v.VoucherType == VoucherType.Debit)),
-                "CR" => query.Where(j => _db.Set<Voucher>().Any(v => !v.IsDeleted && v.JournalEntryId == j.Id && v.VoucherType == VoucherType.Credit)),
-                "CN" => query.Where(j => _db.Set<Voucher>().Any(v => !v.IsDeleted && v.JournalEntryId == j.Id && v.VoucherType == VoucherType.Contra)),
-                "JV" => query.Where(j => !_db.Set<Voucher>().Any(v => !v.IsDeleted && v.JournalEntryId == j.Id)),
+                // A voucher's reversal entry ("Correct this voucher") is classified as that voucher.
+                "DR" => query.Where(j => _db.Set<Voucher>().Any(v => !v.IsDeleted && (v.JournalEntryId == j.Id || v.ReversalJournalEntryId == j.Id) && v.VoucherType == VoucherType.Debit)),
+                "CR" => query.Where(j => _db.Set<Voucher>().Any(v => !v.IsDeleted && (v.JournalEntryId == j.Id || v.ReversalJournalEntryId == j.Id) && v.VoucherType == VoucherType.Credit)),
+                "CN" => query.Where(j => _db.Set<Voucher>().Any(v => !v.IsDeleted && (v.JournalEntryId == j.Id || v.ReversalJournalEntryId == j.Id) && v.VoucherType == VoucherType.Contra)),
+                "JV" => query.Where(j => !_db.Set<Voucher>().Any(v => !v.IsDeleted && (v.JournalEntryId == j.Id || v.ReversalJournalEntryId == j.Id))),
                 _ => query,
             };
         }
@@ -439,6 +440,10 @@ public class AccountingReportService : IAccountingReportService
             .Where(v => !v.IsDeleted && v.JournalEntryId != null && entryIds.Contains(v.JournalEntryId.Value))
             .Select(v => new { EntryId = v.JournalEntryId!.Value, v.VoucherType })
             .ToListAsync();
+        voucherTypes.AddRange(await _db.Set<Voucher>()
+            .Where(v => !v.IsDeleted && v.ReversalJournalEntryId != null && entryIds.Contains(v.ReversalJournalEntryId.Value))
+            .Select(v => new { EntryId = v.ReversalJournalEntryId!.Value, v.VoucherType })
+            .ToListAsync());
 
         var typeByEntry = voucherTypes
             .GroupBy(v => v.EntryId)
@@ -755,12 +760,27 @@ public class AccountingReportService : IAccountingReportService
             .ToListAsync();
         var entryIds = entries.Select(e => e.Id).ToList();
 
-        // ── Vouchers linked to those entries — these drive the classification.
-        var vouchers = await _db.Set<Voucher>()
+        // ── Vouchers linked to those entries — these drive the classification. A corrected voucher
+        // owns two entries: its own (+amount) and the mirror posted by "Correct this voucher"
+        // (−amount, on the reversal date). Treating the mirror as the same voucher with the sign
+        // flipped keeps it in the voucher's own receipt/payment line instead of letting the
+        // manual-JV fallback read it as an unrelated receipt — which left payment totals unchanged.
+        var ownEntryVouchers = _db.Set<Voucher>()
             .Where(v => !v.IsDeleted && v.JournalEntryId != null && entryIds.Contains(v.JournalEntryId.Value))
+            .Select(v => new { Voucher = v, EntryId = v.JournalEntryId!.Value, Sign = 1m });
+        var reversalEntryVouchers = _db.Set<Voucher>()
+            .Where(v => !v.IsDeleted && v.ReversalJournalEntryId != null && entryIds.Contains(v.ReversalJournalEntryId.Value))
+            .Select(v => new { Voucher = v, EntryId = v.ReversalJournalEntryId!.Value, Sign = -1m });
+
+        var vouchers = (await ownEntryVouchers.ToListAsync()).Concat(await reversalEntryVouchers.ToListAsync())
+            .Select(x => new { x.EntryId, x.Sign, x.Voucher.Id })
+            .ToList();
+        var voucherIds = vouchers.Select(x => x.Id).Distinct().ToList();
+        var voucherDetails = (await _db.Set<Voucher>()
+            .Where(v => voucherIds.Contains(v.Id))
             .Select(v => new
             {
-                EntryId = v.JournalEntryId!.Value,
+                v.Id,
                 v.VoucherType,
                 v.Amount,
                 v.CostCenterId,
@@ -774,10 +794,21 @@ public class AccountingReportService : IAccountingReportService
                 CreditAccountCode = v.CreditAccount.AccountCode,
                 CreditAccountName = v.CreditAccount.AccountName,
             })
-            .ToListAsync();
+            .ToListAsync())
+            .ToDictionary(v => v.Id);
         var voucherByEntry = vouchers
             .GroupBy(v => v.EntryId)
-            .ToDictionary(g => g.Key, g => g.First());
+            .ToDictionary(g => g.Key, g =>
+            {
+                var link = g.First();
+                var d = voucherDetails[link.Id];
+                return new
+                {
+                    d.VoucherType, Amount = d.Amount * link.Sign, d.CostCenterId, d.CostCenterCode, d.CostCenterName,
+                    d.ProjectId, d.DebitAccountId, d.DebitAccountCode, d.DebitAccountName,
+                    d.CreditAccountId, d.CreditAccountCode, d.CreditAccountName,
+                };
+            });
 
         // ── The set of cash/bank accounts: flagged, bank-linked, or the money side of a voucher.
         var flaggedIds = await _db.Set<ChartOfAccount>()
@@ -942,7 +973,9 @@ public class AccountingReportService : IAccountingReportService
             }
         }
 
+        // A voucher and its reversal inside the same period net to zero — nothing moved, so no row.
         List<ReceiptsPaymentsGroupDto> BuildGroups(Dictionary<(Guid Cc, Guid Acct), decimal> map) => map
+            .Where(kv => kv.Value != 0)
             .GroupBy(kv => kv.Key.Cc)
             .Select(g =>
             {
