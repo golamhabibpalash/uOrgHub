@@ -27,6 +27,8 @@ const emptyForm = {
   assetAccountId: "",
   accumulatedDepreciationAccountId: "",
   depreciationExpenseAccountId: "",
+  hireExpenseAccountId: "",
+  hireRecoveryAccountId: "",
   isActive: true,
 };
 
@@ -41,6 +43,7 @@ export default function AssetCategories() {
   // Accumulated depreciation is a contra-asset, so both balance-sheet pickers draw from Asset accounts.
   const { options: assetAccountOptions } = useChartOfAccountsLookup("Asset");
   const { options: expenseAccountOptions } = useChartOfAccountsLookup("Expense");
+  const { options: incomeAccountOptions } = useChartOfAccountsLookup("Income");
 
   const { data, isLoading } = useQuery({
     queryKey: ["asset-categories", ...dg.queryKey],
@@ -62,6 +65,8 @@ export default function AssetCategories() {
         assetAccountId: form.assetAccountId,
         accumulatedDepreciationAccountId: form.accumulatedDepreciationAccountId,
         depreciationExpenseAccountId: form.depreciationExpenseAccountId,
+        hireExpenseAccountId: form.hireExpenseAccountId || undefined,
+        hireRecoveryAccountId: form.hireRecoveryAccountId || undefined,
         isActive: form.isActive,
       };
       return editing ? updateAssetCategory(editing.id, payload) : createAssetCategory(payload);
@@ -103,6 +108,8 @@ export default function AssetCategories() {
       assetAccountId: c.assetAccountId,
       accumulatedDepreciationAccountId: c.accumulatedDepreciationAccountId,
       depreciationExpenseAccountId: c.depreciationExpenseAccountId,
+      hireExpenseAccountId: c.hireExpenseAccountId ?? "",
+      hireRecoveryAccountId: c.hireRecoveryAccountId ?? "",
       isActive: c.isActive,
     });
     setSaveError("");
@@ -238,6 +245,32 @@ export default function AssetCategories() {
               searchPlaceholder="Search accounts..."
               required
             />
+          </div>
+
+          <div className="border-t border-gray-100 pt-3 space-y-3">
+            <p className="text-xs text-gray-400">
+              <strong>Internal equipment hire</strong> (optional — needed to deploy these assets on a hire rate). Each hire run posts
+              Dr <strong>hire expense</strong> on the project's cost center / Cr <strong>internal recovery</strong>, so projects carry
+              the cost while company-wide the two cancel out.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <SearchableDropdown
+                label="Equipment Hire Expense"
+                options={expenseAccountOptions}
+                value={form.hireExpenseAccountId}
+                onChange={(v) => setForm((f) => ({ ...f, hireExpenseAccountId: v ?? "" }))}
+                placeholder="None"
+                searchPlaceholder="Search accounts..."
+              />
+              <SearchableDropdown
+                label="Internal Equipment Recovery (income)"
+                options={incomeAccountOptions}
+                value={form.hireRecoveryAccountId}
+                onChange={(v) => setForm((f) => ({ ...f, hireRecoveryAccountId: v ?? "" }))}
+                placeholder="None"
+                searchPlaceholder="Search accounts..."
+              />
+            </div>
           </div>
 
           <div>

@@ -49,3 +49,21 @@ public static class DepreciationRunExportColumns
         new("notes", "Notes", x => x.Notes),
     ];
 }
+
+public static class HireChargeRunExportColumns
+{
+    public static List<ExportColumn<HireChargeRunResponseDto>> Get() =>
+    [
+        new("runNumber", "Run No.", x => x.RunNumber),
+        new("fromDate", "From", x => x.FromDate.ToString("yyyy-MM-dd")),
+        new("toDate", "To", x => x.ToDate.ToString("yyyy-MM-dd")),
+        new("deploymentCount", "Deployments", x => x.DeploymentCount),
+        new("totalAmount", "Total Hire", x => x.TotalAmount),
+        new("status", "Status", x => x.Status.ToString()),
+        new("journalEntry", "Journal Entry", x => x.JournalEntryEntryNumber),
+        new("createdBy", "Posted By", x => x.CreatedBy),
+        new("createdAt", "Posted At", x => x.CreatedAt.ToString("yyyy-MM-dd HH:mm")),
+        new("reversedBy", "Reversed By", x => x.ReversedBy),
+        new("notes", "Notes", x => x.Notes),
+    ];
+}

@@ -20,7 +20,7 @@ Accounts module. A journal entry is balanced double-entry (`TotalDebit == TotalC
 counts toward reports only when its status is `Posted`
 (`uOrgHub.Accounts/Models/Enums/JournalEntryStatus.cs`: `Draft, Posted, Cancelled`).
 
-**Only six actions post to the ledger.** Everything else upstream — requisitions, purchase
+**Only seven actions post to the ledger.** Everything else upstream — requisitions, purchase
 orders, goods receipts, RA bills — is paperwork that does not touch the books until it funnels
 into one of these:
 
@@ -32,8 +32,9 @@ into one of these:
 | 4 | **Project expense approved** | chosen debit account (carries the project cost center) | chosen credit account | `uOrgHub.Projects/Features/ProjectExpenses/Commands/ProjectExpenseCommands.cs:142-180` |
 | 5 | **Manual journal / bank transaction** | as entered | as entered | `uOrgHub.Accounts/Services/JournalEntryService.cs`, `uOrgHub.Accounts/Features/Banking/BankingFeatures.cs` |
 | 6 | **Depreciation run posted** (monthly) | Depreciation Expense (per asset, carries the asset's `CostCenterId`) | Accumulated Depreciation (contra-asset) | `uOrgHub.Accounts/Features/FixedAssets/DepreciationRunFeatures.cs` |
+| 7 | **Equipment hire run posted** (any date range) | Equipment Hire (per deployment, carries the **project's** cost center) | Internal Equipment Recovery (income) | `uOrgHub.Accounts/Features/FixedAssets/HireChargeRunFeatures.cs` |
 
-All six route through `IJournalEntryService` (`PostAsync` / `CancelAsync`), which is the single
+All seven route through `IJournalEntryService` (`PostAsync` / `CancelAsync`), which is the single
 choke point that moves account balances. Posting a bill or invoice stamps each expense/revenue
 line with its **cost center**, and that stamp is what makes project costing possible (section 4).
 
@@ -87,8 +88,17 @@ linked to that bill — the register itself never posts the acquisition, so the 
 once. From then on the monthly depreciation run (§1 row 6) moves cost to expense. Runs must go month
 by month; a run for a later month catches up skipped months per asset, and reversal goes
 newest-first (it cancels the entry and restores each asset's accumulated depreciation).
-Not built yet: disposal (sale/scrap gain-loss), deploying assets to projects with an internal hire
-charge, external rental, and turning a GRN into an asset automatically.
+**Machines on projects.** Deploying an asset to a project (`AssetDeployment`) records where it is and
+how the project pays: an internal hire rate (per day, or per month prorated by day), running costs
+only (fuel/operator/repairs booked as ordinary project expenses), or nothing. Hire reaches the books
+through hire charge runs over any date range: each hire-rate deployment is charged for its days on
+site inside the range, Dr Equipment Hire on the project's cost center / Cr Internal Equipment
+Recovery. Company-wide the pair nets to zero; per project it is real cost, so it shows in
+`ProjectFinancialService`'s Spent and trips the same over-ceiling warning as bills. Posted ranges
+never overlap (no day charged twice), any run can be reversed, and a machine cannot be returned
+before the last day already charged.
+Not built yet: disposal (sale/scrap gain-loss), external rental to third parties, maintenance/usage
+logs (and hourly hire rates that need them), and turning a GRN into an asset automatically.
 
 ---
 

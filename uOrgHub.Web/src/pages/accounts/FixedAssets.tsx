@@ -36,6 +36,7 @@ const statusColors: Record<FixedAssetStatus, string> = {
   Active: "bg-green-50 text-green-700",
   Idle: "bg-gray-100 text-gray-600",
   UnderMaintenance: "bg-yellow-50 text-yellow-700",
+  Deployed: "bg-blue-50 text-blue-700",
 };
 
 const emptyForm = {
@@ -387,10 +388,13 @@ export default function FixedAssets() {
               />
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">Status</label>
-                <select className={inputClass} value={form.status} onChange={(e) => set("status", e.target.value as FixedAssetStatus)}>
-                  {(Object.keys(fixedAssetStatusLabels) as FixedAssetStatus[]).map((s) => (
-                    <option key={s} value={s}>{fixedAssetStatusLabels[s]}</option>
-                  ))}
+                {/* "On project" is owned by Asset Deployments: set by deploying, cleared by returning. */}
+                <select className={inputClass} value={form.status} disabled={form.status === "Deployed"} onChange={(e) => set("status", e.target.value as FixedAssetStatus)}>
+                  {(Object.keys(fixedAssetStatusLabels) as FixedAssetStatus[])
+                    .filter((s) => s !== "Deployed" || form.status === "Deployed")
+                    .map((s) => (
+                      <option key={s} value={s}>{fixedAssetStatusLabels[s]}</option>
+                    ))}
                 </select>
               </div>
               <div>

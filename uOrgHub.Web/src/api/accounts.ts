@@ -16,7 +16,10 @@ export type BudgetStatus = "Draft" | "Approved" | "Active" | "Closed" | "Cancell
 export type VoucherType = "Debit" | "Credit" | "Contra";
 export type VoucherStatus = "Draft" | "Submitted" | "Approved" | "Posted" | "Rejected" | "Cancelled";
 export type DepreciationMethod = "StraightLine" | "DecliningBalance";
-export type FixedAssetStatus = "Active" | "Idle" | "UnderMaintenance";
+export type FixedAssetStatus = "Active" | "Idle" | "UnderMaintenance" | "Deployed";
+export type DeploymentChargeMode = "HireRate" | "RunningCostsOnly" | "None";
+export type HireRateUnit = "PerDay" | "PerMonth";
+export type HireChargeRunStatus = "Posted" | "Reversed";
 export type DepreciationRunStatus = "Posted" | "Reversed";
 
 export const depreciationMethodLabels: Record<DepreciationMethod, string> = {
@@ -28,6 +31,18 @@ export const fixedAssetStatusLabels: Record<FixedAssetStatus, string> = {
   Active: "Active",
   Idle: "Idle",
   UnderMaintenance: "Under maintenance",
+  Deployed: "On project",
+};
+
+export const chargeModeLabels: Record<DeploymentChargeMode, string> = {
+  HireRate: "Internal hire rate",
+  RunningCostsOnly: "Running costs only",
+  None: "No charge",
+};
+
+export const hireRateUnitLabels: Record<HireRateUnit, string> = {
+  PerDay: "per day",
+  PerMonth: "per month",
 };
 
 // ── Account Groups ─────────────────────────────────────────────────────────
@@ -168,7 +183,7 @@ export interface JournalEntry {
    * entry belongs to that document's workflow — it cannot be posted, edited, deleted or cancelled
    * from this screen.
    */
-  sourceDocumentType?: "Voucher" | "Bill" | "Invoice" | "Payment" | "Depreciation";
+  sourceDocumentType?: "Voucher" | "Bill" | "Invoice" | "Payment" | "Depreciation" | "Equipment Hire";
   sourceDocumentNumber?: string;
   sourceDocumentStatus?: string;
   isSystemGenerated: boolean;
@@ -738,6 +753,10 @@ export interface AssetCategory {
   accumulatedDepreciationAccountName?: string;
   depreciationExpenseAccountId: string;
   depreciationExpenseAccountName?: string;
+  hireExpenseAccountId?: string;
+  hireExpenseAccountName?: string;
+  hireRecoveryAccountId?: string;
+  hireRecoveryAccountName?: string;
   isActive: boolean;
 }
 
@@ -751,6 +770,8 @@ export interface AssetCategoryPayload {
   assetAccountId: string;
   accumulatedDepreciationAccountId: string;
   depreciationExpenseAccountId: string;
+  hireExpenseAccountId?: string;
+  hireRecoveryAccountId?: string;
   isActive?: boolean;
 }
 
@@ -922,6 +943,112 @@ export const postDepreciationRun = (data: { year: number; month: number; notes?:
 
 export const reverseDepreciationRun = (id: string) =>
   apiClient.post<ApiResponse<DepreciationRun>>(`/accounts/depreciation-runs/${id}/reverse`, {});
+
+// ── Asset Deployments & Equipment Hire ─────────────────────────────────────
+
+export interface AssetDeployment {
+  id: string;
+  fixedAssetId: string;
+  fixedAssetAssetCode: string;
+  fixedAssetName: string;
+  projectId: string;
+  costCenterId: string;
+  /** The project's cost center carries the project's name. */
+  costCenterName?: string;
+  startDate: string;
+  endDate?: string;
+  isOpen: boolean;
+  chargeMode: DeploymentChargeMode;
+  rateUnit?: HireRateUnit;
+  rate?: number;
+  notes?: string;
+  returnNotes?: string;
+  /** Last day covered by a posted hire charge run. */
+  chargedUpTo?: string;
+  totalHireCharged: number;
+}
+
+export interface DeployAssetPayload {
+  fixedAssetId: string;
+  projectId: string;
+  startDate: string;
+  chargeMode: DeploymentChargeMode;
+  rateUnit?: HireRateUnit;
+  rate?: number;
+  notes?: string;
+}
+
+export interface ReturnAssetPayload {
+  endDate: string;
+  returnLocation?: string;
+  returnStatus: Exclude<FixedAssetStatus, "Deployed">;
+  returnNotes?: string;
+}
+
+export const getAssetDeployments = (params: PaginationRequest, filters: { fixedAssetId?: string; projectId?: string; openOnly?: boolean } = {}) =>
+  apiClient.get<ApiResponse<PagedResult<AssetDeployment>>>("/accounts/asset-deployments", { params: { ...params, ...filters } });
+
+export const deployAsset = (data: DeployAssetPayload) =>
+  apiClient.post<ApiResponse<AssetDeployment>>("/accounts/asset-deployments", data);
+
+export const returnAsset = (id: string, data: ReturnAssetPayload) =>
+  apiClient.post<ApiResponse<AssetDeployment>>(`/accounts/asset-deployments/${id}/return`, data);
+
+export const cancelAssetDeployment = (id: string) =>
+  apiClient.delete<ApiResponse<string>>(`/accounts/asset-deployments/${id}`);
+
+export interface HireChargeLine {
+  assetDeploymentId: string;
+  assetCode: string;
+  assetName: string;
+  projectName: string;
+  fromDate: string;
+  toDate: string;
+  days: number;
+  rateUnit: HireRateUnit;
+  rate: number;
+  amount: number;
+}
+
+export interface HireChargePreview {
+  fromDate: string;
+  toDate: string;
+  totalAmount: number;
+  lines: HireChargeLine[];
+  /** Set when the charges would push a project past its cost ceiling. Reported, never blocking. */
+  warning?: string;
+}
+
+export interface HireChargeRun {
+  id: string;
+  runNumber: string;
+  fromDate: string;
+  toDate: string;
+  totalAmount: number;
+  status: HireChargeRunStatus;
+  notes?: string;
+  journalEntryId?: string;
+  journalEntryEntryNumber?: string;
+  createdAt: string;
+  createdBy: string;
+  reversedAt?: string;
+  reversedBy?: string;
+  deploymentCount: number;
+  lines: HireChargeLine[];
+  warning?: string;
+}
+
+export const getHireChargeRuns = (params: PaginationRequest) =>
+  apiClient.get<ApiResponse<PagedResult<HireChargeRun>>>("/accounts/hire-charge-runs", { params });
+
+export const previewHireCharges = (fromDate: string, toDate: string) =>
+  apiClient.get<ApiResponse<HireChargePreview>>("/accounts/hire-charge-runs/preview", { params: { fromDate, toDate } });
+
+export const postHireChargeRun = (data: { fromDate: string; toDate: string; notes?: string }) =>
+  apiClient.post<ApiResponse<HireChargeRun>>("/accounts/hire-charge-runs", data);
+
+export const reverseHireChargeRun = (id: string) =>
+  apiClient.post<ApiResponse<HireChargeRun>>(`/accounts/hire-charge-runs/${id}/reverse`, {});
 
 // ── Accounting Reports ─────────────────────────────────────────────────────
 

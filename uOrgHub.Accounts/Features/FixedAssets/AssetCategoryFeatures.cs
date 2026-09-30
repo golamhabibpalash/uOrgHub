@@ -97,7 +97,7 @@ public class CreateAssetCategoryCommandHandler : IRequestHandler<CreateAssetCate
     public async Task<AssetCategoryResponseDto> Handle(CreateAssetCategoryCommand request, CancellationToken ct)
     {
         var dto = request.Dto;
-        await AssetCategoryQueries.EnsureAccountsAsync(_context, dto.AssetAccountId, dto.AccumulatedDepreciationAccountId, dto.DepreciationExpenseAccountId, ct);
+        await AssetCategoryQueries.EnsureAccountsAsync(_context, dto.AssetAccountId, dto.AccumulatedDepreciationAccountId, dto.DepreciationExpenseAccountId, dto.HireExpenseAccountId, dto.HireRecoveryAccountId, ct);
 
         var set = _context.Set<Models.Entities.AssetCategory>();
         var code = dto.Code?.Trim() ?? string.Empty;
@@ -137,7 +137,7 @@ public class UpdateAssetCategoryCommandHandler : IRequestHandler<UpdateAssetCate
             .FirstOrDefaultAsync(x => !x.IsDeleted && x.Id == request.Id, ct)
             ?? throw new NotFoundException(nameof(Models.Entities.AssetCategory), request.Id);
 
-        await AssetCategoryQueries.EnsureAccountsAsync(_context, dto.AssetAccountId, dto.AccumulatedDepreciationAccountId, dto.DepreciationExpenseAccountId, ct);
+        await AssetCategoryQueries.EnsureAccountsAsync(_context, dto.AssetAccountId, dto.AccumulatedDepreciationAccountId, dto.DepreciationExpenseAccountId, dto.HireExpenseAccountId, dto.HireRecoveryAccountId, ct);
 
         // Re-pointing the GL accounts once depreciation has posted would split one asset's history
         // across two sets of accounts: past runs credited the old ones, future runs the new ones.
@@ -146,6 +146,11 @@ public class UpdateAssetCategoryCommandHandler : IRequestHandler<UpdateAssetCate
             || entity.DepreciationExpenseAccountId != dto.DepreciationExpenseAccountId;
         if (accountsChanged && await AssetCategoryQueries.HasPostedDepreciationAsync(_context, entity.Id, ct))
             throw new AppException("This category's assets already have posted depreciation, so its GL accounts can no longer be changed.");
+
+        var hireAccountsChanged = entity.HireExpenseAccountId != dto.HireExpenseAccountId
+            || entity.HireRecoveryAccountId != dto.HireRecoveryAccountId;
+        if (hireAccountsChanged && await AssetCategoryQueries.HasPostedHireChargesAsync(_context, entity.Id, ct))
+            throw new AppException("Hire charges have already been posted for this category's assets, so its hire accounts can no longer be changed.");
 
         _mapper.UpdateEntity(dto, entity);
         entity.UpdatedAt = DateTime.UtcNow;
@@ -182,7 +187,16 @@ internal static class AssetCategoryQueries
         context.Set<Models.Entities.AssetCategory>()
             .Include(x => x.AssetAccount)
             .Include(x => x.AccumulatedDepreciationAccount)
-            .Include(x => x.DepreciationExpenseAccount);
+            .Include(x => x.DepreciationExpenseAccount)
+            .Include(x => x.HireExpenseAccount)
+            .Include(x => x.HireRecoveryAccount);
+
+    public static Task<bool> HasPostedHireChargesAsync(AppDbContext context, Guid categoryId, CancellationToken ct) =>
+        context.Set<Models.Entities.HireChargeRunLine>().AnyAsync(l =>
+            !l.IsDeleted
+            && l.AssetDeployment.FixedAsset.CategoryId == categoryId
+            && l.HireChargeRun.Status == HireChargeRunStatus.Posted
+            && !l.HireChargeRun.IsDeleted, ct);
 
     public static Task<bool> HasPostedDepreciationAsync(AppDbContext context, Guid categoryId, CancellationToken ct) =>
         context.Set<Models.Entities.DepreciationRunLine>().AnyAsync(l =>
@@ -195,12 +209,15 @@ internal static class AssetCategoryQueries
     /// Accumulated depreciation is a contra-asset: it lives with the assets on the balance sheet and
     /// carries a credit balance, so it must be an Asset-type account — not a liability.
     /// </summary>
-    public static async Task EnsureAccountsAsync(AppDbContext context, Guid assetAccountId, Guid accumulatedAccountId, Guid expenseAccountId, CancellationToken ct)
+    public static async Task EnsureAccountsAsync(AppDbContext context, Guid assetAccountId, Guid accumulatedAccountId, Guid expenseAccountId,
+        Guid? hireExpenseAccountId, Guid? hireRecoveryAccountId, CancellationToken ct)
     {
         if (assetAccountId == accumulatedAccountId)
             throw new AppException("The asset account and the accumulated depreciation account must be different accounts.");
 
-        var ids = new[] { assetAccountId, accumulatedAccountId, expenseAccountId };
+        var ids = new List<Guid> { assetAccountId, accumulatedAccountId, expenseAccountId };
+        if (hireExpenseAccountId.HasValue) ids.Add(hireExpenseAccountId.Value);
+        if (hireRecoveryAccountId.HasValue) ids.Add(hireRecoveryAccountId.Value);
         var accounts = await context.Set<Models.Entities.ChartOfAccount>()
             .Where(a => ids.Contains(a.Id) && !a.IsDeleted)
             .ToDictionaryAsync(a => a.Id, ct);
@@ -208,6 +225,12 @@ internal static class AssetCategoryQueries
         Check(accounts, assetAccountId, AccountGroupType.Asset, "Asset account");
         Check(accounts, accumulatedAccountId, AccountGroupType.Asset, "Accumulated depreciation account");
         Check(accounts, expenseAccountId, AccountGroupType.Expense, "Depreciation expense account");
+        // Hire is charged to the project as an expense and recovered by the company as income, so
+        // the pair nets to zero company-wide while the project carries the cost.
+        if (hireExpenseAccountId.HasValue)
+            Check(accounts, hireExpenseAccountId.Value, AccountGroupType.Expense, "Equipment hire expense account");
+        if (hireRecoveryAccountId.HasValue)
+            Check(accounts, hireRecoveryAccountId.Value, AccountGroupType.Income, "Internal equipment recovery account");
     }
 
     private static void Check(Dictionary<Guid, Models.Entities.ChartOfAccount> accounts, Guid id, AccountGroupType expected, string label)

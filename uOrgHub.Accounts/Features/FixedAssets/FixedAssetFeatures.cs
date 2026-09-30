@@ -214,6 +214,12 @@ public class UpdateFixedAssetCommandHandler : IRequestHandler<UpdateFixedAssetCo
         if (dto.CategoryId != entity.CategoryId)
             await FixedAssetQueries.GetActiveCategoryAsync(_context, dto.CategoryId, ct);
 
+        // Deployed is owned by the deployment record: set by deploying, cleared by returning.
+        if (entity.Status == FixedAssetStatus.Deployed && dto.Status != FixedAssetStatus.Deployed)
+            throw new AppException("This asset is on a project. Return it from its deployment to change its status.");
+        if (entity.Status != FixedAssetStatus.Deployed && dto.Status == FixedAssetStatus.Deployed)
+            throw new AppException("Deploy the asset to a project instead of setting its status to Deployed.");
+
         // Once depreciation has posted, the figures it was computed from are history. Changing them
         // would leave the ledger disagreeing with the register with no entry explaining why.
         var financialsChanged = dto.CategoryId != entity.CategoryId
@@ -251,6 +257,8 @@ public class DeleteFixedAssetCommandHandler : IRequestHandler<DeleteFixedAssetCo
 
         if (await FixedAssetQueries.HasPostedDepreciationAsync(_context, entity.Id, ct))
             throw new AppException("This asset has posted depreciation and cannot be deleted. Reverse its depreciation runs first.");
+        if (await _context.Set<Models.Entities.AssetDeployment>().AnyAsync(x => !x.IsDeleted && x.FixedAssetId == entity.Id, ct))
+            throw new AppException("This asset has project deployments on record and cannot be deleted. Cancel them first.");
 
         entity.IsDeleted = true;
         entity.DeletedAt = DateTime.UtcNow;

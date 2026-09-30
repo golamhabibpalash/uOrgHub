@@ -16,6 +16,8 @@ public class CreateAssetCategoryDto
     public Guid AssetAccountId { get; set; }
     public Guid AccumulatedDepreciationAccountId { get; set; }
     public Guid DepreciationExpenseAccountId { get; set; }
+    public Guid? HireExpenseAccountId { get; set; }
+    public Guid? HireRecoveryAccountId { get; set; }
 }
 
 public class UpdateAssetCategoryDto
@@ -28,6 +30,8 @@ public class UpdateAssetCategoryDto
     public Guid AssetAccountId { get; set; }
     public Guid AccumulatedDepreciationAccountId { get; set; }
     public Guid DepreciationExpenseAccountId { get; set; }
+    public Guid? HireExpenseAccountId { get; set; }
+    public Guid? HireRecoveryAccountId { get; set; }
     public bool IsActive { get; set; }
 }
 
@@ -46,6 +50,10 @@ public class AssetCategoryResponseDto
     public string? AccumulatedDepreciationAccountName { get; set; }
     public Guid DepreciationExpenseAccountId { get; set; }
     public string? DepreciationExpenseAccountName { get; set; }
+    public Guid? HireExpenseAccountId { get; set; }
+    public string? HireExpenseAccountName { get; set; }
+    public Guid? HireRecoveryAccountId { get; set; }
+    public string? HireRecoveryAccountName { get; set; }
     public bool IsActive { get; set; }
 }
 

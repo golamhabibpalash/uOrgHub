@@ -34,6 +34,20 @@ public class AssetCategory : BaseEntity, ICompanyScoped
     public Guid DepreciationExpenseAccountId { get; set; }
     public ChartOfAccount DepreciationExpenseAccount { get; set; } = null!;
 
+    /// <summary>
+    /// Expense debited on the project's cost center for internal equipment hire. Optional until an
+    /// asset in this category is deployed on a hire rate.
+    /// </summary>
+    public Guid? HireExpenseAccountId { get; set; }
+    public ChartOfAccount? HireExpenseAccount { get; set; }
+
+    /// <summary>
+    /// Income credited with the same hire charge. Company-wide it cancels the hire expense, so
+    /// internal hire moves cost onto projects without inflating the company's own profit.
+    /// </summary>
+    public Guid? HireRecoveryAccountId { get; set; }
+    public ChartOfAccount? HireRecoveryAccount { get; set; }
+
     public bool IsActive { get; set; } = true;
 
     public ICollection<FixedAsset> Assets { get; set; } = new List<FixedAsset>();
