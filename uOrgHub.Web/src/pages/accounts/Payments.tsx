@@ -2,12 +2,13 @@ import { Fragment, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { Plus, ChevronDown, ChevronUp, FileCheck2, AlertCircle } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp, FileCheck2, AlertCircle, Printer } from "lucide-react";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
 import SearchableDropdown from "../../components/shared/SearchableDropdown";
 import AttachmentManager from "../../components/shared/AttachmentManager";
 import PendingAttachments from "../../components/shared/PendingAttachments";
+import MoneyReceiptDialog from "../../components/accounts/MoneyReceiptDialog";
 import {
   useCustomerLookup,
   useVendorLookup,
@@ -16,9 +17,12 @@ import {
 } from "../../hooks/useEntityLookup";
 import {
   getPayments,
+  getMoneyReceiptSeries,
+  setMoneyReceiptSeries,
   createPayment,
   getInvoices,
   getBills,
+  isInflowPayment,
   PaymentType,
   PaymentMethod,
 } from "../../api/accounts";
@@ -67,6 +71,7 @@ const emptyForm = () => ({
   bankAccountId: "",
   fiscalYearId: "",
   createVoucher: false,
+  moneyReceiptNumber: "",
   allocations: [] as { invoiceId: string; billId: string; allocatedAmount: number }[],
 });
 
@@ -82,6 +87,10 @@ export default function Payments() {
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [receiptPaymentId, setReceiptPaymentId] = useState<string | null>(null);
+  const [seriesOpen, setSeriesOpen] = useState(false);
+  const [seriesNext, setSeriesNext] = useState("");
+  const canEditSeries = hasRole("Admin") || hasClaim("Accounts.Payments.Edit");
   const [saveError, setSaveError] = useState("");
   const [formErrors, setFormErrors] = useState<string[]>([]);
 
@@ -105,6 +114,24 @@ export default function Payments() {
   const openBills = allBills.filter((b) => ["Received", "PartiallyPaid", "Overdue"].includes(b.status));
 
   const isCustomerPayment = ["CustomerPayment", "AdvanceFromCustomer"].includes(form.paymentType);
+  // Money received gets an MR No.; a vendor refund is money received too.
+  const formIsInflow = isInflowPayment({ paymentType: form.paymentType, vendorId: form.vendorId || null });
+
+  const { data: seriesData } = useQuery({
+    queryKey: ["mr-series"],
+    queryFn: getMoneyReceiptSeries,
+    enabled: modal || seriesOpen,
+  });
+  const nextMr = seriesData?.data?.data?.nextNumber;
+
+  const seriesMutation = useMutation({
+    mutationFn: () => setMoneyReceiptSeries(parseInt(seriesNext, 10)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["mr-series"] });
+      setSeriesOpen(false);
+    },
+    onError: (err: unknown) => toast.error(extractApiError(err)),
+  });
   const isVendorPayment = ["VendorPayment", "AdvanceToVendor"].includes(form.paymentType);
   const hasParty = isCustomerPayment || isVendorPayment;
   const voucherKind = isCustomerPayment ? "Credit (money received)" : "Debit (money paid out)";
@@ -120,6 +147,7 @@ export default function Payments() {
         chequeNumber: form.chequeNumber || undefined,
         notes: form.notes || undefined,
         createVoucher: hasParty && form.createVoucher,
+        moneyReceiptNumber: formIsInflow && form.moneyReceiptNumber.trim() ? form.moneyReceiptNumber.trim() : undefined,
         allocations: form.allocations
           .filter((a) => a.allocatedAmount > 0)
           .map((a) => ({ invoiceId: a.invoiceId || undefined, billId: a.billId || undefined, allocatedAmount: a.allocatedAmount })),
@@ -146,7 +174,10 @@ export default function Payments() {
         toast.success(`Voucher ${payment.voucherNumber} created and posted.`);
       }
       if (payment?.id) qc.invalidateQueries({ queryKey: ["attachments", ATTACHMENT_ENTITY, payment.id] });
+      if (payment?.moneyReceiptNumber) qc.invalidateQueries({ queryKey: ["mr-series"] });
       closeModal(true);
+      // Money received — hand the client their receipt straight away.
+      if (payment?.id && isInflowPayment(payment)) setReceiptPaymentId(payment.id);
     },
     onError: (err: unknown) => setSaveError(extractApiError(err) || "Failed to save payment."),
   });
@@ -222,9 +253,20 @@ export default function Payments() {
           <h2 className="text-base font-medium text-gray-900">Payments</h2>
           <p className="text-xs text-gray-400">Record customer and vendor payments</p>
         </div>
-        <button onClick={openAdd} className="flex items-center gap-2 bg-primary-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-primary-600">
-          <Plus size={15} /> Record Payment
-        </button>
+        <div className="flex items-center gap-2">
+          {canEditSeries && (
+            <button
+              onClick={() => { setSeriesNext(nextMr ? String(nextMr) : ""); setSeriesOpen(true); }}
+              className="text-sm border border-gray-200 px-3 py-2 rounded-lg hover:bg-gray-50 text-gray-600"
+              title="Set where the money receipt (MR No.) series continues"
+            >
+              MR No. series
+            </button>
+          )}
+          <button onClick={openAdd} className="flex items-center gap-2 bg-primary-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-primary-600">
+            <Plus size={15} /> Record Payment
+          </button>
+        </div>
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
@@ -245,18 +287,19 @@ export default function Payments() {
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="bg-gray-50">
-                  {["Payment #", "Type", "Method", "Date", "Party", "Amount", "Reference", "Voucher", ""].map((h, i) => (
+                  {["Payment #", "MR No.", "Type", "Method", "Date", "Party", "Amount", "Reference", "Voucher", ""].map((h, i) => (
                     <th key={h || i} className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 border-b border-gray-200">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {payments.length === 0 ? (
-                  <tr><td colSpan={9} className="text-center py-10 text-gray-400">No payments found</td></tr>
+                  <tr><td colSpan={10} className="text-center py-10 text-gray-400">No payments found</td></tr>
                 ) : payments.map((pmt) => (
                   <Fragment key={pmt.id}>
                     <tr className="border-t border-gray-100 hover:bg-gray-50">
                       <td className="px-4 py-2.5 font-medium text-primary-600">{pmt.paymentNumber}</td>
+                      <td className="px-4 py-2.5 font-mono text-gray-700">{pmt.moneyReceiptNumber ?? "—"}</td>
                       <td className="px-4 py-2.5">
                         <span className={`text-xs px-2 py-0.5 rounded-full ${typeColors[pmt.paymentType]}`}>{pmt.paymentType}</span>
                       </td>
@@ -288,7 +331,7 @@ export default function Payments() {
                     </tr>
                     {expandedId === pmt.id && (
                       <tr className="bg-gray-50">
-                        <td colSpan={9} className="px-6 py-4">
+                        <td colSpan={10} className="px-6 py-4">
                           <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
                             <div className="lg:col-span-3 bg-white border border-gray-200 rounded-xl p-4 space-y-4">
                               <div>
@@ -321,6 +364,14 @@ export default function Payments() {
                                   "Not posted to the ledger (no bank account or party account)."
                                 )}
                               </div>
+                              {isInflowPayment(pmt) && (
+                                <button
+                                  onClick={() => setReceiptPaymentId(pmt.id)}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-700"
+                                >
+                                  <Printer size={14} /> Print money receipt
+                                </button>
+                              )}
                             </div>
                             <div className="lg:col-span-2">
                               <AttachmentManager entityType={ATTACHMENT_ENTITY} entityId={pmt.id} canEdit={canEditAttachments} />
@@ -351,6 +402,19 @@ export default function Payments() {
               <label className="text-xs text-gray-500 mb-1 block">Payment Number</label>
               <input className={inputCls} value={form.paymentNumber} onChange={(e) => setForm((f) => ({ ...f, paymentNumber: e.target.value }))} placeholder="Auto-generated if blank" />
             </div>
+            {formIsInflow && (
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">MR No.</label>
+                <input
+                  className={inputCls}
+                  value={form.moneyReceiptNumber}
+                  maxLength={30}
+                  onChange={(e) => setForm((f) => ({ ...f, moneyReceiptNumber: e.target.value }))}
+                  placeholder={nextMr ? `Auto: ${nextMr}` : "Auto-generated if blank"}
+                />
+                <p className="text-[11px] text-gray-400 mt-0.5">Type only if a paper receipt was already given</p>
+              </div>
+            )}
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Payment Date *</label>
               <DateInput className={inputCls} value={form.paymentDate} onChange={(e) => setForm((f) => ({ ...f, paymentDate: e.target.value }))} />
@@ -497,6 +561,38 @@ export default function Payments() {
           </div>
         </div>
       </Modal>
+
+      <Modal title="Money receipt (MR No.) series" open={seriesOpen} onClose={() => setSeriesOpen(false)} size="md">
+        <div className="space-y-3">
+          <p className="text-sm text-gray-600">
+            Money receipts are numbered in one running series that continues your paper MR books. Set the number the
+            next receipt should get — e.g. one after the last paper receipt you issued.
+          </p>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Next MR No.</label>
+            <input
+              type="number"
+              min={1}
+              className={inputCls}
+              value={seriesNext}
+              placeholder={nextMr ? `Currently ${nextMr}` : ""}
+              onChange={(e) => setSeriesNext(e.target.value)}
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button onClick={() => setSeriesOpen(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
+            <button
+              onClick={() => seriesMutation.mutate()}
+              disabled={!(parseInt(seriesNext, 10) > 0) || seriesMutation.isPending}
+              className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
+            >
+              {seriesMutation.isPending ? "Saving..." : "Save"}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <MoneyReceiptDialog paymentId={receiptPaymentId} onClose={() => setReceiptPaymentId(null)} />
     </div>
   );
 }

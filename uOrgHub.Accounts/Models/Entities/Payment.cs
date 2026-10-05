@@ -17,6 +17,12 @@ public class Payment : BaseEntity, ICompanyScoped
     [Column(TypeName = "decimal(18,2)")] public decimal Amount { get; set; }
     [MaxLength(50)]  public string? ReferenceNumber { get; set; }
     [MaxLength(50)]  public string? ChequeNumber { get; set; }
+
+    /// <summary>
+    /// MR No. printed on the money receipt for money received — its own running series continuing the
+    /// company's paper MR books (see MoneyReceiptSeries). Null for money paid out.
+    /// </summary>
+    [MaxLength(30)]  public string? MoneyReceiptNumber { get; set; }
     [MaxLength(1000)] public string? Notes { get; set; }
 
     public Guid? CustomerId { get; set; }

@@ -707,12 +707,16 @@ export interface Payment {
   /** Posted Debit/Credit voucher generated with the payment, when one was requested. */
   voucherId?: string;
   voucherNumber?: string;
+  /** MR No. of the money receipt (money received only). */
+  moneyReceiptNumber?: string;
   allocations: PaymentAllocation[];
 }
 
 export interface CreatePaymentPayload extends Omit<Partial<Payment>, "allocations"> {
   /** Also generate a posted voucher documenting the payment's journal entry. */
   createVoucher?: boolean;
+  /** Leave empty to take the next MR No.; type one only for a paper receipt already handed over. */
+  moneyReceiptNumber?: string;
   allocations: { invoiceId?: string; billId?: string; allocatedAmount: number }[];
 }
 
@@ -721,6 +725,60 @@ export const getPayments = (params: PaginationRequest, customerId?: string, vend
 
 export const getPaymentById = (id: string) =>
   apiClient.get<ApiResponse<Payment>>(`/accounts/payments/${id}`);
+
+/** Printable money receipt for a payment received (inflow payments only). */
+export interface PaymentReceipt {
+  paymentId: string;
+  receiptNumber: string;
+  receiptDate: string;
+  paymentType: PaymentType;
+  paymentMethod: PaymentMethod;
+  referenceNumber?: string;
+  chequeNumber?: string;
+  bankAccountName?: string;
+  bankName?: string;
+  amount: number;
+  notes?: string;
+  voucherNumber?: string;
+  partyName: string;
+  partyAddress?: string;
+  partyPhone?: string;
+  allocatedAmount: number;
+  /** Received but not applied to any bill — held as an advance. */
+  unallocatedAmount: number;
+  lines: PaymentReceiptLine[];
+  preparedBy: string;
+}
+
+export interface PaymentReceiptLine {
+  documentId: string;
+  documentType: "Invoice" | "Bill";
+  documentNumber: string;
+  documentDate: string;
+  projectName?: string;
+  /** e.g. the RA bill an invoice was raised from. */
+  sourceReference?: string;
+  documentTotal: number;
+  /** Paid by receipts dated before this one — the balance as it stood when this was received. */
+  paidBefore: number;
+  thisReceipt: number;
+  balanceAfter: number;
+}
+
+export const getMoneyReceiptSeries = () =>
+  apiClient.get<ApiResponse<{ nextNumber: number }>>("/accounts/payments/mr-series");
+
+export const setMoneyReceiptSeries = (nextNumber: number) =>
+  apiClient.put<ApiResponse<{ nextNumber: number }>>("/accounts/payments/mr-series", { nextNumber });
+
+export const getPaymentReceipt = (id: string) =>
+  apiClient.get<ApiResponse<PaymentReceipt>>(`/accounts/payments/${id}/receipt`);
+
+/** Money in: customer payment, advance from customer, or a refund from a vendor. */
+export const isInflowPayment = (p: { paymentType: PaymentType; vendorId?: string | null }) =>
+  p.paymentType === "CustomerPayment" ||
+  p.paymentType === "AdvanceFromCustomer" ||
+  (p.paymentType === "Refund" && Boolean(p.vendorId));
 
 export const createPayment = (data: CreatePaymentPayload) =>
   apiClient.post<ApiResponse<Payment>>("/accounts/payments", data);

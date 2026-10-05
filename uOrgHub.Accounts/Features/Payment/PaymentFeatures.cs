@@ -20,6 +20,10 @@ public record GetPaymentByIdQuery(Guid Id) : IQuery<PaymentResponseDto>;
 public record CreatePaymentCommand(CreatePaymentDto Dto, string CreatedBy = "system") : ICommand<PaymentResponseDto>;
 public record VoidPaymentCommand(Guid Id) : ICommand<PaymentResponseDto>;
 public record GetAllPaymentsForExportQuery : IQuery<List<PaymentResponseDto>>;
+/// <summary>Printable money receipt — inflow payments only (money received).</summary>
+public record GetPaymentReceiptQuery(Guid Id) : IQuery<PaymentReceiptDto>;
+public record GetMoneyReceiptSeriesQuery : IQuery<MoneyReceiptSeriesDto>;
+public record SetMoneyReceiptSeriesCommand(MoneyReceiptSeriesDto Dto) : ICommand<MoneyReceiptSeriesDto>;
 
 public class GetPaymentsQueryHandler : IRequestHandler<GetPaymentsQuery, PagedResult<PaymentResponseDto>>
 {
@@ -42,7 +46,7 @@ public class GetPaymentsQueryHandler : IRequestHandler<GetPaymentsQuery, PagedRe
             query = query.Where(x => x.VendorId == request.VendorId.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
-            query = query.WhereSearch(request.Request.Search, x => x.PaymentNumber, x => x.ReferenceNumber);
+            query = query.WhereSearch(request.Request.Search, x => x.PaymentNumber, x => x.ReferenceNumber, x => x.MoneyReceiptNumber!);
 
         query = request.Request.SortDescending
             ? query.OrderByDescending(x => x.PaymentDate)
@@ -183,6 +187,12 @@ public class CreatePaymentCommandHandler : IRequestHandler<CreatePaymentCommand,
             }
         }
 
+        // Money received gets an MR No. from the receipt series (or the one typed from a paper receipt).
+        if (PaymentDirection.IsInflow(entity))
+            entity.MoneyReceiptNumber = string.IsNullOrWhiteSpace(request.Dto.MoneyReceiptNumber)
+                ? await MoneyReceiptSeries.TakeNextAsync(_context, ct)
+                : await MoneyReceiptSeries.UseManualAsync(_context, request.Dto.MoneyReceiptNumber, ct);
+
         _context.Set<Models.Entities.Payment>().Add(entity);
         await _context.SaveChangesAsync(ct);
 
@@ -267,10 +277,7 @@ public class CreatePaymentCommandHandler : IRequestHandler<CreatePaymentCommand,
         return voucher;
     }
 
-    // Inflow: CustomerPayment, AdvanceFromCustomer, or a vendor-side Refund (vendor refunds us)
-    private static bool IsInflow(Models.Entities.Payment payment)
-        => payment.PaymentType is PaymentType.CustomerPayment or PaymentType.AdvanceFromCustomer
-            || (payment.PaymentType == PaymentType.Refund && payment.VendorId.HasValue);
+    private static bool IsInflow(Models.Entities.Payment payment) => PaymentDirection.IsInflow(payment);
 
     private async Task<Guid> ResolveArApAccountIdAsync(CreatePaymentDto dto, CancellationToken ct)
     {
@@ -408,6 +415,116 @@ public class GetAllPaymentsForExportQueryHandler : IRequestHandler<GetAllPayment
     }
 }
 
+public class GetPaymentReceiptQueryHandler : IRequestHandler<GetPaymentReceiptQuery, PaymentReceiptDto>
+{
+    private readonly AppDbContext _context;
+    public GetPaymentReceiptQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<PaymentReceiptDto> Handle(GetPaymentReceiptQuery request, CancellationToken ct)
+    {
+        var p = await _context.Set<Models.Entities.Payment>()
+            .Include(x => x.Customer)
+            .Include(x => x.Vendor)
+            .Include(x => x.BankAccount)
+            .Include(x => x.Voucher)
+            .Include(x => x.Allocations).ThenInclude(a => a.Invoice!).ThenInclude(i => i.CostCenter)
+            .Include(x => x.Allocations).ThenInclude(a => a.Bill!).ThenInclude(b => b.CostCenter)
+            .FirstOrDefaultAsync(x => !x.IsDeleted && x.Id == request.Id, ct)
+            ?? throw new NotFoundException(nameof(Models.Entities.Payment), request.Id);
+
+        if (!PaymentDirection.IsInflow(p))
+            throw new AppException($"Payment {p.PaymentNumber} is money paid out — a money receipt is only issued for money received.");
+
+        var allocations = p.Allocations.Where(a => !a.IsDeleted).ToList();
+        var lines = new List<PaymentReceiptLineDto>();
+        foreach (var a in allocations)
+        {
+            if (a.Invoice is { } inv)
+                lines.Add(await BuildLineAsync("Invoice", inv.Id, inv.InvoiceNumber, inv.InvoiceDate, inv.CostCenter?.Name,
+                    inv.TotalAmount, a.AllocatedAmount, x => x.InvoiceId == inv.Id, p, ct));
+            else if (a.Bill is { } bill)
+                lines.Add(await BuildLineAsync("Bill", bill.Id, bill.BillNumber, bill.BillDate, bill.CostCenter?.Name,
+                    bill.TotalAmount, a.AllocatedAmount, x => x.BillId == bill.Id, p, ct));
+        }
+
+        var allocated = allocations.Sum(a => a.AllocatedAmount);
+        return new PaymentReceiptDto
+        {
+            PaymentId = p.Id,
+            ReceiptNumber = p.MoneyReceiptNumber ?? p.PaymentNumber,
+            ReceiptDate = p.PaymentDate,
+            PaymentType = p.PaymentType,
+            PaymentMethod = p.PaymentMethod,
+            ReferenceNumber = p.ReferenceNumber,
+            ChequeNumber = p.ChequeNumber,
+            BankAccountName = p.BankAccount?.AccountName,
+            BankName = p.BankAccount?.BankName,
+            Amount = p.Amount,
+            Notes = p.Notes,
+            VoucherNumber = p.Voucher?.VoucherNumber,
+            PartyName = p.Customer?.Name ?? p.Vendor?.Name ?? string.Empty,
+            PartyAddress = p.Customer?.Address ?? p.Vendor?.Address,
+            PartyPhone = p.Customer?.Phone ?? p.Vendor?.Phone,
+            AllocatedAmount = allocated,
+            UnallocatedAmount = p.Amount - allocated,
+            Lines = lines,
+            PreparedBy = p.CreatedBy ?? string.Empty,
+        };
+    }
+
+    /// <summary>
+    /// "Paid before" counts only payments received earlier than this one (by payment date, then by
+    /// entry time for same-day receipts), so a reprint of an old receipt still shows the balance as
+    /// it stood that day rather than after every later payment.
+    /// </summary>
+    private async Task<PaymentReceiptLineDto> BuildLineAsync(
+        string type, Guid documentId, string number, DateTime date, string? project, decimal total, decimal thisAmount,
+        System.Linq.Expressions.Expression<Func<Models.Entities.PaymentAllocation, bool>> sameDocument,
+        Models.Entities.Payment current, CancellationToken ct)
+    {
+        var paidBefore = await _context.Set<Models.Entities.PaymentAllocation>()
+            .Where(sameDocument)
+            .Where(a => !a.IsDeleted && !a.Payment.IsDeleted && a.PaymentId != current.Id
+                && (a.Payment.PaymentDate < current.PaymentDate
+                    || (a.Payment.PaymentDate == current.PaymentDate && a.Payment.CreatedAt < current.CreatedAt)))
+            .SumAsync(a => a.AllocatedAmount, ct);
+
+        return new PaymentReceiptLineDto
+        {
+            DocumentId = documentId,
+            DocumentType = type,
+            DocumentNumber = number,
+            DocumentDate = date,
+            ProjectName = project,
+            DocumentTotal = total,
+            PaidBefore = paidBefore,
+            ThisReceipt = thisAmount,
+            BalanceAfter = total - paidBefore - thisAmount,
+        };
+    }
+}
+
+public class GetMoneyReceiptSeriesQueryHandler : IRequestHandler<GetMoneyReceiptSeriesQuery, MoneyReceiptSeriesDto>
+{
+    private readonly AppDbContext _context;
+    public GetMoneyReceiptSeriesQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<MoneyReceiptSeriesDto> Handle(GetMoneyReceiptSeriesQuery request, CancellationToken ct)
+        => new() { NextNumber = await MoneyReceiptSeries.PeekNextAsync(_context, ct) };
+}
+
+public class SetMoneyReceiptSeriesCommandHandler : IRequestHandler<SetMoneyReceiptSeriesCommand, MoneyReceiptSeriesDto>
+{
+    private readonly AppDbContext _context;
+    public SetMoneyReceiptSeriesCommandHandler(AppDbContext context) => _context = context;
+
+    public async Task<MoneyReceiptSeriesDto> Handle(SetMoneyReceiptSeriesCommand request, CancellationToken ct)
+    {
+        await MoneyReceiptSeries.SetNextAsync(_context, request.Dto.NextNumber, ct);
+        return new() { NextNumber = await MoneyReceiptSeries.PeekNextAsync(_context, ct) };
+    }
+}
+
 file static class PaymentMappingHelper
 {
     public static PaymentResponseDto ToDto(Models.Entities.Payment e) => new()
@@ -430,6 +547,7 @@ file static class PaymentMappingHelper
         JournalEntryId = e.JournalEntryId,
         VoucherId = e.VoucherId,
         VoucherNumber = e.Voucher?.VoucherNumber,
+        MoneyReceiptNumber = e.MoneyReceiptNumber,
         Allocations = e.Allocations.Where(a => !a.IsDeleted).Select(a => new PaymentAllocationResponseDto
         {
             Id = a.Id,
@@ -438,4 +556,12 @@ file static class PaymentMappingHelper
             AllocatedAmount = a.AllocatedAmount
         }).ToList()
     };
+}
+
+internal static class PaymentDirection
+{
+    /// <summary>Money in: CustomerPayment, AdvanceFromCustomer, or a vendor-side Refund (vendor refunds us).</summary>
+    public static bool IsInflow(Models.Entities.Payment payment)
+        => payment.PaymentType is PaymentType.CustomerPayment or PaymentType.AdvanceFromCustomer
+            || (payment.PaymentType == PaymentType.Refund && payment.VendorId.HasValue);
 }

@@ -647,4 +647,152 @@ public class PaymentHandlerTests : IDisposable
 
         _context.Set<Voucher>().Single().Status.Should().Be(VoucherStatus.Cancelled);
     }
+
+    // =========================================================================
+    // Money receipt
+    // =========================================================================
+
+    private async Task<PaymentResponseDto> ReceiveAsync(Invoice invoice, decimal amount, DateTime date, string number)
+        => await new CreatePaymentCommandHandler(_context, _numbering, _jeService, _jeRepository).Handle(
+            new CreatePaymentCommand(new CreatePaymentDto
+            {
+                PaymentNumber = number,
+                PaymentType = PaymentType.CustomerPayment,
+                PaymentMethod = PaymentMethod.BankTransfer,
+                PaymentDate = date,
+                Amount = amount,
+                FiscalYearId = Guid.NewGuid(),
+                CustomerId = invoice.CustomerId,
+                Allocations = [new CreatePaymentAllocationDto { InvoiceId = invoice.Id, AllocatedAmount = amount }]
+            }), default);
+
+    [Fact]
+    public async Task Receipt_shows_balance_as_it_stood_when_each_payment_was_received()
+    {
+        var invoice = SeedInvoice(1_900_000m);
+        var first = await ReceiveAsync(invoice, 1_000_000m, new DateTime(2026, 9, 1), "MR-1");
+        var second = await ReceiveAsync(invoice, 600_000m, new DateTime(2026, 9, 20), "MR-2");
+        var handler = new GetPaymentReceiptQueryHandler(_context);
+
+        var r1 = await handler.Handle(new GetPaymentReceiptQuery(first.Id), default);
+        var r2 = await handler.Handle(new GetPaymentReceiptQuery(second.Id), default);
+
+        r1.Lines.Single().Should().BeEquivalentTo(new { DocumentTotal = 1_900_000m, PaidBefore = 0m, ThisReceipt = 1_000_000m, BalanceAfter = 900_000m });
+        r2.Lines.Single().Should().BeEquivalentTo(new { PaidBefore = 1_000_000m, ThisReceipt = 600_000m, BalanceAfter = 300_000m });
+        r2.ReceiptNumber.Should().Be("2", "the second receipt of the MR series");
+        r2.PartyName.Should().Be("Test Customer");
+        r2.UnallocatedAmount.Should().Be(0m);
+    }
+
+    [Fact]
+    public async Task Receipt_for_an_advance_reports_the_unallocated_amount()
+    {
+        var customer = SeedCustomer();
+        var payment = await new CreatePaymentCommandHandler(_context, _numbering, _jeService, _jeRepository).Handle(
+            new CreatePaymentCommand(new CreatePaymentDto
+            {
+                PaymentNumber = "MR-ADV", PaymentType = PaymentType.AdvanceFromCustomer, PaymentMethod = PaymentMethod.Cash,
+                PaymentDate = DateTime.Today, Amount = 50_000m, FiscalYearId = Guid.NewGuid(), CustomerId = customer.Id
+            }), default);
+
+        var receipt = await new GetPaymentReceiptQueryHandler(_context).Handle(new GetPaymentReceiptQuery(payment.Id), default);
+
+        receipt.Lines.Should().BeEmpty();
+        receipt.UnallocatedAmount.Should().Be(50_000m);
+    }
+
+    [Fact]
+    public async Task Receipt_is_refused_for_money_paid_out()
+    {
+        var vendor = SeedVendor();
+        var payment = await new CreatePaymentCommandHandler(_context, _numbering, _jeService, _jeRepository).Handle(
+            new CreatePaymentCommand(new CreatePaymentDto
+            {
+                PaymentNumber = "PAY-OUT", PaymentType = PaymentType.VendorPayment, PaymentMethod = PaymentMethod.Cash,
+                PaymentDate = DateTime.Today, Amount = 100m, FiscalYearId = Guid.NewGuid(), VendorId = vendor.Id
+            }), default);
+
+        var act = () => new GetPaymentReceiptQueryHandler(_context).Handle(new GetPaymentReceiptQuery(payment.Id), default);
+
+        await act.Should().ThrowAsync<AppException>().WithMessage("*money received*");
+    }
+
+    // =========================================================================
+    // MR No. series
+    // =========================================================================
+
+    private Task<PaymentResponseDto> ReceiveCashAsync(string? mrNumber = null, PaymentType type = PaymentType.AdvanceFromCustomer)
+    {
+        var customer = SeedCustomer(Guid.NewGuid().ToString()[..8]);
+        return new CreatePaymentCommandHandler(_context, _numbering, _jeService, _jeRepository).Handle(
+            new CreatePaymentCommand(new CreatePaymentDto
+            {
+                PaymentNumber = "PMT-" + Guid.NewGuid().ToString()[..6], PaymentType = type, PaymentMethod = PaymentMethod.Cash,
+                PaymentDate = DateTime.Today, Amount = 1000m, FiscalYearId = Guid.NewGuid(), CustomerId = customer.Id,
+                MoneyReceiptNumber = mrNumber
+            }), default);
+    }
+
+    [Fact]
+    public async Task Money_received_continues_the_MR_series_from_the_last_paper_receipt()
+    {
+        await new SetMoneyReceiptSeriesCommandHandler(_context).Handle(
+            new SetMoneyReceiptSeriesCommand(new MoneyReceiptSeriesDto { NextNumber = 1251 }), default);
+
+        var first = await ReceiveCashAsync();
+        var second = await ReceiveCashAsync();
+
+        first.MoneyReceiptNumber.Should().Be("1251");
+        second.MoneyReceiptNumber.Should().Be("1252");
+        (await new GetPaymentReceiptQueryHandler(_context).Handle(new GetPaymentReceiptQuery(second.Id), default))
+            .ReceiptNumber.Should().Be("1252", "the printed MR No. is the series number, not PMT-…");
+    }
+
+    [Fact]
+    public async Task A_typed_paper_MR_number_is_kept_and_the_series_moves_past_it()
+    {
+        await new SetMoneyReceiptSeriesCommandHandler(_context).Handle(
+            new SetMoneyReceiptSeriesCommand(new MoneyReceiptSeriesDto { NextNumber = 100 }), default);
+
+        var paper = await ReceiveCashAsync("105");
+        var next = await ReceiveCashAsync();
+
+        paper.MoneyReceiptNumber.Should().Be("105");
+        next.MoneyReceiptNumber.Should().Be("106");
+    }
+
+    [Fact]
+    public async Task An_MR_number_is_never_issued_twice()
+    {
+        await ReceiveCashAsync("777");
+
+        var act = () => ReceiveCashAsync("777");
+
+        await act.Should().ThrowAsync<AppException>().WithMessage("*already been issued*");
+    }
+
+    [Fact]
+    public async Task The_series_cannot_be_moved_back_over_issued_numbers()
+    {
+        await ReceiveCashAsync("50");
+
+        var act = () => new SetMoneyReceiptSeriesCommandHandler(_context).Handle(
+            new SetMoneyReceiptSeriesCommand(new MoneyReceiptSeriesDto { NextNumber = 40 }), default);
+
+        await act.Should().ThrowAsync<AppException>().WithMessage("*at least 51*");
+    }
+
+    [Fact]
+    public async Task Money_paid_out_gets_no_MR_number()
+    {
+        var vendor = SeedVendor();
+        var payment = await new CreatePaymentCommandHandler(_context, _numbering, _jeService, _jeRepository).Handle(
+            new CreatePaymentCommand(new CreatePaymentDto
+            {
+                PaymentNumber = "PAY-OUT-2", PaymentType = PaymentType.VendorPayment, PaymentMethod = PaymentMethod.Cash,
+                PaymentDate = DateTime.Today, Amount = 100m, FiscalYearId = Guid.NewGuid(), VendorId = vendor.Id
+            }), default);
+
+        payment.MoneyReceiptNumber.Should().BeNull();
+    }
 }

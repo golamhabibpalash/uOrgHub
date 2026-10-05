@@ -54,6 +54,38 @@ public class PaymentsController : BaseController
         return Ok(ApiResponse<PaymentResponseDto>.Ok(result));
     }
 
+    /// <summary>The MR No. the next money receipt will get.</summary>
+    [HttpGet("mr-series")]
+    [RequireClaim(Claims.Accounts.Payments.View)]
+    public async Task<IActionResult> GetMoneyReceiptSeries()
+        => Ok(ApiResponse<MoneyReceiptSeriesDto>.Ok(await _mediator.Send(new GetMoneyReceiptSeriesQuery())));
+
+    /// <summary>Sets where the MR No. series continues (e.g. after the last paper receipt).</summary>
+    [HttpPut("mr-series")]
+    [RequireClaim(Claims.Accounts.Payments.Edit)]
+    public async Task<IActionResult> SetMoneyReceiptSeries([FromBody] MoneyReceiptSeriesDto dto)
+    {
+        var result = await _mediator.Send(new SetMoneyReceiptSeriesCommand(dto));
+        return Ok(ApiResponse<MoneyReceiptSeriesDto>.Ok(result, $"Next MR No. set to {result.NextNumber}."));
+    }
+
+    /// <summary>Data for the printable money receipt of a payment received.</summary>
+    [HttpGet("{id:guid}/receipt")]
+    [RequireClaim(Claims.Accounts.Payments.View)]
+    public async Task<IActionResult> GetReceipt(Guid id)
+    {
+        var result = await _mediator.Send(new GetPaymentReceiptQuery(id));
+
+        // Invoices raised from RA bills / retention releases carry that origin on the receipt.
+        var invoiceIds = result.Lines.Where(l => l.DocumentType == "Invoice").Select(l => l.DocumentId).ToList();
+        var sources = await _mediator.Send(new uOrgHub.Projects.Features.RABills.Queries.GetInvoiceSourcesQuery(invoiceIds));
+        foreach (var line in result.Lines)
+            if (sources.TryGetValue(line.DocumentId, out var source))
+                line.SourceReference = source;
+
+        return Ok(ApiResponse<PaymentReceiptDto>.Ok(result));
+    }
+
     [HttpPost]
     [RequireClaim(Claims.Accounts.Payments.Create)]
     public async Task<IActionResult> Create([FromBody] CreatePaymentDto dto)
