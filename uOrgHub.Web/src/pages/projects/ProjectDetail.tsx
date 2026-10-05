@@ -20,6 +20,7 @@ import {
 import Modal from "../../components/shared/Modal";
 import ProjectForm from "./ProjectForm";
 import ContractAccountPanel from "../../components/projects/ContractAccountPanel";
+import ProjectNav from "../../components/projects/ProjectNav";
 import { useAuthStore } from "../../store/authStore";
 import {
   getCostCenterByProjectId,
@@ -143,6 +144,9 @@ export default function ProjectDetail() {
           <ArrowLeft size={16} /> Back to Projects
         </Link>
       </div>
+
+      {/* Same section tabs as every project sub-page — the only way into BOQ, DPR, RA Bills, etc. */}
+      <ProjectNav />
 
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
