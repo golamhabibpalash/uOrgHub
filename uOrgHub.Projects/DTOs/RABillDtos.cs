@@ -72,6 +72,91 @@ public class RABillResponseDto
 
     /// <summary>Set when certifying takes cumulative billing past the project's contract value.</summary>
     public string? Warning { get; set; }
+
+    // ── AR invoice raised for this bill (filled from the invoice at read time) ──
+    public Guid? InvoiceId { get; set; }
+    public string? InvoiceNumber { get; set; }
+    public string? InvoiceStatus { get; set; }
+    public decimal InvoiceTotal { get; set; }
+    public decimal InvoicePaid { get; set; }
+    public decimal InvoiceBalance { get; set; }
+
+    /// <summary>NotInvoiced · Unpaid · PartiallyPaid · Paid · InvoiceVoid — driven by real receipts.</summary>
+    public string PaymentState { get; set; } = RABillPaymentStates.NotInvoiced;
+}
+
+public static class RABillPaymentStates
+{
+    public const string NotInvoiced = "NotInvoiced";
+    public const string Unpaid = "Unpaid";
+    public const string PartiallyPaid = "PartiallyPaid";
+    public const string Paid = "Paid";
+    public const string InvoiceVoid = "InvoiceVoid";
+}
+
+/// <summary>Raise (and post) the AR invoice for a certified RA bill's net amount.</summary>
+public class RaiseRABillInvoiceDto
+{
+    public Guid RevenueAccountId { get; set; }
+    /// <summary>Defaults to the bill date plus the customer's payment terms.</summary>
+    public DateTime? DueDate { get; set; }
+}
+
+public class RaiseRetentionInvoiceDto
+{
+    public Guid ProjectId { get; set; }
+    public decimal Amount { get; set; }
+    public Guid RevenueAccountId { get; set; }
+    public DateTime? ReleaseDate { get; set; }
+    public DateTime? DueDate { get; set; }
+    public string? Notes { get; set; }
+}
+
+/// <summary>
+/// The client-facing money picture of one contract: what was agreed, certified, invoiced, received
+/// and is still owed, plus retention held back. Everything is derived at read time.
+/// </summary>
+public class ContractAccountDto
+{
+    public Guid ProjectId { get; set; }
+    public string ProjectCode { get; set; } = string.Empty;
+    public string ProjectName { get; set; } = string.Empty;
+    public string ClientName { get; set; } = string.Empty;
+    public Guid? CustomerId { get; set; }
+    public string? CustomerName { get; set; }
+    public Guid? DefaultRevenueAccountId { get; set; }
+
+    public decimal ContractValue { get; set; }
+    public decimal CertifiedGross { get; set; }
+    public decimal Deductions { get; set; }
+    public decimal NetCertified { get; set; }
+    /// <summary>Contract value not yet certified as work done.</summary>
+    public decimal RemainingToBill { get; set; }
+
+    public decimal RetentionHeld { get; set; }
+    public decimal RetentionReleased { get; set; }
+    public decimal RetentionOutstanding { get; set; }
+
+    /// <summary>Certified net not yet on an invoice (bills certified before invoicing was wired, or awaiting it).</summary>
+    public decimal NotYetInvoiced { get; set; }
+    public decimal Invoiced { get; set; }
+    public decimal Received { get; set; }
+    public decimal Outstanding { get; set; }
+
+    public List<RABillResponseDto> Bills { get; set; } = new();
+    public List<RetentionReleaseDto> RetentionReleases { get; set; } = new();
+}
+
+public class RetentionReleaseDto
+{
+    public Guid Id { get; set; }
+    public DateTime ReleaseDate { get; set; }
+    public decimal Amount { get; set; }
+    public string? Notes { get; set; }
+    public Guid InvoiceId { get; set; }
+    public string InvoiceNumber { get; set; } = string.Empty;
+    public string InvoiceStatus { get; set; } = string.Empty;
+    public decimal InvoicePaid { get; set; }
 }
 
 public class RABillItemResponseDto

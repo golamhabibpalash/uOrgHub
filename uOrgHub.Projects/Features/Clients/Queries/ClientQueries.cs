@@ -23,7 +23,7 @@ public class GetClientsQueryHandler : IRequestHandler<GetClientsQuery, PagedResu
 
     public async Task<PagedResult<ClientResponseDto>> Handle(GetClientsQuery request, CancellationToken ct)
     {
-        var query = _context.Set<Client>().Where(x => !x.IsDeleted).AsQueryable();
+        var query = _context.Set<Client>().Include(x => x.Customer).Where(x => !x.IsDeleted).AsQueryable();
 
         if (request.Status.HasValue)
             query = query.Where(x => x.Status == request.Status.Value);
@@ -57,6 +57,7 @@ public class GetClientByIdQueryHandler : IRequestHandler<GetClientByIdQuery, Cli
     public async Task<ClientResponseDto> Handle(GetClientByIdQuery request, CancellationToken ct)
     {
         var entity = await _context.Set<Client>()
+            .Include(x => x.Customer)
             .FirstOrDefaultAsync(x => !x.IsDeleted && x.Id == request.Id, ct)
             ?? throw new NotFoundException(nameof(Client), request.Id);
 
@@ -71,10 +72,11 @@ public class GetAllClientsForExportQueryHandler : IRequestHandler<GetAllClientsF
 
     public async Task<List<ClientResponseDto>> Handle(GetAllClientsForExportQuery request, CancellationToken ct)
     {
-        return await _context.Set<Client>()
+        var clients = await _context.Set<Client>()
+            .Include(x => x.Customer)
             .Where(x => !x.IsDeleted)
             .OrderBy(x => x.CompanyName)
-            .Select(x => ClientMapper.ToDto(x))
             .ToListAsync(ct);
+        return clients.Select(ClientMapper.ToDto).ToList();
     }
 }

@@ -104,44 +104,51 @@ logs (and hourly hire rates that need them), and turning a GRN into an asset aut
 
 ## 3. Order-to-cash (money in)
 
-Two independent lanes bring revenue in. They both end at a **Payment receipt**, but they never
-meet before that.
+A contract's client billing now runs as one chain from the project to the ledger and back.
 
 ```mermaid
 flowchart LR
+    CL["Client<br/><i>Projects</i>"]
+    CU["AR Customer<br/><i>Accounts</i>"]
     PRJ["Project + Contract Value<br/><i>Projects</i>"]
     RA["RA Bill (to client)<br/>certified<br/><i>Projects</i>"]
-    INV["AR Invoice<br/>approved<br/><i>Accounts / AR</i>"]
+    INV["AR Invoice (net)<br/>posted<br/><i>Accounts / AR</i>"]
     JE["Journal Entry<br/>Dr AR / Cr Revenue<br/><i>Accounts / GL</i>"]
-    PAY["Payment receipt<br/><i>Accounts</i>"]
-    GL["Trial Balance /<br/>Income Statement"]
+    PAY["Payment receipt + MR No.<br/><i>Accounts</i>"]
+    RET["Retention release<br/>invoice<br/><i>Projects → AR</i>"]
 
+    CL -->|Client.CustomerId| CU
     PRJ -->|claim work done| RA
-    RA -.->|NOT posted to GL| GL
-    RA -.->|does NOT become an invoice| INV
-    INV -->|approve| JE
-    INV -->|allocate receipt| PAY
-    PAY -->|Dr Bank / Cr AR| JE
-    JE --> GL
-
-    classDef gap stroke-dasharray:5 5,stroke:#c00;
-    class RA gap;
+    RA -->|raise invoice<br/>RABill.InvoiceId| INV
+    RET -->|at handover| INV
+    INV -->|post| JE
+    PAY -->|allocate · Dr Bank / Cr AR| INV
+    INV -.->|paid / balance read back| RA
 ```
 
-**RA bill lane.** A project bills its client with **Running Account bills** against the contract
-value (`RABillStatus: Draft → Submitted → UnderReview → Certified → Paid → Rejected`).
-Certification recomputes the bill's net and its cumulative-to-date and warns if cumulative
-billing crosses the contract value (`uOrgHub.Projects/Features/RABills/Commands/RABillCommands.cs`,
-`CertifyRABillCommandHandler`). But a certified RA bill **never posts to the GL and never becomes
-an AR invoice** — it lives only in `proj_ra_bills`.
+**Client ↔ customer.** A project `Client` links to its Accounts `Customer` (`Client.CustomerId`);
+"Create AR customer" on the Clients page makes one from the client's own details
+(`CreateCustomerFromClientCommand`). The two models stay separate but are entered once.
 
-**AR invoice lane.** An **Invoice** (`InvoiceStatus: Draft → Sent → PartiallyPaid → Paid →
-Overdue → Cancelled → Void`) is the lane that actually books revenue: approving it posts **Dr AR
-/ Cr Revenue**. A **Payment receipt** then settles it (**Dr Bank / Cr AR**), raising
-`Invoice.PaidAmount` and flipping status (`PaymentFeatures.cs:143-162`).
+**RA bill → invoice.** A certified RA bill raises and posts one AR invoice for its **net** amount
+(gross − deductions − retention) on the project's cost center (`RaiseRABillInvoiceCommand`,
+`uOrgHub.Projects/Features/RABills/Commands/RABillInvoicing.cs`), reusing Accounts'
+`CreateInvoiceCommand` + `PostInvoiceCommand` so the Dr AR / Cr Revenue posting lives in one place.
+Retention held on the bills is invoiced later through a **retention release**
+(`proj_retention_releases`, capped at what is still held).
 
-So today, for client billing to reach the books, someone must raise an AR invoice separately from
-the RA bill.
+**Receipts drive the bill.** Payments are allocated to the invoice as before (`Invoice.PaidAmount`,
+`PartiallyPaid`/`Paid`). The RA bill's payment state (Unpaid · Partially paid · Paid) is *read* from
+its invoice — Accounts never references Projects — and the manual "Mark Paid" is refused once a bill
+is invoiced. `GetContractAccountQuery` gives the per-contract picture: contract value, certified,
+remaining to bill, invoiced, received, outstanding, retention held.
+
+**Money receipt.** Every payment received gets an **MR No.** from its own running series per
+company, continuing the paper MR books (`MoneyReceiptSeries`; next number set on the Payments page).
+The printed receipt follows the company's MR form (counterfoil + client copy).
+
+`ProjectFinancialService` still reads "Billed" from the RA bills, not from the GL, so revenue is not
+double-counted.
 
 ---
 
@@ -198,16 +205,15 @@ how much financial visibility it costs.
 |---|-------|----------|-------------|
 | 1 | **Vendor bill is not linked to its PO or GRN.** `CreateBillDto` has no `POId`/`GRNId` | `uOrgHub.Accounts/DTOs/AP/APDtos.cs:48-59` | No three-way match (PO ↔ receipt ↔ bill); bills are hand-keyed and can silently disagree with what was ordered and received |
 | 2 | **Goods receipt posts no accounting.** GRN moves stock only | no `JournalEntry` in `GRNCommands.cs` (`:218-257` writes stock, nothing to GL) | "Goods received not invoiced" is invisible to the books; inventory value and the ledger can diverge |
-| 3 | **RA bills never reach the GL and never become AR invoices** | no `JournalEntry` or `Invoice` creation anywhere in `uOrgHub.Projects/Features/RABills/` | Certified client billing does not appear in the trial balance or income statement; revenue must be re-entered as an AR invoice by hand |
+| 3 | ~~**RA bills never reach the GL and never become AR invoices**~~ — **closed**: a certified RA bill raises a posted AR invoice for its net amount; retention via retention releases | `RABillInvoicing.cs` | — |
 | 4 | **Payroll never posts to the GL** | no `new JournalEntry` anywhere in `uOrgHub.HR` | Salary expense and the payroll liability never book; labour cost is absent from both the P&L and project costing |
 | 5 | **PO approval books no commitment** | no `JournalEntry` in `uOrgHub.Procurement/Features/PurchaseOrders/` | No commitment accounting — approved-but-unbilled spend isn't reflected against a project's ceiling |
-| 6 | **Client/Customer are duplicated across modules** (Vendor unified) | `Client` (Projects) and `Customer` (Accounts) are separate with no FK (`uOrgHub.Projects/Models/Entities/Client.cs`); Vendor used to be split too (`acc_vendors` + `proc_vendors`) but now lives in one shared `vendors` table (`uOrgHub.Shared/Entities/Vendor.cs`) used by both Accounts and Procurement | A project's client is not the AR customer you invoice |
+| 6 | **Client/Customer are separate models** (Vendor unified) — *partly closed*: `Client.CustomerId` links a project client to its AR customer, and "Create AR customer" creates it from the client, so it is entered once | `uOrgHub.Projects/Models/Entities/Client.cs` | The two records still exist side by side; editing a client's address doesn't update the customer |
 | 7 | **Issuing stock to a project carries no cost** | `StockTransaction` has no `ProjectId`/`CostCenterId` (`uOrgHub.Inventory/Models/Entities/StockTransaction.cs`) | Consuming inventory into a project doesn't hit that project's cost |
 | 8 | **Sister-concern (multi-company) isolation is partial.** All of Accounts' (`Bill`, `Voucher`, `Invoice`, `Payment`, `Budget`, `BankAccount`, `JournalEntry`, `NumberingSequence`, `FiscalYear`, `CostCenter`), Procurement's (`PurchaseRequisition`, `RequestForQuotation`, `VendorQuotation`, `PurchaseOrder`, `GoodsReceivedNote`), Projects' (`Project`), and Inventory's (`Warehouse`, `StockBalance`, `StockTransaction`) anchors are company-scoped; only HR remains globally shared | `SISTER_CONCERN_PLAN.md` §1, §6 | A second `Company` can run fully separate Accounts books, procure-to-pay documents, projects, and stock levels today, but payroll and HR expense requests are still visible group-wide — not yet a fully separate sister concern. Phased rollout for the rest in `SISTER_CONCERN_PLAN.md` §6 |
 
-**The natural next links**, in order: bill ← PO/GRN (break 1, unlocks three-way match); RA bill →
-AR invoice → GL (break 3, unlocks revenue reporting); payroll → GL (break 4); unify
-Client/Customer (remainder of break 6, prerequisite for clean cross-module reporting); finish
+**The natural next links**, in order: bill ← PO/GRN (break 1, unlocks three-way match); payroll → GL (break 4); fully merge
+Client/Customer (remainder of break 6); finish
 sister-concern isolation (break 8 — HR is the only module left, see `SISTER_CONCERN_PLAN.md` §6).
 
 ---

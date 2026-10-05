@@ -12,6 +12,8 @@ public class CreateClientDto
     public ClientType ClientType { get; set; }
     public ClientStatus Status { get; set; } = ClientStatus.Active;
     public string? Notes { get; set; }
+    /// <summary>Existing Accounts customer to bill this client as (optional).</summary>
+    public Guid? CustomerId { get; set; }
 }
 
 public class UpdateClientDto
@@ -24,6 +26,15 @@ public class UpdateClientDto
     public ClientType ClientType { get; set; }
     public ClientStatus Status { get; set; }
     public string? Notes { get; set; }
+    /// <summary>Existing Accounts customer to bill this client as; null unlinks.</summary>
+    public Guid? CustomerId { get; set; }
+}
+
+/// <summary>Create the client's Accounts customer from its own details and link it.</summary>
+public class CreateCustomerFromClientDto
+{
+    public Guid ReceivableAccountId { get; set; }
+    public int PaymentTermsDays { get; set; } = 30;
 }
 
 public class ClientResponseDto
@@ -38,5 +49,8 @@ public class ClientResponseDto
     public ClientType ClientType { get; set; }
     public ClientStatus Status { get; set; }
     public string? Notes { get; set; }
+    public Guid? CustomerId { get; set; }
+    public string? CustomerCode { get; set; }
+    public string? CustomerName { get; set; }
     public DateTime CreatedAt { get; set; }
 }

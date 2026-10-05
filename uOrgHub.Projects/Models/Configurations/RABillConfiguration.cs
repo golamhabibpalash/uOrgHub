@@ -28,6 +28,24 @@ public class RABillConfiguration : IEntityTypeConfiguration<RABill>
          .WithOne(x => x.RABill)
          .HasForeignKey(x => x.RABillId)
          .OnDelete(DeleteBehavior.Cascade);
+
+        b.HasOne(x => x.Invoice).WithMany()
+         .HasForeignKey(x => x.InvoiceId).OnDelete(DeleteBehavior.Restrict);
+        b.HasIndex(x => x.InvoiceId);
+    }
+}
+
+public class RetentionReleaseConfiguration : IEntityTypeConfiguration<RetentionRelease>
+{
+    public void Configure(EntityTypeBuilder<RetentionRelease> b)
+    {
+        b.HasKey(x => x.Id);
+        b.Property(x => x.Amount).HasColumnType("decimal(18,2)");
+        b.HasOne<uOrgHub.Shared.Entities.Company>().WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(x => x.Project).WithMany(x => x.RetentionReleases)
+         .HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(x => x.Invoice).WithMany()
+         .HasForeignKey(x => x.InvoiceId).OnDelete(DeleteBehavior.Restrict);
     }
 }
 

@@ -32,6 +32,9 @@ public class Project : BaseEntity, ICompanyScoped
 
     [Column(TypeName = "decimal(18,2)")] public decimal ContractValue { get; set; }
 
+    /// <summary>Revenue account last used to invoice this project; pre-fills the next invoice.</summary>
+    public Guid? DefaultRevenueAccountId { get; set; }
+
     public ProjectStatus Status { get; set; } = ProjectStatus.Inquiry;
     public ProjectPriority Priority { get; set; } = ProjectPriority.Medium;
 
@@ -54,5 +57,6 @@ public class Project : BaseEntity, ICompanyScoped
     public ICollection<NonConformanceReport> NCRs { get; set; } = new List<NonConformanceReport>();
     public ICollection<SafetyIncident> SafetyIncidents { get; set; } = new List<SafetyIncident>();
     public ICollection<RABill> RABills { get; set; } = new List<RABill>();
+    public ICollection<RetentionRelease> RetentionReleases { get; set; } = new List<RetentionRelease>();
     public ICollection<ProjectStatusLog> StatusLogs { get; set; } = new List<ProjectStatusLog>();
 }

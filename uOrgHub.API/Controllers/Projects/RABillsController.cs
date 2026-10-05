@@ -98,6 +98,44 @@ public class RABillsController : BaseController
         return Ok(ApiResponse<RABillResponseDto>.Ok(result, "RA Bill marked as paid."));
     }
 
+    /// <summary>
+    /// Raises and posts the AR invoice for a certified bill's net amount. Creating an invoice is an
+    /// Accounts right, so it is checked here on top of the RA-bill gate.
+    /// </summary>
+    [HttpPost("{id:guid}/raise-invoice")]
+    [RequireClaim(Claims.Projects.RABills.Edit)]
+    public async Task<IActionResult> RaiseInvoice(Guid id, [FromBody] RaiseRABillInvoiceDto dto,
+        [FromServices] uOrgHub.Auth.Services.IPermissionService permissions)
+    {
+        if (!await permissions.HasClaimAsync(GetUserId(), Claims.Accounts.Invoices.Create))
+            return StatusCode(403, ApiResponse<string>.Fail($"Access denied: {Claims.Accounts.Invoices.Create} claim required"));
+
+        var result = await _mediator.Send(new RaiseRABillInvoiceCommand(id, dto));
+        return Ok(ApiResponse<RABillResponseDto>.Ok(result, $"Invoice {result.InvoiceNumber} raised and posted."));
+    }
+
+    /// <summary>Contract value → certified → invoiced → received → outstanding, plus retention, for one project.</summary>
+    [HttpGet("contract-account/{projectId:guid}")]
+    [RequireClaim(Claims.Projects.RABills.View)]
+    public async Task<IActionResult> GetContractAccount(Guid projectId)
+    {
+        var result = await _mediator.Send(new GetContractAccountQuery(projectId));
+        return Ok(ApiResponse<ContractAccountDto>.Ok(result));
+    }
+
+    /// <summary>Invoices part of the retention held on a project's RA bills.</summary>
+    [HttpPost("retention-release")]
+    [RequireClaim(Claims.Projects.RABills.Edit)]
+    public async Task<IActionResult> ReleaseRetention([FromBody] RaiseRetentionInvoiceDto dto,
+        [FromServices] uOrgHub.Auth.Services.IPermissionService permissions)
+    {
+        if (!await permissions.HasClaimAsync(GetUserId(), Claims.Accounts.Invoices.Create))
+            return StatusCode(403, ApiResponse<string>.Fail($"Access denied: {Claims.Accounts.Invoices.Create} claim required"));
+
+        var result = await _mediator.Send(new RaiseRetentionInvoiceCommand(dto));
+        return Ok(ApiResponse<RetentionReleaseDto>.Ok(result, $"Retention invoice {result.InvoiceNumber} raised and posted."));
+    }
+
     [HttpDelete("{id:guid}")]
     [RequireClaim(Claims.Projects.RABills.Delete)]
     public async Task<IActionResult> Delete(Guid id)

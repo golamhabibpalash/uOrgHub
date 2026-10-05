@@ -45,9 +45,12 @@ public class GetRABillsQueryHandler : IRequestHandler<GetRABillsQuery, PagedResu
             .Take(request.Request.PageSize)
             .ToListAsync(ct);
 
+        var dtos = items.Select(RABillMapper.ToDto).ToList();
+        await RABillInvoiceInfo.ApplyAsync(_context, dtos, ct);
+
         return new PagedResult<RABillResponseDto>
         {
-            Items = items.Select(RABillMapper.ToDto).ToList(),
+            Items = dtos,
             TotalCount = total,
             Page = request.Request.Page,
             PageSize = request.Request.PageSize
@@ -67,7 +70,9 @@ public class GetRABillByIdQueryHandler : IRequestHandler<GetRABillByIdQuery, RAB
             .FirstOrDefaultAsync(x => !x.IsDeleted && x.Id == request.Id, ct)
             ?? throw new NotFoundException(nameof(RABill), request.Id);
 
-        return RABillMapper.ToDto(entity);
+        var dto = RABillMapper.ToDto(entity);
+        await RABillInvoiceInfo.ApplyAsync(_context, [dto], ct);
+        return dto;
     }
 }
 
@@ -78,11 +83,13 @@ public class GetAllRABillsForExportQueryHandler : IRequestHandler<GetAllRABillsF
 
     public async Task<List<RABillResponseDto>> Handle(GetAllRABillsForExportQuery request, CancellationToken ct)
     {
-        return await _context.Set<RABill>()
+        var bills = await _context.Set<RABill>()
             .Include(x => x.Items)
             .Where(x => !x.IsDeleted)
             .OrderBy(x => x.BillNumber)
-            .Select(x => RABillMapper.ToDto(x))
             .ToListAsync(ct);
+        var dtos = bills.Select(RABillMapper.ToDto).ToList();
+        await RABillInvoiceInfo.ApplyAsync(_context, dtos, ct);
+        return dtos;
     }
 }

@@ -218,6 +218,11 @@ export interface Client {
   address?: string;
   clientType: string;
   status: string;
+  notes?: string;
+  /** Accounts customer this client is billed as — RA bills raise their invoices against it. */
+  customerId?: string | null;
+  customerCode?: string;
+  customerName?: string;
   createdAt: string;
 }
 
@@ -494,6 +499,10 @@ export const updateClient = (id: string, data: Partial<Client>) =>
 export const deleteClient = (id: string) =>
   apiClient.delete<ApiResponse<null>>(`/clients/${id}`);
 
+/** Creates the client's Accounts customer from its own details and links it. */
+export const createCustomerFromClient = (id: string, data: { receivableAccountId: string; paymentTermsDays?: number }) =>
+  apiClient.post<ApiResponse<Client>>(`/clients/${id}/create-customer`, data);
+
 // ─── Civil Engineering Interfaces ────────────────────────────────────────────
 
 export interface Drawing {
@@ -650,21 +659,77 @@ export interface RABillItem {
   id: string;
   raBillId: string;
   boqItemId?: string;
-  boqItemDescription?: string;
-  uom: string;
+  description: string;
+  unitOfMeasure?: string;
   previousQuantity: number;
   currentQuantity: number;
   totalQuantity: number;
   rate: number;
   amount: number;
+  sequence: number;
+}
+
+/** NotInvoiced · Unpaid · PartiallyPaid · Paid · InvoiceVoid — follows receipts against the bill's invoice. */
+export type RABillPaymentState = "NotInvoiced" | "Unpaid" | "PartiallyPaid" | "Paid" | "InvoiceVoid";
+
+export interface CreateRABillPayload {
+  projectId: string;
+  title: string;
+  billDate: string;
+  periodFrom: string;
+  periodTo: string;
+  submittedById: string;
+  retentionPercent: number;
+  notes?: string;
+  items: { description: string; unitOfMeasure?: string; previousQuantity: number; currentQuantity: number; rate: number; sequence: number }[];
+}
+
+export interface RetentionRelease {
+  id: string;
+  releaseDate: string;
+  amount: number;
+  notes?: string;
+  invoiceId: string;
+  invoiceNumber: string;
+  invoiceStatus: string;
+  invoicePaid: number;
+}
+
+/** Contract → certified → invoiced → received → outstanding, plus retention, for one project. */
+export interface ContractAccount {
+  projectId: string;
+  projectCode: string;
+  projectName: string;
+  clientName: string;
+  customerId?: string | null;
+  customerName?: string;
+  defaultRevenueAccountId?: string | null;
+  contractValue: number;
+  certifiedGross: number;
+  deductions: number;
+  netCertified: number;
+  remainingToBill: number;
+  retentionHeld: number;
+  retentionReleased: number;
+  retentionOutstanding: number;
+  notYetInvoiced: number;
+  invoiced: number;
+  received: number;
+  outstanding: number;
+  bills: RABill[];
+  retentionReleases: RetentionRelease[];
 }
 
 export interface RABill {
   id: string;
   projectId: string;
   billNumber: string;
+  title: string;
   billSequence: number;
   billDate: string;
+  periodFrom: string;
+  periodTo: string;
+  notes?: string;
   status: string;
   grossAmount: number;
   deductionAmount: number;
@@ -674,12 +739,19 @@ export interface RABill {
   previousBilledAmount: number;
   cumulativeBilledAmount: number;
   certifiedById?: string;
-  certifiedByName?: string;
   certifiedDate?: string;
-  certificationNotes?: string;
   paidDate?: string;
   items: RABillItem[];
   createdAt: string;
+  /** Set when certifying takes cumulative billing past the contract value. */
+  warning?: string;
+  invoiceId?: string | null;
+  invoiceNumber?: string;
+  invoiceStatus?: string;
+  invoiceTotal: number;
+  invoicePaid: number;
+  invoiceBalance: number;
+  paymentState: RABillPaymentState;
 }
 
 // ─── Drawings ────────────────────────────────────────────────────────────────
@@ -830,7 +902,7 @@ export const getRABills = (params: PaginationRequest, projectId?: string, status
 export const getRABillById = (id: string) =>
   apiClient.get<ApiResponse<RABill>>(`/rabills/${id}`);
 
-export const createRABill = (data: object) =>
+export const createRABill = (data: CreateRABillPayload) =>
   apiClient.post<ApiResponse<RABill>>("/rabills", data);
 
 export const updateRABill = (id: string, data: Partial<RABill>) =>
@@ -839,8 +911,26 @@ export const updateRABill = (id: string, data: Partial<RABill>) =>
 export const submitRABill = (id: string) =>
   apiClient.post<ApiResponse<RABill>>(`/rabills/${id}/submit`, {});
 
-export const certifyRABill = (id: string, data: { certifiedAmount: number; certificationNotes?: string }) =>
-  apiClient.post<ApiResponse<RABill>>(`/rabills/${id}/certify`, data);
+export const certifyRABill = (
+  id: string,
+  data: { certifiedById: string; certifiedDate: string; grossAmount: number; deductionAmount: number },
+) => apiClient.post<ApiResponse<RABill>>(`/rabills/${id}/certify`, data);
+
+/** Raises and posts the AR invoice for a certified bill's net amount. */
+export const raiseRABillInvoice = (id: string, data: { revenueAccountId: string; dueDate?: string }) =>
+  apiClient.post<ApiResponse<RABill>>(`/rabills/${id}/raise-invoice`, data);
+
+export const getContractAccount = (projectId: string) =>
+  apiClient.get<ApiResponse<ContractAccount>>(`/rabills/contract-account/${projectId}`);
+
+export const releaseRetention = (data: {
+  projectId: string;
+  amount: number;
+  revenueAccountId: string;
+  releaseDate?: string;
+  dueDate?: string;
+  notes?: string;
+}) => apiClient.post<ApiResponse<RetentionRelease>>("/rabills/retention-release", data);
 
 export const markRABillPaid = (id: string) =>
   apiClient.post<ApiResponse<RABill>>(`/rabills/${id}/mark-paid`, {});

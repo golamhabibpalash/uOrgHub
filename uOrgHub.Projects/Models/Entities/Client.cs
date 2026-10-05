@@ -19,4 +19,11 @@ public class Client : BaseEntity
     [MaxLength(1000)]          public string? Notes { get; set; }
 
     public ICollection<Project> Projects { get; set; } = new List<Project>();
+
+    /// <summary>
+    /// The Accounts customer this client is billed as. RA bills raise their AR invoice against it,
+    /// so a client is entered once instead of again under Accounts → Customers.
+    /// </summary>
+    public Guid? CustomerId { get; set; }
+    public uOrgHub.Accounts.Models.Entities.Customer? Customer { get; set; }
 }

@@ -221,6 +221,17 @@ public class MarkRABillPaidCommandHandler : IRequestHandler<MarkRABillPaidComman
         if (entity.Status != RABillStatus.Certified)
             throw new AppException("Only certified RA bills can be marked as paid.");
 
+        // Once invoiced, receipts against the invoice decide when the bill is paid.
+        if (entity.InvoiceId is { } invoiceId)
+        {
+            var invoice = await _context.Set<uOrgHub.Accounts.Models.Entities.Invoice>()
+                .FirstOrDefaultAsync(i => i.Id == invoiceId && !i.IsDeleted, ct);
+            if (invoice is not null && !ProjectInvoicing.IsVoid(invoice.Status))
+                throw new AppException(
+                    $"{entity.BillNumber} is invoiced as {invoice.InvoiceNumber}. Record the client's payment against that " +
+                    "invoice in Accounts → Payments; the bill shows as paid automatically.");
+        }
+
         entity.Status = RABillStatus.Paid;
         entity.PaidDate = DateTime.UtcNow;
         entity.UpdatedAt = DateTime.UtcNow;
@@ -276,6 +287,7 @@ public static class RABillMapper
         Status = e.Status,
         Notes = e.Notes,
         CreatedAt = e.CreatedAt,
+        InvoiceId = e.InvoiceId,
         Items = e.Items
             .Where(i => !i.IsDeleted)
             .OrderBy(i => i.Sequence)

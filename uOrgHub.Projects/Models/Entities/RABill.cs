@@ -38,4 +38,11 @@ public class RABill : BaseEntity
     [MaxLength(500)] public string? Notes { get; set; }
 
     public ICollection<RABillItem> Items { get; set; } = new List<RABillItem>();
+
+    /// <summary>
+    /// The AR invoice raised for this bill's net amount. Its payments are what make the bill paid —
+    /// payment state is read from the invoice, never stored here twice.
+    /// </summary>
+    public Guid? InvoiceId { get; set; }
+    public uOrgHub.Accounts.Models.Entities.Invoice? Invoice { get; set; }
 }

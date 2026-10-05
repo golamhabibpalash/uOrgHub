@@ -1,11 +1,16 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import toast from "react-hot-toast";
+import { Plus, UserPlus, AlertTriangle } from "lucide-react";
 import DataGrid from "../../components/shared/DataGrid";
 import ExportMenu from "../../components/shared/ExportMenu";
 import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
-import { getClients, createClient, updateClient, deleteClient, Client } from "../../api/projects";
+import { getClients, createClient, updateClient, deleteClient, createCustomerFromClient, Client } from "../../api/projects";
+import SearchableDropdown from "../../components/shared/SearchableDropdown";
+import { useChartOfAccountsLookup, useCustomerLookup } from "../../hooks/useEntityLookup";
+import { useAuthStore } from "../../store/authStore";
+import { extractApiError } from "../../utils/apiError";
 
 export default function ClientsPage() {
   const qc = useQueryClient();
@@ -20,7 +25,14 @@ export default function ClientsPage() {
     address: "",
     clientType: "Private",
     status: "Active",
+    customerId: "",
   });
+  const [linking, setLinking] = useState<Client | null>(null);
+  const [linkForm, setLinkForm] = useState({ receivableAccountId: "", paymentTermsDays: 30 });
+  const { hasClaim, hasRole } = useAuthStore();
+  const canCreateCustomer = hasRole("Admin") || hasClaim("Accounts.Customers.Create");
+  const { options: customerOptions } = useCustomerLookup();
+  const { options: assetAccountOptions } = useChartOfAccountsLookup("Asset");
 
   const { data, isLoading } = useQuery({
     queryKey: ["clients", ...dg.queryKey],
@@ -33,11 +45,24 @@ export default function ClientsPage() {
 
   const saveMutation = useMutation({
     mutationFn: () =>
-      editing ? updateClient(editing.id, form) : createClient(form),
+      editing
+        ? updateClient(editing.id, { ...form, customerId: form.customerId || null })
+        : createClient({ ...form, customerId: form.customerId || null }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["clients"] });
       closeModal();
     },
+  });
+
+  const linkMutation = useMutation({
+    mutationFn: () => createCustomerFromClient(linking!.id, linkForm),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["clients"] });
+      qc.invalidateQueries({ queryKey: ["customers"] });
+      toast.success(`Customer ${res.data.data?.customerCode ?? ""} created and linked.`);
+      setLinking(null);
+    },
+    onError: (err) => toast.error(extractApiError(err)),
   });
 
   const deleteMutation = useMutation({
@@ -55,6 +80,7 @@ export default function ClientsPage() {
       address: "",
       clientType: "Private",
       status: "Active",
+      customerId: "",
     });
     setModal(true);
   }
@@ -69,6 +95,7 @@ export default function ClientsPage() {
       address: client.address || "",
       clientType: client.clientType,
       status: client.status,
+      customerId: client.customerId ?? "",
     });
     setModal(true);
   }
@@ -109,6 +136,34 @@ export default function ClientsPage() {
           {row.clientType}
         </span>
       ),
+    },
+    {
+      key: "customerName",
+      label: "AR Customer",
+      sortable: false,
+      render: (row: Client) =>
+        row.customerId ? (
+          <span className="text-xs text-gray-700">
+            <span className="font-mono text-gray-500">{row.customerCode}</span> {row.customerName}
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-2">
+            <span
+              className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700"
+              title="RA bills of this client can't be invoiced until it is linked to an Accounts customer"
+            >
+              <AlertTriangle size={11} /> Not linked
+            </span>
+            {canCreateCustomer && (
+              <button
+                onClick={() => { setLinkForm({ receivableAccountId: "", paymentTermsDays: 30 }); setLinking(row); }}
+                className="inline-flex items-center gap-1 text-xs text-primary-600 hover:underline"
+              >
+                <UserPlus size={12} /> Create AR customer
+              </button>
+            )}
+          </span>
+        ),
     },
     {
       key: "status",
@@ -247,6 +302,19 @@ export default function ClientsPage() {
               </select>
             </div>
           </div>
+          <div>
+            <SearchableDropdown
+              label="Linked AR customer"
+              options={customerOptions}
+              value={form.customerId}
+              onChange={(v) => setForm((f) => ({ ...f, customerId: v ?? "" }))}
+              placeholder="Not linked"
+              searchPlaceholder="Search customers..."
+            />
+            <p className="text-[11px] text-gray-400 mt-1">
+              The Accounts customer this client is billed as. Leave empty and use “Create AR customer” in the list to make one from these details.
+            </p>
+          </div>
           <div className="flex justify-end gap-2 pt-2">
             <button
               onClick={closeModal}
@@ -260,6 +328,42 @@ export default function ClientsPage() {
               className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
             >
               {saveMutation.isPending ? "Saving..." : "Save"}
+            </button>
+          </div>
+        </div>
+      </Modal>
+      <Modal title={`Create AR customer — ${linking?.companyName ?? ""}`} open={linking !== null} onClose={() => setLinking(null)} size="md">
+        <div className="space-y-3">
+          <p className="text-sm text-gray-600">
+            Creates the Accounts customer from this client's name, contact, phone, email and address, and links them —
+            so RA bills can be invoiced and payments received without entering the client twice.
+          </p>
+          <SearchableDropdown
+            label="Receivable account *"
+            options={assetAccountOptions}
+            value={linkForm.receivableAccountId}
+            onChange={(v) => setLinkForm((f) => ({ ...f, receivableAccountId: v ?? "" }))}
+            placeholder="e.g. Accounts Receivable – Clients"
+            searchPlaceholder="Search accounts..."
+          />
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Payment terms (days)</label>
+            <input
+              type="number"
+              min={0}
+              value={linkForm.paymentTermsDays}
+              onChange={(e) => setLinkForm((f) => ({ ...f, paymentTermsDays: parseInt(e.target.value, 10) || 0 }))}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button onClick={() => setLinking(null)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
+            <button
+              onClick={() => linkMutation.mutate()}
+              disabled={!linkForm.receivableAccountId || linkMutation.isPending}
+              className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
+            >
+              {linkMutation.isPending ? "Creating..." : "Create & link"}
             </button>
           </div>
         </div>

@@ -19,6 +19,7 @@ import {
 } from "../../api/projects";
 import Modal from "../../components/shared/Modal";
 import ProjectForm from "./ProjectForm";
+import ContractAccountPanel from "../../components/projects/ContractAccountPanel";
 import { useAuthStore } from "../../store/authStore";
 import {
   getCostCenterByProjectId,
@@ -296,6 +297,9 @@ export default function ProjectDetail() {
           </div>
         </div>
       </div>
+
+      {/* Client side of the contract: billed, received, outstanding, retention. */}
+      {id && <ContractAccountPanel projectId={id} />}
 
       {financials && (
         <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6">

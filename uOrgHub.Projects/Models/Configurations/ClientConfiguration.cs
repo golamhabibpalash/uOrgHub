@@ -10,5 +10,7 @@ public class ClientConfiguration : IEntityTypeConfiguration<Client>
     {
         b.HasKey(x => x.Id);
         b.HasIndex(x => x.ClientCode).IsUnique();
+        b.HasOne(x => x.Customer).WithMany()
+         .HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.SetNull);
     }
 }

@@ -17,6 +17,8 @@ public class ProjectConfiguration : IEntityTypeConfiguration<Project>
         b.HasOne<Company>().WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Restrict);
 
         b.Property(x => x.ContractValue).HasColumnType("decimal(18,2)");
+        b.HasOne<uOrgHub.Accounts.Models.Entities.ChartOfAccount>().WithMany()
+         .HasForeignKey(x => x.DefaultRevenueAccountId).OnDelete(DeleteBehavior.SetNull);
 
         b.HasOne(x => x.Client)
          .WithMany(x => x.Projects)

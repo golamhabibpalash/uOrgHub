@@ -70,6 +70,22 @@ public class ClientsController : BaseController
         return Ok(ApiResponse<ClientResponseDto>.Ok(result, "Client updated successfully."));
     }
 
+    /// <summary>
+    /// Creates the Accounts customer for this client from its own details and links it. Needs
+    /// Accounts' customer-create right (checked here) on top of client edit (checked by the gate).
+    /// </summary>
+    [HttpPost("{id:guid}/create-customer")]
+    [RequireClaim(Claims.Projects.Clients.Edit)]
+    public async Task<IActionResult> CreateCustomer(Guid id, [FromBody] CreateCustomerFromClientDto dto,
+        [FromServices] uOrgHub.Auth.Services.IPermissionService permissions)
+    {
+        if (!await permissions.HasClaimAsync(GetUserId(), Claims.Accounts.Customers.Create))
+            return StatusCode(403, ApiResponse<string>.Fail($"Access denied: {Claims.Accounts.Customers.Create} claim required"));
+
+        var result = await _mediator.Send(new CreateCustomerFromClientCommand(id, dto));
+        return Ok(ApiResponse<ClientResponseDto>.Ok(result, $"Customer {result.CustomerCode} created and linked."));
+    }
+
     [HttpDelete("{id:guid}")]
     [RequireClaim(Claims.Projects.Clients.Delete)]
     public async Task<IActionResult> Delete(Guid id)
