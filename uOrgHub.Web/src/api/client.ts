@@ -105,8 +105,9 @@ apiClient.interceptors.response.use(
       }
     }
 
-    const errMsg = error.response?.data?.message
-      || extractFirstError(error.response?.data?.errors)
+    // Field errors first: a validation failure's message is just the generic "Validation failed".
+    const errMsg = extractFirstError(error.response?.data?.errors)
+      || error.response?.data?.message
       || error.message
       || 'An error occurred';
     if (status && status !== 401 && status !== 403) {

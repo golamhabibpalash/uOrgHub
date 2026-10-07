@@ -59,8 +59,8 @@ export default function CostCenters() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["cost-centers"] }); closeModal(); },
     onError: (err: unknown) => {
       const axiosErr = err as { response?: { data?: { message?: string; errors?: string[] } } };
-      const msg = axiosErr?.response?.data?.message
-        ?? axiosErr?.response?.data?.errors?.[0]
+      const msg = axiosErr?.response?.data?.errors?.[0]
+        ?? axiosErr?.response?.data?.message
         ?? "Failed to save cost center.";
       setSaveError(msg);
     },
