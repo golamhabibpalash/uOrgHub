@@ -147,8 +147,8 @@ export interface AttendanceLog {
   employeeId: string;
   employeeName: string;
   attendanceDate: string;
-  checkIn: string;
-  checkOut: string;
+  checkIn: string | null;
+  checkOut: string | null;
   workHours: number;
   status: string;
   remarks?: string;

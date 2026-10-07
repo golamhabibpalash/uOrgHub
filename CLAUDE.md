@@ -37,8 +37,9 @@ A few rules to keep front of mind:
   `modelBuilder.Entity<Vendor>().HasOne<ChartOfAccount>().WithMany().HasForeignKey(...)` (the
   generic overload needs no navigation property on the Shared side).
 - FluentValidation package versions differ per module: MediatR is unified at 12.4.1, but
-  FluentValidation is 11.9.x everywhere except Accounts/Procurement/Projects (12.1.1) — match
-  the local `.csproj` when adding refs or you'll get `NU1605`.
+  FluentValidation is 11.9.x everywhere except Accounts/Procurement/Projects/Tests (12.1.1), and
+  Riok.Mapperly is 3.6.0 in Shared/Inventory vs 4.3.1 elsewhere — match the local `.csproj`
+  when adding refs or you'll get `NU1605`.
 - `ValidationBehavior` validates the MediatR request **and every nested property that has a
   registered validator**. Commands wrap DTOs (`CreatePRCommand(CreatePRDto Dto)`), so write
   validators against the DTO, never the command. `IValidationRuleEngine`'s dynamic rules match
@@ -198,3 +199,5 @@ Never edit migration files by hand.
 - Deploying: never run `deploy/docker-compose.yml` directly — use
   `sudo ./deploy/deploy.sh <instance>` (see `deploy/README.md`). The frontend bakes
   `VITE_API_URL` in at build time, so each deployed instance needs its own web image tag.
+  `scripts/deploy.sh` is only the one-time server bootstrap; `scripts/update.sh` and root
+  `docker-compose.prod.yml` are superseded by `deploy/` — don't extend them.

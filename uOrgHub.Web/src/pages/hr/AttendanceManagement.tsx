@@ -89,10 +89,28 @@ export default function AttendanceManagement() {
     onError: (err) => toast.error(extractApiError(err)),
   });
 
+  // The time inputs give "HH:mm"; the API wants a full DateTime, so pin the time to the attendance date.
+  function toCheckTimestamp(date: string, time: string): string | null {
+    return date && time ? new Date(`${date}T${time}`).toISOString() : null;
+  }
+
+  function toTimeInput(timestamp: string | null | undefined): string {
+    if (!timestamp) return "";
+    const d = new Date(timestamp);
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  }
+
   const saveLogMutation = useMutation({
-    mutationFn: () => editingLog
-      ? updateAttendanceLog(editingLog.id, logForm)
-      : createAttendanceLog(logForm),
+    mutationFn: () => {
+      const payload = {
+        ...logForm,
+        checkIn: toCheckTimestamp(logForm.attendanceDate, logForm.checkIn),
+        checkOut: toCheckTimestamp(logForm.attendanceDate, logForm.checkOut),
+      };
+      return editingLog
+        ? updateAttendanceLog(editingLog.id, payload)
+        : createAttendanceLog(payload);
+    },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["attendance-logs"] }); setModal(false); setEditingLog(null); },
   });
 
@@ -109,8 +127,8 @@ export default function AttendanceManagement() {
     setLogForm({
       employeeId: log.employeeId,
       attendanceDate: log.attendanceDate.split("T")[0],
-      checkIn: log.checkIn,
-      checkOut: log.checkOut,
+      checkIn: toTimeInput(log.checkIn),
+      checkOut: toTimeInput(log.checkOut),
       status: log.status,
       remarks: log.remarks || "",
     });
