@@ -15,6 +15,19 @@ public class CreateWorkScheduleDto
     public bool IsActive { get; set; } = true;
 }
 
+public class UpdateWorkScheduleDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public TimeSpan StartTime { get; set; }
+    public TimeSpan EndTime { get; set; }
+    public decimal TotalHours { get; set; } = 8;
+    public bool IsFlexible { get; set; }
+    public int GracePeriodMinutes { get; set; } = 10;
+    public int WorkingDaysPerWeek { get; set; } = 5;
+    public bool IsActive { get; set; } = true;
+}
+
 public class WorkScheduleResponseDto
 {
     public Guid Id { get; set; }
@@ -38,6 +51,17 @@ public class CreateShiftDto
     public TimeSpan StartTime { get; set; }
     public TimeSpan EndTime { get; set; }
     public bool IsNightShift { get; set; } = false;
+    public bool IsActive { get; set; } = true;
+}
+
+public class UpdateShiftDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string? Code { get; set; }
+    public Guid WorkScheduleId { get; set; }
+    public TimeSpan StartTime { get; set; }
+    public TimeSpan EndTime { get; set; }
+    public bool IsNightShift { get; set; }
     public bool IsActive { get; set; } = true;
 }
 
@@ -78,6 +102,8 @@ public class EmployeeRosterResponseDto
     public string EmployeeName { get; set; } = string.Empty;
     public Guid ShiftId { get; set; }
     public string ShiftName { get; set; } = string.Empty;
+    public TimeSpan ShiftStartTime { get; set; }
+    public TimeSpan ShiftEndTime { get; set; }
     public DateTime RosterDate { get; set; }
     public bool IsOff { get; set; }
     public string? Note { get; set; }
@@ -113,6 +139,8 @@ public class AttendanceLogResponseDto
     public DateTime? CheckOut { get; set; }
     public decimal WorkHours { get; set; }
     public decimal OvertimeHours { get; set; }
+    /// <summary>Shift the employee was rostered on for this date, if any.</summary>
+    public string? ShiftName { get; set; }
     public AttendanceSource Source { get; set; }
     public AttendanceStatus Status { get; set; }
     public string? Remarks { get; set; }

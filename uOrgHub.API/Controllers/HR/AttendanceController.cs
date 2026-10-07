@@ -55,6 +55,14 @@ public class AttendanceController : BaseController
         return Ok(ApiResponse<WorkScheduleResponseDto>.Ok(result, "Work schedule created successfully."));
     }
 
+    [HttpPut("work-schedules/{id:guid}")]
+    [RequireClaim(Claims.HR.WorkSchedules.Edit)]
+    public async Task<IActionResult> UpdateWorkSchedule(Guid id, [FromBody] UpdateWorkScheduleDto dto)
+    {
+        var result = await _mediator.Send(new UpdateWorkScheduleCommand(id, dto));
+        return Ok(ApiResponse<WorkScheduleResponseDto>.Ok(result, "Work schedule updated successfully."));
+    }
+
     [HttpGet("shifts")]
     [RequireClaim(Claims.HR.Shifts.View)]
     public async Task<IActionResult> GetShifts([FromQuery] PaginationRequest request, [FromQuery] Guid? workScheduleId = null)
@@ -83,6 +91,23 @@ public class AttendanceController : BaseController
     {
         var result = await _mediator.Send(new CreateShiftCommand(dto));
         return Ok(ApiResponse<ShiftResponseDto>.Ok(result, "Shift created successfully."));
+    }
+
+    [HttpPut("shifts/{id:guid}")]
+    [RequireClaim(Claims.HR.Shifts.Edit)]
+    public async Task<IActionResult> UpdateShift(Guid id, [FromBody] UpdateShiftDto dto)
+    {
+        var result = await _mediator.Send(new UpdateShiftCommand(id, dto));
+        return Ok(ApiResponse<ShiftResponseDto>.Ok(result, "Shift updated successfully."));
+    }
+
+    [HttpGet("rosters")]
+    [RequireClaim(Claims.HR.Shifts.View)]
+    public async Task<IActionResult> GetRosters([FromQuery] PaginationRequest request, [FromQuery] Guid? employeeId = null,
+        [FromQuery] Guid? shiftId = null, [FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null)
+    {
+        var result = await _mediator.Send(new GetEmployeeRostersQuery(request, employeeId, shiftId, fromDate, toDate));
+        return Ok(ApiResponse<PagedResult<EmployeeRosterResponseDto>>.Ok(result));
     }
 
     [HttpPost("rosters")]

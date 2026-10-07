@@ -16,6 +16,8 @@ public record GetWorkSchedulesQuery(PaginationRequest Request) : IQuery<PagedRes
 public record GetAllWorkSchedulesQuery : IQuery<List<WorkScheduleResponseDto>>;
 public record GetShiftsQuery(PaginationRequest Request, Guid? WorkScheduleId = null) : IQuery<PagedResult<ShiftResponseDto>>;
 public record GetAllShiftsQuery : IQuery<List<ShiftResponseDto>>;
+public record GetEmployeeRostersQuery(PaginationRequest Request, Guid? EmployeeId = null, Guid? ShiftId = null, DateTime? FromDate = null, DateTime? ToDate = null)
+    : IQuery<PagedResult<EmployeeRosterResponseDto>>;
 
 public class GetAttendanceLogsQueryHandler : IRequestHandler<GetAttendanceLogsQuery, PagedResult<AttendanceLogResponseDto>>
 {
@@ -28,6 +30,8 @@ public class GetAttendanceLogsQueryHandler : IRequestHandler<GetAttendanceLogsQu
         if (request.EmployeeId.HasValue) query = query.Where(x => x.EmployeeId == request.EmployeeId);
         if (request.FromDate.HasValue) query = query.Where(x => x.AttendanceDate >= request.FromDate.Value.Date);
         if (request.ToDate.HasValue) query = query.Where(x => x.AttendanceDate <= request.ToDate.Value.Date);
+        if (!string.IsNullOrWhiteSpace(request.Request.Search))
+            query = query.WhereSearch(request.Request.Search, x => x.Employee.FirstName, x => x.Employee.LastName);
 
         var totalCount = await query.CountAsync(ct);
         var logMappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -37,11 +41,21 @@ public class GetAttendanceLogsQueryHandler : IRequestHandler<GetAttendanceLogsQu
             ["checkIn"] = "CheckIn",
             ["checkOut"] = "CheckOut",
             ["workHours"] = "WorkHours",
+            ["overtimeHours"] = "OvertimeHours",
         };
         query = query.ApplySorting(request.Request.SortBy ?? "AttendanceDate", request.Request.SortDescending, logMappings);
         var items = await query
             .Skip((request.Request.Page - 1) * request.Request.PageSize)
             .Take(request.Request.PageSize).ToListAsync(ct);
+
+        // Rostered shift for each row on this page, keyed by employee + date.
+        var employeeIds = items.Select(x => x.EmployeeId).Distinct().ToList();
+        var dates = items.Select(x => x.AttendanceDate.Date).Distinct().ToList();
+        var shiftNames = (await _context.Set<EmployeeRoster>()
+                .Where(r => !r.IsDeleted && employeeIds.Contains(r.EmployeeId) && dates.Contains(r.RosterDate))
+                .Select(r => new { r.EmployeeId, r.RosterDate, r.IsOff, ShiftName = r.Shift.Name })
+                .ToListAsync(ct))
+            .ToDictionary(r => (r.EmployeeId, r.RosterDate.Date), r => r.IsOff ? $"{r.ShiftName} (day off)" : r.ShiftName);
 
         return new PagedResult<AttendanceLogResponseDto>
         {
@@ -51,6 +65,7 @@ public class GetAttendanceLogsQueryHandler : IRequestHandler<GetAttendanceLogsQu
                 EmployeeName = e.Employee != null ? $"{e.Employee.FirstName} {e.Employee.LastName}" : string.Empty,
                 AttendanceDate = e.AttendanceDate, CheckIn = e.CheckIn, CheckOut = e.CheckOut,
                 WorkHours = e.WorkHours, OvertimeHours = e.OvertimeHours,
+                ShiftName = shiftNames.GetValueOrDefault((e.EmployeeId, e.AttendanceDate.Date)),
                 Source = e.Source, Status = e.Status, Remarks = e.Remarks, CreatedAt = e.CreatedAt
             }).ToList(),
             TotalCount = totalCount, Page = request.Request.Page, PageSize = request.Request.PageSize
@@ -193,5 +208,47 @@ public class GetAllShiftsQueryHandler : IRequestHandler<GetAllShiftsQuery, List<
                 IsNightShift = x.IsNightShift, IsActive = x.IsActive, CreatedAt = x.CreatedAt
             }).ToListAsync(ct);
         return items;
+    }
+}
+
+public class GetEmployeeRostersQueryHandler : IRequestHandler<GetEmployeeRostersQuery, PagedResult<EmployeeRosterResponseDto>>
+{
+    private readonly AppDbContext _context;
+    public GetEmployeeRostersQueryHandler(AppDbContext context) => _context = context;
+
+    public async Task<PagedResult<EmployeeRosterResponseDto>> Handle(GetEmployeeRostersQuery request, CancellationToken ct)
+    {
+        var query = _context.Set<EmployeeRoster>().Include(x => x.Employee).Include(x => x.Shift).Where(x => !x.IsDeleted);
+        if (request.EmployeeId.HasValue) query = query.Where(x => x.EmployeeId == request.EmployeeId);
+        if (request.ShiftId.HasValue) query = query.Where(x => x.ShiftId == request.ShiftId);
+        if (request.FromDate.HasValue) query = query.Where(x => x.RosterDate >= request.FromDate.Value.Date);
+        if (request.ToDate.HasValue) query = query.Where(x => x.RosterDate <= request.ToDate.Value.Date);
+        if (!string.IsNullOrWhiteSpace(request.Request.Search))
+            query = query.WhereSearch(request.Request.Search, x => x.Employee.FirstName, x => x.Employee.LastName, x => x.Shift.Name);
+
+        var totalCount = await query.CountAsync(ct);
+        var rosterMappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["employeeName"] = "Employee.FirstName",
+            ["shiftName"] = "Shift.Name",
+            ["rosterDate"] = "RosterDate",
+        };
+        query = query.ApplySorting(request.Request.SortBy ?? "RosterDate", request.Request.SortDescending, rosterMappings);
+        var items = await query
+            .Skip((request.Request.Page - 1) * request.Request.PageSize)
+            .Take(request.Request.PageSize).ToListAsync(ct);
+
+        return new PagedResult<EmployeeRosterResponseDto>
+        {
+            Items = items.Select(e => new EmployeeRosterResponseDto
+            {
+                Id = e.Id, EmployeeId = e.EmployeeId,
+                EmployeeName = e.Employee != null ? $"{e.Employee.FirstName} {e.Employee.LastName}" : string.Empty,
+                ShiftId = e.ShiftId, ShiftName = e.Shift?.Name ?? string.Empty,
+                ShiftStartTime = e.Shift?.StartTime ?? default, ShiftEndTime = e.Shift?.EndTime ?? default,
+                RosterDate = e.RosterDate, IsOff = e.IsOff, Note = e.Note, CreatedAt = e.CreatedAt
+            }).ToList(),
+            TotalCount = totalCount, Page = request.Request.Page, PageSize = request.Request.PageSize
+        };
     }
 }

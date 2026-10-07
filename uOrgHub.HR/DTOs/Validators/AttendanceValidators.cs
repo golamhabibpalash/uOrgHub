@@ -14,9 +14,30 @@ public class CreateWorkScheduleDtoValidator : AbstractValidator<CreateWorkSchedu
     }
 }
 
+public class UpdateWorkScheduleDtoValidator : AbstractValidator<UpdateWorkScheduleDto>
+{
+    public UpdateWorkScheduleDtoValidator()
+    {
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
+        RuleFor(x => x.TotalHours).GreaterThan(0).LessThanOrEqualTo(24);
+        RuleFor(x => x.WorkingDaysPerWeek).InclusiveBetween(1, 7);
+        RuleFor(x => x.GracePeriodMinutes).GreaterThanOrEqualTo(0);
+    }
+}
+
 public class CreateShiftDtoValidator : AbstractValidator<CreateShiftDto>
 {
     public CreateShiftDtoValidator()
+    {
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
+        RuleFor(x => x.Code).NotEmpty().MaximumLength(20);
+        RuleFor(x => x.WorkScheduleId).NotEmpty();
+    }
+}
+
+public class UpdateShiftDtoValidator : AbstractValidator<UpdateShiftDto>
+{
+    public UpdateShiftDtoValidator()
     {
         RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
         RuleFor(x => x.Code).NotEmpty().MaximumLength(20);
@@ -31,6 +52,14 @@ public class CreateEmployeeRosterDtoValidator : AbstractValidator<CreateEmployee
         RuleFor(x => x.EmployeeId).NotEmpty();
         RuleFor(x => x.ShiftId).NotEmpty();
         RuleFor(x => x.RosterDate).NotEmpty();
+    }
+}
+
+public class UpdateEmployeeRosterDtoValidator : AbstractValidator<UpdateEmployeeRosterDto>
+{
+    public UpdateEmployeeRosterDtoValidator()
+    {
+        RuleFor(x => x.ShiftId).NotEmpty();
     }
 }
 

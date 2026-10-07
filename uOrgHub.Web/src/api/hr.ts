@@ -125,22 +125,56 @@ export interface LeaveBalance {
   year: number;
 }
 
+// Times of day (startTime/endTime) travel as .NET TimeSpan strings: "HH:mm:ss".
 export interface WorkSchedule {
   id: string;
   name: string;
   description: string;
+  startTime: string;
+  endTime: string;
+  totalHours: number;
+  isFlexible: boolean;
+  gracePeriodMinutes: number;
+  workingDaysPerWeek: number;
   isActive: boolean;
 }
 
 export interface Shift {
   id: string;
   name: string;
+  code: string;
   startTime: string;
   endTime: string;
+  isNightShift: boolean;
   workScheduleId: string;
   workScheduleName: string;
   isActive: boolean;
 }
+
+export interface EmployeeRoster {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  shiftId: string;
+  shiftName: string;
+  shiftStartTime: string;
+  shiftEndTime: string;
+  rosterDate: string;
+  isOff: boolean;
+  note?: string;
+}
+
+/** Backend AttendanceStatus enum, in display order. */
+export const ATTENDANCE_STATUSES = [
+  { value: "Present", label: "Present" },
+  { value: "Late", label: "Late" },
+  { value: "HalfDay", label: "Half Day" },
+  { value: "Absent", label: "Absent" },
+  { value: "WFH", label: "Work From Home" },
+  { value: "LeaveApproved", label: "On Leave" },
+  { value: "Holiday", label: "Holiday" },
+  { value: "WeekOff", label: "Week Off" },
+] as const;
 
 export interface AttendanceLog {
   id: string;
@@ -150,6 +184,9 @@ export interface AttendanceLog {
   checkIn: string | null;
   checkOut: string | null;
   workHours: number;
+  overtimeHours: number;
+  /** Shift the employee was rostered on that day, if any. */
+  shiftName?: string | null;
   status: string;
   remarks?: string;
 }
@@ -518,6 +555,9 @@ export const getWorkSchedules = (params: PaginationRequest) =>
 export const createWorkSchedule = (data: Partial<WorkSchedule>) =>
   apiClient.post<ApiResponse<WorkSchedule>>("attendance/work-schedules", data);
 
+export const updateWorkSchedule = (id: string, data: Partial<WorkSchedule>) =>
+  apiClient.put<ApiResponse<WorkSchedule>>(`attendance/work-schedules/${id}`, data);
+
 export const getShifts = (params: PaginationRequest, workScheduleId?: string) =>
   apiClient.get<ApiResponse<PagedResult<Shift>>>("attendance/shifts", {
     params: { ...params, workScheduleId },
@@ -525,6 +565,20 @@ export const getShifts = (params: PaginationRequest, workScheduleId?: string) =>
 
 export const createShift = (data: Partial<Shift>) =>
   apiClient.post<ApiResponse<Shift>>("attendance/shifts", data);
+
+export const updateShift = (id: string, data: Partial<Shift>) =>
+  apiClient.put<ApiResponse<Shift>>(`attendance/shifts/${id}`, data);
+
+export const getRosters = (params: PaginationRequest, filters?: { employeeId?: string; shiftId?: string; fromDate?: string; toDate?: string }) =>
+  apiClient.get<ApiResponse<PagedResult<EmployeeRoster>>>("attendance/rosters", {
+    params: { ...params, ...filters },
+  });
+
+export const createRoster = (data: { employeeId: string; shiftId: string; rosterDate: string; isOff: boolean; note?: string }) =>
+  apiClient.post<ApiResponse<EmployeeRoster>>("attendance/rosters", data);
+
+export const updateRoster = (id: string, data: { shiftId: string; isOff: boolean; note?: string }) =>
+  apiClient.put<ApiResponse<EmployeeRoster>>(`attendance/rosters/${id}`, data);
 
 export const getAttendanceLogs = (params: PaginationRequest, employeeId?: string, fromDate?: string, toDate?: string) =>
   apiClient.get<ApiResponse<PagedResult<AttendanceLog>>>("attendance/logs", {
