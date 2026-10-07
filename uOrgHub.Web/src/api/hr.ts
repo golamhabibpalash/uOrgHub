@@ -92,7 +92,10 @@ export interface LeaveType {
   code: string;
   description: string;
   totalDaysPerYear: number;
-  isPaid: boolean;
+  isPaidLeave: boolean;
+  approvalLevels: number;
+  carryForward: boolean;
+  maxCarryForwardDays: number;
   isActive: boolean;
 }
 

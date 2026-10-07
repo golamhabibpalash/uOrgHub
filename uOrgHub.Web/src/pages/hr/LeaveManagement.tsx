@@ -52,7 +52,7 @@ export default function LeaveManagement() {
   const [statusFilter, setStatusFilter] = useState("");
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<LeaveType | null>(null);
-  const [form, setForm] = useState({ name: "", code: "", description: "", totalDaysPerYear: 0, isPaid: true });
+  const [form, setForm] = useState({ name: "", code: "", description: "", totalDaysPerYear: 0, isPaidLeave: true });
 
   const [reqModal, setReqModal] = useState(false);
   const [editingReq, setEditingReq] = useState<LeaveRequest | null>(null);
@@ -106,8 +106,16 @@ export default function LeaveManagement() {
   const leaveRequests = requestsData?.data?.data?.items ?? [];
 
   const saveTypeMutation = useMutation({
+    // The update replaces every field, so carry over the ones this form doesn't show —
+    // otherwise an edit would deactivate the type and reset its approval/carry-forward rules.
     mutationFn: () => editing
-      ? updateLeaveType(editing.id, form)
+      ? updateLeaveType(editing.id, {
+          ...form,
+          approvalLevels: editing.approvalLevels,
+          carryForward: editing.carryForward,
+          maxCarryForwardDays: editing.maxCarryForwardDays,
+          isActive: editing.isActive,
+        })
       : createLeaveType(form),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["leave-types"] });
@@ -190,12 +198,12 @@ export default function LeaveManagement() {
     { key: "description", label: "Description" },
     { key: "totalDaysPerYear", label: "Max Days/Year" },
     {
-      key: "isPaid",
+      key: "isPaidLeave",
       label: "Paid",
       sortable: false,
       render: (row: LeaveType) => (
-        <span className={`text-xs px-2 py-0.5 rounded-full ${row.isPaid ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-600"}`}>
-          {row.isPaid ? "Yes" : "No"}
+        <span className={`text-xs px-2 py-0.5 rounded-full ${row.isPaidLeave ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-600"}`}>
+          {row.isPaidLeave ? "Yes" : "No"}
         </span>
       ),
     },
@@ -319,7 +327,7 @@ export default function LeaveManagement() {
         <div className="flex gap-2">
           {activeTab === "types" && canCreateLeaveType && (
             <button
-              onClick={() => { setEditing(null); setForm({ name: "", code: "", description: "", totalDaysPerYear: 0, isPaid: true }); setModal(true); }}
+              onClick={() => { setEditing(null); setForm({ name: "", code: "", description: "", totalDaysPerYear: 0, isPaidLeave: true }); setModal(true); }}
               className="flex items-center gap-2 bg-primary-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-primary-600"
             >
               <Plus size={15} /> Add Leave Type
@@ -378,7 +386,7 @@ export default function LeaveManagement() {
           pageSize={dg.pageSize}
           onPageSizeChange={dg.setPageSize}
           totalCount={typesData?.data?.data?.totalCount ?? 0}
-          onEdit={canEditLeaveType ? (row) => { setEditing(row); setForm({ name: row.name, code: row.code, description: row.description, totalDaysPerYear: row.totalDaysPerYear, isPaid: row.isPaid }); setModal(true); } : undefined}
+          onEdit={canEditLeaveType ? (row) => { setEditing(row); setForm({ name: row.name, code: row.code, description: row.description, totalDaysPerYear: row.totalDaysPerYear, isPaidLeave: row.isPaidLeave }); setModal(true); } : undefined}
           emptyMessage="No leave types found"
           actions={canExportLeaveTypes ? <ExportMenu baseUrl="leave/types" filters={{ search: dg.search || undefined }} /> : undefined}
         />
@@ -443,7 +451,7 @@ export default function LeaveManagement() {
               </div>
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">Is Paid</label>
-                <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={String(form.isPaid)} onChange={(e) => setForm(f => ({ ...f, isPaid: e.target.value === "true" }))}>
+                <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500" value={String(form.isPaidLeave)} onChange={(e) => setForm(f => ({ ...f, isPaidLeave: e.target.value === "true" }))}>
                   <option value="true">Yes</option>
                   <option value="false">No</option>
                 </select>
