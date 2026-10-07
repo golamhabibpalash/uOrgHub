@@ -11,9 +11,9 @@ using uOrgHub.Shared.Models;
 namespace uOrgHub.HR.Features.Leave.Queries;
 
 public record GetLeaveTypesQuery(PaginationRequest Request) : IQuery<PagedResult<LeaveTypeResponseDto>>;
-public record GetAllLeaveTypesQuery : IQuery<List<LeaveTypeResponseDto>>;
-public record GetLeaveRequestsQuery(PaginationRequest Request, Guid? EmployeeId = null, LeaveStatus? Status = null) : IQuery<PagedResult<LeaveRequestResponseDto>>;
-public record GetAllLeaveRequestsQuery : IQuery<List<LeaveRequestResponseDto>>;
+public record GetAllLeaveTypesQuery(string? Search = null) : IQuery<List<LeaveTypeResponseDto>>;
+public record GetLeaveRequestsQuery(PaginationRequest Request, Guid? EmployeeId = null, LeaveStatus? Status = null, Guid? LeaveTypeId = null) : IQuery<PagedResult<LeaveRequestResponseDto>>;
+public record GetAllLeaveRequestsQuery(Guid? EmployeeId = null, LeaveStatus? Status = null, Guid? LeaveTypeId = null) : IQuery<List<LeaveRequestResponseDto>>;
 public record GetLeaveBalancesQuery(Guid EmployeeId, int? Year = null) : IQuery<List<LeaveBalanceResponseDto>>;
 
 public class GetLeaveTypesQueryHandler : IRequestHandler<GetLeaveTypesQuery, PagedResult<LeaveTypeResponseDto>>
@@ -56,8 +56,11 @@ public class GetAllLeaveTypesQueryHandler : IRequestHandler<GetAllLeaveTypesQuer
 
     public async Task<List<LeaveTypeResponseDto>> Handle(GetAllLeaveTypesQuery request, CancellationToken ct)
     {
-        var items = await _context.Set<LeaveType>()
-            .Where(x => !x.IsDeleted)
+        var query = _context.Set<LeaveType>().Where(x => !x.IsDeleted);
+        if (!string.IsNullOrWhiteSpace(request.Search))
+            query = query.WhereSearch(request.Search, x => x.Name);
+
+        var items = await query
             .OrderBy(x => x.Name)
             .Select(x => new LeaveTypeResponseDto
             {
@@ -86,6 +89,7 @@ public class GetLeaveRequestsQueryHandler : IRequestHandler<GetLeaveRequestsQuer
 
         if (request.EmployeeId.HasValue) query = query.Where(x => x.EmployeeId == request.EmployeeId);
         if (request.Status.HasValue) query = query.Where(x => x.Status == request.Status);
+        if (request.LeaveTypeId.HasValue) query = query.Where(x => x.LeaveTypeId == request.LeaveTypeId);
 
         var totalCount = await query.CountAsync(ct);
         query = query.ApplySorting(request.Request.SortBy ?? "StartDate", request.Request.SortDescending);
@@ -123,10 +127,16 @@ public class GetAllLeaveRequestsQueryHandler : IRequestHandler<GetAllLeaveReques
 
     public async Task<List<LeaveRequestResponseDto>> Handle(GetAllLeaveRequestsQuery request, CancellationToken ct)
     {
-        var items = await _context.Set<LeaveRequest>()
+        var query = _context.Set<LeaveRequest>()
             .Include(x => x.Employee).Include(x => x.LeaveType)
             .Include(x => x.Approvals).ThenInclude(x => x.Approver)
-            .Where(x => !x.IsDeleted)
+            .Where(x => !x.IsDeleted);
+
+        if (request.EmployeeId.HasValue) query = query.Where(x => x.EmployeeId == request.EmployeeId);
+        if (request.Status.HasValue) query = query.Where(x => x.Status == request.Status);
+        if (request.LeaveTypeId.HasValue) query = query.Where(x => x.LeaveTypeId == request.LeaveTypeId);
+
+        var items = await query
             .OrderByDescending(x => x.StartDate)
             .ToListAsync(ct);
 

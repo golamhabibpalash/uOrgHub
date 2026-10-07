@@ -68,9 +68,9 @@ public class LeaveController : BaseController
 
     [HttpGet("leave-types/export")]
     [RequireClaim(Claims.HR.LeaveTypes.Export)]
-    public async Task<IActionResult> ExportLeaveTypes([FromQuery] string format = "xlsx")
+    public async Task<IActionResult> ExportLeaveTypes([FromQuery] string format = "xlsx", [FromQuery] string? search = null)
     {
-        var data = await _mediator.Send(new GetAllLeaveTypesQuery());
+        var data = await _mediator.Send(new GetAllLeaveTypesQuery(search));
         var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
         var result = await _exportService.ExportAsync(data, LeaveTypeExportColumns.Get(), new ExportOptions
         {
@@ -108,7 +108,7 @@ public class LeaveController : BaseController
 
     [HttpGet("requests")]
     [RequireAnyClaim(Claims.HR.LeaveRequests.View, Claims.Self.ViewLeave)]
-    public async Task<IActionResult> GetRequests([FromQuery] PaginationRequest request, [FromQuery] Guid? employeeId = null, [FromQuery] LeaveStatus? status = null)
+    public async Task<IActionResult> GetRequests([FromQuery] PaginationRequest request, [FromQuery] Guid? employeeId = null, [FromQuery] LeaveStatus? status = null, [FromQuery] Guid? leaveTypeId = null)
     {
         var isHrAdmin = await HasClaimAsync(Claims.HR.LeaveRequests.View);
 
@@ -122,15 +122,15 @@ public class LeaveController : BaseController
             employeeId = currentEmployeeId;
         }
 
-        var result = await _mediator.Send(new GetLeaveRequestsQuery(request, employeeId, status));
+        var result = await _mediator.Send(new GetLeaveRequestsQuery(request, employeeId, status, leaveTypeId));
         return Ok(ApiResponse<PagedResult<LeaveRequestResponseDto>>.Ok(result));
     }
 
     [HttpGet("leave-requests/export")]
     [RequireClaim(Claims.HR.LeaveRequests.Export)]
-    public async Task<IActionResult> ExportLeaveRequests([FromQuery] string format = "xlsx")
+    public async Task<IActionResult> ExportLeaveRequests([FromQuery] string format = "xlsx", [FromQuery] Guid? employeeId = null, [FromQuery] LeaveStatus? status = null, [FromQuery] Guid? leaveTypeId = null)
     {
-        var data = await _mediator.Send(new GetAllLeaveRequestsQuery());
+        var data = await _mediator.Send(new GetAllLeaveRequestsQuery(employeeId, status, leaveTypeId));
         var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
         var result = await _exportService.ExportAsync(data, LeaveRequestExportColumns.Get(), new ExportOptions
         {

@@ -6,7 +6,9 @@ import DataGrid from "../../components/shared/DataGrid";
 import { useDataGrid } from "../../hooks/useDataGrid";
 import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
+import PrintButton from "../../components/shared/PrintButton";
 import SearchableDropdown from "../../components/shared/SearchableDropdown";
+import type { PrintColumn } from "../../utils/print";
 import { useEmployeeLookup, useLeaveTypeLookup } from "../../hooks/useEntityLookup";
 import { useAuthStore } from "../../store/authStore";
 import {
@@ -50,6 +52,8 @@ export default function LeaveManagement() {
   );
   const dg = useDataGrid({ defaultSortBy: "name" });
   const [statusFilter, setStatusFilter] = useState("");
+  const [leaveTypeFilter, setLeaveTypeFilter] = useState("");
+  const [employeeFilter, setEmployeeFilter] = useState("");
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<LeaveType | null>(null);
   const [form, setForm] = useState({ name: "", code: "", description: "", totalDaysPerYear: 0, isPaidLeave: true });
@@ -93,11 +97,12 @@ export default function LeaveManagement() {
   const { options: empOptions, isLoading: empLoading } = useEmployeeLookup();
 
   const { data: requestsData, isLoading: requestsLoading } = useQuery({
-    queryKey: ["leave-requests", ...dg.queryKey, statusFilter],
+    queryKey: ["leave-requests", ...dg.queryKey, statusFilter, leaveTypeFilter, employeeFilter],
     queryFn: () => getLeaveRequests(
       dg.queryParams,
-      isHrAdmin ? undefined : userEmployeeId,
-      statusFilter || undefined
+      isHrAdmin ? (employeeFilter || undefined) : userEmployeeId,
+      statusFilter || undefined,
+      leaveTypeFilter || undefined,
     ),
     enabled: canViewRequests,
   });
@@ -312,6 +317,38 @@ export default function LeaveManagement() {
     },
   ];
 
+  const typePrintColumns: PrintColumn<LeaveType>[] = [
+    { header: "Code", value: (t) => t.code },
+    { header: "Leave Type", value: (t) => t.name },
+    { header: "Description", value: (t) => t.description },
+    { header: "Max Days/Year", value: (t) => t.totalDaysPerYear },
+    { header: "Paid", value: (t) => (t.isPaid ? "Yes" : "No") },
+  ];
+
+  const requestPrintColumns: PrintColumn<LeaveRequest>[] = [
+    { header: "Employee", value: (r) => r.employeeName },
+    { header: "Leave Type", value: (r) => r.leaveTypeName },
+    { header: "Start Date", value: (r) => new Date(r.startDate).toLocaleDateString() },
+    { header: "End Date", value: (r) => new Date(r.endDate).toLocaleDateString() },
+    { header: "Days", value: (r) => r.totalDays },
+    { header: "Status", value: (r) => r.status },
+  ];
+
+  const fetchTypesForPrint = async () => {
+    const res = await getLeaveTypes({ page: 1, pageSize: 100000, ...(dg.search ? { search: dg.search } : {}) });
+    return res.data?.data?.items ?? [];
+  };
+
+  const fetchRequestsForPrint = async () => {
+    const res = await getLeaveRequests(
+      { page: 1, pageSize: 100000 },
+      isHrAdmin ? (employeeFilter || undefined) : userEmployeeId,
+      statusFilter || undefined,
+      leaveTypeFilter || undefined,
+    );
+    return res.data?.data?.items ?? [];
+  };
+
   const tabs = ([
     { key: "types" as const, label: "Leave Types", visible: canViewLeaveTypes },
     { key: "requests" as const, label: "Leave Requests", visible: canViewRequests },
@@ -388,7 +425,12 @@ export default function LeaveManagement() {
           totalCount={typesData?.data?.data?.totalCount ?? 0}
           onEdit={canEditLeaveType ? (row) => { setEditing(row); setForm({ name: row.name, code: row.code, description: row.description, totalDaysPerYear: row.totalDaysPerYear, isPaidLeave: row.isPaidLeave }); setModal(true); } : undefined}
           emptyMessage="No leave types found"
-          actions={canExportLeaveTypes ? <ExportMenu baseUrl="leave/types" filters={{ search: dg.search || undefined }} /> : undefined}
+          actions={
+            <div className="flex items-center gap-2">
+              <PrintButton title="Leave Types" columns={typePrintColumns} fetchRows={fetchTypesForPrint} />
+              {canExportLeaveTypes && <ExportMenu baseUrl="leave/leave-types" filters={{ search: dg.search || undefined }} />}
+            </div>
+          }
         />
       )}
       {activeTab === "requests" && canViewRequests && (
@@ -410,7 +452,7 @@ export default function LeaveManagement() {
           totalCount={requestsData?.data?.data?.totalCount ?? 0}
           emptyMessage="No leave requests found"
           toolbarPrefix={
-            isHrAdmin ? (
+            <div className="flex items-center gap-2">
               <select
                 value={statusFilter}
                 onChange={(e) => { setStatusFilter(e.target.value); dg.setPage(1); }}
@@ -420,10 +462,47 @@ export default function LeaveManagement() {
                 <option value="Pending">Pending</option>
                 <option value="Approved">Approved</option>
                 <option value="Rejected">Rejected</option>
+                <option value="Cancelled">Cancelled</option>
               </select>
-            ) : undefined
+              <SearchableDropdown
+                options={leaveTypeOptions}
+                value={leaveTypeFilter || undefined}
+                onChange={(v) => { setLeaveTypeFilter(v ?? ""); dg.setPage(1); }}
+                placeholder="All Leave Types"
+                searchPlaceholder="Search leave types..."
+                clearable
+                loading={leaveTypeLoading}
+                className="w-44"
+              />
+              {isHrAdmin && (
+                <SearchableDropdown
+                  options={empOptions}
+                  value={employeeFilter || undefined}
+                  onChange={(v) => { setEmployeeFilter(v ?? ""); dg.setPage(1); }}
+                  placeholder="All Employees"
+                  searchPlaceholder="Search employee..."
+                  clearable
+                  loading={empLoading}
+                  className="w-48"
+                />
+              )}
+            </div>
           }
-          actions={canExportRequests ? <ExportMenu baseUrl="leave/requests" filters={{ search: dg.search || undefined, status: statusFilter || undefined }} /> : undefined}
+          actions={
+            <div className="flex items-center gap-2">
+              <PrintButton title="Leave Requests" columns={requestPrintColumns} fetchRows={fetchRequestsForPrint} />
+              {canExportRequests && (
+                <ExportMenu
+                  baseUrl="leave/leave-requests"
+                  filters={{
+                    employeeId: isHrAdmin ? (employeeFilter || undefined) : userEmployeeId,
+                    status: statusFilter || undefined,
+                    leaveTypeId: leaveTypeFilter || undefined,
+                  }}
+                />
+              )}
+            </div>
+          }
         />
       )}
 

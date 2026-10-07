@@ -526,9 +526,9 @@ export const createLeaveType = (data: Partial<LeaveType>) =>
 export const updateLeaveType = (id: string, data: Partial<LeaveType>) =>
   apiClient.put<ApiResponse<LeaveType>>(`leave/types/${id}`, data);
 
-export const getLeaveRequests = (params: PaginationRequest, employeeId?: string, status?: string) =>
+export const getLeaveRequests = (params: PaginationRequest, employeeId?: string, status?: string, leaveTypeId?: string) =>
   apiClient.get<ApiResponse<PagedResult<LeaveRequest>>>("leave/requests", {
-    params: { ...params, employeeId, status },
+    params: { ...params, employeeId, status, leaveTypeId },
   });
 
 export const createLeaveRequest = (data: Partial<LeaveRequest>) =>
