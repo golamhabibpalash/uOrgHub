@@ -42,7 +42,7 @@ uOrgHub.{Module}/{Module}ServiceExtension.cs  # AddMediatR + ValidationBehavior 
 
 ## Controllers / auth / responses
 
-- Inherit `BaseController`, `[Authorize]`, route `api/v1/[controller]`, `{id:guid}` constraints. Gate with `[RequireClaim(Claims.{Module}.{Entity}.{Action})]` — add the `Claims` constant too.
+- Inherit `BaseController`, `[Authorize]`, `{id:guid}` constraints. Most controllers override the base `api/v1/[controller]` route with an explicit plural route (e.g. `api/v1/departments`) — copy the existing route, don't assume `[controller]`. Gate with `[RequireClaim(Claims.{Module}.{Entity}.{Action})]` — add the `Claims` constant too.
 - Return `ApiResponse<T>.Ok(...)` (paged: `ApiResponse<PagedResult<T>>`); throw typed exceptions from `uOrgHub.Shared/Exceptions/AppException.cs` (`NotFoundException`, `ValidationException`, `AppException`). Never return raw entities or null.
 - Middleware order in `Program.cs` is deliberate — don't reorder (Maintenance → Exception → AccessLog → Auth → Permission).
 

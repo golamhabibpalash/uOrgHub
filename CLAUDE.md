@@ -84,6 +84,11 @@ uOrgHub.{Module}/
 - Validation runs as a MediatR `ValidationBehavior` pipeline (registered per module) — FluentValidation validators are picked up by assembly scan, not called manually.
 - Throw typed exceptions from `uOrgHub.Shared/Exceptions/` (`NotFoundException`, `AppException`); `ExceptionMiddleware` translates them. Never return null/raw exceptions.
 
+> Not every module is CQRS. `uOrgHub.Settings` (and parts of `uOrgHub.Auth`) still use the
+> **older Service+Repository pattern** (`Services/I{X}Service.cs` + `{X}Service.cs`, no
+> `Features/`). When extending those, match their existing style; use CQRS/MediatR only for the
+> modules that already have a `Features/` folder (HR, Accounts, Inventory, Procurement, Projects).
+
 Controllers live in `uOrgHub.API/Controllers/{Module}/`, inherit `BaseController`, are
 `[Authorize]` by default, route as `api/v1/[controller]` with `{id:guid}` constraints, return
 `ApiResponse<T>.Ok(...)`, and gate actions with `[RequireClaim(Claims....)]` — a new claim
@@ -147,6 +152,13 @@ React 19 + Vite + TypeScript + Tailwind + shadcn/ui. State: Zustand (`src/store/
   `<link>`/`<style>` tags**, not a fresh stylesheet load — a fresh load races Tailwind's CDN
   timing and prints washed-out/unstyled content. Reuse this utility for new print surfaces
   instead of opening a new tab or re-deriving styles.
+
+List pages: always use the `DataGrid` component + `useDataGrid` hook (`src/components/shared/`,
+`src/hooks/`) — not the old `DataTable`/`Pagination`. The hook produces a ready `queryParams`
+object for the paged API call; each column's `key` maps to the backend `SortBy` value. Server
+side, paged query handlers must honor it via the `ApplySorting(sortBy, sortDescending)` extension
+(never hardcode `OrderBy`) and search via `WhereSearch()` (PostgreSQL `ILike`, case-insensitive).
+Full pattern is in `CODING_STANDARDS.md` §18.
 
 ## Commands
 
