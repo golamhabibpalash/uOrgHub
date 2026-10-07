@@ -322,7 +322,7 @@ export default function LeaveManagement() {
     { header: "Leave Type", value: (t) => t.name },
     { header: "Description", value: (t) => t.description },
     { header: "Max Days/Year", value: (t) => t.totalDaysPerYear },
-    { header: "Paid", value: (t) => (t.isPaid ? "Yes" : "No") },
+    { header: "Paid", value: (t) => (t.isPaidLeave ? "Yes" : "No") },
   ];
 
   const requestPrintColumns: PrintColumn<LeaveRequest>[] = [
