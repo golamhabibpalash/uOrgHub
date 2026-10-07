@@ -12,8 +12,8 @@ namespace uOrgHub.HR.Features.Leave.Queries;
 
 public record GetLeaveTypesQuery(PaginationRequest Request) : IQuery<PagedResult<LeaveTypeResponseDto>>;
 public record GetAllLeaveTypesQuery(string? Search = null) : IQuery<List<LeaveTypeResponseDto>>;
-public record GetLeaveRequestsQuery(PaginationRequest Request, Guid? EmployeeId = null, LeaveStatus? Status = null, Guid? LeaveTypeId = null) : IQuery<PagedResult<LeaveRequestResponseDto>>;
-public record GetAllLeaveRequestsQuery(Guid? EmployeeId = null, LeaveStatus? Status = null, Guid? LeaveTypeId = null) : IQuery<List<LeaveRequestResponseDto>>;
+public record GetLeaveRequestsQuery(PaginationRequest Request, Guid? EmployeeId = null, LeaveStatus? Status = null, Guid? LeaveTypeId = null, DateTime? FromDate = null, DateTime? ToDate = null) : IQuery<PagedResult<LeaveRequestResponseDto>>;
+public record GetAllLeaveRequestsQuery(Guid? EmployeeId = null, LeaveStatus? Status = null, Guid? LeaveTypeId = null, DateTime? FromDate = null, DateTime? ToDate = null, string? Search = null) : IQuery<List<LeaveRequestResponseDto>>;
 public record GetLeaveBalancesQuery(Guid EmployeeId, int? Year = null) : IQuery<List<LeaveBalanceResponseDto>>;
 
 public class GetLeaveTypesQueryHandler : IRequestHandler<GetLeaveTypesQuery, PagedResult<LeaveTypeResponseDto>>
@@ -77,6 +77,14 @@ public class GetAllLeaveTypesQueryHandler : IRequestHandler<GetAllLeaveTypesQuer
 
 public class GetLeaveRequestsQueryHandler : IRequestHandler<GetLeaveRequestsQuery, PagedResult<LeaveRequestResponseDto>>
 {
+    // Maps grid/DTO sort keys onto the entity (and navigation) property paths ApplySorting understands.
+    private static readonly Dictionary<string, string> LeaveRequestSortMappings = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["leaveTypeName"] = "LeaveType.Name",
+        ["employeeName"] = "Employee.FirstName",
+        ["appliedDate"] = "CreatedAt",
+    };
+
     private readonly AppDbContext _context;
     public GetLeaveRequestsQueryHandler(AppDbContext context) => _context = context;
 
@@ -90,9 +98,13 @@ public class GetLeaveRequestsQueryHandler : IRequestHandler<GetLeaveRequestsQuer
         if (request.EmployeeId.HasValue) query = query.Where(x => x.EmployeeId == request.EmployeeId);
         if (request.Status.HasValue) query = query.Where(x => x.Status == request.Status);
         if (request.LeaveTypeId.HasValue) query = query.Where(x => x.LeaveTypeId == request.LeaveTypeId);
+        if (request.FromDate.HasValue) query = query.Where(x => x.StartDate >= request.FromDate.Value.Date);
+        if (request.ToDate.HasValue) query = query.Where(x => x.StartDate <= request.ToDate.Value.Date);
+        if (!string.IsNullOrWhiteSpace(request.Request.Search))
+            query = query.WhereSearch(request.Request.Search, x => x.Reason ?? "", x => x.LeaveType.Name);
 
         var totalCount = await query.CountAsync(ct);
-        query = query.ApplySorting(request.Request.SortBy ?? "StartDate", request.Request.SortDescending);
+        query = query.ApplySorting(request.Request.SortBy ?? "StartDate", request.Request.SortDescending, LeaveRequestSortMappings);
         var items = await query
             .Skip((request.Request.Page - 1) * request.Request.PageSize)
             .Take(request.Request.PageSize).ToListAsync(ct);
@@ -135,6 +147,10 @@ public class GetAllLeaveRequestsQueryHandler : IRequestHandler<GetAllLeaveReques
         if (request.EmployeeId.HasValue) query = query.Where(x => x.EmployeeId == request.EmployeeId);
         if (request.Status.HasValue) query = query.Where(x => x.Status == request.Status);
         if (request.LeaveTypeId.HasValue) query = query.Where(x => x.LeaveTypeId == request.LeaveTypeId);
+        if (request.FromDate.HasValue) query = query.Where(x => x.StartDate >= request.FromDate.Value.Date);
+        if (request.ToDate.HasValue) query = query.Where(x => x.StartDate <= request.ToDate.Value.Date);
+        if (!string.IsNullOrWhiteSpace(request.Search))
+            query = query.WhereSearch(request.Search, x => x.Reason ?? "", x => x.LeaveType.Name);
 
         var items = await query
             .OrderByDescending(x => x.StartDate)

@@ -8,6 +8,7 @@ import Modal from "../../components/shared/Modal";
 import ExportMenu from "../../components/shared/ExportMenu";
 import PrintButton from "../../components/shared/PrintButton";
 import SearchableDropdown from "../../components/shared/SearchableDropdown";
+import EmployeeLeaveHistoryDrawer from "./EmployeeLeaveHistoryDrawer";
 import type { PrintColumn } from "../../utils/print";
 import { useEmployeeLookup, useLeaveTypeLookup } from "../../hooks/useEntityLookup";
 import { useAuthStore } from "../../store/authStore";
@@ -54,6 +55,7 @@ export default function LeaveManagement() {
   const [statusFilter, setStatusFilter] = useState("");
   const [leaveTypeFilter, setLeaveTypeFilter] = useState("");
   const [employeeFilter, setEmployeeFilter] = useState("");
+  const [historyEmployeeId, setHistoryEmployeeId] = useState<string | null>(null);
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<LeaveType | null>(null);
   const [form, setForm] = useState({ name: "", code: "", description: "", totalDaysPerYear: 0, isPaidLeave: true });
@@ -215,7 +217,19 @@ export default function LeaveManagement() {
   ];
 
   const requestColumns = [
-    { key: "employeeName", label: "Employee" },
+    {
+      key: "employeeName",
+      label: "Employee",
+      render: (row: LeaveRequest) => (
+        <button
+          onClick={() => setHistoryEmployeeId(row.employeeId)}
+          className="text-primary-600 hover:text-primary-700 hover:underline font-medium text-left"
+          title="View leave history"
+        >
+          {row.employeeName}
+        </button>
+      ),
+    },
     { key: "leaveTypeName", label: "Leave Type" },
     { key: "startDate", label: "Start Date", sortable: false, render: (row: LeaveRequest) => new Date(row.startDate).toLocaleDateString() },
     { key: "endDate", label: "End Date", sortable: false, render: (row: LeaveRequest) => new Date(row.endDate).toLocaleDateString() },
@@ -666,6 +680,11 @@ export default function LeaveManagement() {
           </div>
         </div>
       </Modal>
+
+      <EmployeeLeaveHistoryDrawer
+        employeeId={historyEmployeeId}
+        onClose={() => setHistoryEmployeeId(null)}
+      />
     </div>
   );
 }

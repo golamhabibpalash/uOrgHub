@@ -108,7 +108,7 @@ public class LeaveController : BaseController
 
     [HttpGet("requests")]
     [RequireAnyClaim(Claims.HR.LeaveRequests.View, Claims.Self.ViewLeave)]
-    public async Task<IActionResult> GetRequests([FromQuery] PaginationRequest request, [FromQuery] Guid? employeeId = null, [FromQuery] LeaveStatus? status = null, [FromQuery] Guid? leaveTypeId = null)
+    public async Task<IActionResult> GetRequests([FromQuery] PaginationRequest request, [FromQuery] Guid? employeeId = null, [FromQuery] LeaveStatus? status = null, [FromQuery] Guid? leaveTypeId = null, [FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null)
     {
         var isHrAdmin = await HasClaimAsync(Claims.HR.LeaveRequests.View);
 
@@ -122,15 +122,15 @@ public class LeaveController : BaseController
             employeeId = currentEmployeeId;
         }
 
-        var result = await _mediator.Send(new GetLeaveRequestsQuery(request, employeeId, status, leaveTypeId));
+        var result = await _mediator.Send(new GetLeaveRequestsQuery(request, employeeId, status, leaveTypeId, fromDate, toDate));
         return Ok(ApiResponse<PagedResult<LeaveRequestResponseDto>>.Ok(result));
     }
 
     [HttpGet("leave-requests/export")]
     [RequireClaim(Claims.HR.LeaveRequests.Export)]
-    public async Task<IActionResult> ExportLeaveRequests([FromQuery] string format = "xlsx", [FromQuery] Guid? employeeId = null, [FromQuery] LeaveStatus? status = null, [FromQuery] Guid? leaveTypeId = null)
+    public async Task<IActionResult> ExportLeaveRequests([FromQuery] string format = "xlsx", [FromQuery] Guid? employeeId = null, [FromQuery] LeaveStatus? status = null, [FromQuery] Guid? leaveTypeId = null, [FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null, [FromQuery] string? search = null)
     {
-        var data = await _mediator.Send(new GetAllLeaveRequestsQuery(employeeId, status, leaveTypeId));
+        var data = await _mediator.Send(new GetAllLeaveRequestsQuery(employeeId, status, leaveTypeId, fromDate, toDate, search));
         var fmt = format.ToLower() switch { "csv" => ExportFormat.Csv, _ => ExportFormat.Xlsx };
         var result = await _exportService.ExportAsync(data, LeaveRequestExportColumns.Get(), new ExportOptions
         {
