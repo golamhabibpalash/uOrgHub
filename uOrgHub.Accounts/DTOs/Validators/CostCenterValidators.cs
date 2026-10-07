@@ -7,7 +7,8 @@ public class CreateCostCenterValidator : AbstractValidator<CreateCostCenterDto>
 {
     public CreateCostCenterValidator()
     {
-        RuleFor(x => x.Code).NotEmpty().MaximumLength(20);
+        // Optional: the create handler generates CC-{year}-{nnnn} when no code is supplied.
+        RuleFor(x => x.Code).MaximumLength(20);
         RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Description).MaximumLength(500);
     }
