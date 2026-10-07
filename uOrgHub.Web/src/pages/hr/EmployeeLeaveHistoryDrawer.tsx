@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  X, Search, Mail, Phone, Briefcase, Building2, IdCard,
+  X, Search, Mail, Phone, Briefcase, Building2,
   LayoutGrid, Table2, ArrowUp, ArrowDown, ArrowUpDown,
   ChevronLeft, ChevronRight, CalendarDays, AlertCircle,
 } from "lucide-react";
@@ -177,42 +177,59 @@ export default function EmployeeLeaveHistoryDrawer({ employeeId, onClose }: Prop
         {/* ── Sticky employee header ─────────────────────────────── */}
         <div className="shrink-0 bg-white border-b border-gray-200">
           <div className="relative">
-            <div className="h-16 bg-gradient-to-r from-primary-500 to-primary-600" />
+            <div className="h-24 bg-gradient-to-r from-primary-600 via-primary-500 to-primary-600" />
             <button
               onClick={onClose}
-              className="absolute top-3 right-3 text-white/80 hover:text-white"
+              className="absolute top-4 right-4 inline-flex items-center justify-center h-8 w-8 rounded-full bg-white/15 text-white hover:bg-white/30 transition-colors"
               aria-label="Close"
               title="Close"
             >
-              <X size={20} />
+              <X size={18} />
             </button>
-            <div className="px-6 pb-4 -mt-8 flex items-end gap-4">
-              <div className="ring-4 ring-white rounded-full">
-                <Avatar src={emp?.profilePictureUrl} firstName={emp?.firstName} lastName={emp?.lastName} size="lg" />
+          </div>
+
+          <div className="px-6 pb-5 -mt-14">
+            <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-5">
+              <div className="ring-4 ring-white rounded-full shadow-lg shrink-0 mx-auto sm:mx-0">
+                <Avatar
+                  src={emp?.profilePictureUrl}
+                  firstName={emp?.firstName}
+                  lastName={emp?.lastName}
+                  size="xl"
+                  className="!w-28 !h-28"
+                />
               </div>
-              <div className="pb-1 min-w-0">
-                <h2 className="text-base font-semibold text-gray-900 truncate">
-                  {empLoading ? "Loading…" : fullName || "Employee"}
-                </h2>
-                <p className="text-xs text-gray-500 truncate">
+              <div className="min-w-0 flex-1 sm:pb-2 text-center sm:text-left">
+                <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
+                  <h2 className="text-xl font-semibold text-gray-900 truncate">
+                    {empLoading ? "Loading…" : fullName || "Employee"}
+                  </h2>
+                  {emp?.status && <EmpStatusPill status={emp.status} />}
+                </div>
+                <p className="text-sm text-gray-500 mt-1 truncate">
                   {emp?.designationName || "—"}{emp?.departmentName ? ` · ${emp.departmentName}` : ""}
                 </p>
+                {emp?.employeeCode && (
+                  <p className="text-xs text-gray-400 mt-0.5">Employee ID: {emp.employeeCode}</p>
+                )}
               </div>
             </div>
+
+            {emp && (
+              <div className="mt-5 rounded-xl bg-gray-50 border border-gray-100 p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+                <InfoRow icon={<Mail size={15} />} label="Email" value={emp.email} />
+                <InfoRow icon={<Phone size={15} />} label="Mobile" value={emp.phone} />
+                <InfoRow icon={<Briefcase size={15} />} label="Designation" value={emp.designationName} />
+                <InfoRow icon={<Building2 size={15} />} label="Department" value={emp.departmentName} />
+              </div>
+            )}
+            {empLoading && !emp && (
+              <div className="mt-5 h-28 rounded-xl bg-gray-50 border border-gray-100 animate-pulse" />
+            )}
+            {empError && (
+              <div className="mt-4 text-xs text-red-500">Could not load employee details.</div>
+            )}
           </div>
-          {emp && (
-            <div className="px-6 pb-4 grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2">
-              <HeaderField icon={<IdCard size={13} />} label="Employee ID" value={emp.employeeCode} />
-              <HeaderField icon={<Briefcase size={13} />} label="Designation" value={emp.designationName} />
-              <HeaderField icon={<Building2 size={13} />} label="Department" value={emp.departmentName} />
-              <HeaderField icon={<CalendarDays size={13} />} label="Status" value={emp.status} />
-              <HeaderField icon={<Mail size={13} />} label="Email" value={emp.email} className="col-span-2" />
-              <HeaderField icon={<Phone size={13} />} label="Mobile" value={emp.phone} className="col-span-2" />
-            </div>
-          )}
-          {empError && (
-            <div className="px-6 pb-4 text-xs text-red-500">Could not load employee details.</div>
-          )}
         </div>
 
         {/* ── Controls bar ───────────────────────────────────────── */}
@@ -442,14 +459,25 @@ export default function EmployeeLeaveHistoryDrawer({ employeeId, onClose }: Prop
   );
 }
 
-function HeaderField({ icon, label, value, className = "" }: { icon: React.ReactNode; label: string; value?: string; className?: string }) {
+function EmpStatusPill({ status }: { status: string }) {
+  const cls =
+    status === "Active" ? "bg-green-50 text-green-700 ring-green-200"
+    : status === "OnLeave" ? "bg-yellow-50 text-yellow-700 ring-yellow-200"
+    : "bg-gray-100 text-gray-600 ring-gray-200";
+  return <span className={`text-xs px-2.5 py-0.5 rounded-full ring-1 ${cls}`}>{status}</span>;
+}
+
+function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value?: string }) {
   const empty = value === null || value === undefined || value === "";
   return (
-    <div className={`min-w-0 ${className}`}>
-      <dt className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">
-        <span className="text-gray-300">{icon}</span>{label}
-      </dt>
-      <dd className={`text-xs truncate ${empty ? "text-gray-300 italic" : "text-gray-800"}`}>{empty ? "N/A" : value}</dd>
+    <div className="flex items-start gap-2.5 min-w-0">
+      <span className="mt-0.5 text-primary-400 shrink-0">{icon}</span>
+      <div className="min-w-0">
+        <p className="text-[11px] uppercase tracking-wide text-gray-400">{label}</p>
+        <p className={`text-sm truncate ${empty ? "text-gray-300 italic" : "text-gray-800"}`} title={empty ? undefined : value}>
+          {empty ? "N/A" : value}
+        </p>
+      </div>
     </div>
   );
 }
