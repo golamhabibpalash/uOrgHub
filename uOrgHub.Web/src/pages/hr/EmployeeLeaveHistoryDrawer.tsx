@@ -201,8 +201,10 @@ export default function EmployeeLeaveHistoryDrawer({ employeeId, onClose }: Prop
               </div>
               <div className="min-w-0 flex-1 sm:pb-2 text-center sm:text-left">
                 <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
-                  <h2 className="text-xl font-semibold text-gray-900 truncate">
-                    {empLoading ? "Loading…" : fullName || "Employee"}
+                  <h2 className="text-xl font-bold leading-snug break-words">
+                    <span className="box-decoration-clone rounded-md bg-primary-50 px-2 py-0.5 text-primary-700">
+                      {empLoading ? "Loading…" : fullName || "Employee"}
+                    </span>
                   </h2>
                   {emp?.status && <EmpStatusPill status={emp.status} />}
                 </div>
