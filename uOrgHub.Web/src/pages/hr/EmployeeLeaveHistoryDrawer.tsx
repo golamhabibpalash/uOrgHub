@@ -189,7 +189,9 @@ export default function EmployeeLeaveHistoryDrawer({ employeeId, onClose }: Prop
           </div>
 
           <div className="px-6 pb-5 -mt-14">
-            <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-5">
+            {/* The -mt-14 pull overlaps the avatar onto the banner; the text column is pushed back
+                down past the banner (sm:pt-16) so the name never renders over the gradient. */}
+            <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-5">
               <div className="ring-4 ring-white rounded-full shadow-lg shrink-0 mx-auto sm:mx-0">
                 <Avatar
                   src={emp?.profilePictureUrl}
@@ -199,7 +201,7 @@ export default function EmployeeLeaveHistoryDrawer({ employeeId, onClose }: Prop
                   className="!w-28 !h-28"
                 />
               </div>
-              <div className="min-w-0 flex-1 sm:pb-2 text-center sm:text-left">
+              <div className="min-w-0 flex-1 sm:pt-16 text-center sm:text-left">
                 <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
                   <h2 className="text-xl font-bold leading-snug break-words">
                     <span className="box-decoration-clone rounded-md bg-primary-50 px-2 py-0.5 text-primary-700">
