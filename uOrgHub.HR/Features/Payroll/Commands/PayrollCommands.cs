@@ -208,17 +208,27 @@ public class CreatePayrollCycleCommandHandler : IRequestHandler<CreatePayrollCyc
 
     public async Task<PayrollCycleResponseDto> Handle(CreatePayrollCycleCommand request, CancellationToken ct)
     {
-        var exists = await _context.Set<PayrollCycle>()
-            .AnyAsync(x => !x.IsDeleted && x.Year == request.Dto.Year && x.Month == request.Dto.Month, ct);
-        if (exists) throw new AppException($"Payroll cycle for {request.Dto.Year}/{request.Dto.Month:D2} already exists.");
+        var existing = await _context.Set<PayrollCycle>()
+            .FirstOrDefaultAsync(x => x.Year == request.Dto.Year && x.Month == request.Dto.Month, ct);
+        if (existing is { IsDeleted: false })
+            throw new AppException($"Payroll cycle for {request.Dto.Year}/{request.Dto.Month:D2} already exists.");
 
-        var entity = new PayrollCycle
+        // (Year, Month) is unique even across soft-deleted cycles, so a deleted month is reused
+        // as a fresh draft rather than inserted again.
+        var entity = existing ?? new PayrollCycle { CreatedAt = DateTime.UtcNow };
+        entity.Year = request.Dto.Year; entity.Month = request.Dto.Month; entity.Title = request.Dto.Title;
+        entity.StartDate = request.Dto.StartDate; entity.EndDate = request.Dto.EndDate;
+        entity.Status = PayrollStatus.Draft; entity.ProcessedDate = null; entity.Remarks = null;
+        entity.TotalBasic = 0; entity.TotalAllowances = 0; entity.TotalDeductions = 0;
+        entity.TotalNetPay = 0; entity.TotalEmployees = 0;
+        if (existing != null)
         {
-            Year = request.Dto.Year, Month = request.Dto.Month, Title = request.Dto.Title,
-            StartDate = request.Dto.StartDate, EndDate = request.Dto.EndDate,
-            Status = PayrollStatus.Draft, CreatedAt = DateTime.UtcNow
-        };
-        _context.Set<PayrollCycle>().Add(entity);
+            entity.IsDeleted = false; entity.DeletedAt = null; entity.UpdatedAt = DateTime.UtcNow;
+        }
+        else
+        {
+            _context.Set<PayrollCycle>().Add(entity);
+        }
         await _context.SaveChangesAsync(ct);
         return PayrollMappingHelper.MapCycleToDto(entity);
     }
@@ -235,9 +245,22 @@ public class UpdatePayrollCycleCommandHandler : IRequestHandler<UpdatePayrollCyc
             .FirstOrDefaultAsync(x => !x.IsDeleted && x.Id == request.Id, ct)
             ?? throw new NotFoundException(nameof(PayrollCycle), request.Id);
 
-        entity.Status = request.Dto.Status;
+        var to = request.Dto.Status;
+        if (to != entity.Status)
+        {
+            if (to == PayrollStatus.Processed && entity.Status == PayrollStatus.Draft)
+                throw new AppException("Use Process to calculate the payroll; that marks the cycle Processed.");
+            if (!PayrollCycleTransitions.IsAllowed(entity.Status, to))
+                throw new AppException($"A payroll cycle can't move from {entity.Status} to {to}.");
+
+            entity.Status = to;
+            // Entries follow the cycle (a reopened draft keeps its figures until re-processed).
+            var entries = await _context.Set<PayrollEntry>()
+                .Where(x => !x.IsDeleted && x.PayrollCycleId == entity.Id)
+                .ToListAsync(ct);
+            foreach (var entry in entries) { entry.Status = to; entry.UpdatedAt = DateTime.UtcNow; }
+        }
         entity.Remarks = request.Dto.Remarks;
-        if (request.Dto.Status == PayrollStatus.Processed) entity.ProcessedDate = DateTime.UtcNow;
         entity.UpdatedAt = DateTime.UtcNow;
 
         _context.Set<PayrollCycle>().Update(entity);
@@ -256,12 +279,43 @@ public class DeletePayrollCycleCommandHandler : IRequestHandler<DeletePayrollCyc
         var entity = await _context.Set<PayrollCycle>()
             .FirstOrDefaultAsync(x => !x.IsDeleted && x.Id == request.Id, ct)
             ?? throw new NotFoundException(nameof(PayrollCycle), request.Id);
+        if (entity.Status is not (PayrollStatus.Draft or PayrollStatus.Cancelled))
+            throw new AppException($"A {entity.Status} payroll can't be deleted. Cancel it first.");
+
+        var entries = await _context.Set<PayrollEntry>()
+            .Include(x => x.Lines)
+            .Where(x => !x.IsDeleted && x.PayrollCycleId == entity.Id)
+            .ToListAsync(ct);
+        foreach (var entry in entries)
+        {
+            entry.IsDeleted = true; entry.DeletedAt = DateTime.UtcNow;
+            foreach (var line in entry.Lines) { line.IsDeleted = true; line.DeletedAt = DateTime.UtcNow; }
+        }
 
         entity.IsDeleted = true;
         entity.DeletedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(ct);
         return Unit.Value;
     }
+}
+
+/// <summary>
+/// Payroll cycle lifecycle: Draft → (Process) → Processed → Approved → Paid. Processed/Approved can
+/// step back for corrections; Paid is final. Draft/Processed/Approved can be cancelled, and a
+/// cancelled cycle can be reopened as a draft.
+/// </summary>
+public static class PayrollCycleTransitions
+{
+    private static readonly Dictionary<PayrollStatus, PayrollStatus[]> Allowed = new()
+    {
+        [PayrollStatus.Draft] = [PayrollStatus.Cancelled],
+        [PayrollStatus.Processed] = [PayrollStatus.Approved, PayrollStatus.Draft, PayrollStatus.Cancelled],
+        [PayrollStatus.Approved] = [PayrollStatus.Paid, PayrollStatus.Processed, PayrollStatus.Cancelled],
+        [PayrollStatus.Cancelled] = [PayrollStatus.Draft],
+    };
+
+    public static bool IsAllowed(PayrollStatus from, PayrollStatus to) =>
+        Allowed.TryGetValue(from, out var targets) && targets.Contains(to);
 }
 
 public class CreateOvertimeRuleCommandHandler : IRequestHandler<CreateOvertimeRuleCommand, OvertimeRuleResponseDto>
@@ -341,14 +395,7 @@ public class ApproveExpenseRequestCommandHandler : IRequestHandler<ApproveExpens
 
 file static class PayrollMappingHelper
 {
-    internal static PayrollCycleResponseDto MapCycleToDto(PayrollCycle e) => new()
-    {
-        Id = e.Id, Year = e.Year, Month = e.Month, Title = e.Title,
-        StartDate = e.StartDate, EndDate = e.EndDate, ProcessedDate = e.ProcessedDate,
-        Status = e.Status, TotalBasic = e.TotalBasic, TotalAllowances = e.TotalAllowances,
-        TotalDeductions = e.TotalDeductions, TotalNetPay = e.TotalNetPay,
-        TotalEmployees = e.TotalEmployees, Remarks = e.Remarks, CreatedAt = e.CreatedAt
-    };
+    internal static PayrollCycleResponseDto MapCycleToDto(PayrollCycle e) => PayrollMapping.CycleToDto(e);
 
     internal static ExpenseRequestResponseDto MapExpenseToDto(ExpenseRequest e, Employee? emp, Employee? approver) => new()
     {

@@ -30,4 +30,6 @@ public class PayrollEntry : BaseEntity
 
     public PayrollStatus Status { get; set; } = PayrollStatus.Draft;
     public string? PayslipPath { get; set; }
+
+    public ICollection<PayrollEntryLine> Lines { get; set; } = new List<PayrollEntryLine>();
 }

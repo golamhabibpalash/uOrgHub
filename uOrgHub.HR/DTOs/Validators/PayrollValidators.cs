@@ -69,3 +69,31 @@ public class CreateExpenseRequestDtoValidator : AbstractValidator<CreateExpenseR
         RuleFor(x => x.Description).NotEmpty().MaximumLength(500);
     }
 }
+
+public class CreateEmployeeSalaryStructureDtoValidator : AbstractValidator<CreateEmployeeSalaryStructureDto>
+{
+    public CreateEmployeeSalaryStructureDtoValidator()
+    {
+        RuleFor(x => x.EmployeeId).NotEmpty();
+        RuleFor(x => x.SalaryGradeId).NotEmpty().WithMessage("Salary grade is required.");
+        RuleFor(x => x.BasicSalary).GreaterThan(0).WithMessage("Basic salary must be greater than 0.");
+        RuleFor(x => x.EffectiveDate).NotEmpty();
+        RuleForEach(x => x.Components).ChildRules(c => c.RuleFor(x => x.Value).GreaterThanOrEqualTo(0));
+        RuleFor(x => x.Components)
+            .Must(c => c.Select(x => x.SalaryComponentId).Distinct().Count() == c.Count)
+            .WithMessage("Each salary component can be added only once.");
+    }
+}
+
+public class UpdateEmployeeSalaryStructureDtoValidator : AbstractValidator<UpdateEmployeeSalaryStructureDto>
+{
+    public UpdateEmployeeSalaryStructureDtoValidator()
+    {
+        RuleFor(x => x.SalaryGradeId).NotEmpty().WithMessage("Salary grade is required.");
+        RuleFor(x => x.BasicSalary).GreaterThan(0).WithMessage("Basic salary must be greater than 0.");
+        RuleForEach(x => x.Components).ChildRules(c => c.RuleFor(x => x.Value).GreaterThanOrEqualTo(0));
+        RuleFor(x => x.Components)
+            .Must(c => c.Select(x => x.SalaryComponentId).Distinct().Count() == c.Count)
+            .WithMessage("Each salary component can be added only once.");
+    }
+}

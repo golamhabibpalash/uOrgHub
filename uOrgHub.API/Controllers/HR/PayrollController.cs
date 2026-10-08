@@ -125,6 +125,31 @@ public class PayrollController : BaseController
         return Ok(ApiResponse<object>.Ok(null!, "Salary component deleted successfully."));
     }
 
+    [HttpGet("salary-structures")]
+    [RequireClaim(Claims.HR.SalaryStructures.View)]
+    public async Task<IActionResult> GetSalaryStructures([FromQuery] PaginationRequest request,
+        [FromQuery] Guid? employeeId = null, [FromQuery] bool currentOnly = true)
+    {
+        var result = await _mediator.Send(new GetSalaryStructuresQuery(request, employeeId, currentOnly));
+        return Ok(ApiResponse<PagedResult<EmployeeSalaryStructureResponseDto>>.Ok(result));
+    }
+
+    [HttpPost("salary-structures")]
+    [RequireClaim(Claims.HR.SalaryStructures.Create)]
+    public async Task<IActionResult> CreateSalaryStructure([FromBody] CreateEmployeeSalaryStructureDto dto)
+    {
+        var result = await _mediator.Send(new CreateEmployeeSalaryStructureCommand(dto));
+        return Ok(ApiResponse<EmployeeSalaryStructureResponseDto>.Ok(result, "Salary structure saved successfully."));
+    }
+
+    [HttpPut("salary-structures/{id:guid}")]
+    [RequireClaim(Claims.HR.SalaryStructures.Edit)]
+    public async Task<IActionResult> UpdateSalaryStructure(Guid id, [FromBody] UpdateEmployeeSalaryStructureDto dto)
+    {
+        var result = await _mediator.Send(new UpdateEmployeeSalaryStructureCommand(id, dto));
+        return Ok(ApiResponse<EmployeeSalaryStructureResponseDto>.Ok(result, "Salary structure updated successfully."));
+    }
+
     [HttpGet("cycles")]
     [RequireClaim(Claims.HR.PayrollCycles.View)]
     public async Task<IActionResult> GetCycles([FromQuery] PaginationRequest request)
@@ -169,6 +194,22 @@ public class PayrollController : BaseController
     {
         await _mediator.Send(new DeletePayrollCycleCommand(id));
         return Ok(ApiResponse<object>.Ok(null!, "Payroll cycle deleted successfully."));
+    }
+
+    [HttpPost("cycles/{id:guid}/process")]
+    [RequireClaim(Claims.HR.PayrollCycles.Process)]
+    public async Task<IActionResult> ProcessCycle(Guid id)
+    {
+        var result = await _mediator.Send(new ProcessPayrollCycleCommand(id));
+        return Ok(ApiResponse<ProcessPayrollResultDto>.Ok(result, $"Payroll processed for {result.ProcessedEmployees} employee(s)."));
+    }
+
+    [HttpGet("cycles/{cycleId:guid}/entries/{entryId:guid}/payslip")]
+    [RequireClaim(Claims.HR.PayrollEntries.View)]
+    public async Task<IActionResult> GetPayslip(Guid cycleId, Guid entryId)
+    {
+        var result = await _mediator.Send(new GetPayslipQuery(cycleId, entryId));
+        return Ok(ApiResponse<PayslipDto>.Ok(result));
     }
 
     [HttpGet("cycles/{cycleId:guid}/entries")]

@@ -78,21 +78,40 @@ public class SalaryComponentResponseDto
     public DateTime CreatedAt { get; set; }
 }
 
+public class SalaryStructureComponentInputDto
+{
+    public Guid SalaryComponentId { get; set; }
+    /// <summary>Amount when the component is Fixed; a percentage when it is a % of basic/gross.</summary>
+    public decimal Value { get; set; }
+}
+
 public class CreateEmployeeSalaryStructureDto
 {
     public Guid EmployeeId { get; set; }
     public Guid SalaryGradeId { get; set; }
-    public decimal GrossSalary { get; set; }
     public decimal BasicSalary { get; set; }
     public DateTime EffectiveDate { get; set; }
+    public List<SalaryStructureComponentInputDto> Components { get; set; } = new();
 }
 
 public class UpdateEmployeeSalaryStructureDto
 {
-    public decimal GrossSalary { get; set; }
+    public Guid SalaryGradeId { get; set; }
     public decimal BasicSalary { get; set; }
-    public DateTime? EndDate { get; set; }
-    public bool IsActive { get; set; }
+    public List<SalaryStructureComponentInputDto> Components { get; set; } = new();
+}
+
+public class SalaryStructureComponentDto
+{
+    public Guid SalaryComponentId { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public SalaryComponentType ComponentType { get; set; }
+    public CalculationType CalculationType { get; set; }
+    public decimal Value { get; set; }
+    /// <summary>Monthly amount this component works out to.</summary>
+    public decimal Amount { get; set; }
+    public bool IsDeduction { get; set; }
 }
 
 public class EmployeeSalaryStructureResponseDto
@@ -100,13 +119,19 @@ public class EmployeeSalaryStructureResponseDto
     public Guid Id { get; set; }
     public Guid EmployeeId { get; set; }
     public string EmployeeName { get; set; } = string.Empty;
+    public string EmployeeCode { get; set; } = string.Empty;
+    public string? DesignationName { get; set; }
     public Guid SalaryGradeId { get; set; }
     public string SalaryGradeName { get; set; } = string.Empty;
-    public decimal GrossSalary { get; set; }
     public decimal BasicSalary { get; set; }
+    public decimal TotalAllowances { get; set; }
+    public decimal GrossSalary { get; set; }
+    public decimal TotalDeductions { get; set; }
+    public decimal NetSalary { get; set; }
     public DateTime EffectiveDate { get; set; }
     public DateTime? EndDate { get; set; }
     public bool IsActive { get; set; }
+    public List<SalaryStructureComponentDto> Components { get; set; } = new();
     public DateTime CreatedAt { get; set; }
 }
 
@@ -166,6 +191,33 @@ public class PayrollEntryResponseDto
     public decimal OvertimeHours { get; set; }
     public PayrollStatus Status { get; set; }
     public string? PayslipPath { get; set; }
+}
+
+public class ProcessPayrollResultDto
+{
+    public PayrollCycleResponseDto Cycle { get; set; } = null!;
+    public int ProcessedEmployees { get; set; }
+    /// <summary>Active employees left out, with the reason (e.g. no salary set).</summary>
+    public List<string> Skipped { get; set; } = new();
+}
+
+public class PayslipLineDto
+{
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public PayslipLineType LineType { get; set; }
+    public decimal Amount { get; set; }
+}
+
+public class PayslipDto : PayrollEntryResponseDto
+{
+    public string CycleTitle { get; set; } = string.Empty;
+    public DateTime PeriodStart { get; set; }
+    public DateTime PeriodEnd { get; set; }
+    public string? DesignationName { get; set; }
+    public string? DepartmentName { get; set; }
+    public DateTime JoiningDate { get; set; }
+    public List<PayslipLineDto> Lines { get; set; } = new();
 }
 
 public class CreateOvertimeRuleDto

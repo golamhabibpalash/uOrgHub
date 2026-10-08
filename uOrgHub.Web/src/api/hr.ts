@@ -209,8 +209,54 @@ export interface SalaryComponent {
   name: string;
   code: string;
   componentType: string;
+  /** "Fixed" | "PercentageOfBasic" | "PercentageOfGross" */
+  calculationType: string;
+  /** Suggested value when assigning it to an employee: an amount, or a % for percentage types. */
+  defaultValue: number;
   isTaxable: boolean;
+  isFixed?: boolean;
   isActive: boolean;
+  sortOrder: number;
+  description?: string;
+}
+
+/** Component types that are taken off pay; the rest are allowances. Mirrors PayrollCalculator.IsDeduction. */
+export const DEDUCTION_COMPONENT_TYPES = ["PF", "Tax", "Loan", "Advance", "OtherDeduction"];
+
+export interface SalaryStructureComponent {
+  salaryComponentId: string;
+  code: string;
+  name: string;
+  componentType: string;
+  calculationType: string;
+  value: number;
+  amount: number;
+  isDeduction: boolean;
+}
+
+export interface SalaryStructure {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  employeeCode: string;
+  designationName?: string;
+  salaryGradeId: string;
+  salaryGradeName: string;
+  basicSalary: number;
+  totalAllowances: number;
+  grossSalary: number;
+  totalDeductions: number;
+  netSalary: number;
+  effectiveDate: string;
+  endDate?: string;
+  isActive: boolean;
+  components: SalaryStructureComponent[];
+}
+
+export interface SalaryStructureInput {
+  salaryGradeId: string;
+  basicSalary: number;
+  components: { salaryComponentId: string; value: number }[];
 }
 
 export interface PayrollCycle {
@@ -220,8 +266,53 @@ export interface PayrollCycle {
   month: number;
   startDate: string;
   endDate: string;
-  paymentDate?: string;
+  processedDate?: string;
+  /** "Draft" | "Processing" | "Processed" | "Approved" | "Paid" | "Cancelled" */
   status: string;
+  totalBasic: number;
+  totalAllowances: number;
+  totalDeductions: number;
+  totalNetPay: number;
+  totalEmployees: number;
+  remarks?: string;
+}
+
+export interface PayrollEntry {
+  id: string;
+  payrollCycleId: string;
+  employeeId: string;
+  employeeName: string;
+  employeeCode: string;
+  grossSalary: number;
+  basicSalary: number;
+  totalAllowances: number;
+  totalDeductions: number;
+  taxAmount: number;
+  netSalary: number;
+  overtimePay: number;
+  bonusAmount: number;
+  totalWorkingDays: number;
+  presentDays: number;
+  absentDays: number;
+  leaveDays: number;
+  overtimeHours: number;
+  status: string;
+}
+
+export interface Payslip extends PayrollEntry {
+  cycleTitle: string;
+  periodStart: string;
+  periodEnd: string;
+  designationName?: string;
+  departmentName?: string;
+  joiningDate: string;
+  lines: { code: string; name: string; lineType: "Earning" | "Deduction"; amount: number }[];
+}
+
+export interface ProcessPayrollResult {
+  cycle: PayrollCycle;
+  processedEmployees: number;
+  skipped: string[];
 }
 
 export interface ExpenseRequest {
@@ -632,11 +723,29 @@ export const deleteSalaryComponent = (id: string) =>
 export const getPayrollCycles = (params: PaginationRequest) =>
   apiClient.get<ApiResponse<PagedResult<PayrollCycle>>>("payroll/cycles", { params });
 
-export const createPayrollCycle = (data: Partial<PayrollCycle>) =>
+export const createPayrollCycle = (data: { year: number; month: number; title: string; startDate: string; endDate: string }) =>
   apiClient.post<ApiResponse<PayrollCycle>>("payroll/cycles", data);
 
-export const updatePayrollCycle = (id: string, data: Partial<PayrollCycle>) =>
+export const updatePayrollCycle = (id: string, data: { status: string; remarks?: string }) =>
   apiClient.put<ApiResponse<PayrollCycle>>(`payroll/cycles/${id}`, data);
+
+export const processPayrollCycle = (id: string) =>
+  apiClient.post<ApiResponse<ProcessPayrollResult>>(`payroll/cycles/${id}/process`);
+
+export const getPayrollEntries = (cycleId: string, params: PaginationRequest) =>
+  apiClient.get<ApiResponse<PagedResult<PayrollEntry>>>(`payroll/cycles/${cycleId}/entries`, { params });
+
+export const getPayslip = (cycleId: string, entryId: string) =>
+  apiClient.get<ApiResponse<Payslip>>(`payroll/cycles/${cycleId}/entries/${entryId}/payslip`);
+
+export const getSalaryStructures = (params: PaginationRequest, filters?: { employeeId?: string; currentOnly?: boolean }) =>
+  apiClient.get<ApiResponse<PagedResult<SalaryStructure>>>("payroll/salary-structures", { params: { ...params, ...filters } });
+
+export const createSalaryStructure = (data: SalaryStructureInput & { employeeId: string; effectiveDate: string }) =>
+  apiClient.post<ApiResponse<SalaryStructure>>("payroll/salary-structures", data);
+
+export const updateSalaryStructure = (id: string, data: SalaryStructureInput) =>
+  apiClient.put<ApiResponse<SalaryStructure>>(`payroll/salary-structures/${id}`, data);
 
 export const deletePayrollCycle = (id: string) =>
   apiClient.delete<ApiResponse<null>>(`payroll/cycles/${id}`);
