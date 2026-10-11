@@ -191,4 +191,18 @@ public class PayrollProcessingHandlerTests
         updated.GrossSalary.Should().Be(44800);
         updated.NetSalary.Should().Be(44800);
     }
+
+    [Fact]
+    public async Task Paid_cycle_cannot_be_deleted_and_says_why()
+    {
+        AddEmployee("E1", basic: 20000);
+        await Process();
+        var update = new UpdatePayrollCycleCommandHandler(_db);
+        await update.Handle(new UpdatePayrollCycleCommand(_cycle.Id, new UpdatePayrollCycleDto { Status = PayrollStatus.Approved }), CancellationToken.None);
+        await update.Handle(new UpdatePayrollCycleCommand(_cycle.Id, new UpdatePayrollCycleDto { Status = PayrollStatus.Paid }), CancellationToken.None);
+
+        var act = () => new DeletePayrollCycleCommandHandler(_db).Handle(new DeletePayrollCycleCommand(_cycle.Id), CancellationToken.None);
+
+        await act.Should().ThrowAsync<AppException>().WithMessage("*paid payroll is final*");
+    }
 }

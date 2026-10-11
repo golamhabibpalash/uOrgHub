@@ -279,8 +279,10 @@ public class DeletePayrollCycleCommandHandler : IRequestHandler<DeletePayrollCyc
         var entity = await _context.Set<PayrollCycle>()
             .FirstOrDefaultAsync(x => !x.IsDeleted && x.Id == request.Id, ct)
             ?? throw new NotFoundException(nameof(PayrollCycle), request.Id);
+        if (entity.Status == PayrollStatus.Paid)
+            throw new AppException("A paid payroll is final and can't be deleted; it is kept as the salary record.");
         if (entity.Status is not (PayrollStatus.Draft or PayrollStatus.Cancelled))
-            throw new AppException($"A {entity.Status} payroll can't be deleted. Cancel it first.");
+            throw new AppException($"A {entity.Status} payroll can't be deleted. Cancel it first, then delete it.");
 
         var entries = await _context.Set<PayrollEntry>()
             .Include(x => x.Lines)
