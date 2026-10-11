@@ -72,7 +72,9 @@ function cycleForMonth(month: string) {
 export default function PayrollManagement() {
   const qc = useQueryClient();
   const hasClaim = useAuthStore(s => s.hasClaim);
-  const canViewStructures = hasClaim("HR.SalaryStructures.View");
+  const hasRole = useAuthStore(s => s.hasRole);
+  // Admin is allowed everything server-side (by role), so its claim list doesn't carry the fine-grained ones.
+  const canViewStructures = hasRole("Admin") || hasClaim("HR.SalaryStructures.View");
   const [activeTab, setActiveTab] = useState<Tab>("grades");
   // One grid state per tab: each list pages and sorts on its own columns.
   const gradeGrid = useDataGrid({ defaultSortBy: "name" });
