@@ -214,3 +214,27 @@ public class ApproveLeaveRequestDtoValidatorTests
         _validator.Validate(dto).IsValid.Should().BeTrue();
     }
 }
+
+public class UpdateLeaveTypeDtoValidatorTests
+{
+    private readonly UpdateLeaveTypeDtoValidator _validator = new();
+
+    private static UpdateLeaveTypeDto ValidDto() => new() { Name = "Casual Leave", TotalDaysPerYear = 10, ApprovalLevels = 1, IsActive = true };
+
+    [Fact]
+    public void Valid_dto_passes() => _validator.Validate(ValidDto()).IsValid.Should().BeTrue();
+
+    [Fact]
+    public void Empty_name_fails()
+    {
+        var dto = ValidDto(); dto.Name = "";
+        _validator.Validate(dto).IsValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Zero_days_fails()
+    {
+        var dto = ValidDto(); dto.TotalDaysPerYear = 0;
+        _validator.Validate(dto).IsValid.Should().BeFalse();
+    }
+}

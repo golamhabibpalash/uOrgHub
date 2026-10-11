@@ -14,6 +14,17 @@ public class CreateLeaveTypeDtoValidator : AbstractValidator<CreateLeaveTypeDto>
     }
 }
 
+public class UpdateLeaveTypeDtoValidator : AbstractValidator<UpdateLeaveTypeDto>
+{
+    public UpdateLeaveTypeDtoValidator()
+    {
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
+        RuleFor(x => x.TotalDaysPerYear).GreaterThan(0);
+        RuleFor(x => x.ApprovalLevels).InclusiveBetween(1, 5);
+        RuleFor(x => x.MaxCarryForwardDays).GreaterThanOrEqualTo(0);
+    }
+}
+
 public class CreateLeaveRequestDtoValidator : AbstractValidator<CreateLeaveRequestDto>
 {
     public CreateLeaveRequestDtoValidator()
