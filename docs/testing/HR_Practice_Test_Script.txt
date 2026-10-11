@@ -1,0 +1,536 @@
+================================================================================
+ uOrgHub — HR PRACTICE TEST SCRIPT
+ Leave  →  Attendance  →  Salary Structure  →  Payroll Processing
+================================================================================
+
+Instance under test : ______________________  (URL)
+Tester              : ______________________
+Date                : ______________________
+Build / commit      : ______________________  (must include the payroll work, c8228fbf,
+                                                AND the follow-up fixes committed with this file)
+
+DRY RUN: this whole script was run end-to-end on 2026-10-11 against a fresh
+local API + Postgres (63/63 checks passed) and the payroll screens were checked
+in a browser. The figures below are the ones that run produced.
+
+HOW TO USE THIS FILE
+--------------------
+* Do the parts IN ORDER. Later parts use the data created in earlier parts.
+* Every step has:   ACTION  → what to do
+                    EXPECT  → what should happen
+                    RESULT  → tick PASS or FAIL, write notes if anything differs
+* If a step FAILS: write what you saw in the step's Notes line AND add a row to
+  the ISSUE LOG at the end (screenshot names help). Then continue if you can.
+* All test data starts with "TST" / "Test" so it is easy to find and clean up.
+* The test month is SEPTEMBER 2026 (30 days — this keeps the salary maths
+  simple: 1 day = monthly gross ÷ 30).
+
+
+================================================================================
+ PART 0 — BEFORE YOU START (preconditions)
+================================================================================
+
+0.1  ACTION  Log in as an Admin user.
+     EXPECT  Login works. Menu shows HR → Employees, Leave, Attendance, Payroll.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+0.2  ACTION  Create the TEST APPROVER — a login that is linked to an employee.
+             WHY: approving/rejecting leave is refused with "Current user is
+             not linked to an employee." unless the logged-in user is linked
+             to an employee record, and an EXISTING user can't be linked
+             afterwards (the link is only made when the user is created).
+             HR → Employees → Add Employee:
+               First "Tara", Last "TestApprover", Email tara.approver@test.local,
+               National ID 1990000000099, any Department/Designation,
+               Joining 2025-01-01, Basic 0.
+               Tick "Create user account": Username tst.approver,
+               Password of your choice, Role "Admin" (or "HRManager"), Active.
+             Save. Log out, log in as tst.approver, change the password if
+             asked. DO THE REST OF THIS SCRIPT AS tst.approver.
+     EXPECT  Employee saved with a login; tst.approver can log in.
+     NOTE    Tara has no salary, so she will be listed as "not paid" in Part 6.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+0.3  ACTION  Open HR → Payroll.
+     EXPECT  Tabs: Grades, Components, Salary Structures, Payroll Cycles,
+             Expenses. If "Salary Structures" is missing → log out and log in
+             again (new permission HR.SalaryStructures.* is added on API start).
+             Still missing → the instance is running an old build. STOP and
+             redeploy.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+0.4  ACTION  Payroll → Payroll Cycles: check there is NO cycle for September
+             2026 already. If one exists (testing data), open it → Cancel
+             payroll (if offered) → then delete it from the list.
+     EXPECT  No September 2026 cycle remains.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+0.5  NOTE    Your computer clock / time zone should be Bangladesh time (UTC+6),
+             same as the company time zone. Late and overtime are judged in the
+             company time zone; a different browser time zone shifts results.
+
+0.6  NOTE    Processing a payroll includes EVERY active employee on the
+             instance, not only the TST ones. Judge each TST employee's own
+             figures — do not expect the cycle totals to match this script.
+
+0.7  NOTE    If the instance already has an ACTIVE overtime rule, the oldest
+             active rule is used and overtime figures will differ from Part 6.
+             Note the existing rule here: _______________________________
+
+0.8  ACTION  Admin → Company: check Time Zone = "Asia/Dhaka".
+     WHY     Late/overtime use the company time zone. With no company (or a
+             different zone) every result in Part 4 shifts by hours.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+
+================================================================================
+ PART 1 — MASTER DATA
+================================================================================
+
+--- 1A. Salary grades  (HR → Payroll → Grades → Add Grade) ---------------------
+
+1.1  ACTION  Add grade:  Name "Test Officer", Code "TST-G1",
+             Min Gross 20000, Max Gross 80000, Active.
+     EXPECT  Saved; appears in the list.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+1.2  ACTION  Add grade:  Name "Test Junior", Code "TST-G2",
+             Min Gross 10000, Max Gross 30000, Active.
+     EXPECT  Saved.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+--- 1B. Salary components  (Payroll → Components → Add Component) -------------
+
+Create these five. "Payslip order" sets the line order on the payslip.
+
+  | Name           | Code    | Type                 | Calculated as | Default | Order |
+  |----------------|---------|----------------------|---------------|---------|-------|
+  | House Rent     | TST-HRA | House Rent Allowance | % of basic    |   50    |   1   |
+  | Medical        | TST-MED | Medical Allowance    | Fixed amount  | 1500    |   2   |
+  | Conveyance     | TST-TRN | Transport Allowance  | Fixed amount  | 1000    |   3   |
+  | Provident Fund | TST-PF  | Provident Fund       | % of basic    |    5    |  10   |
+  | Income Tax     | TST-TAX | Tax                  | Fixed amount  |  500    |  11   |
+
+1.3  ACTION  Create the five components above.
+     EXPECT  List shows Kind = Allowance for HRA/MED/TRN, Deduction for PF/TAX;
+             Basis shows "% of basic" / "Fixed amount"; Default shows 50% / 1,500.00 …
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+1.4  ACTION  Start adding a component, choose Type "Medical Allowance", open
+             "Calculated as". Then change Type to "Provident Fund" and open it
+             again. Cancel.
+     EXPECT  "% of gross salary" is offered ONLY for the deduction type (PF),
+             not for the allowance.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+--- 1C. Leave types  (HR → Leave → Leave Types) --------------------------------
+
+1.5  ACTION  Add leave type: Name "TST Casual Leave", Code "TST-CL",
+             Max Days/Year 10, Is Paid = Yes.
+     EXPECT  Saved; list shows Paid = Yes.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+1.6  ACTION  Add leave type: Name "TST Leave Without Pay", Code "TST-LWP",
+             Max Days/Year 30, Is Paid = No.
+     EXPECT  Saved; list shows Paid = No.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+1.7  ACTION  Edit "TST Leave Without Pay": change Description to "edit test",
+             leave Is Paid = No, Save.
+     EXPECT  Still Paid = No AND still Active after the edit
+             (this was a bug fixed earlier — an edit used to flip both).
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+1.7b ACTION  Edit "TST Leave Without Pay" again, clear the Name, Save.
+     EXPECT  Refused: "Name: 'Name' must not be empty." (fixed — an empty name
+             used to be saved). Cancel.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+--- 1D. Work schedule & shifts  (HR → Attendance) ------------------------------
+
+1.8  ACTION  Schedules tab → Add Schedule: Name "TST Office",
+             Office Start 09:00, Office End 18:00, Daily Hours 8,
+             Grace Period 10, Working Days/Week 6, Flexible = unticked.
+     EXPECT  Saved; list shows 09:00–18:00, 8, 10, 6, Flexible No.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+1.9  ACTION  Shifts tab → Add Shift: Name "TST General", Code "TST-GEN",
+             09:00 → 18:00, Schedule "TST Office".
+     EXPECT  Saved.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+1.10 ACTION  Add Shift: Name "TST Night", Code "TST-NGT", 22:00 → 06:00,
+             Schedule "TST Office", tick "Night shift".
+     EXPECT  Saved; Night = Yes.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+1.11 ACTION  Add Shift again with Code "TST-GEN".
+     EXPECT  Refused: "Shift code 'TST-GEN' already exists."
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+--- 1E. Overtime rule (no screen yet — set through Swagger) --------------------
+
+1.12 ACTION  (Optional but recommended — Part 5 figures assume it.)
+             a) In the app, open browser DevTools → Application → Local
+                Storage → key "auth-storage" → copy the "token" value.
+             b) Open <API URL>/swagger → Authorize → paste:  Bearer <token>
+             c) POST /api/v1/payroll/overtime-rules with body:
+                { "name": "TST Overtime 2x", "calculationType": "PercentageOfBasic",
+                  "multiplier": 2, "maxHoursPerMonth": 40,
+                  "appliesWeekends": true, "isActive": true }
+     EXPECT  200 OK, "success": true.
+             Skipped / not possible? → use the "NO OT RULE" figures in Part 5.
+     RESULT  [ ] PASS  [ ] FAIL  [ ] SKIPPED   Notes: _____________________
+
+
+================================================================================
+ PART 2 — TEST EMPLOYEES  (HR → Employees → Add Employee)
+================================================================================
+
+Use any existing Department and Designation. Leave Basic Salary at 0 unless
+stated — the salary structure will set it. National ID is REQUIRED on this
+setup (a validation rule in Settings) — use the values below.
+
+  | Ref | First / Last name | Email                  | National ID   | Joining date | Basic | Grade  |
+  |-----|-------------------|------------------------|---------------|--------------|-------|--------|
+  | A   | Rahim  / TestA    | rahim.testa@test.local | 1990000000001 | 2025-01-01   | 0     | —      |
+  | B   | Karim  / TestB    | karim.testb@test.local | 1990000000002 | 2025-01-01   | 20000 | TST-G2 |
+  | C   | Salma  / TestC    | salma.testc@test.local | 1990000000003 | 2026-09-16   | 0     | —      |
+  | D   | Nasir  / TestD    | nasir.testd@test.local | 1990000000004 | 2025-01-01   | 0     | —      |
+
+Write the generated employee IDs here:  A ______  B ______  C ______  D ______
+
+2.1  ACTION  Create A, C, D as in the table.
+     EXPECT  Saved; each gets an auto employee ID.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+2.2  ACTION  Create B: Basic Salary 20000, then pick Salary Grade "TST-G2 — Test Junior".
+     EXPECT  The form HAS a "Salary Grade" field next to Basic Salary.
+             Saved.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+2.3  ACTION  Edit B: change Basic Salary to 35000 (do NOT save yet).
+     EXPECT  Amber hint under Basic Salary:
+             "Outside TST-G2 range (10,000–30,000)".
+             Put it back to 20000 → hint disappears. Cancel.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+2.4  ACTION  Edit B again and reopen.
+     EXPECT  Salary Grade still shows TST-G2 (it was saved).
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+
+================================================================================
+ PART 3 — LEAVE  (HR → Leave → Leave Requests → New Request)
+================================================================================
+
+3.1  ACTION  New Request for A: "TST Casual Leave", 2026-09-14 → 2026-09-15,
+             Reason "Family event".
+     EXPECT  Saved as Pending, Days = 2.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+3.2  ACTION  Approve it (✓ icon).
+     EXPECT  Status → Approved.
+             (Error "Current user is not linked to an employee." → you are not
+             logged in as tst.approver — see step 0.2.)
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+3.3  ACTION  New Request for A: "TST Leave Without Pay", 2026-09-21 → 2026-09-21,
+             Reason "Personal". Approve it.
+     EXPECT  Days = 1, Approved.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+3.4a ACTION  New Request for B: "TST Casual Leave", 2026-09-24 → 2026-09-24,
+             leave Reason EMPTY, Save.
+     EXPECT  Refused: "Reason: 'Reason' must not be empty."
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+3.4  ACTION  Same request with Reason "Doctor visit". Save, then reject it
+             (✗ icon) with reject reason "Testing rejection".
+     EXPECT  Status Rejected; hovering "Reason" shows the text.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+3.5  ACTION  New Request for B: "TST Leave Without Pay", 2026-09-28 → 2026-09-29,
+             Reason "Travel". LEAVE IT PENDING (do not approve).
+     EXPECT  Pending, Days = 2.
+             (Payroll must ignore it — checked in Part 5.)
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+3.6  ACTION  Click employee name "Rahim TestA" in the requests list.
+     EXPECT  Leave history panel slides in from the right; the name is fully
+             visible (top not cut) and highlighted in the primary colour;
+             both of A's leaves are listed.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+
+================================================================================
+ PART 4 — ATTENDANCE  (HR → Attendance)
+================================================================================
+
+--- 4A. Rosters (Rosters tab → Add Roster) -------------------------------------
+
+  | Employee | Date       | Shift       | Day off |
+  |----------|------------|-------------|---------|
+  | A        | 2026-09-01 | TST General |   no    |
+  | A        | 2026-09-02 | TST General |   no    |
+  | A        | 2026-09-03 | TST General |   no    |
+  | A        | 2026-09-05 | TST General |  YES    |
+  | C        | 2026-09-17 | TST Night   |   no    |
+
+4.1  ACTION  Create the five roster entries above.
+     EXPECT  All saved; list shows shift time and "Working"/"Day Off".
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+4.2  ACTION  Add roster for A on 2026-09-01 again (any shift).
+     EXPECT  Refused: "... is already rostered on 01 Sep 2026. Edit that entry instead."
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+--- 4B. Attendance logs (Logs tab → Add Log) — choose Status as given ----------
+
+  | #  | Emp | Date       | In    | Out   | Status chosen | EXPECTED after save                                  |
+  |----|-----|------------|-------|-------|---------------|------------------------------------------------------|
+  | L1 | A   | 2026-09-01 | 09:05 | 18:00 | Present       | Present (inside 10-min grace), Hours 8.92, OT 0      |
+  | L2 | A   | 2026-09-02 | 09:30 | 18:00 | Present       | auto → LATE, Hours 8.5, OT 0                         |
+  | L3 | A   | 2026-09-03 | 09:00 | 20:00 | Present       | Present, Hours 11, OT 2                              |
+  | L4 | A   | 2026-09-05 | 10:00 | 14:00 | Present       | Present, Hours 4, OT 4 (rostered day off → all OT)   |
+  | L5 | A   | 2026-09-04 |  —    |  —    | Absent        | Absent, Shift "Not rostered", Hours 0                |
+  | L6 | A   | 2026-09-07 |  —    |  —    | Absent        | Absent                                               |
+  | L7 | B   | 2026-09-01 | 09:45 | 18:00 | Present       | stays Present (B not rostered), "Not rostered", Hours 8.25, OT 0 |
+  | L8 | C   | 2026-09-17 | 22:00 | 06:30 | Present       | Present, Hours 8.5, OT 0.5 (night shift, out next day)|
+
+4.3  ACTION  Enter L1–L8.
+     EXPECT  Each row matches the EXPECTED column (Shift, Check In/Out shown as
+             normal times, Hours, Overtime, Status).
+     RESULT  L1 [ ]  L2 [ ]  L3 [ ]  L4 [ ]  L5 [ ]  L6 [ ]  L7 [ ]  L8 [ ]
+             (tick each that matches)   Notes: ____________________________
+
+4.4  ACTION  Add another log for A on 2026-09-01.
+     EXPECT  Refused: "Attendance log already exists for this employee on this date."
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+4.5  ACTION  Edit L2 (A, 09-02): change Status from Late to Present, Notes
+             "Excused by HR". Do NOT change the times. Save.
+     EXPECT  Stays Present (HR override is kept when check-in is unchanged).
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+4.6  ACTION  Edit L2 again: change Check In to 09:40, Status Present, Save.
+     EXPECT  Becomes Late again (check-in changed → rule re-applied).
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+4.7  ACTION  Add a log with Status "On Leave" for D on 2026-09-10 (no times).
+     EXPECT  Saves without error (this used to fail). Status shows "On Leave".
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+
+================================================================================
+ PART 5 — SALARY STRUCTURES  (HR → Payroll → Salary Structures)
+================================================================================
+
+5.1  ACTION  Add Salary Structure for A:
+             Effective From 2026-01-01, Grade TST-G1, Basic 30000.
+             "+ Add component" → add House Rent, Medical, Conveyance,
+             Provident Fund, Income Tax (defaults pre-fill: 50, 1500, 1000, 5, 500).
+     EXPECT  Live figures in the dialog:
+               House Rent 15,000.00 | Medical 1,500.00 | Conveyance 1,000.00
+               PF −1,500.00 | Tax −500.00
+               Basic 30,000.00 | Gross 47,500.00 | Deductions 2,000.00 | Net 45,500.00
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+5.2  ACTION  Before saving, change Basic to 60000.
+     EXPECT  Amber hint: Gross 92,500.00 is outside TST-G1 range. Put Basic
+             back to 30000. Save.
+     EXPECT  Saved; list row A: Basic 30,000 | Gross 47,500 | Net 45,500 |
+             Effective 01/01/2026.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+5.3  ACTION  Open HR → Employees → A (edit).
+     EXPECT  Basic Salary = 30000 and Salary Grade = TST-G1 (synced from the
+             structure). Cancel.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+5.4  ACTION  Add Salary Structure for C: Effective From 2026-09-16, Grade TST-G1,
+             Basic 24000, components: House Rent only (50).
+     EXPECT  Gross 36,000.00, Deductions 0, Net 36,000.00. Saved.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+5.5  ACTION  Click "Revise" on A's row: Effective From 2026-10-01, Basic 33000,
+             keep all components. Save.
+     EXPECT  Current row for A now: Basic 33,000 | Gross 52,000 | Net 49,850 |
+             Effective 01/10/2026.
+             Tick "Include history" → A also has the old row
+             01/01/2026 – 30/09/2026 marked "History".
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+5.6  ACTION  "Revise" A again with Effective From 2026-10-01 (same date).
+     EXPECT  Refused: "The current salary structure is effective from
+             01 Oct 2026. Edit it, or start the new one on a later date."
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+5.7  NOTE    B has NO structure (paid from Employee Basic 20,000).
+             D has no structure and Basic 0 (must be reported as not paid).
+
+
+================================================================================
+ PART 6 — PAYROLL PROCESSING  (HR → Payroll → Payroll Cycles)
+================================================================================
+
+6.1  ACTION  Add Payroll Cycle → Month = September 2026.
+     EXPECT  Cycle Name auto-fills "September 2026", Period 2026-09-01 →
+             2026-09-30. Create → the cycle window opens, status Draft,
+             message "Not processed yet".
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+6.2  ACTION  Click "Process payroll".
+     EXPECT  Status → Processed. Amber box lists "Nasir TestD (...): no salary
+             structure or basic salary" and "Tara TestApprover (...)" (other
+             real employees without salary may be listed too). Entries list shows A, B, C (+ other employees).
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+6.3  ACTION  Check the TST rows in the entries list.
+
+     WITH the TST overtime rule (step 1.12 done):
+     | Emp | P / A / L  | Basic     | Allowances | Overtime | Gross     | Deductions | Net Pay   |
+     |-----|------------|-----------|------------|----------|-----------|------------|-----------|
+     | A   | 4 / 2 / 3  | 30,000.00 | 17,500.00  | 1,730.77 | 49,230.77 | 6,750.00   | 42,480.77 |
+     | B   | 1 / 0 / 0  | 20,000.00 |      0.00  |     0.00 | 20,000.00 |     0.00   | 20,000.00 |
+     | C   | 1 / 0 / 0  | 24,000.00 | 12,000.00  |   115.38 | 36,115.38 | 18,000.00  | 18,115.38 |
+
+     NO OT RULE (step 1.12 skipped): A Overtime 0, Gross 47,500.00, Net 40,750.00
+                                     C Overtime 0, Gross 36,000.00, Net 18,000.00
+
+     WHY these numbers:
+       A  - Sept uses the Jan structure (30,000), NOT the October revision.
+          - Unpaid days = 2 Absent + 1 approved unpaid leave = 3
+            → 47,500 ÷ 30 × 3 = 4,750.00
+          - Paid casual leave (2 days) is not deducted.
+          - OT 6 h (2 + 4) × 30,000 ÷ 208 × 2 = 1,730.77
+          - Deductions 6,750 = PF 1,500 + unpaid 4,750 + tax 500
+       B  - Rejected and PENDING leave are ignored → no deduction.
+       C  - Joined 16 Sep → 15 days before joining are unpaid
+            → 36,000 ÷ 30 × 15 = 18,000.00
+          - OT 0.5 h × 24,000 ÷ 208 × 2 = 115.38
+     RESULT  A [ ]  B [ ]  C [ ]   Notes: ____________________________________
+
+6.4  ACTION  Click "Payslip" on A.
+     EXPECT  Header: company name (the logged-in user's active company),
+             "Payslip — September 2026", period.
+             Employee details (ID, designation, department, joining date).
+             Days boxes: Days 30 | Present 4 | Absent 2 | Leave 3 | OT 6.
+             Earnings: Basic Salary 30,000 · House Rent 15,000 · Medical 1,500
+                       · Conveyance 1,000 · Overtime (6 h) 1,730.77
+             Deductions: Provident Fund 1,500 · Income Tax 500
+                       · Unpaid days (3) 4,750
+             Gross 49,230.77 | Total deductions 6,750.00 | Net pay 42,480.77
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+6.5  ACTION  Click Print on the payslip.
+     EXPECT  Print preview shows ONLY the payslip, styled (not washed out).
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+--- 6B. Re-processing ----------------------------------------------------------
+
+6.6  ACTION  Close the cycle. HR → Attendance → Logs → add log for B on
+             2026-09-08, no times, Status Absent. Back to Payroll Cycles →
+             open September 2026 → "Re-process".
+     EXPECT  B now: Absent 1, Deductions 666.67, Net 19,333.33.
+             A and C unchanged. Still ONE row per employee (no duplicates).
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+--- 6C. Lifecycle ----------------------------------------------------------------
+
+6.7  ACTION  Click "Approve" → confirm.
+     EXPECT  Status Approved. "Re-process" button is gone. Buttons now:
+             Mark as paid, Un-approve, Cancel payroll.
+             (Via the API, processing an approved cycle is refused with
+             "A Approved payroll can't be processed...".)
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+6.8  ACTION  Click "Un-approve" → confirm.
+     EXPECT  Back to Processed; "Re-process" is available again.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+6.9  ACTION  Approve again → then "Mark as paid" → confirm.
+     EXPECT  Status Paid. No action buttons remain (a paid payroll can't be
+             cancelled). Payslips still open.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+6.10 ACTION  In the cycles list, try to delete September 2026.
+     EXPECT  Refused: "A paid payroll is final and can't be deleted; it is kept
+             as the salary record." (fixed — it used to say "Cancel it first",
+             which a paid payroll can't do.)
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+--- 6D. Next month uses the revised salary --------------------------------------
+
+6.11 ACTION  Add Payroll Cycle → October 2026 (auto: 2026-10-01 → 2026-10-31).
+             Process payroll.
+     EXPECT  A: Basic 33,000 | Gross 52,000.00 | Deductions 2,150.00 |
+                Net 49,850.00   (revised structure, no October absences)
+             B: Net 20,000.00
+             C: Net 36,000.00   (full month now)
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+6.12 ACTION  Open October → "Cancel payroll" → confirm. Then delete it from
+             the list. Then Add Payroll Cycle → October 2026 again.
+     EXPECT  Cancel works; delete works; re-creating October works (no
+             "already exists" or server error). New cycle is Draft.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+
+================================================================================
+ PART 7 — EXPORTS & QUICK CHECKS
+================================================================================
+
+7.1  ACTION  Payroll Cycles → Export (Excel). Inside September → Export entries.
+     EXPECT  Both download and open; September entries file lists A, B, C.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+7.2  ACTION  Attendance → Logs → search "TestA".
+     EXPECT  Only Rahim TestA's logs are shown.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+7.3  ACTION  a) Salary Structure: Save with Grade empty.
+             b) Attendance → Schedules → Add Schedule "TST Bad", Daily Hours 0, Save.
+     EXPECT  a) "Employee, grade, basic salary and effective date are required."
+             b) A specific server message such as "'Total Hours' must be greater than '0'."
+             Each message shown ONCE — never just "Validation failed", never two toasts.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+
+================================================================================
+ CLEAN-UP (optional — testing instance only)
+================================================================================
+* Cancel + delete the October 2026 draft cycle.
+* September 2026 is Paid and is kept (by design it cannot be deleted).
+* Employees / leave types / components / shifts prefixed TST can be
+  deactivated or deleted from their screens.
+
+
+================================================================================
+ SUMMARY
+================================================================================
+Steps passed : ______ / ______        Steps failed : ______
+Overall      : [ ] Ready for real use   [ ] Needs fixes (see issue log)
+
+
+================================================================================
+ ISSUE LOG — one row per problem
+================================================================================
+Severity: High = wrong money / data lost / blocks the flow
+          Medium = wrong behaviour with a workaround
+          Low = cosmetic / wording
+
+| #  | Step | Screen / URL | What I did | Expected | Actual (exact message) | Severity | Screenshot |
+|----|------|--------------|------------|----------|------------------------|----------|------------|
+| 1  |      |              |            |          |                        |          |            |
+| 2  |      |              |            |          |                        |          |            |
+| 3  |      |              |            |          |                        |          |            |
+| 4  |      |              |            |          |                        |          |            |
+| 5  |      |              |            |          |                        |          |            |
+| 6  |      |              |            |          |                        |          |            |
+| 7  |      |              |            |          |                        |          |            |
+| 8  |      |              |            |          |                        |          |            |
+| 9  |      |              |            |          |                        |          |            |
+| 10 |      |              |            |          |                        |          |            |
+
+Send the filled issue log back and each row will be investigated and fixed.
