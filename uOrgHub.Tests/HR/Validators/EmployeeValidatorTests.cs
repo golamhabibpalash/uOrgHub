@@ -17,8 +17,7 @@ public class CreateEmployeeDtoValidatorTests
         Email = "john.doe@example.com",
         DesignationId = Guid.NewGuid(),
         DepartmentId = Guid.NewGuid(),
-        JoiningDate = DateTime.UtcNow,
-        BasicSalary = 50000
+        JoiningDate = DateTime.UtcNow
     };
 
     [Fact]
@@ -102,20 +101,6 @@ public class CreateEmployeeDtoValidatorTests
     {
         var dto = ValidDto(); dto.DepartmentId = Guid.Empty;
         _validator.Validate(dto).IsValid.Should().BeFalse();
-    }
-
-    [Fact]
-    public void Negative_basic_salary_fails()
-    {
-        var dto = ValidDto(); dto.BasicSalary = -1;
-        _validator.Validate(dto).IsValid.Should().BeFalse();
-    }
-
-    [Fact]
-    public void Zero_basic_salary_passes()
-    {
-        var dto = ValidDto(); dto.BasicSalary = 0;
-        _validator.Validate(dto).IsValid.Should().BeTrue();
     }
 
     [Fact]

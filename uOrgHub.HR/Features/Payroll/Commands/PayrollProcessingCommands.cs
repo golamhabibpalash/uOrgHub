@@ -83,7 +83,7 @@ public class ProcessPayrollCycleCommandHandler : IRequestHandler<ProcessPayrollC
             var basic = structure?.BasicSalary ?? employee.BasicSalary;
             if (basic <= 0)
             {
-                result.Skipped.Add($"{employee.FirstName} {employee.LastName} ({employee.EmployeeCode}): no salary structure or basic salary");
+                result.Skipped.Add($"{employee.FirstName} {employee.LastName} ({employee.EmployeeCode}): no salary structure");
                 continue;
             }
 

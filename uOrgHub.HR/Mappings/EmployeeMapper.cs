@@ -19,6 +19,9 @@ public partial class EmployeeMapper
     [MapperIgnoreTarget(nameof(Employee.DeletedBy))]
     [MapperIgnoreTarget(nameof(Employee.Designation))]
     [MapperIgnoreTarget(nameof(Employee.Department))]
+    // Salary is set only through the employee's salary structure, never the employee form.
+    [MapperIgnoreTarget(nameof(Employee.BasicSalary))]
+    [MapperIgnoreTarget(nameof(Employee.SalaryGradeId))]
     public partial Employee ToEntity(CreateEmployeeDto dto);
 
     [MapperIgnoreTarget(nameof(Employee.Id))]
@@ -34,5 +37,8 @@ public partial class EmployeeMapper
     // Status is applied by the handler so an omitted value preserves the stored status.
     [MapperIgnoreTarget(nameof(Employee.Status))]
     [MapperIgnoreSource(nameof(UpdateEmployeeDto.Status))]
+    // Salary is set only through the employee's salary structure; an edit must leave it untouched.
+    [MapperIgnoreTarget(nameof(Employee.BasicSalary))]
+    [MapperIgnoreTarget(nameof(Employee.SalaryGradeId))]
     public partial void UpdateEntity(UpdateEmployeeDto dto, Employee entity);
 }

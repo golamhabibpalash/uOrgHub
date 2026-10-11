@@ -14,6 +14,5 @@ public class UpdateEmployeeDtoValidator : AbstractValidator<UpdateEmployeeDto>
         RuleFor(x => x.MobilePhone).MaximumLength(20).Matches(@"^\+?[\d\s\-\(\)]{7,20}$").When(x => !string.IsNullOrWhiteSpace(x.MobilePhone));
         RuleFor(x => x.DesignationId).NotEmpty();
         RuleFor(x => x.DepartmentId).NotEmpty();
-        RuleFor(x => x.BasicSalary).GreaterThanOrEqualTo(0);
     }
 }

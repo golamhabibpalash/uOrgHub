@@ -30,8 +30,7 @@ public class CreateEmployeeCommandHandlerTests
         Email = "john.doe@example.com",
         DesignationId = Guid.NewGuid(),
         DepartmentId = Guid.NewGuid(),
-        JoiningDate = DateTime.UtcNow,
-        BasicSalary = 50000
+        JoiningDate = DateTime.UtcNow
     };
 
     private Employee EntityFrom(CreateEmployeeDto dto) => new()
@@ -44,7 +43,6 @@ public class CreateEmployeeCommandHandlerTests
         DesignationId = dto.DesignationId,
         DepartmentId = dto.DepartmentId,
         JoiningDate = dto.JoiningDate,
-        BasicSalary = dto.BasicSalary,
         Designation = new Designation { Id = dto.DesignationId, Name = "Engineer", Code = "ENG", Level = 1, DepartmentId = dto.DepartmentId, Department = new Department { Id = dto.DepartmentId, Name = "Engineering", Code = "ENG", Type = DepartmentType.Technical } },
         Department = new Department { Id = dto.DepartmentId, Name = "Engineering", Code = "ENG", Type = DepartmentType.Technical }
     };

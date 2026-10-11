@@ -30,8 +30,6 @@ import {
   Designation,
   createDepartment,
   createDesignation,
-  getAllDesignations,
-  getAllSalaryGrades,
 } from "../../api/hr";
 import { getRoles } from "../../api/auth";
 import DateInput from "../../components/shared/DateInput";
@@ -90,8 +88,6 @@ export default function Employees() {
     designationId: "",
     employmentType: "Permanent",
     status: "Active",
-    basicSalary: 0,
-    salaryGradeId: "",
     joiningDate: "",
     managerId: "",
   });
@@ -126,13 +122,7 @@ export default function Employees() {
 
   const { options: deptOptions, isLoading: deptLoading } = useDepartmentLookup();
   const { options: desigOptions, isLoading: desigLoading } = useDesignationLookup();
-  const { options: gradeOptions, isLoading: gradeLoading } = useSalaryGradeLookup();
-  // Same query keys as the lookup hooks, so these reuse their cached data.
-  const { data: allDesignations } = useQuery({ queryKey: ["designations-all"], queryFn: getAllDesignations, staleTime: 60000 });
-  const { data: allGrades } = useQuery({ queryKey: ["salary-grades-all"], queryFn: getAllSalaryGrades, staleTime: 60000 });
-  const designationGrade = (designationId?: string) =>
-    allDesignations?.data?.data?.find((d) => d.id === designationId)?.salaryGradeId;
-  const selectedGrade = allGrades?.data?.data?.find((g) => g.id === form.salaryGradeId);
+  const { options: gradeOptions } = useSalaryGradeLookup();
   const { options: empOptions, isLoading: empLoading } = useEmployeeLookup();
 
   const { data: rolesData } = useQuery({
@@ -215,7 +205,6 @@ export default function Employees() {
       const body = { ...rest };
       if (!body.joiningDate) delete (body as any).joiningDate;
       if (!body.managerId) delete (body as any).managerId;
-      if (!body.salaryGradeId) delete (body as { salaryGradeId?: string }).salaryGradeId;
       if (!body.bloodGroup) delete (body as any).bloodGroup;
       if (!body.dateOfBirth) delete (body as any).dateOfBirth;
       if (!body.passportExpiry) delete (body as any).passportExpiry;
@@ -438,8 +427,6 @@ export default function Employees() {
       designationId: "",
       employmentType: "Permanent",
       status: "Active",
-      basicSalary: 0,
-      salaryGradeId: "",
       joiningDate: "",
       managerId: "",
     });
@@ -475,8 +462,6 @@ export default function Employees() {
       designationId: emp.designationId,
       employmentType: emp.employmentType,
       status: emp.status || "Active",
-      basicSalary: emp.basicSalary,
-      salaryGradeId: emp.salaryGradeId || "",
       joiningDate: emp.joiningDate.split("T")[0],
       managerId: emp.managerId || "",
     });
@@ -979,12 +964,7 @@ export default function Employees() {
                   label="Designation"
                   options={desigOptions}
                   value={form.designationId}
-                  onChange={(v) => setForm((f) => ({
-                    ...f,
-                    designationId: v || "",
-                    // A designation's grade is the default band; keep a grade already picked.
-                    salaryGradeId: f.salaryGradeId || designationGrade(v) || "",
-                  }))}
+                  onChange={(v) => setForm((f) => ({ ...f, designationId: v || "" }))}
                   placeholder="Select Designation"
                   searchPlaceholder="Search designations..."
                   loading={desigLoading}
@@ -1171,31 +1151,19 @@ export default function Employees() {
                 <option value="Daily">Daily</option>
               </select>
             </div>
+            {/* Salary is owned by the employee's salary structure (Payroll → Salary Structures);
+                the form only shows what that structure has set. */}
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Basic Salary</label>
-              <input
-                type="number"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
-                value={form.basicSalary}
-                onChange={(e) => setForm((f) => ({ ...f, basicSalary: Number(e.target.value) }))}
-              />
-              {selectedGrade && (form.basicSalary < selectedGrade.minSalary || form.basicSalary > selectedGrade.maxSalary) && (
-                <p className="text-xs text-amber-600 mt-1">
-                  Outside {selectedGrade.gradeCode} range ({selectedGrade.minSalary.toLocaleString()}–{selectedGrade.maxSalary.toLocaleString()})
-                </p>
-              )}
-            </div>
-            <div>
-              <SearchableDropdown
-                label="Salary Grade"
-                options={gradeOptions}
-                value={form.salaryGradeId}
-                onChange={(v) => setForm((f) => ({ ...f, salaryGradeId: v || "" }))}
-                placeholder="Select Grade"
-                searchPlaceholder="Search grades..."
-                loading={gradeLoading}
-                clearable
-              />
+              <label className="text-xs text-gray-500 mb-1 block">Salary</label>
+              <div className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-600">
+                {!editing
+                  ? "Set after saving"
+                  : editing.basicSalary > 0
+                    ? `Basic ${editing.basicSalary.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${
+                        editing.salaryGradeId ? ` · ${gradeOptions.find((g) => g.value === editing.salaryGradeId)?.label ?? ""}` : ""}`
+                    : "Not set"}
+              </div>
+              <p className="text-xs text-gray-400 mt-1">Managed in Payroll → Salary Structures</p>
             </div>
             {editing && (
               <div>

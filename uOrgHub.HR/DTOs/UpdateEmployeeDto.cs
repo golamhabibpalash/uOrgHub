@@ -39,6 +39,7 @@ public class UpdateEmployeeDto
     public Guid DesignationId { get; set; }
     public Guid DepartmentId { get; set; }
     public Guid? ManagerId { get; set; }
-    public Guid? SalaryGradeId { get; set; }
-    public decimal BasicSalary { get; set; }
+
+    // No salary fields: an employee's basic salary and grade are owned by their salary structure
+    // (Payroll → Salary Structures), which copies them onto the employee record.
 }

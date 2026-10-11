@@ -42,7 +42,7 @@ HOW TO USE THIS FILE
              HR → Employees → Add Employee:
                First "Tara", Last "TestApprover", Email tara.approver@test.local,
                National ID 1990000000099, any Department/Designation,
-               Joining 2025-01-01, Basic 0.
+               Joining 2025-01-01.
                Tick "Create user account": Username tst.approver,
                Password of your choice, Role "Admin" (or "HRManager"), Active.
              Save. Log out, log in as tst.approver, change the password if
@@ -187,36 +187,33 @@ Create these five. "Payslip order" sets the line order on the payslip.
  PART 2 — TEST EMPLOYEES  (HR → Employees → Add Employee)
 ================================================================================
 
-Use any existing Department and Designation. Leave Basic Salary at 0 unless
-stated — the salary structure will set it. National ID is REQUIRED on this
+Use any existing Department and Designation. National ID is REQUIRED on this
 setup (a validation rule in Settings) — use the values below.
+Salary is NOT entered here: an employee's basic salary and grade are set only
+by their salary structure (Part 5).
 
-  | Ref | First / Last name | Email                  | National ID   | Joining date | Basic | Grade  |
-  |-----|-------------------|------------------------|---------------|--------------|-------|--------|
-  | A   | Rahim  / TestA    | rahim.testa@test.local | 1990000000001 | 2025-01-01   | 0     | —      |
-  | B   | Karim  / TestB    | karim.testb@test.local | 1990000000002 | 2025-01-01   | 20000 | TST-G2 |
-  | C   | Salma  / TestC    | salma.testc@test.local | 1990000000003 | 2026-09-16   | 0     | —      |
-  | D   | Nasir  / TestD    | nasir.testd@test.local | 1990000000004 | 2025-01-01   | 0     | —      |
+  | Ref | First / Last name | Email                  | National ID   | Joining date |
+  |-----|-------------------|------------------------|---------------|--------------|
+  | A   | Rahim  / TestA    | rahim.testa@test.local | 1990000000001 | 2025-01-01   |
+  | B   | Karim  / TestB    | karim.testb@test.local | 1990000000002 | 2025-01-01   |
+  | C   | Salma  / TestC    | salma.testc@test.local | 1990000000003 | 2026-09-16   |
+  | D   | Nasir  / TestD    | nasir.testd@test.local | 1990000000004 | 2025-01-01   |
 
 Write the generated employee IDs here:  A ______  B ______  C ______  D ______
 
-2.1  ACTION  Create A, C, D as in the table.
+2.1  ACTION  Open Add Employee and look at the employment section.
+     EXPECT  NO "Basic Salary" input and NO "Salary Grade" dropdown. Instead a
+             read-only "Salary" box saying "Set after saving" and
+             "Managed in Payroll → Salary Structures".
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+2.2  ACTION  Create A, B, C, D as in the table.
      EXPECT  Saved; each gets an auto employee ID.
      RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
 
-2.2  ACTION  Create B: Basic Salary 20000, then pick Salary Grade "TST-G2 — Test Junior".
-     EXPECT  The form HAS a "Salary Grade" field next to Basic Salary.
-             Saved.
-     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
-
-2.3  ACTION  Edit B: change Basic Salary to 35000 (do NOT save yet).
-     EXPECT  Amber hint under Basic Salary:
-             "Outside TST-G2 range (10,000–30,000)".
-             Put it back to 20000 → hint disappears. Cancel.
-     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
-
-2.4  ACTION  Edit B again and reopen.
-     EXPECT  Salary Grade still shows TST-G2 (it was saved).
+2.3  ACTION  Edit B.
+     EXPECT  The read-only Salary box shows "Not set" (no salary structure yet).
+             Change the Phone, Save → saves normally. Cancel/close.
      RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
 
 
@@ -344,8 +341,10 @@ Write the generated employee IDs here:  A ______  B ______  C ______  D ______
      RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
 
 5.3  ACTION  Open HR → Employees → A (edit).
-     EXPECT  Basic Salary = 30000 and Salary Grade = TST-G1 (synced from the
-             structure). Cancel.
+     EXPECT  Read-only Salary box shows "Basic 30,000.00 · TST-G1 — Test Officer"
+             (copied from the structure). Change A's Phone and Save, then
+             re-open: the Salary box still shows Basic 30,000.00 (an employee
+             edit must never reset salary). Cancel.
      RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
 
 5.4  ACTION  Add Salary Structure for C: Effective From 2026-09-16, Grade TST-G1,
@@ -366,8 +365,16 @@ Write the generated employee IDs here:  A ______  B ______  C ______  D ______
              01 Oct 2026. Edit it, or start the new one on a later date."
      RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
 
-5.7  NOTE    B has NO structure (paid from Employee Basic 20,000).
-             D has no structure and Basic 0 (must be reported as not paid).
+5.7  ACTION  Add Salary Structure for B: Effective From 2026-01-01, Grade TST-G2,
+             Basic 20000, NO components.
+     EXPECT  Gross 20,000.00, Deductions 0, Net 20,000.00. Saved.
+             Then 5.2-style check: change Basic to 35000 before saving →
+             amber hint "Gross 35,000.00 is outside TST-G2 range
+             (10,000.00–30,000.00)"; put it back to 20000 and Save.
+     RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
+
+5.8  NOTE    D (and Tara) have no salary structure → must be reported as not
+             paid in Part 6.
 
 
 ================================================================================
@@ -382,7 +389,7 @@ Write the generated employee IDs here:  A ______  B ______  C ______  D ______
 
 6.2  ACTION  Click "Process payroll".
      EXPECT  Status → Processed. Amber box lists "Nasir TestD (...): no salary
-             structure or basic salary" and "Tara TestApprover (...)" (other
+             structure" and "Tara TestApprover (...): no salary structure" (other
              real employees without salary may be listed too). Entries list shows A, B, C (+ other employees).
      RESULT  [ ] PASS  [ ] FAIL   Notes: __________________________________
 

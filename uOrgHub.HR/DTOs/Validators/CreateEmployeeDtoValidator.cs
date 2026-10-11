@@ -16,7 +16,6 @@ public class CreateEmployeeDtoValidator : AbstractValidator<CreateEmployeeDto>
         RuleFor(x => x.DesignationId).NotEmpty();
         RuleFor(x => x.DepartmentId).NotEmpty();
         RuleFor(x => x.JoiningDate).NotEmpty();
-        RuleFor(x => x.BasicSalary).GreaterThanOrEqualTo(0);
         RuleFor(x => x.NationalId).MaximumLength(30).When(x => x.NationalId != null);
     }
 }
