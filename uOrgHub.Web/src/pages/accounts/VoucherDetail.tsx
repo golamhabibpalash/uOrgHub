@@ -35,6 +35,7 @@ import { useAuthStore } from "../../store/authStore";
 import { amountInWords, formatTaka } from "../../utils/format";
 import { extractApiError } from "../../utils/apiError";
 import DateInput from "../../components/shared/DateInput";
+import { printDocument } from "../../utils/printDocument";
 
 const statusColors: Record<VoucherStatus, string> = {
   Draft: "bg-gray-100 text-gray-600",
@@ -47,6 +48,19 @@ const statusColors: Record<VoucherStatus, string> = {
 };
 
 const today = () => new Date().toISOString().split("T")[0];
+
+// Black-ink printing: the voucher prints in pure black on white regardless of the on-screen type
+// theme. Scoped to #print-content so it outranks the shared print styles' muted-colour rules.
+const VOUCHER_PRINT_CSS = `
+  @page { margin: 15mm; }
+  #print-content, #print-content *, #print-content *::before, #print-content *::after {
+    color: #000 !important;
+    background: transparent !important;
+    border-color: #000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+`;
 
 const workflow: VoucherStatus[] = ["Draft", "Submitted", "Approved", "Posted"];
 
@@ -126,33 +140,12 @@ export default function VoucherDetail() {
   });
 
   const handlePrint = useCallback(() => {
-    const content = printRef.current?.innerHTML;
-    if (!content) return;
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>${voucher?.voucherNumber ?? "Voucher"}</title>
-          <script src="https://cdn.tailwindcss.com"></script>
-          <style>
-            @page { margin: 15mm; }
-            body { font-family: 'Inter', sans-serif; color: #000; }
-            /* Black-ink printing: the voucher document prints in pure black on
-               white regardless of the on-screen type theme or status colours. */
-            body, body *, body *::before, body *::after {
-              color: #000 !important;
-              background: transparent !important;
-              border-color: #000 !important;
-              box-shadow: none !important;
-              text-shadow: none !important;
-            }
-          </style>
-        </head>
-        <body>${content}<script>window.print();</script></body>
-      </html>
-    `);
-    printWindow.document.close();
+    // Shared utility clones the live page's compiled styles into an off-screen iframe and waits
+    // for them to load before printing — no popup, and no Tailwind-CDN race that intermittently
+    // printed the voucher unstyled.
+    if (printRef.current) {
+      printDocument(voucher?.voucherNumber ?? "Voucher", printRef.current, VOUCHER_PRINT_CSS);
+    }
   }, [voucher?.voucherNumber]);
 
   // Support the print shortcut from the voucher list (?print=1).

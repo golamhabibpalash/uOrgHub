@@ -9,8 +9,12 @@ const escapeHtml = (value: string) =>
  * (auto company header, column picker) — the node itself already renders its own letterhead.
  * Reusable for any single-record "print this document" need (Procurement documents today; PO/GRN
  * or similar tomorrow).
+ *
+ * @param extraCss Document-specific print CSS appended after the shared rules. Scope it to
+ *   `#print-content` so it outranks the shared muted-colour rules by specificity (the voucher uses
+ *   this to force pure black ink).
  */
-export function printDocument(title: string, node: HTMLElement) {
+export function printDocument(title: string, node: HTMLElement, extraCss = "") {
   const content = node.innerHTML;
 
   const iframe = document.createElement("iframe");
@@ -88,6 +92,7 @@ export function printDocument(title: string, node: HTMLElement) {
             .text-purple-600, .text-purple-700 { color: #581c87 !important; }
             .text-orange-600, .text-orange-700 { color: #7c2d12 !important; }
           }
+          ${extraCss}
         </style>
       </head>
       <body>
