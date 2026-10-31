@@ -235,6 +235,7 @@ public class ProjectStatementService : IProjectStatementService
             .ThenBy(l => l.LineOrder)
             .Select(l => new
             {
+                l.JournalEntryId,
                 l.JournalEntry.EntryDate,
                 l.JournalEntry.EntryNumber,
                 l.JournalEntry.ReferenceNumber,
@@ -249,12 +250,15 @@ public class ProjectStatementService : IProjectStatementService
             })
             .ToListAsync(ct);
 
+        var parties = await LoadVoucherPartiesAsync(lines.Select(l => l.JournalEntryId).Distinct().ToList(), ct);
+
         var rows = new List<ProjectStatementRowDto>(lines.Count);
         var runningNet = 0m;
 
         foreach (var line in lines)
         {
             runningNet += line.DebitAmount - line.CreditAmount;
+            var hasParty = parties.TryGetValue(line.JournalEntryId, out var party);
             rows.Add(new ProjectStatementRowDto(
                 line.EntryDate,
                 line.EntryNumber,
@@ -264,6 +268,8 @@ public class ProjectStatementService : IProjectStatementService
                 line.AccountName,
                 line.AccountType,
                 line.Description,
+                hasParty && party.Type == VoucherType.Debit ? party.Name : null,
+                hasParty && party.Type == VoucherType.Credit ? party.Name : null,
                 line.CostCenterName,
                 line.DebitAmount,
                 line.CreditAmount,
@@ -271,6 +277,36 @@ public class ProjectStatementService : IProjectStatementService
         }
 
         return rows;
+    }
+
+    /// <summary>
+    /// The counterparty named on the voucher behind each journal entry, keyed by entry. A voucher
+    /// that was later corrected is matched on its reversal entry too: undoing a payment to a party
+    /// still concerns that party, so filtering by them nets the pair out instead of hiding half.
+    ///
+    /// Contra vouchers are skipped — their name field holds a cheque/slip number, not a party.
+    /// </summary>
+    private async Task<Dictionary<Guid, (VoucherType Type, string Name)>> LoadVoucherPartiesAsync(
+        List<Guid> entryIds,
+        CancellationToken ct)
+    {
+        var vouchers = await _db.Set<Voucher>()
+            .Where(v => !v.IsDeleted
+                && v.Name != null && v.Name != ""
+                && (v.VoucherType == VoucherType.Credit || v.VoucherType == VoucherType.Debit)
+                && ((v.JournalEntryId != null && entryIds.Contains(v.JournalEntryId.Value))
+                    || (v.ReversalJournalEntryId != null && entryIds.Contains(v.ReversalJournalEntryId.Value))))
+            .Select(v => new { v.JournalEntryId, v.ReversalJournalEntryId, v.VoucherType, v.Name })
+            .ToListAsync(ct);
+
+        var parties = new Dictionary<Guid, (VoucherType, string)>();
+        foreach (var v in vouchers)
+        {
+            var party = (v.VoucherType, v.Name!.Trim());
+            if (v.JournalEntryId.HasValue) parties[v.JournalEntryId.Value] = party;
+            if (v.ReversalJournalEntryId.HasValue) parties[v.ReversalJournalEntryId.Value] = party;
+        }
+        return parties;
     }
 
     /// <summary>

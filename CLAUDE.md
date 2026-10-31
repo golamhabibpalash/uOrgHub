@@ -142,8 +142,10 @@ React 19 + Vite + TypeScript + Tailwind + shadcn/ui. State: Zustand (`src/store/
 - Every list page uses the shared `DataGrid` component (`src/components/shared/DataGrid.tsx`)
   + `useDataGrid` hook (`src/hooks/useDataGrid.ts`) for paging/sort/search/filter state, plus
   `ExportMenu` (`src/components/shared/ExportMenu.tsx`) for exports — don't
-  use the old `DataTable`/`Pagination` components. See CODING_STANDARDS.md §18 for the exact
-  page-component pattern and the `DataGridColumn`/`useDataGrid` APIs.
+  use the old `DataTable`/`Pagination` components. The hook yields a ready `queryParams` object
+  for the paged API call, and each column's `key` is sent as the backend `SortBy` value (so the
+  handler must use `ApplySorting`/`WhereSearch`, above). See CODING_STANDARDS.md §18 for the
+  exact page-component pattern and the `DataGridColumn`/`useDataGrid` APIs.
 - A 403 response fires a global `auth:forbidden` event (handled in `client.ts`) rather than
   being left for each call site to catch. Only `/uploads` is proxied to the API in
   `vite.config.ts` — everything else goes through `VITE_API_URL`.
@@ -152,13 +154,6 @@ React 19 + Vite + TypeScript + Tailwind + shadcn/ui. State: Zustand (`src/store/
   `<link>`/`<style>` tags**, not a fresh stylesheet load — a fresh load races Tailwind's CDN
   timing and prints washed-out/unstyled content. Reuse this utility for new print surfaces
   instead of opening a new tab or re-deriving styles.
-
-List pages: always use the `DataGrid` component + `useDataGrid` hook (`src/components/shared/`,
-`src/hooks/`) — not the old `DataTable`/`Pagination`. The hook produces a ready `queryParams`
-object for the paged API call; each column's `key` maps to the backend `SortBy` value. Server
-side, paged query handlers must honor it via the `ApplySorting(sortBy, sortDescending)` extension
-(never hardcode `OrderBy`) and search via `WhereSearch()` (PostgreSQL `ILike`, case-insensitive).
-Full pattern is in `CODING_STANDARDS.md` §18.
 
 ## Commands
 
@@ -172,7 +167,7 @@ dotnet test --filter "FullyQualifiedName~DepartmentHandler"   # single test clas
 ```
 Frontend (from `uOrgHub.Web`):
 ```bash
-npm run dev      # Vite dev server (proxies to API; default VITE_API_URL http://localhost:5177/api/v1)
+npm run dev      # Vite dev server (calls API via VITE_API_URL, default http://localhost:5177/api/v1)
 npm run build    # tsc -b && vite build
 npm run lint     # eslint .
 ```

@@ -6,6 +6,7 @@ import {
   getProjectStatement,
   reportPdfUrls,
   type ConsolidatedProjectRow,
+  type ProjectStatementRow,
 } from "../../../api/projects";
 import { useProjectLookup } from "../../../hooks/useEntityLookup";
 import SearchableDropdown from "../../../components/shared/SearchableDropdown";
@@ -59,6 +60,33 @@ type TxSortKey =
   | "runningNet";
 
 const TX_PAGE_SIZES = [10, 25, 50, 100];
+
+/**
+ * Distinct parties named in the ledger, for a party filter. Built from the loaded rows, so the
+ * choices are only ever the selected project's own parties in the selected period. Names are free
+ * text on the voucher, so "abc traders" and "ABC Traders" are folded together; the label carries
+ * how many voucher entries name the party, so the user can see the weight before filtering.
+ */
+function partyOptions(rows: ProjectStatementRow[], field: "paidTo" | "receivedFrom") {
+  const parties = new Map<string, { name: string; entries: Set<string> }>();
+  for (const r of rows) {
+    const name = r[field]?.trim();
+    if (!name) continue;
+    const key = name.toLowerCase();
+    const party = parties.get(key) ?? { name, entries: new Set<string>() };
+    party.entries.add(r.entryNumber);
+    parties.set(key, party);
+  }
+  return [...parties.entries()]
+    .map(([key, p]) => ({
+      value: key,
+      label: `${p.name} (${p.entries.size})`,
+      searchText: p.name,
+    }))
+    .sort((a, b) => a.searchText.localeCompare(b.searchText));
+}
+
+const partyMatches = (name: string | undefined, key: string) => name?.trim().toLowerCase() === key;
 
 export default function ProjectStatementPage() {
   const [projectId, setProjectId] = useState("");
@@ -115,11 +143,17 @@ export default function ProjectStatementPage() {
   const [txSearch, setTxSearch] = useState("");
   const [txAccount, setTxAccount] = useState("");
   const [txDirection, setTxDirection] = useState<"" | "debit" | "credit">("");
+  const [txPaidTo, setTxPaidTo] = useState("");
+  const [txReceivedFrom, setTxReceivedFrom] = useState("");
   const [txSort, setTxSort] = useState<{ key: TxSortKey; dir: "asc" | "desc" }>({ key: "entryDate", dir: "asc" });
   const [txPage, setTxPage] = useState(1);
   const [txPageSize, setTxPageSize] = useState(25);
 
-  const txFilterActive = txSearch.trim() !== "" || txAccount !== "" || txDirection !== "";
+  const paidToOptions = useMemo(() => partyOptions(rows, "paidTo"), [rows]);
+  const receivedFromOptions = useMemo(() => partyOptions(rows, "receivedFrom"), [rows]);
+
+  const txFilterActive =
+    txSearch.trim() !== "" || txAccount !== "" || txDirection !== "" || txPaidTo !== "" || txReceivedFrom !== "";
 
   // Any change to what's shown drops the user back to page 1 — otherwise a filter that shrinks
   // the list can strand them on a now-empty page. (Out-of-range pages from a project/date switch
@@ -128,8 +162,16 @@ export default function ProjectStatementPage() {
   const changeTxSearch = (v: string) => { setTxSearch(v); resetTxPage(); };
   const changeTxAccount = (v: string) => { setTxAccount(v); resetTxPage(); };
   const changeTxDirection = (v: "" | "debit" | "credit") => { setTxDirection(v); resetTxPage(); };
+  const changeTxPaidTo = (v: string) => { setTxPaidTo(v); resetTxPage(); };
+  const changeTxReceivedFrom = (v: string) => { setTxReceivedFrom(v); resetTxPage(); };
   const changeTxPageSize = (n: number) => { setTxPageSize(n); resetTxPage(); };
-  const clearTxFilters = () => { setTxSearch(""); setTxAccount(""); setTxDirection(""); resetTxPage(); };
+  const clearTxFilters = () => {
+    setTxSearch(""); setTxAccount(""); setTxDirection(""); setTxPaidTo(""); setTxReceivedFrom(""); resetTxPage();
+  };
+
+  // Ledger filters belong to one project's ledger — an account or party picked on one project
+  // means nothing on the next, and would silently empty its table.
+  const selectProject = (id: string) => { setProjectId(id); clearTxFilters(); };
 
   const toggleTxSort = (key: TxSortKey) => {
     setTxSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }));
@@ -146,6 +188,8 @@ export default function ProjectStatementPage() {
           r.accountCode,
           r.accountName,
           r.narration ?? "",
+          r.paidTo ?? "",
+          r.receivedFrom ?? "",
           r.costCenterName,
         ].join(" ").toLowerCase();
         if (!hay.includes(q)) return false;
@@ -153,9 +197,11 @@ export default function ProjectStatementPage() {
       if (txAccount && r.accountId !== txAccount) return false;
       if (txDirection === "debit" && !(r.debit > 0)) return false;
       if (txDirection === "credit" && !(r.credit > 0)) return false;
+      if (txPaidTo && !partyMatches(r.paidTo, txPaidTo)) return false;
+      if (txReceivedFrom && !partyMatches(r.receivedFrom, txReceivedFrom)) return false;
       return true;
     });
-  }, [rows, txSearch, txAccount, txDirection]);
+  }, [rows, txSearch, txAccount, txDirection, txPaidTo, txReceivedFrom]);
 
   const txSorted = useMemo(() => {
     const list = [...txFiltered];
@@ -227,7 +273,7 @@ export default function ProjectStatementPage() {
             options={projectOptions}
             loading={loadingProjects}
             value={projectId}
-            onChange={(v) => setProjectId(v ?? "")}
+            onChange={(v) => selectProject(v ?? "")}
             placeholder="Select project"
             searchPlaceholder="Search by name or code…"
             noResultsMessage="No projects found"
@@ -250,7 +296,7 @@ export default function ProjectStatementPage() {
           </div>
           <div className="flex items-end">
             <button
-              onClick={() => { setProjectId(""); setDateFrom(""); setDateTo(""); }}
+              onClick={() => { selectProject(""); setDateFrom(""); setDateTo(""); }}
               className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 w-full"
             >
               Clear
@@ -317,7 +363,7 @@ export default function ProjectStatementPage() {
                     {sortedProjects.map((p) => (
                       <tr
                         key={p.projectId}
-                        onClick={() => setProjectId(p.projectId)}
+                        onClick={() => selectProject(p.projectId)}
                         className="border-b border-gray-100 hover:bg-gray-50/50 cursor-pointer"
                       >
                         <td data-col="projectCode" className="px-4 py-2 whitespace-nowrap">
@@ -441,7 +487,7 @@ export default function ProjectStatementPage() {
                     type="text"
                     value={txSearch}
                     onChange={(e) => changeTxSearch(e.target.value)}
-                    placeholder="Search entry #, reference, account, narration…"
+                    placeholder="Search entry #, reference, account, narration, party…"
                     className="w-full text-sm border border-gray-200 rounded-lg pl-9 pr-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500"
                   />
                 </div>
@@ -466,6 +512,28 @@ export default function ProjectStatementPage() {
                   <option value="debit">Debit lines only</option>
                   <option value="credit">Credit lines only</option>
                 </select>
+                <SearchableDropdown
+                  className="w-52"
+                  buttonClassName="py-1.5"
+                  options={paidToOptions}
+                  value={txPaidTo}
+                  onChange={(v) => changeTxPaidTo(v ?? "")}
+                  disabled={paidToOptions.length === 0}
+                  placeholder={paidToOptions.length === 0 ? "No payees in period" : "Paid to: anyone"}
+                  searchPlaceholder="Search payee…"
+                  noResultsMessage="No matching payee"
+                />
+                <SearchableDropdown
+                  className="w-52"
+                  buttonClassName="py-1.5"
+                  options={receivedFromOptions}
+                  value={txReceivedFrom}
+                  onChange={(v) => changeTxReceivedFrom(v ?? "")}
+                  disabled={receivedFromOptions.length === 0}
+                  placeholder={receivedFromOptions.length === 0 ? "No payers in period" : "Received from: anyone"}
+                  searchPlaceholder="Search payer…"
+                  noResultsMessage="No matching payer"
+                />
                 {txFilterActive && (
                   <button
                     onClick={clearTxFilters}
@@ -502,7 +570,14 @@ export default function ProjectStatementPage() {
                         <span className="font-mono text-gray-500">{r.accountCode}</span>
                         <span className="ml-2">{r.accountName}</span>
                       </td>
-                      <td data-col="narration" className="px-4 py-2 text-sm max-w-xs truncate">{r.narration ?? "—"}</td>
+                      <td data-col="narration" className="px-4 py-2 text-sm max-w-xs">
+                        <p className="truncate">{r.narration ?? "—"}</p>
+                        {(r.paidTo || r.receivedFrom) && (
+                          <p className="text-[11px] text-gray-400 truncate">
+                            {r.paidTo ? `Paid to ${r.paidTo}` : `Received from ${r.receivedFrom}`}
+                          </p>
+                        )}
+                      </td>
                       <td data-col="debit" className="px-4 py-2 text-right tabular-nums">{r.debit > 0 ? fmt(r.debit) : "—"}</td>
                       <td data-col="credit" className="px-4 py-2 text-right tabular-nums">{r.credit > 0 ? fmt(r.credit) : "—"}</td>
                       <td data-col="runningNet" className="px-4 py-2 text-right tabular-nums font-medium">{fmt(r.runningNet)}</td>

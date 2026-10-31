@@ -949,6 +949,10 @@ export interface ProjectStatementRow {
   accountName: string;
   accountType: AccountGroupType;
   narration?: string;
+  /** Party on the Debit voucher behind this entry; absent for non-voucher entries. */
+  paidTo?: string;
+  /** Party on the Credit voucher behind this entry; absent for non-voucher entries. */
+  receivedFrom?: string;
   costCenterName: string;
   debit: number;
   credit: number;

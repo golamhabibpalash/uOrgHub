@@ -5,6 +5,10 @@ namespace uOrgHub.Projects.DTOs.Reports;
 /// <summary>
 /// One posted journal entry line attributed to the project, as it appears in the statement's
 /// transaction ledger.
+///
+/// <see cref="PaidTo"/> / <see cref="ReceivedFrom"/> are the counterparty named on the voucher
+/// that produced the entry (a Debit voucher's "Paid To", a Credit voucher's "Received From").
+/// Entries not raised from a voucher — manual journals, contra transfers — carry neither.
 /// </summary>
 public record ProjectStatementRowDto(
     DateTime EntryDate,
@@ -15,6 +19,8 @@ public record ProjectStatementRowDto(
     string AccountName,
     AccountGroupType AccountType,
     string? Narration,
+    string? PaidTo,
+    string? ReceivedFrom,
     string CostCenterName,
     decimal Debit,
     decimal Credit,

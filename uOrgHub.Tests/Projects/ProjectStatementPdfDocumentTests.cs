@@ -24,7 +24,7 @@ public class ProjectStatementPdfDocumentTests
             Receipts: 20000m, Payments: 5000m, NetCashPosition: 15000m,
             ByAccount: [new ProjectStatementAccountDto(Guid.NewGuid(), "5000", "Materials", AccountGroupType.Expense, 5000m, 0m, 5000m)],
             Rows: [new ProjectStatementRowDto(DateTime.UtcNow, "JE-1", "REF-1", Guid.NewGuid(), "5000", "Materials",
-                AccountGroupType.Expense, "Cement purchase", "Site A", 5000m, 0m, 5000m)]);
+                AccountGroupType.Expense, "Cement purchase", "ABC Traders", null, "Site A", 5000m, 0m, 5000m)]);
 
         var bytes = ProjectStatementPdfDocument.BuildSingle(dto);
 

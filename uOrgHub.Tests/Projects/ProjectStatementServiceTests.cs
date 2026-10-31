@@ -295,6 +295,81 @@ public class ProjectStatementServiceTests
     }
 
     [Fact]
+    public async Task Rows_carry_the_voucher_party_by_direction()
+    {
+        using var ctx = NewContext();
+        var f = Seed(ctx);
+        Post(ctx, f, f.Expense, f.Bank, 100_000, Jan);
+        Post(ctx, f, f.Bank, f.Income, 300_000, Jun);
+        Post(ctx, f, f.Expense, f.Payable, 50_000, Dec);
+        var entries = ctx.Set<JournalEntry>().OrderBy(e => e.EntryDate).ToList();
+        LinkVoucher(ctx, f, VoucherType.Debit, " ABC Traders ", entries[0].Id);
+        LinkVoucher(ctx, f, VoucherType.Credit, "City Corporation", entries[1].Id);
+
+        var result = await Statement(ctx, f);
+
+        var paid = result.Rows.Where(r => r.EntryDate == Jan).ToList();
+        paid.Should().OnlyContain(r => r.PaidTo == "ABC Traders" && r.ReceivedFrom == null);
+        var received = result.Rows.Where(r => r.EntryDate == Jun).ToList();
+        received.Should().OnlyContain(r => r.ReceivedFrom == "City Corporation" && r.PaidTo == null);
+        // A plain journal with no voucher behind it names no party.
+        result.Rows.Where(r => r.EntryDate == Dec)
+            .Should().OnlyContain(r => r.PaidTo == null && r.ReceivedFrom == null);
+    }
+
+    [Fact]
+    public async Task A_corrected_vouchers_reversal_entry_keeps_its_party()
+    {
+        using var ctx = NewContext();
+        var f = Seed(ctx);
+        Post(ctx, f, f.Expense, f.Bank, 100_000, Jan);
+        Post(ctx, f, f.Bank, f.Expense, 100_000, Jun);
+        var entries = ctx.Set<JournalEntry>().OrderBy(e => e.EntryDate).ToList();
+        LinkVoucher(ctx, f, VoucherType.Debit, "ABC Traders", entries[0].Id, reversalEntryId: entries[1].Id);
+
+        var result = await Statement(ctx, f);
+
+        result.Rows.Should().HaveCount(4).And.OnlyContain(r => r.PaidTo == "ABC Traders");
+    }
+
+    [Fact]
+    public async Task Contra_voucher_name_is_not_treated_as_a_party()
+    {
+        using var ctx = NewContext();
+        var f = Seed(ctx);
+        Post(ctx, f, f.Bank, f.Bank, 10_000, Jan);
+        LinkVoucher(ctx, f, VoucherType.Contra, "CHQ-00123", ctx.Set<JournalEntry>().Single().Id);
+
+        var result = await Statement(ctx, f);
+
+        result.Rows.Should().OnlyContain(r => r.PaidTo == null && r.ReceivedFrom == null);
+    }
+
+    /// <summary>A posted voucher naming a party, tied to an already-posted entry.</summary>
+    private static void LinkVoucher(
+        AppDbContext ctx, Fixture f, VoucherType type, string name, Guid entryId, Guid? reversalEntryId = null)
+    {
+        ctx.Set<Voucher>().Add(new Voucher
+        {
+            Id = Guid.NewGuid(),
+            VoucherNumber = "V-" + Guid.NewGuid().ToString()[..6],
+            VoucherType = type,
+            VoucherDate = Jan,
+            Name = name,
+            Description = "Party voucher",
+            ProjectId = f.Project.Id,
+            CostCenterId = f.CostCenter.Id,
+            DebitAccountId = f.Expense.Id,
+            CreditAccountId = f.Bank.Id,
+            Amount = 1,
+            Status = VoucherStatus.Posted,
+            JournalEntryId = entryId,
+            ReversalJournalEntryId = reversalEntryId,
+        });
+        ctx.SaveChanges();
+    }
+
+    [Fact]
     public async Task Account_breakdown_groups_period_totals_per_account()
     {
         using var ctx = NewContext();
