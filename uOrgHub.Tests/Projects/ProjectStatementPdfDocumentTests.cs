@@ -3,6 +3,7 @@ using uOrgHub.Accounts.Models.Enums;
 using uOrgHub.Projects.DTOs.Reports;
 using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Projects.Reporting.Pdf;
+using uOrgHub.Shared.Export.Pdf;
 
 namespace uOrgHub.Tests.Projects;
 
@@ -46,6 +47,10 @@ public class ProjectStatementPdfDocumentTests
 
         AssertValidPdf(ProjectStatementPdfDocument.BuildSingle(dto, new ProjectStatementTransactionQuery { TransactionType = filter }));
     }
+
+    [Fact]
+    public void Transaction_dates_are_formatted_day_first_with_slashes()
+        => PdfFormat.DayFirstDate(new DateTime(2026, 3, 7)).Should().Be("07/03/2026");
 
     [Fact]
     public void Statement_with_every_filter_described_produces_valid_pdf()

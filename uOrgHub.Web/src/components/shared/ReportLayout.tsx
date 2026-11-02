@@ -146,7 +146,9 @@ export default function ReportLayout({
     iframe.style.position = "fixed";
     iframe.style.top = "-100000px";
     iframe.style.left = "0";
-    iframe.style.width = "0";
+    // A4 width less the 12mm @page margins: the print document is laid out off-screen at the
+    // width it will have on paper, so tables marked data-page-totals can be measured into pages.
+    iframe.style.width = "186mm";
     iframe.style.height = "0";
     iframe.style.border = "none";
     iframe.setAttribute("aria-hidden", "true");
@@ -198,7 +200,13 @@ export default function ReportLayout({
           <title>${escapeHtml(title)}</title>
           ${stylesTag}
           <style>
-            @page { margin: 12mm; }
+            /* The page number lives in the page margin, where the browser fills in the real
+               number for each sheet. (A position:fixed footer is painted identically on every
+               page, so it can only ever show one number.) */
+            @page {
+              margin: 12mm;
+              @bottom-center { content: "Page " counter(page) " of " counter(pages); font-size: 9px; color: #6b7280; }
+            }
 
             /* Forces backgrounds/colours to print at full strength regardless of the browser's
                "print backgrounds" default (usually off) or any ink-saving heuristic. */
@@ -214,17 +222,23 @@ export default function ReportLayout({
             }
 
             .print-header { text-align: center; margin-bottom: 16px; }
-            .print-footer {
-              position: fixed; bottom: 0; width: 100%; text-align: center;
-              font-size: 9px; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 4px;
-            }
+
+            /* This document only ever goes to the printer, so the print-only visibility rules
+               apply outright rather than under @media print: the off-screen layout then matches
+               the paper one, which is what tables marked data-page-totals are measured against. */
+            .no-print { display: none !important; }
+            .print\\:hidden { display: none !important; }
+            .print\\:table { display: table !important; }
+            .print\\:block { display: block !important; }
 
             /* Wide tables use the full page width instead of scrolling or being clipped. */
             .overflow-x-auto, .overflow-hidden, .overflow-y-auto { overflow: visible !important; }
 
             table { width: 100%; border-collapse: collapse; }
             thead { display: table-header-group; }   /* repeat column headers on every page */
-            tfoot { display: table-footer-group; }
+            /* Totals print once, after the last row. As a footer group the browser repeats the
+               row at the foot of every page — the grand total then reads as each page's total. */
+            tfoot { display: table-row-group; }
             tr { page-break-inside: avoid; }
             th, td { vertical-align: top; }
 
@@ -269,7 +283,6 @@ export default function ReportLayout({
             <p style="font-size:9px; color:#9ca3af; margin:4px 0;">Printed: ${now}</p>
           </div>
           <div id="print-content">${content}</div>
-          <div class="print-footer">Page 1</div>
           <script>
             (function () {
               var enabled = ${enabledPayload};
@@ -288,8 +301,132 @@ export default function ReportLayout({
                 var visible = keys.filter(function (k) { return active[k]; }).length;
                 el.colSpan = Math.max(visible, 1);
               });
+              // Tables marked data-page-totals get a subtotal row at the foot of every printed
+              // page. The browser never reports where it breaks pages, so the table is measured
+              // here and split into one table per A4 page, each ending with a forced page break —
+              // the breaks then fall exactly where the subtotals are. Markup contract:
+              //   table[data-page-totals="Page total"]   label for the per-page row
+              //   td[data-sum="key"][data-value="123.4"] a summed body cell
+              //   tfoot row: td[data-total-label], td[data-sum="key"] — cloned as the page row's
+              //   template; the tfoot itself stays as the grand total on the last page only.
+              function paginateTotals() {
+                var tables = document.querySelectorAll('table[data-page-totals]');
+                if (!tables.length) return;
+
+                // Pages are planned for A4 portrait, so the sheet is fixed to that size.
+                var size = document.createElement('style');
+                size.textContent = '@page { size: A4 portrait; }';
+                document.head.appendChild(size);
+
+                var probe = document.createElement('div');
+                probe.style.cssText = 'position:absolute;visibility:hidden;width:1px;height:273mm;';
+                document.body.appendChild(probe);
+                var pageH = probe.getBoundingClientRect().height; // A4 height less 12mm margins
+                document.body.removeChild(probe);
+                var SAFETY = 12;
+
+                var height = function (el) { return el.getBoundingClientRect().height; };
+                var docTop = function (el) { return el.getBoundingClientRect().top + window.scrollY; };
+                var fmt = function (n) { return n.toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+
+                Array.prototype.forEach.call(tables, function (table) {
+                  var body = table.tBodies[0];
+                  var thead = table.tHead, tfoot = table.tFoot;
+                  var footRow = tfoot ? tfoot.rows[0] : null;
+                  if (!body || !body.rows.length || !footRow) return;
+
+                  var rows = Array.prototype.slice.call(body.rows);
+                  var rowH = rows.map(height);
+                  var theadH = thead ? height(thead) : 0;
+                  var subtotalH = height(footRow);
+                  var grandH = height(tfoot);
+                  // Column widths are frozen so every page's table lines up with the others and
+                  // rows wrap exactly as they were measured.
+                  var widths = thead ? Array.prototype.map.call(thead.rows[0].cells, function (c) { return c.getBoundingClientRect().width; }) : [];
+
+                  // Room left on the page the table starts on. If what precedes it already runs
+                  // past the first page, the browser's breaks up there can't be predicted, so the
+                  // section starts on a fresh page instead.
+                  var section = table.closest('[data-print-section]') || table;
+                  var top = docTop(table);
+                  var cap;
+                  if (top + theadH + rowH[0] + subtotalH + SAFETY > pageH) {
+                    section.style.breakBefore = 'page';
+                    cap = pageH - (top - docTop(section));
+                  } else {
+                    cap = pageH - top;
+                  }
+
+                  var chunks = [], cur = [], used = theadH;
+                  rows.forEach(function (r, i) {
+                    if (cur.length && used + rowH[i] + subtotalH + SAFETY > cap) {
+                      chunks.push(cur); cur = []; used = theadH; cap = pageH;
+                    }
+                    cur.push(i); used += rowH[i];
+                  });
+                  // The last page also carries the grand total; rows that leave it no room move on.
+                  var moved = [];
+                  while (cur.length > 1 && used + subtotalH + grandH + SAFETY > cap) {
+                    var j = cur.pop(); used -= rowH[j]; moved.unshift(j);
+                  }
+                  chunks.push(cur);
+                  if (moved.length) chunks.push(moved);
+
+                  var pageRow = function (idx) {
+                    var tr = footRow.cloneNode(true);
+                    Array.prototype.forEach.call(tr.cells, function (cell) {
+                      var key = cell.getAttribute('data-sum');
+                      if (cell.hasAttribute('data-total-label')) {
+                        cell.textContent = table.getAttribute('data-page-totals') || 'Page total';
+                      } else if (key) {
+                        cell.textContent = fmt(idx.reduce(function (s, i) {
+                          var c = rows[i].querySelector('[data-sum="' + key + '"]');
+                          return s + (c ? parseFloat(c.getAttribute('data-value')) || 0 : 0);
+                        }, 0));
+                      } else {
+                        cell.textContent = '';
+                      }
+                    });
+                    return tr;
+                  };
+
+                  var parent = table.parentNode;
+                  chunks.forEach(function (idx, n) {
+                    var t = table.cloneNode(false);
+                    t.removeAttribute('data-page-totals');
+                    t.style.tableLayout = 'fixed';
+                    if (thead) {
+                      var h = thead.cloneNode(true);
+                      Array.prototype.forEach.call(h.rows[0].cells, function (c, k) { c.style.width = widths[k] + 'px'; });
+                      t.appendChild(h);
+                    }
+                    var b = document.createElement('tbody');
+                    idx.forEach(function (i) { b.appendChild(rows[i]); });
+                    b.appendChild(pageRow(idx));
+                    t.appendChild(b);
+
+                    // Breaks go on a block wrapper: forced breaks on a table box itself are not
+                    // honoured by every engine.
+                    var wrap = document.createElement('div');
+                    if (n === chunks.length - 1) t.appendChild(tfoot);
+                    else wrap.style.breakAfter = 'page';
+                    wrap.appendChild(t);
+                    parent.insertBefore(wrap, table);
+                  });
+                  parent.removeChild(table);
+                });
+              }
+
               var done = false;
-              function go() { if (done) return; done = true; window.focus(); window.print(); }
+              function go() {
+                if (done) return; done = true;
+                // Web fonts change row heights, so pages are planned only once they have loaded.
+                var ready = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
+                ready.then(function () {
+                  try { paginateTotals(); } catch (e) { /* print without page totals rather than not at all */ }
+                  window.focus(); window.print();
+                });
+              }
               window.addEventListener('load', function () { setTimeout(go, 350); });
               if (document.readyState === 'complete') setTimeout(go, 350);
             })();

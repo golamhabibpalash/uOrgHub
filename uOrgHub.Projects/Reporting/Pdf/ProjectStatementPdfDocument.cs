@@ -19,11 +19,12 @@ public static class ProjectStatementPdfDocument
 
     private static readonly List<PdfColumn<ProjectStatementRowDto>> RowColumns =
     [
-        new("Date", r => PdfFormat.Date(r.EntryDate), 1),
+        // Wide enough that dd/MM/yyyy stays on one line.
+        new("Date", r => PdfFormat.DayFirstDate(r.EntryDate), 1.3f),
         new("Entry #", r => r.EntryNumber, 1.1f),
         new("Account", r => r.AccountName, 1.8f),
         new("Cost Center", r => r.CostCenterName, 1.2f),
-        new("Narration", r => r.Narration ?? "", 2f),
+        new("Narration", r => r.Narration ?? "", 1.7f),
         new("Debit", r => PdfFormat.AmountOrBlank(r.Debit), 1.1f, true),
         new("Credit", r => PdfFormat.AmountOrBlank(r.Credit), 1.1f, true),
         new("Running Net", r => PdfFormat.Amount(r.RunningNet), 1.2f, true),
@@ -71,7 +72,7 @@ public static class ProjectStatementPdfDocument
                     section.Item().SectionHeaderCell().Text(filters.Count > 0 ? "Transactions (filtered)" : "Transactions");
                     if (filters.Count > 0)
                         section.Item().PaddingVertical(3).Text($"Filtered by: {string.Join("  |  ", filters)}").FontSize(8).Italic();
-                    PdfTable.Render(section.Item(), report.Rows, RowColumns);
+                    PdfTable.Render(section.Item(), report.Rows, RowColumns, TransactionTotals(report.Rows));
                     if (report.Rows.Count == 0 && filters.Count > 0)
                         section.Item().PaddingTop(4).Text("No transactions match the selected filters.").FontSize(9).Italic();
                 });
@@ -104,6 +105,29 @@ public static class ProjectStatementPdfDocument
                 PdfTable.Render(column.Item(), report.Projects, ConsolidatedColumns, totals);
             });
         });
+    }
+
+    /// <summary>
+    /// The grand total row closing the transaction table: debit and credit summed over the rows
+    /// shown, and their difference under Running Net — the same figures as the screen's and the
+    /// printout's total. Rendered once, after the last row. None for an empty list.
+    /// </summary>
+    private static Dictionary<int, string>? TransactionTotals(List<ProjectStatementRowDto> rows)
+    {
+        if (rows.Count == 0) return null;
+
+        var debit = rows.Sum(r => r.Debit);
+        var credit = rows.Sum(r => r.Credit);
+        var col = RowColumns.Select((c, i) => (c.Header, i)).ToDictionary(x => x.Header, x => x.i);
+        return new Dictionary<int, string>
+        {
+            // In the wide Narration cell, beside the figures — the narrow Date cell would wrap it.
+            // A filtered list is already flagged in the section heading and "Filtered by" line.
+            [col["Narration"]] = "Grand Total",
+            [col["Debit"]] = PdfFormat.Amount(debit),
+            [col["Credit"]] = PdfFormat.Amount(credit),
+            [col["Running Net"]] = PdfFormat.Amount(debit - credit),
+        };
     }
 
     /// <summary>

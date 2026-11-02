@@ -526,8 +526,9 @@ export default function ProjectStatementPage() {
             )}
           </div>
 
-          {/* Transaction ledger */}
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          {/* Transaction ledger — data-print-section: if the print has to start the ledger on a
+              fresh page, the heading moves with the table rather than being left behind */}
+          <div data-print-section className="bg-white border border-gray-200 rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100 flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-medium text-gray-900">
@@ -679,8 +680,10 @@ export default function ProjectStatementPage() {
               </table>
 
               {/* Print-only: exactly the rows the user filtered and sorted to, every page of them
-                  (paging is a screen convenience; a printout should not stop at page 1) */}
-              <table className="hidden print:table w-full text-sm">
+                  (paging is a screen convenience; a printout should not stop at page 1).
+                  data-page-totals: the print document ends each sheet with a "Page total" of the
+                  data-sum cells and keeps the tfoot as the grand total on the last sheet only. */}
+              <table data-page-totals="Page Total" className="hidden print:table w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200">
                     <th data-col="entryDate" className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Date</th>
@@ -711,25 +714,32 @@ export default function ProjectStatementPage() {
                           </p>
                         )}
                       </td>
-                      <td data-col="debit" className="px-4 py-2 text-right tabular-nums">{r.debit > 0 ? fmt(r.debit) : "—"}</td>
-                      <td data-col="credit" className="px-4 py-2 text-right tabular-nums">{r.credit > 0 ? fmt(r.credit) : "—"}</td>
+                      <td data-col="debit" data-sum="debit" data-value={r.debit} className="px-4 py-2 text-right tabular-nums">
+                        {r.debit > 0 ? fmt(r.debit) : "—"}
+                      </td>
+                      <td data-col="credit" data-sum="credit" data-value={r.credit} className="px-4 py-2 text-right tabular-nums">
+                        {r.credit > 0 ? fmt(r.credit) : "—"}
+                      </td>
                       <td data-col="runningNet" className="px-4 py-2 text-right tabular-nums font-medium">{fmt(r.runningNet)}</td>
                     </tr>
                   ))}
                 </tbody>
                 {txSorted.length > 0 && (
-                  <tfoot className="bg-gray-50 border-t-2 border-gray-200">
-                    <tr>
+                  <tfoot>
+                    {/* Also the template for each sheet's Page Total row: the label cell is
+                        relabelled, data-sum cells re-summed, the rest blanked. */}
+                    <tr className="bg-gray-50 border-t-2 border-gray-300">
                       <td
                         colSpan={5}
                         data-col-span="entryDate,entryNumber,referenceNumber,accountCode,narration"
+                        data-total-label
                         className="px-4 py-2.5 text-xs font-semibold text-gray-600"
                       >
-                        {txFilterActive ? "Totals (filtered)" : "Totals"}
+                        {txFilterActive ? "Grand Total (filtered)" : "Grand Total"}
                       </td>
                       {/* Same figures as the screen's footer, which totals the same rows */}
-                      <td data-col="debit" className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(txDebitTotal)}</td>
-                      <td data-col="credit" className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(txCreditTotal)}</td>
+                      <td data-col="debit" data-sum="debit" className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(txDebitTotal)}</td>
+                      <td data-col="credit" data-sum="credit" className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(txCreditTotal)}</td>
                       <td data-col="runningNet" className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(txDebitTotal - txCreditTotal)}</td>
                     </tr>
                   </tfoot>
