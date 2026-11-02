@@ -32,6 +32,37 @@ public record ProjectStatementRowDto(
     decimal RunningNet
 );
 
+/// <summary>
+/// The filters and sort the report screen applies to the statement's transaction list, so a
+/// printed or downloaded statement can carry exactly the rows the user is looking at. Every
+/// field is optional; left empty, the list is the full ledger in posting order.
+///
+/// These narrow the transaction list only. Summary figures and the account breakdown are always
+/// computed over the whole ledger.
+/// </summary>
+public class ProjectStatementTransactionQuery
+{
+    public ProjectStatementTransactionFilter TransactionType { get; set; } = ProjectStatementTransactionFilter.All;
+
+    /// <summary>Case-insensitive text match across entry #, reference, account, narration, parties and cost center.</summary>
+    public string? Search { get; set; }
+
+    public Guid? AccountId { get; set; }
+
+    public ProjectStatementLineSide? Side { get; set; }
+
+    /// <summary>Party name, matched case-insensitively against <see cref="ProjectStatementRowDto.PaidTo"/>.</summary>
+    public string? PaidTo { get; set; }
+
+    /// <summary>Party name, matched case-insensitively against <see cref="ProjectStatementRowDto.ReceivedFrom"/>.</summary>
+    public string? ReceivedFrom { get; set; }
+
+    /// <summary>A <see cref="ProjectStatementRowDto"/> property name; empty keeps posting order.</summary>
+    public string? SortBy { get; set; }
+
+    public bool SortDescending { get; set; }
+}
+
 /// <summary>Period totals for one account the project was charged against.</summary>
 public record ProjectStatementAccountDto(
     Guid AccountId,

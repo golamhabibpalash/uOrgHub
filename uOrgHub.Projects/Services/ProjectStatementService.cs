@@ -6,6 +6,7 @@ using uOrgHub.Projects.Models.Entities;
 using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
+using uOrgHub.Shared.Extensions;
 
 namespace uOrgHub.Projects.Services;
 
@@ -31,16 +32,20 @@ public class ProjectStatementService : IProjectStatementService
         Guid projectId,
         DateTime? dateFrom,
         DateTime? dateTo,
-        ProjectStatementTransactionFilter transactions = ProjectStatementTransactionFilter.All,
+        ProjectStatementTransactionQuery? transactions = null,
         CancellationToken ct = default)
     {
         if (dateFrom.HasValue && dateTo.HasValue && dateFrom.Value > dateTo.Value)
             throw new AppException("Start date cannot be after end date.");
 
+        transactions ??= new ProjectStatementTransactionQuery();
+
         // Model binding accepts any integer for an enum, so an undefined value must be refused
         // here rather than silently treated as one of the real filters.
-        if (!Enum.IsDefined(transactions))
+        if (!Enum.IsDefined(transactions.TransactionType))
             throw new AppException("Transaction type must be All, Receipts or Payments.");
+        if (transactions.Side.HasValue && !Enum.IsDefined(transactions.Side.Value))
+            throw new AppException("Side must be Debit or Credit.");
 
         var project = await _db.Set<Project>()
             .FirstOrDefaultAsync(x => !x.IsDeleted && x.Id == projectId, ct)
@@ -97,18 +102,55 @@ public class ProjectStatementService : IProjectStatementService
     }
 
     /// <summary>
-    /// Narrows the transaction list to one side of the cash flow. Applied last, after every
-    /// summary figure and the account breakdown are computed from the full ledger, so the filter
-    /// can never move a total. Rows keep their running net from the full ledger.
+    /// Narrows and orders the transaction list the way the report screen does, so a printout or
+    /// PDF shows the rows the user filtered to. Applied last, after every summary figure and the
+    /// account breakdown are computed from the full ledger, so a filter can never move a total.
+    /// Rows keep their running net from the full ledger.
+    ///
+    /// Mirrors the screen's in-memory filter in ProjectStatementPage.tsx — a change to one must
+    /// be made to the other, or the PDF will stop matching what the user saw.
     /// </summary>
     private static List<ProjectStatementRowDto> FilterRows(
-        List<ProjectStatementRowDto> rows, ProjectStatementTransactionFilter transactions)
-        => transactions switch
+        List<ProjectStatementRowDto> rows, ProjectStatementTransactionQuery q)
+    {
+        IEnumerable<ProjectStatementRowDto> result = rows;
+
+        result = q.TransactionType switch
         {
-            ProjectStatementTransactionFilter.Receipts => rows.Where(r => r.CashFlow == ProjectCashFlowType.Receipt).ToList(),
-            ProjectStatementTransactionFilter.Payments => rows.Where(r => r.CashFlow == ProjectCashFlowType.Payment).ToList(),
-            _ => rows,
+            ProjectStatementTransactionFilter.Receipts => result.Where(r => r.CashFlow == ProjectCashFlowType.Receipt),
+            ProjectStatementTransactionFilter.Payments => result.Where(r => r.CashFlow == ProjectCashFlowType.Payment),
+            _ => result,
         };
+
+        var search = q.Search?.Trim();
+        if (!string.IsNullOrEmpty(search))
+            result = result.Where(r => string.Join(" ",
+                    r.EntryNumber, r.ReferenceNumber, r.AccountCode, r.AccountName,
+                    r.Narration, r.PaidTo, r.ReceivedFrom, r.CostCenterName)
+                .Contains(search, StringComparison.OrdinalIgnoreCase));
+
+        if (q.AccountId.HasValue)
+            result = result.Where(r => r.AccountId == q.AccountId.Value);
+
+        result = q.Side switch
+        {
+            ProjectStatementLineSide.Debit => result.Where(r => r.Debit > 0),
+            ProjectStatementLineSide.Credit => result.Where(r => r.Credit > 0),
+            _ => result,
+        };
+
+        if (!string.IsNullOrWhiteSpace(q.PaidTo))
+            result = result.Where(r => PartyMatches(r.PaidTo, q.PaidTo));
+        if (!string.IsNullOrWhiteSpace(q.ReceivedFrom))
+            result = result.Where(r => PartyMatches(r.ReceivedFrom, q.ReceivedFrom));
+
+        // A stable sort, so rows tied on the chosen column stay in posting order — the same as
+        // the screen's. No sort (or an unknown column) leaves posting order as it is.
+        return result.AsQueryable().ApplySorting(q.SortBy, q.SortDescending).ToList();
+    }
+
+    private static bool PartyMatches(string? party, string wanted)
+        => string.Equals(party?.Trim(), wanted.Trim(), StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Every project's headline figures for the range in one pass. The ledger lines are not

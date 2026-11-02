@@ -145,11 +145,11 @@ export default function ProjectStatementPage() {
     setSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }));
 
   // ── Transactions ledger: client-side search / filter / sort / pagination ──
-  // The ledger is already fully loaded with the statement, and each row's Running Net only
-  // means anything in the backend's chronological order — so the view is refined in memory
-  // rather than re-fetched, and the printed statement (below) keeps the whole unpaged ledger.
-  // Transaction Type is the one ledger filter that also governs Print and the PDF, so it is kept
-  // apart from the screen-only filters below: they refine what the type has already selected.
+  // The ledger is already fully loaded with the statement, so the view is refined in memory
+  // rather than re-fetched. Print and the PDF carry the same filtered, sorted rows (all pages):
+  // Print renders `txSorted` directly, and the PDF request sends every filter to the server,
+  // which applies the same rules (ProjectStatementService.FilterRows — keep the two in step).
+  // Transaction Type also decides which parties the party dropdowns offer, so it comes first.
   const [txType, setTxType] = useState<ProjectStatementTransactionFilter>("All");
   const typeRows = useMemo(() => rows.filter(TX_TYPE_FILTER[txType]), [rows, txType]);
 
@@ -256,7 +256,35 @@ export default function ProjectStatementPage() {
   const txCreditTotal = useMemo(() => txFiltered.reduce((s, r) => s + r.credit, 0), [txFiltered]);
   const txRangeStart = txSorted.length === 0 ? 0 : (txPageSafe - 1) * txPageSize + 1;
   const txRangeEnd = Math.min(txPageSafe * txPageSize, txSorted.length);
-  const txTypeLabel = txType === "Receipts" ? "Receipts only" : txType === "Payments" ? "Payments only" : "";
+
+  // Party filters hold a case-folded key; the printout, the PDF request and its heading need the
+  // name as the user saw it in the dropdown.
+  const paidToName = paidToOptions.find((o) => o.value === txPaidTo)?.searchText ?? "";
+  const receivedFromName = receivedFromOptions.find((o) => o.value === txReceivedFrom)?.searchText ?? "";
+  const txAccountRow = byAccount.find((a) => a.accountId === txAccount);
+
+  /** The active ledger filters in words — shown on screen, in the print header and the PDF. */
+  const txFilterSummary = [
+    txType === "Receipts" ? "Receipts only" : txType === "Payments" ? "Payments only" : "",
+    txSearch.trim() ? `Search "${txSearch.trim()}"` : "",
+    txAccountRow ? `Account ${txAccountRow.accountCode} · ${txAccountRow.accountName}` : "",
+    txDirection === "debit" ? "Debit lines only" : txDirection === "credit" ? "Credit lines only" : "",
+    paidToName ? `Paid to ${paidToName}` : "",
+    receivedFromName ? `Received from ${receivedFromName}` : "",
+  ].filter(Boolean).join(" · ");
+
+  // Posting order is the server's default, so only a sort the user actually chose is sent.
+  const txSortIsDefault = txSort.key === "entryDate" && txSort.dir === "asc";
+  const txPdfParams = {
+    transactionType: txType !== "All" ? txType : undefined,
+    search: txSearch.trim() || undefined,
+    accountId: txAccount || undefined,
+    side: txDirection === "debit" ? "Debit" : txDirection === "credit" ? "Credit" : undefined,
+    paidTo: paidToName || undefined,
+    receivedFrom: receivedFromName || undefined,
+    sortBy: txSortIsDefault ? undefined : txSort.key,
+    sortDescending: txSortIsDefault ? undefined : txSort.dir === "desc",
+  };
 
   const period =
     dateFrom && dateTo ? `${dateFmt(dateFrom)} — ${dateFmt(dateTo)}`
@@ -270,7 +298,7 @@ export default function ProjectStatementPage() {
     isAll
       ? cs ? `All projects (${cs.projects.length}) · ${period}` : "All projects across every cost centre"
       : statement
-        ? `${statement.projectName} (${statement.projectCode}) · ${period}${txTypeLabel ? ` · Transactions: ${txTypeLabel}` : ""}`
+        ? `${statement.projectName} (${statement.projectCode}) · ${period}${txFilterSummary ? ` · Transactions filtered by: ${txFilterSummary}` : ""}`
       : "Select a project to view its accounting statement";
 
   return (
@@ -286,7 +314,7 @@ export default function ProjectStatementPage() {
                 params: {
                   dateFrom: dateFrom || undefined,
                   dateTo: dateTo || undefined,
-                  transactionType: !isAll && txType !== "All" ? txType : undefined,
+                  ...(isAll ? {} : txPdfParams),
                 },
                 filename: "ProjectStatement.pdf",
               })
@@ -504,7 +532,7 @@ export default function ProjectStatementPage() {
               <div>
                 <p className="text-sm font-medium text-gray-900">
                   Transactions
-                  {txTypeLabel && <span className="ml-2 text-xs font-normal text-gray-500">({txTypeLabel})</span>}
+                  {txFilterActive && <span className="ml-2 text-xs font-normal text-gray-500">(filtered)</span>}
                 </p>
                 <p className="text-xs text-gray-400 mt-0.5">
                   Posted journal entry lines charged to this project
@@ -650,8 +678,8 @@ export default function ProjectStatementPage() {
                 )}
               </table>
 
-              {/* Print-only: backend order, unpaged, narrowed by Transaction Type alone — the
-                  screen-only search/filters never reach the printed statement */}
+              {/* Print-only: exactly the rows the user filtered and sorted to, every page of them
+                  (paging is a screen convenience; a printout should not stop at page 1) */}
               <table className="hidden print:table w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200">
@@ -666,7 +694,7 @@ export default function ProjectStatementPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {typeRows.map((r, i) => (
+                  {txSorted.map((r, i) => (
                     <tr key={`print-${r.entryNumber}-${i}`} className="border-b border-gray-100">
                       <td data-col="entryDate" className="px-4 py-2 text-xs whitespace-nowrap">{dateFmt(r.entryDate)}</td>
                       <td data-col="entryNumber" className="px-4 py-2 text-xs font-mono text-gray-500 whitespace-nowrap">{r.entryNumber}</td>
@@ -675,14 +703,21 @@ export default function ProjectStatementPage() {
                         <span className="font-mono text-gray-500">{r.accountCode}</span>
                         <span className="ml-2">{r.accountName}</span>
                       </td>
-                      <td data-col="narration" className="px-4 py-2 text-sm">{r.narration ?? "—"}</td>
+                      <td data-col="narration" className="px-4 py-2 text-sm">
+                        <p>{r.narration ?? "—"}</p>
+                        {(r.paidTo || r.receivedFrom) && (
+                          <p className="text-[11px] text-gray-400">
+                            {r.paidTo ? `Paid to ${r.paidTo}` : `Received from ${r.receivedFrom}`}
+                          </p>
+                        )}
+                      </td>
                       <td data-col="debit" className="px-4 py-2 text-right tabular-nums">{r.debit > 0 ? fmt(r.debit) : "—"}</td>
                       <td data-col="credit" className="px-4 py-2 text-right tabular-nums">{r.credit > 0 ? fmt(r.credit) : "—"}</td>
                       <td data-col="runningNet" className="px-4 py-2 text-right tabular-nums font-medium">{fmt(r.runningNet)}</td>
                     </tr>
                   ))}
                 </tbody>
-                {typeRows.length > 0 && (
+                {txSorted.length > 0 && (
                   <tfoot className="bg-gray-50 border-t-2 border-gray-200">
                     <tr>
                       <td
@@ -690,22 +725,12 @@ export default function ProjectStatementPage() {
                         data-col-span="entryDate,entryNumber,referenceNumber,accountCode,narration"
                         className="px-4 py-2.5 text-xs font-semibold text-gray-600"
                       >
-                        {txTypeLabel ? `Totals (${txTypeLabel})` : "Totals"}
+                        {txFilterActive ? "Totals (filtered)" : "Totals"}
                       </td>
-                      <td data-col="debit" className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">
-                        {fmt(typeRows.reduce((s, r) => s + r.debit, 0))}
-                      </td>
-                      <td data-col="credit" className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">
-                        {fmt(typeRows.reduce((s, r) => s + r.credit, 0))}
-                      </td>
-                      {/* The last row's running net is the ledger's closing figure only when no
-                          type filter dropped rows; otherwise show the subset's own net, as the
-                          screen's filtered totals do. */}
-                      <td data-col="runningNet" className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">
-                        {fmt(txType === "All"
-                          ? typeRows[typeRows.length - 1].runningNet
-                          : typeRows.reduce((s, r) => s + r.debit - r.credit, 0))}
-                      </td>
+                      {/* Same figures as the screen's footer, which totals the same rows */}
+                      <td data-col="debit" className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(txDebitTotal)}</td>
+                      <td data-col="credit" className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(txCreditTotal)}</td>
+                      <td data-col="runningNet" className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(txDebitTotal - txCreditTotal)}</td>
                     </tr>
                   </tfoot>
                 )}
@@ -760,14 +785,11 @@ export default function ProjectStatementPage() {
               </div>
             )}
             {/* Shown in print too: a filtered printout with no rows must say why it is empty */}
-            {rows.length > 0 && typeRows.length === 0 && (
+            {rows.length > 0 && txSorted.length === 0 && (
               <div className="text-center py-12 text-sm text-gray-400">
-                No {txType === "Receipts" ? "receipt" : "payment"} transactions for this project in the selected period
-              </div>
-            )}
-            {typeRows.length > 0 && txSorted.length === 0 && (
-              <div className="no-print text-center py-12 text-sm text-gray-400">
-                No transactions match your search or filters
+                {typeRows.length === 0
+                  ? `No ${txType === "Receipts" ? "receipt" : "payment"} transactions for this project in the selected period`
+                  : "No transactions match your search or filters"}
               </div>
             )}
           </div>

@@ -42,13 +42,13 @@ public static class ProjectStatementPdfDocument
     ];
 
     /// <param name="transactions">
-    /// The filter <paramref name="report"/>'s rows were already narrowed by — named in the
+    /// The filters <paramref name="report"/>'s rows were already narrowed by — listed under the
     /// Transactions heading so a filtered printout can't be mistaken for the full ledger.
     /// </param>
-    public static byte[] BuildSingle(
-        ProjectStatementDto report,
-        ProjectStatementTransactionFilter transactions = ProjectStatementTransactionFilter.All)
+    public static byte[] BuildSingle(ProjectStatementDto report, ProjectStatementTransactionQuery? transactions = null)
     {
+        var filters = DescribeFilters(transactions, report.ByAccount);
+
         return ReportPdfPage.Generate("Project Statement", $"{report.ProjectCode} - {report.ProjectName}",
             report.DateFrom, report.DateTo, content =>
         {
@@ -68,17 +68,12 @@ public static class ProjectStatementPdfDocument
 
                 column.Item().Column(section =>
                 {
-                    section.Item().SectionHeaderCell().Text(transactions switch
-                    {
-                        ProjectStatementTransactionFilter.Receipts => "Transactions - Receipts only",
-                        ProjectStatementTransactionFilter.Payments => "Transactions - Payments only",
-                        _ => "Transactions",
-                    });
+                    section.Item().SectionHeaderCell().Text(filters.Count > 0 ? "Transactions (filtered)" : "Transactions");
+                    if (filters.Count > 0)
+                        section.Item().PaddingVertical(3).Text($"Filtered by: {string.Join("  |  ", filters)}").FontSize(8).Italic();
                     PdfTable.Render(section.Item(), report.Rows, RowColumns);
-                    if (report.Rows.Count == 0 && transactions != ProjectStatementTransactionFilter.All)
-                        section.Item().PaddingTop(4).Text(transactions == ProjectStatementTransactionFilter.Receipts
-                            ? "No receipt transactions in this period."
-                            : "No payment transactions in this period.").FontSize(9).Italic();
+                    if (report.Rows.Count == 0 && filters.Count > 0)
+                        section.Item().PaddingTop(4).Text("No transactions match the selected filters.").FontSize(9).Italic();
                 });
             });
         });
@@ -109,6 +104,31 @@ public static class ProjectStatementPdfDocument
                 PdfTable.Render(column.Item(), report.Projects, ConsolidatedColumns, totals);
             });
         });
+    }
+
+    /// <summary>
+    /// Human-readable list of the active transaction filters, worded like the report screen's
+    /// controls. Sort order is left out: it changes the order of rows, not which rows appear.
+    /// </summary>
+    private static List<string> DescribeFilters(
+        ProjectStatementTransactionQuery? q, IReadOnlyList<ProjectStatementAccountDto> accounts)
+    {
+        var parts = new List<string>();
+        if (q is null) return parts;
+
+        if (q.TransactionType == ProjectStatementTransactionFilter.Receipts) parts.Add("Receipts only");
+        if (q.TransactionType == ProjectStatementTransactionFilter.Payments) parts.Add("Payments only");
+        if (!string.IsNullOrWhiteSpace(q.Search)) parts.Add($"Search \"{q.Search.Trim()}\"");
+        if (q.AccountId.HasValue)
+        {
+            var account = accounts.FirstOrDefault(a => a.AccountId == q.AccountId.Value);
+            parts.Add(account is null ? "Account (none in period)" : $"Account {account.AccountCode} - {account.AccountName}");
+        }
+        if (q.Side == ProjectStatementLineSide.Debit) parts.Add("Debit lines only");
+        if (q.Side == ProjectStatementLineSide.Credit) parts.Add("Credit lines only");
+        if (!string.IsNullOrWhiteSpace(q.PaidTo)) parts.Add($"Paid to {q.PaidTo.Trim()}");
+        if (!string.IsNullOrWhiteSpace(q.ReceivedFrom)) parts.Add($"Received from {q.ReceivedFrom.Trim()}");
+        return parts;
     }
 
     private static void RenderSummary(

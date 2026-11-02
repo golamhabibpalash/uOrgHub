@@ -44,7 +44,33 @@ public class ProjectStatementPdfDocumentTests
             Receipts: 0m, Payments: 0m, NetCashPosition: 0m,
             ByAccount: [], Rows: []);
 
-        AssertValidPdf(ProjectStatementPdfDocument.BuildSingle(dto, filter));
+        AssertValidPdf(ProjectStatementPdfDocument.BuildSingle(dto, new ProjectStatementTransactionQuery { TransactionType = filter }));
+    }
+
+    [Fact]
+    public void Statement_with_every_filter_described_produces_valid_pdf()
+    {
+        var accountId = Guid.NewGuid();
+        var dto = new ProjectStatementDto(
+            ProjectId: Guid.NewGuid(), ProjectCode: "PRJ-001", ProjectName: "Site A Construction",
+            ContractValue: 500000m, DateFrom: null, DateTo: null,
+            OpeningSpend: 0m, PeriodExpense: 5000m, PeriodIncome: 0m, ClosingSpend: 5000m,
+            Receipts: 0m, Payments: 5000m, NetCashPosition: -5000m,
+            ByAccount: [new ProjectStatementAccountDto(accountId, "5000", "Materials", AccountGroupType.Expense, 5000m, 0m, 5000m)],
+            Rows: []);
+
+        var bytes = ProjectStatementPdfDocument.BuildSingle(dto, new ProjectStatementTransactionQuery
+        {
+            TransactionType = ProjectStatementTransactionFilter.Payments,
+            Search = "cement",
+            AccountId = accountId,
+            Side = ProjectStatementLineSide.Debit,
+            PaidTo = "ABC Traders",
+            SortBy = "debit",
+            SortDescending = true,
+        });
+
+        AssertValidPdf(bytes);
     }
 
     [Fact]

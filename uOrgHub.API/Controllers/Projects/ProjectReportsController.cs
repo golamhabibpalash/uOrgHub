@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using uOrgHub.API.Middleware;
 using uOrgHub.Auth.Authorization;
 using uOrgHub.Projects.DTOs.Reports;
-using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Projects.Reporting.Pdf;
 using uOrgHub.Projects.Services;
 using uOrgHub.Shared.Models;
@@ -43,10 +42,10 @@ public class ProjectReportsController : BaseController
         Guid projectId,
         [FromQuery] DateTime? dateFrom,
         [FromQuery] DateTime? dateTo,
-        [FromQuery] ProjectStatementTransactionFilter transactionType = ProjectStatementTransactionFilter.All)
+        [FromQuery] ProjectStatementTransactionQuery transactions)
     {
-        var result = await _statementService.GetStatementAsync(projectId, dateFrom, dateTo, transactionType);
-        var bytes = ProjectStatementPdfDocument.BuildSingle(result, transactionType);
+        var result = await _statementService.GetStatementAsync(projectId, dateFrom, dateTo, transactions);
+        var bytes = ProjectStatementPdfDocument.BuildSingle(result, transactions);
         return File(bytes, "application/pdf", $"ProjectStatement_{DateTime.UtcNow:yyyyMMdd_HHmmss}.pdf");
     }
 

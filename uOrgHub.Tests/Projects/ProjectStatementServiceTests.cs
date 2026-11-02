@@ -1,6 +1,7 @@
 using FluentAssertions;
 using uOrgHub.Accounts.Models.Entities;
 using uOrgHub.Accounts.Models.Enums;
+using uOrgHub.Projects.DTOs.Reports;
 using uOrgHub.Projects.Models.Entities;
 using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Projects.Services;
@@ -397,7 +398,7 @@ public class ProjectStatementServiceTests
         AddVoucher(ctx, f, VoucherType.Debit, 200_000, Jun);
 
         var all = await Statement(ctx, f);
-        var filtered = await new ProjectStatementService(ctx).GetStatementAsync(f.Project.Id, null, null, filter);
+        var filtered = await new ProjectStatementService(ctx).GetStatementAsync(f.Project.Id, null, null, new ProjectStatementTransactionQuery { TransactionType = filter });
 
         filtered.Rows.Should().HaveCount(2).And.OnlyContain(r => r.CashFlow == expected);
         // Running net is the full ledger's, not recomputed over the filtered subset.
@@ -416,7 +417,7 @@ public class ProjectStatementServiceTests
 
         var defaulted = await Statement(ctx, f);
         var all = await new ProjectStatementService(ctx)
-            .GetStatementAsync(f.Project.Id, null, null, ProjectStatementTransactionFilter.All);
+            .GetStatementAsync(f.Project.Id, null, null, new ProjectStatementTransactionQuery());
 
         all.Should().BeEquivalentTo(defaulted);
         all.Rows.Should().HaveCount(4);
@@ -429,9 +430,124 @@ public class ProjectStatementServiceTests
         var f = Seed(ctx);
 
         var act = () => new ProjectStatementService(ctx)
-            .GetStatementAsync(f.Project.Id, null, null, (ProjectStatementTransactionFilter)7);
+            .GetStatementAsync(f.Project.Id, null, null, new ProjectStatementTransactionQuery { TransactionType = (ProjectStatementTransactionFilter)7 });
 
         await act.Should().ThrowAsync<AppException>();
+    }
+
+    [Fact]
+    public async Task Undefined_side_filter_is_rejected()
+    {
+        using var ctx = NewContext();
+        var f = Seed(ctx);
+
+        var act = () => Filtered(ctx, f, new ProjectStatementTransactionQuery { Side = (ProjectStatementLineSide)9 });
+
+        await act.Should().ThrowAsync<AppException>();
+    }
+
+    /// <summary>
+    /// Jan: payment to ABC Traders (expense / bank). Jun: receipt from City Corporation
+    /// (bank / income). Dec: a plain journal (expense / payable). Six ledger lines.
+    /// </summary>
+    private static Fixture SeedPartyLedger(AppDbContext ctx)
+    {
+        var f = Seed(ctx);
+        Post(ctx, f, f.Expense, f.Bank, 100_000, Jan);
+        Post(ctx, f, f.Bank, f.Income, 300_000, Jun);
+        Post(ctx, f, f.Expense, f.Payable, 50_000, Dec);
+        var entries = ctx.Set<JournalEntry>().OrderBy(e => e.EntryDate).ToList();
+        LinkVoucher(ctx, f, VoucherType.Debit, "ABC Traders", entries[0].Id);
+        LinkVoucher(ctx, f, VoucherType.Credit, "City Corporation", entries[1].Id);
+        return f;
+    }
+
+    private static Task<ProjectStatementDto> Filtered(AppDbContext ctx, Fixture f, ProjectStatementTransactionQuery q)
+        => new ProjectStatementService(ctx).GetStatementAsync(f.Project.Id, null, null, q);
+
+    [Fact]
+    public async Task Search_matches_any_listed_field_ignoring_case()
+    {
+        using var ctx = NewContext();
+        var f = SeedPartyLedger(ctx);
+
+        (await Filtered(ctx, f, new() { Search = "  construction MATERIALS " })).Rows
+            .Should().HaveCount(2).And.OnlyContain(r => r.AccountId == f.Expense.Id);
+        (await Filtered(ctx, f, new() { Search = "abc trad" })).Rows
+            .Should().HaveCount(2).And.OnlyContain(r => r.PaidTo == "ABC Traders");
+    }
+
+    [Fact]
+    public async Task Account_and_side_filters_narrow_the_rows()
+    {
+        using var ctx = NewContext();
+        var f = SeedPartyLedger(ctx);
+
+        (await Filtered(ctx, f, new() { AccountId = f.Bank.Id })).Rows
+            .Should().HaveCount(2).And.OnlyContain(r => r.AccountId == f.Bank.Id);
+        (await Filtered(ctx, f, new() { Side = ProjectStatementLineSide.Debit })).Rows
+            .Should().HaveCount(3).And.OnlyContain(r => r.Debit > 0);
+        (await Filtered(ctx, f, new() { Side = ProjectStatementLineSide.Credit })).Rows
+            .Should().HaveCount(3).And.OnlyContain(r => r.Credit > 0);
+    }
+
+    [Fact]
+    public async Task Party_filters_match_the_name_ignoring_case_and_spacing()
+    {
+        using var ctx = NewContext();
+        var f = SeedPartyLedger(ctx);
+
+        (await Filtered(ctx, f, new() { PaidTo = " abc traders " })).Rows
+            .Should().HaveCount(2).And.OnlyContain(r => r.PaidTo == "ABC Traders");
+        (await Filtered(ctx, f, new() { ReceivedFrom = "CITY CORPORATION" })).Rows
+            .Should().HaveCount(2).And.OnlyContain(r => r.ReceivedFrom == "City Corporation");
+    }
+
+    [Fact]
+    public async Task Filters_combine_and_never_change_the_summary()
+    {
+        using var ctx = NewContext();
+        var f = SeedPartyLedger(ctx);
+
+        var all = await Statement(ctx, f);
+        var filtered = await Filtered(ctx, f, new()
+        {
+            TransactionType = ProjectStatementTransactionFilter.Payments,
+            Side = ProjectStatementLineSide.Credit,
+            PaidTo = "ABC Traders",
+        });
+
+        var row = filtered.Rows.Should().ContainSingle().Subject;
+        row.AccountId.Should().Be(f.Bank.Id);
+        row.RunningNet.Should().Be(all.Rows.Single(r => r.EntryNumber == row.EntryNumber && r.Credit > 0).RunningNet);
+        filtered.Should().BeEquivalentTo(all, o => o.Excluding(s => s.Rows));
+    }
+
+    [Fact]
+    public async Task Sort_orders_the_rows_and_keeps_posting_order_on_ties()
+    {
+        using var ctx = NewContext();
+        var f = SeedPartyLedger(ctx);
+
+        var all = await Statement(ctx, f);
+        var byDebit = await Filtered(ctx, f, new() { SortBy = "debit", SortDescending = true });
+
+        byDebit.Rows.Select(r => r.Debit).Should().BeInDescendingOrder();
+        // The three zero-debit lines tie; they must keep the order the ledger posted them in.
+        byDebit.Rows.Where(r => r.Debit == 0).Select(r => r.EntryNumber + r.AccountCode)
+            .Should().Equal(all.Rows.Where(r => r.Debit == 0).Select(r => r.EntryNumber + r.AccountCode));
+    }
+
+    [Fact]
+    public async Task Unknown_sort_column_keeps_posting_order()
+    {
+        using var ctx = NewContext();
+        var f = SeedPartyLedger(ctx);
+
+        var all = await Statement(ctx, f);
+        var unknown = await Filtered(ctx, f, new() { SortBy = "noSuchColumn" });
+
+        unknown.Rows.Should().Equal(all.Rows);
     }
 
     /// <summary>A posted voucher naming a party, tied to an already-posted entry.</summary>
