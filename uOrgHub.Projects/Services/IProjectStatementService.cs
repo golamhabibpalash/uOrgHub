@@ -1,4 +1,5 @@
 using uOrgHub.Projects.DTOs.Reports;
+using uOrgHub.Projects.Models.Enums;
 
 namespace uOrgHub.Projects.Services;
 
@@ -7,11 +8,15 @@ public interface IProjectStatementService
     /// <summary>
     /// The project's accounting activity between the two dates. Both bounds are optional — an
     /// open range reports the project's whole life to date.
+    ///
+    /// <paramref name="transactions"/> narrows only the transaction list; every summary figure
+    /// and the account breakdown are always computed over the whole ledger.
     /// </summary>
     Task<ProjectStatementDto> GetStatementAsync(
         Guid projectId,
         DateTime? dateFrom,
         DateTime? dateTo,
+        ProjectStatementTransactionFilter transactions = ProjectStatementTransactionFilter.All,
         CancellationToken ct = default);
 
     /// <summary>

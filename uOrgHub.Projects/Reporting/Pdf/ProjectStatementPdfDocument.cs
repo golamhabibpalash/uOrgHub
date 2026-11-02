@@ -1,5 +1,6 @@
 using QuestPDF.Fluent;
 using uOrgHub.Projects.DTOs.Reports;
+using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Shared.Export.Pdf;
 
 namespace uOrgHub.Projects.Reporting.Pdf;
@@ -40,7 +41,13 @@ public static class ProjectStatementPdfDocument
         new("Net Cash", r => PdfFormat.Amount(r.NetCashPosition), 1.2f, true),
     ];
 
-    public static byte[] BuildSingle(ProjectStatementDto report)
+    /// <param name="transactions">
+    /// The filter <paramref name="report"/>'s rows were already narrowed by — named in the
+    /// Transactions heading so a filtered printout can't be mistaken for the full ledger.
+    /// </param>
+    public static byte[] BuildSingle(
+        ProjectStatementDto report,
+        ProjectStatementTransactionFilter transactions = ProjectStatementTransactionFilter.All)
     {
         return ReportPdfPage.Generate("Project Statement", $"{report.ProjectCode} - {report.ProjectName}",
             report.DateFrom, report.DateTo, content =>
@@ -61,8 +68,17 @@ public static class ProjectStatementPdfDocument
 
                 column.Item().Column(section =>
                 {
-                    section.Item().SectionHeaderCell().Text("Transactions");
+                    section.Item().SectionHeaderCell().Text(transactions switch
+                    {
+                        ProjectStatementTransactionFilter.Receipts => "Transactions - Receipts only",
+                        ProjectStatementTransactionFilter.Payments => "Transactions - Payments only",
+                        _ => "Transactions",
+                    });
                     PdfTable.Render(section.Item(), report.Rows, RowColumns);
+                    if (report.Rows.Count == 0 && transactions != ProjectStatementTransactionFilter.All)
+                        section.Item().PaddingTop(4).Text(transactions == ProjectStatementTransactionFilter.Receipts
+                            ? "No receipt transactions in this period."
+                            : "No payment transactions in this period.").FontSize(9).Italic();
                 });
             });
         });

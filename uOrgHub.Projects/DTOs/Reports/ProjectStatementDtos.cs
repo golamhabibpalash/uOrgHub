@@ -1,4 +1,5 @@
 using uOrgHub.Accounts.Models.Enums;
+using uOrgHub.Projects.Models.Enums;
 
 namespace uOrgHub.Projects.DTOs.Reports;
 
@@ -9,6 +10,9 @@ namespace uOrgHub.Projects.DTOs.Reports;
 /// <see cref="PaidTo"/> / <see cref="ReceivedFrom"/> are the counterparty named on the voucher
 /// that produced the entry (a Debit voucher's "Paid To", a Credit voucher's "Received From").
 /// Entries not raised from a voucher — manual journals, contra transfers — carry neither.
+///
+/// <see cref="CashFlow"/> marks lines from a Credit (receipt) or Debit (payment) voucher charged
+/// to this project; every other line leaves it null.
 /// </summary>
 public record ProjectStatementRowDto(
     DateTime EntryDate,
@@ -21,6 +25,7 @@ public record ProjectStatementRowDto(
     string? Narration,
     string? PaidTo,
     string? ReceivedFrom,
+    ProjectCashFlowType? CashFlow,
     string CostCenterName,
     decimal Debit,
     decimal Credit,

@@ -940,6 +940,11 @@ export const deleteRABill = (id: string) =>
 
 // ── Project-wise Accounting Report ─────────────────────────────────────────
 
+export type ProjectCashFlowType = "Receipt" | "Payment";
+
+/** Narrows the statement's transaction list (and its PDF); summary figures are never filtered. */
+export type ProjectStatementTransactionFilter = "All" | "Receipts" | "Payments";
+
 export interface ProjectStatementRow {
   entryDate: string;
   entryNumber: string;
@@ -953,6 +958,8 @@ export interface ProjectStatementRow {
   paidTo?: string;
   /** Party on the Credit voucher behind this entry; absent for non-voucher entries. */
   receivedFrom?: string;
+  /** Set when the entry came from a Credit (receipt) or Debit (payment) voucher on this project. */
+  cashFlow?: ProjectCashFlowType;
   costCenterName: string;
   debit: number;
   credit: number;

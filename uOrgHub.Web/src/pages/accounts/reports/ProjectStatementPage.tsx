@@ -7,6 +7,7 @@ import {
   reportPdfUrls,
   type ConsolidatedProjectRow,
   type ProjectStatementRow,
+  type ProjectStatementTransactionFilter,
 } from "../../../api/projects";
 import { useProjectLookup } from "../../../hooks/useEntityLookup";
 import SearchableDropdown from "../../../components/shared/SearchableDropdown";
@@ -60,6 +61,13 @@ type TxSortKey =
   | "runningNet";
 
 const TX_PAGE_SIZES = [10, 25, 50, 100];
+
+/** The rows each Transaction Type keeps — the same rule the server applies to the PDF. */
+const TX_TYPE_FILTER: Record<ProjectStatementTransactionFilter, (r: ProjectStatementRow) => boolean> = {
+  All: () => true,
+  Receipts: (r) => r.cashFlow === "Receipt",
+  Payments: (r) => r.cashFlow === "Payment",
+};
 
 /**
  * Distinct parties named in the ledger, for a party filter. Built from the loaded rows, so the
@@ -140,6 +148,11 @@ export default function ProjectStatementPage() {
   // The ledger is already fully loaded with the statement, and each row's Running Net only
   // means anything in the backend's chronological order — so the view is refined in memory
   // rather than re-fetched, and the printed statement (below) keeps the whole unpaged ledger.
+  // Transaction Type is the one ledger filter that also governs Print and the PDF, so it is kept
+  // apart from the screen-only filters below: they refine what the type has already selected.
+  const [txType, setTxType] = useState<ProjectStatementTransactionFilter>("All");
+  const typeRows = useMemo(() => rows.filter(TX_TYPE_FILTER[txType]), [rows, txType]);
+
   const [txSearch, setTxSearch] = useState("");
   const [txAccount, setTxAccount] = useState("");
   const [txDirection, setTxDirection] = useState<"" | "debit" | "credit">("");
@@ -149,11 +162,12 @@ export default function ProjectStatementPage() {
   const [txPage, setTxPage] = useState(1);
   const [txPageSize, setTxPageSize] = useState(25);
 
-  const paidToOptions = useMemo(() => partyOptions(rows, "paidTo"), [rows]);
-  const receivedFromOptions = useMemo(() => partyOptions(rows, "receivedFrom"), [rows]);
+  const paidToOptions = useMemo(() => partyOptions(typeRows, "paidTo"), [typeRows]);
+  const receivedFromOptions = useMemo(() => partyOptions(typeRows, "receivedFrom"), [typeRows]);
 
   const txFilterActive =
-    txSearch.trim() !== "" || txAccount !== "" || txDirection !== "" || txPaidTo !== "" || txReceivedFrom !== "";
+    txType !== "All" || txSearch.trim() !== "" || txAccount !== "" || txDirection !== ""
+    || txPaidTo !== "" || txReceivedFrom !== "";
 
   // Any change to what's shown drops the user back to page 1 — otherwise a filter that shrinks
   // the list can strand them on a now-empty page. (Out-of-range pages from a project/date switch
@@ -164,9 +178,18 @@ export default function ProjectStatementPage() {
   const changeTxDirection = (v: "" | "debit" | "credit") => { setTxDirection(v); resetTxPage(); };
   const changeTxPaidTo = (v: string) => { setTxPaidTo(v); resetTxPage(); };
   const changeTxReceivedFrom = (v: string) => { setTxReceivedFrom(v); resetTxPage(); };
+  // A payment has no "Received from" and a receipt no "Paid to", so narrowing the type drops the
+  // party filter that can no longer match anything instead of leaving an empty table behind.
+  const changeTxType = (v: ProjectStatementTransactionFilter) => {
+    setTxType(v);
+    if (v === "Receipts") setTxPaidTo("");
+    if (v === "Payments") setTxReceivedFrom("");
+    resetTxPage();
+  };
   const changeTxPageSize = (n: number) => { setTxPageSize(n); resetTxPage(); };
   const clearTxFilters = () => {
-    setTxSearch(""); setTxAccount(""); setTxDirection(""); setTxPaidTo(""); setTxReceivedFrom(""); resetTxPage();
+    setTxType("All"); setTxSearch(""); setTxAccount(""); setTxDirection(""); setTxPaidTo(""); setTxReceivedFrom("");
+    resetTxPage();
   };
 
   // Ledger filters belong to one project's ledger — an account or party picked on one project
@@ -180,7 +203,7 @@ export default function ProjectStatementPage() {
 
   const txFiltered = useMemo(() => {
     const q = txSearch.trim().toLowerCase();
-    return rows.filter((r) => {
+    return typeRows.filter((r) => {
       if (q) {
         const hay = [
           r.entryNumber,
@@ -201,7 +224,7 @@ export default function ProjectStatementPage() {
       if (txReceivedFrom && !partyMatches(r.receivedFrom, txReceivedFrom)) return false;
       return true;
     });
-  }, [rows, txSearch, txAccount, txDirection, txPaidTo, txReceivedFrom]);
+  }, [typeRows, txSearch, txAccount, txDirection, txPaidTo, txReceivedFrom]);
 
   const txSorted = useMemo(() => {
     const list = [...txFiltered];
@@ -233,6 +256,7 @@ export default function ProjectStatementPage() {
   const txCreditTotal = useMemo(() => txFiltered.reduce((s, r) => s + r.credit, 0), [txFiltered]);
   const txRangeStart = txSorted.length === 0 ? 0 : (txPageSafe - 1) * txPageSize + 1;
   const txRangeEnd = Math.min(txPageSafe * txPageSize, txSorted.length);
+  const txTypeLabel = txType === "Receipts" ? "Receipts only" : txType === "Payments" ? "Payments only" : "";
 
   const period =
     dateFrom && dateTo ? `${dateFmt(dateFrom)} — ${dateFmt(dateTo)}`
@@ -245,7 +269,8 @@ export default function ProjectStatementPage() {
   const subtitle =
     isAll
       ? cs ? `All projects (${cs.projects.length}) · ${period}` : "All projects across every cost centre"
-      : statement ? `${statement.projectName} (${statement.projectCode}) · ${period}`
+      : statement
+        ? `${statement.projectName} (${statement.projectCode}) · ${period}${txTypeLabel ? ` · Transactions: ${txTypeLabel}` : ""}`
       : "Select a project to view its accounting statement";
 
   return (
@@ -258,7 +283,11 @@ export default function ProjectStatementPage() {
           ? () =>
               downloadPdf({
                 url: isAll ? reportPdfUrls.consolidatedProjectStatement : reportPdfUrls.projectStatement(projectId),
-                params: { dateFrom: dateFrom || undefined, dateTo: dateTo || undefined },
+                params: {
+                  dateFrom: dateFrom || undefined,
+                  dateTo: dateTo || undefined,
+                  transactionType: !isAll && txType !== "All" ? txType : undefined,
+                },
                 filename: "ProjectStatement.pdf",
               })
           : undefined
@@ -471,11 +500,30 @@ export default function ProjectStatementPage() {
 
           {/* Transaction ledger */}
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100">
-              <p className="text-sm font-medium text-gray-900">Transactions</p>
-              <p className="text-xs text-gray-400 mt-0.5">
-                Posted journal entry lines charged to this project
-              </p>
+            <div className="px-4 py-3 border-b border-gray-100 flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-gray-900">
+                  Transactions
+                  {txTypeLabel && <span className="ml-2 text-xs font-normal text-gray-500">({txTypeLabel})</span>}
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Posted journal entry lines charged to this project
+                </p>
+              </div>
+              {rows.length > 0 && (
+                <label className="no-print flex items-center gap-2 text-xs text-gray-500">
+                  Transaction Type
+                  <select
+                    value={txType}
+                    onChange={(e) => changeTxType(e.target.value as ProjectStatementTransactionFilter)}
+                    className="text-sm text-gray-900 border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  >
+                    <option value="All">All</option>
+                    <option value="Receipts">Receipts</option>
+                    <option value="Payments">Payments</option>
+                  </select>
+                </label>
+              )}
             </div>
 
             {/* Search + filters — screen only, so a printed statement keeps the full ledger */}
@@ -602,7 +650,8 @@ export default function ProjectStatementPage() {
                 )}
               </table>
 
-              {/* Print-only: the whole ledger, backend order, unpaged and unfiltered */}
+              {/* Print-only: backend order, unpaged, narrowed by Transaction Type alone — the
+                  screen-only search/filters never reach the printed statement */}
               <table className="hidden print:table w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200">
@@ -617,7 +666,7 @@ export default function ProjectStatementPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((r, i) => (
+                  {typeRows.map((r, i) => (
                     <tr key={`print-${r.entryNumber}-${i}`} className="border-b border-gray-100">
                       <td data-col="entryDate" className="px-4 py-2 text-xs whitespace-nowrap">{dateFmt(r.entryDate)}</td>
                       <td data-col="entryNumber" className="px-4 py-2 text-xs font-mono text-gray-500 whitespace-nowrap">{r.entryNumber}</td>
@@ -633,7 +682,7 @@ export default function ProjectStatementPage() {
                     </tr>
                   ))}
                 </tbody>
-                {rows.length > 0 && (
+                {typeRows.length > 0 && (
                   <tfoot className="bg-gray-50 border-t-2 border-gray-200">
                     <tr>
                       <td
@@ -641,16 +690,21 @@ export default function ProjectStatementPage() {
                         data-col-span="entryDate,entryNumber,referenceNumber,accountCode,narration"
                         className="px-4 py-2.5 text-xs font-semibold text-gray-600"
                       >
-                        Totals
+                        {txTypeLabel ? `Totals (${txTypeLabel})` : "Totals"}
                       </td>
                       <td data-col="debit" className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">
-                        {fmt(rows.reduce((s, r) => s + r.debit, 0))}
+                        {fmt(typeRows.reduce((s, r) => s + r.debit, 0))}
                       </td>
                       <td data-col="credit" className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">
-                        {fmt(rows.reduce((s, r) => s + r.credit, 0))}
+                        {fmt(typeRows.reduce((s, r) => s + r.credit, 0))}
                       </td>
+                      {/* The last row's running net is the ledger's closing figure only when no
+                          type filter dropped rows; otherwise show the subset's own net, as the
+                          screen's filtered totals do. */}
                       <td data-col="runningNet" className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">
-                        {fmt(rows[rows.length - 1].runningNet)}
+                        {fmt(txType === "All"
+                          ? typeRows[typeRows.length - 1].runningNet
+                          : typeRows.reduce((s, r) => s + r.debit - r.credit, 0))}
                       </td>
                     </tr>
                   </tfoot>
@@ -705,7 +759,13 @@ export default function ProjectStatementPage() {
                 No posted transactions for this project in the selected period
               </div>
             )}
-            {rows.length > 0 && txSorted.length === 0 && (
+            {/* Shown in print too: a filtered printout with no rows must say why it is empty */}
+            {rows.length > 0 && typeRows.length === 0 && (
+              <div className="text-center py-12 text-sm text-gray-400">
+                No {txType === "Receipts" ? "receipt" : "payment"} transactions for this project in the selected period
+              </div>
+            )}
+            {typeRows.length > 0 && txSorted.length === 0 && (
               <div className="no-print text-center py-12 text-sm text-gray-400">
                 No transactions match your search or filters
               </div>

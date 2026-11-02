@@ -2,6 +2,7 @@ using FluentAssertions;
 using uOrgHub.Accounts.Models.Entities;
 using uOrgHub.Accounts.Models.Enums;
 using uOrgHub.Projects.Models.Entities;
+using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Projects.Services;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
@@ -345,9 +346,98 @@ public class ProjectStatementServiceTests
         result.Rows.Should().OnlyContain(r => r.PaidTo == null && r.ReceivedFrom == null);
     }
 
+    [Fact]
+    public async Task Voucher_lines_are_classified_as_receipts_or_payments()
+    {
+        using var ctx = NewContext();
+        var f = Seed(ctx);
+        Post(ctx, f, f.Expense, f.Bank, 100_000, Jan);
+        Post(ctx, f, f.Bank, f.Income, 300_000, Jun);
+        Post(ctx, f, f.Expense, f.Payable, 50_000, Dec);
+        var entries = ctx.Set<JournalEntry>().OrderBy(e => e.EntryDate).ToList();
+        // A blank name must not stop the voucher counting as a payment.
+        LinkVoucher(ctx, f, VoucherType.Debit, "", entries[0].Id);
+        LinkVoucher(ctx, f, VoucherType.Credit, "City Corporation", entries[1].Id);
+
+        var result = await Statement(ctx, f);
+
+        result.Rows.Where(r => r.EntryDate == Jan).Should().OnlyContain(r => r.CashFlow == ProjectCashFlowType.Payment);
+        result.Rows.Where(r => r.EntryDate == Jun).Should().OnlyContain(r => r.CashFlow == ProjectCashFlowType.Receipt);
+        result.Rows.Where(r => r.EntryDate == Dec).Should().OnlyContain(r => r.CashFlow == null);
+    }
+
+    [Fact]
+    public async Task A_voucher_charged_to_another_project_is_not_this_projects_cash_flow()
+    {
+        using var ctx = NewContext();
+        var f = Seed(ctx);
+        Post(ctx, f, f.Expense, f.Bank, 100_000, Jan);
+        LinkVoucher(ctx, f, VoucherType.Debit, "ABC Traders", ctx.Set<JournalEntry>().Single().Id, projectId: Guid.NewGuid());
+
+        var result = await Statement(ctx, f);
+
+        result.Rows.Should().OnlyContain(r => r.CashFlow == null);
+    }
+
+    [Theory]
+    [InlineData(ProjectStatementTransactionFilter.Receipts, ProjectCashFlowType.Receipt)]
+    [InlineData(ProjectStatementTransactionFilter.Payments, ProjectCashFlowType.Payment)]
+    public async Task Transaction_filter_narrows_only_the_rows(
+        ProjectStatementTransactionFilter filter, ProjectCashFlowType expected)
+    {
+        using var ctx = NewContext();
+        var f = Seed(ctx);
+        Post(ctx, f, f.Expense, f.Bank, 100_000, Jan);
+        Post(ctx, f, f.Bank, f.Income, 300_000, Jun);
+        Post(ctx, f, f.Expense, f.Payable, 50_000, Dec);
+        var entries = ctx.Set<JournalEntry>().OrderBy(e => e.EntryDate).ToList();
+        LinkVoucher(ctx, f, VoucherType.Debit, "ABC Traders", entries[0].Id);
+        LinkVoucher(ctx, f, VoucherType.Credit, "City Corporation", entries[1].Id);
+        AddVoucher(ctx, f, VoucherType.Credit, 500_000, Jun);
+        AddVoucher(ctx, f, VoucherType.Debit, 200_000, Jun);
+
+        var all = await Statement(ctx, f);
+        var filtered = await new ProjectStatementService(ctx).GetStatementAsync(f.Project.Id, null, null, filter);
+
+        filtered.Rows.Should().HaveCount(2).And.OnlyContain(r => r.CashFlow == expected);
+        // Running net is the full ledger's, not recomputed over the filtered subset.
+        filtered.Rows.Should().OnlyContain(r => all.Rows.Any(a => a.EntryNumber == r.EntryNumber && a.RunningNet == r.RunningNet));
+        filtered.Should().BeEquivalentTo(all, o => o.Excluding(s => s.Rows));
+    }
+
+    [Fact]
+    public async Task All_filter_returns_the_unfiltered_statement()
+    {
+        using var ctx = NewContext();
+        var f = Seed(ctx);
+        Post(ctx, f, f.Expense, f.Bank, 100_000, Jan);
+        Post(ctx, f, f.Expense, f.Payable, 50_000, Dec);
+        LinkVoucher(ctx, f, VoucherType.Debit, "ABC Traders", ctx.Set<JournalEntry>().OrderBy(e => e.EntryDate).First().Id);
+
+        var defaulted = await Statement(ctx, f);
+        var all = await new ProjectStatementService(ctx)
+            .GetStatementAsync(f.Project.Id, null, null, ProjectStatementTransactionFilter.All);
+
+        all.Should().BeEquivalentTo(defaulted);
+        all.Rows.Should().HaveCount(4);
+    }
+
+    [Fact]
+    public async Task Undefined_transaction_filter_is_rejected()
+    {
+        using var ctx = NewContext();
+        var f = Seed(ctx);
+
+        var act = () => new ProjectStatementService(ctx)
+            .GetStatementAsync(f.Project.Id, null, null, (ProjectStatementTransactionFilter)7);
+
+        await act.Should().ThrowAsync<AppException>();
+    }
+
     /// <summary>A posted voucher naming a party, tied to an already-posted entry.</summary>
     private static void LinkVoucher(
-        AppDbContext ctx, Fixture f, VoucherType type, string name, Guid entryId, Guid? reversalEntryId = null)
+        AppDbContext ctx, Fixture f, VoucherType type, string name, Guid entryId,
+        Guid? reversalEntryId = null, Guid? projectId = null)
     {
         ctx.Set<Voucher>().Add(new Voucher
         {
@@ -357,7 +447,7 @@ public class ProjectStatementServiceTests
             VoucherDate = Jan,
             Name = name,
             Description = "Party voucher",
-            ProjectId = f.Project.Id,
+            ProjectId = projectId ?? f.Project.Id,
             CostCenterId = f.CostCenter.Id,
             DebitAccountId = f.Expense.Id,
             CreditAccountId = f.Bank.Id,

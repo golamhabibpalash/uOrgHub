@@ -3,6 +3,7 @@ using uOrgHub.Accounts.Models.Entities;
 using uOrgHub.Accounts.Models.Enums;
 using uOrgHub.Projects.DTOs.Reports;
 using uOrgHub.Projects.Models.Entities;
+using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Exceptions;
 
@@ -30,10 +31,16 @@ public class ProjectStatementService : IProjectStatementService
         Guid projectId,
         DateTime? dateFrom,
         DateTime? dateTo,
+        ProjectStatementTransactionFilter transactions = ProjectStatementTransactionFilter.All,
         CancellationToken ct = default)
     {
         if (dateFrom.HasValue && dateTo.HasValue && dateFrom.Value > dateTo.Value)
             throw new AppException("Start date cannot be after end date.");
+
+        // Model binding accepts any integer for an enum, so an undefined value must be refused
+        // here rather than silently treated as one of the real filters.
+        if (!Enum.IsDefined(transactions))
+            throw new AppException("Transaction type must be All, Receipts or Payments.");
 
         var project = await _db.Set<Project>()
             .FirstOrDefaultAsync(x => !x.IsDeleted && x.Id == projectId, ct)
@@ -49,7 +56,7 @@ public class ProjectStatementService : IProjectStatementService
         if (costCenterIds.Count == 0)
             return EmptyStatement(project, dateFrom, dateTo);
 
-        var rows = await LoadRowsAsync(costCenterIds, dateFrom, dateTo, ct);
+        var rows = await LoadRowsAsync(projectId, costCenterIds, dateFrom, dateTo, ct);
 
         // Opening is everything before the window, so the period figures read as a movement
         // rather than a running total. With no lower bound there is nothing before it.
@@ -86,8 +93,22 @@ public class ProjectStatementService : IProjectStatementService
             payments,
             receipts - payments,
             BuildAccountBreakdown(rows),
-            rows);
+            FilterRows(rows, transactions));
     }
+
+    /// <summary>
+    /// Narrows the transaction list to one side of the cash flow. Applied last, after every
+    /// summary figure and the account breakdown are computed from the full ledger, so the filter
+    /// can never move a total. Rows keep their running net from the full ledger.
+    /// </summary>
+    private static List<ProjectStatementRowDto> FilterRows(
+        List<ProjectStatementRowDto> rows, ProjectStatementTransactionFilter transactions)
+        => transactions switch
+        {
+            ProjectStatementTransactionFilter.Receipts => rows.Where(r => r.CashFlow == ProjectCashFlowType.Receipt).ToList(),
+            ProjectStatementTransactionFilter.Payments => rows.Where(r => r.CashFlow == ProjectCashFlowType.Payment).ToList(),
+            _ => rows,
+        };
 
     /// <summary>
     /// Every project's headline figures for the range in one pass. The ledger lines are not
@@ -217,6 +238,7 @@ public class ProjectStatementService : IProjectStatementService
     /// down the list — for a project that reads as cost accumulated so far within the period.
     /// </summary>
     private async Task<List<ProjectStatementRowDto>> LoadRowsAsync(
+        Guid projectId,
         List<Guid> costCenterIds,
         DateTime? dateFrom,
         DateTime? dateTo,
@@ -250,7 +272,8 @@ public class ProjectStatementService : IProjectStatementService
             })
             .ToListAsync(ct);
 
-        var parties = await LoadVoucherPartiesAsync(lines.Select(l => l.JournalEntryId).Distinct().ToList(), ct);
+        var vouchers = await LoadVoucherLinksAsync(
+            projectId, lines.Select(l => l.JournalEntryId).Distinct().ToList(), ct);
 
         var rows = new List<ProjectStatementRowDto>(lines.Count);
         var runningNet = 0m;
@@ -258,7 +281,7 @@ public class ProjectStatementService : IProjectStatementService
         foreach (var line in lines)
         {
             runningNet += line.DebitAmount - line.CreditAmount;
-            var hasParty = parties.TryGetValue(line.JournalEntryId, out var party);
+            var hasVoucher = vouchers.TryGetValue(line.JournalEntryId, out var voucher);
             rows.Add(new ProjectStatementRowDto(
                 line.EntryDate,
                 line.EntryNumber,
@@ -268,8 +291,11 @@ public class ProjectStatementService : IProjectStatementService
                 line.AccountName,
                 line.AccountType,
                 line.Description,
-                hasParty && party.Type == VoucherType.Debit ? party.Name : null,
-                hasParty && party.Type == VoucherType.Credit ? party.Name : null,
+                hasVoucher && voucher.Type == VoucherType.Debit ? voucher.Party : null,
+                hasVoucher && voucher.Type == VoucherType.Credit ? voucher.Party : null,
+                hasVoucher && voucher.ChargedToProject
+                    ? voucher.Type == VoucherType.Credit ? ProjectCashFlowType.Receipt : ProjectCashFlowType.Payment
+                    : null,
                 line.CostCenterName,
                 line.DebitAmount,
                 line.CreditAmount,
@@ -280,33 +306,39 @@ public class ProjectStatementService : IProjectStatementService
     }
 
     /// <summary>
-    /// The counterparty named on the voucher behind each journal entry, keyed by entry. A voucher
-    /// that was later corrected is matched on its reversal entry too: undoing a payment to a party
-    /// still concerns that party, so filtering by them nets the pair out instead of hiding half.
+    /// The Debit/Credit voucher behind each journal entry, keyed by entry: its direction, the
+    /// party it names, and whether it is charged to this project — only those count as the
+    /// project's receipts or payments, matching how <see cref="GetVoucherCashFlowAsync"/> sums them.
     ///
-    /// Contra vouchers are skipped — their name field holds a cheque/slip number, not a party.
+    /// A voucher that was later corrected is matched on its reversal entry too. The summary drops
+    /// a reversed voucher entirely; listing both its entry and the reversal under the same party
+    /// and cash-flow side nets the pair to zero, which agrees with that.
+    ///
+    /// Contra vouchers are skipped — they are neither a receipt nor a payment, and their name
+    /// field holds a cheque/slip number, not a party.
     /// </summary>
-    private async Task<Dictionary<Guid, (VoucherType Type, string Name)>> LoadVoucherPartiesAsync(
+    private async Task<Dictionary<Guid, (VoucherType Type, string? Party, bool ChargedToProject)>> LoadVoucherLinksAsync(
+        Guid projectId,
         List<Guid> entryIds,
         CancellationToken ct)
     {
         var vouchers = await _db.Set<Voucher>()
             .Where(v => !v.IsDeleted
-                && v.Name != null && v.Name != ""
                 && (v.VoucherType == VoucherType.Credit || v.VoucherType == VoucherType.Debit)
                 && ((v.JournalEntryId != null && entryIds.Contains(v.JournalEntryId.Value))
                     || (v.ReversalJournalEntryId != null && entryIds.Contains(v.ReversalJournalEntryId.Value))))
-            .Select(v => new { v.JournalEntryId, v.ReversalJournalEntryId, v.VoucherType, v.Name })
+            .Select(v => new { v.JournalEntryId, v.ReversalJournalEntryId, v.VoucherType, v.Name, v.ProjectId })
             .ToListAsync(ct);
 
-        var parties = new Dictionary<Guid, (VoucherType, string)>();
+        var links = new Dictionary<Guid, (VoucherType, string?, bool)>();
         foreach (var v in vouchers)
         {
-            var party = (v.VoucherType, v.Name!.Trim());
-            if (v.JournalEntryId.HasValue) parties[v.JournalEntryId.Value] = party;
-            if (v.ReversalJournalEntryId.HasValue) parties[v.ReversalJournalEntryId.Value] = party;
+            var party = string.IsNullOrWhiteSpace(v.Name) ? null : v.Name.Trim();
+            var link = (v.VoucherType, party, v.ProjectId == projectId);
+            if (v.JournalEntryId.HasValue) links[v.JournalEntryId.Value] = link;
+            if (v.ReversalJournalEntryId.HasValue) links[v.ReversalJournalEntryId.Value] = link;
         }
-        return parties;
+        return links;
     }
 
     /// <summary>

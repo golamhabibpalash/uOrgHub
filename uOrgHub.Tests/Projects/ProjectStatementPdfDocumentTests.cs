@@ -1,6 +1,7 @@
 using FluentAssertions;
 using uOrgHub.Accounts.Models.Enums;
 using uOrgHub.Projects.DTOs.Reports;
+using uOrgHub.Projects.Models.Enums;
 using uOrgHub.Projects.Reporting.Pdf;
 
 namespace uOrgHub.Tests.Projects;
@@ -24,11 +25,26 @@ public class ProjectStatementPdfDocumentTests
             Receipts: 20000m, Payments: 5000m, NetCashPosition: 15000m,
             ByAccount: [new ProjectStatementAccountDto(Guid.NewGuid(), "5000", "Materials", AccountGroupType.Expense, 5000m, 0m, 5000m)],
             Rows: [new ProjectStatementRowDto(DateTime.UtcNow, "JE-1", "REF-1", Guid.NewGuid(), "5000", "Materials",
-                AccountGroupType.Expense, "Cement purchase", "ABC Traders", null, "Site A", 5000m, 0m, 5000m)]);
+                AccountGroupType.Expense, "Cement purchase", "ABC Traders", null, ProjectCashFlowType.Payment, "Site A", 5000m, 0m, 5000m)]);
 
         var bytes = ProjectStatementPdfDocument.BuildSingle(dto);
 
         AssertValidPdf(bytes);
+    }
+
+    [Theory]
+    [InlineData(ProjectStatementTransactionFilter.Receipts)]
+    [InlineData(ProjectStatementTransactionFilter.Payments)]
+    public void Filtered_statement_with_no_matching_rows_produces_valid_pdf(ProjectStatementTransactionFilter filter)
+    {
+        var dto = new ProjectStatementDto(
+            ProjectId: Guid.NewGuid(), ProjectCode: "PRJ-001", ProjectName: "Site A Construction",
+            ContractValue: 500000m, DateFrom: null, DateTo: null,
+            OpeningSpend: 0m, PeriodExpense: 0m, PeriodIncome: 0m, ClosingSpend: 0m,
+            Receipts: 0m, Payments: 0m, NetCashPosition: 0m,
+            ByAccount: [], Rows: []);
+
+        AssertValidPdf(ProjectStatementPdfDocument.BuildSingle(dto, filter));
     }
 
     [Fact]
