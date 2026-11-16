@@ -963,7 +963,12 @@ export interface ProjectStatementRow {
   costCenterName: string;
   debit: number;
   credit: number;
+  /** Over the full ledger as returned; the screen recomputes it over the rows it shows. */
   runningNet: number;
+  /** Original or reversal entry of a voucher reversed within the period — the pair nets to zero. */
+  isReversed: boolean;
+  /** The money side of the entry (the cash/bank account paid from or received into). */
+  isCashBank: boolean;
 }
 
 export interface ProjectStatementAccount {

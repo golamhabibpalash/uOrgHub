@@ -13,6 +13,18 @@ namespace uOrgHub.Projects.DTOs.Reports;
 ///
 /// <see cref="CashFlow"/> marks lines from a Credit (receipt) or Debit (payment) voucher charged
 /// to this project; every other line leaves it null.
+///
+/// <see cref="IsReversed"/> marks both entries of a voucher that was reversed ("Correct this
+/// voucher") when the original and its reversal both fall in the period: the pair nets to zero, so
+/// the statement hides it by default and shows only the corrected voucher that replaced it.
+///
+/// <see cref="IsCashBank"/> marks the money side of an entry — the cash/bank account a voucher
+/// paid from or received into (both sides of a contra), or any account flagged cash-or-bank. A
+/// voucher stamps the project's cost center on both of its lines, so without this the project's
+/// ledger would carry every payment twice: once as the cost, once as the cash leaving the bank.
+///
+/// <see cref="RunningNet"/> is carried over the full ledger when the statement is requested
+/// without a transaction query; with one, it is recomputed over the rows that query keeps visible.
 /// </summary>
 public record ProjectStatementRowDto(
     DateTime EntryDate,
@@ -29,7 +41,9 @@ public record ProjectStatementRowDto(
     string CostCenterName,
     decimal Debit,
     decimal Credit,
-    decimal RunningNet
+    decimal RunningNet,
+    bool IsReversed = false,
+    bool IsCashBank = false
 );
 
 /// <summary>
@@ -37,8 +51,9 @@ public record ProjectStatementRowDto(
 /// printed or downloaded statement can carry exactly the rows the user is looking at. Every
 /// field is optional; left empty, the list is the full ledger in posting order.
 ///
-/// These narrow the transaction list only. Summary figures and the account breakdown are always
-/// computed over the whole ledger.
+/// These narrow the transaction list only. Summary figures and the account breakdown never depend
+/// on them. <see cref="IncludeReversed"/> and <see cref="IncludeCashBank"/> default to hiding those
+/// lines, the same default as the report screen.
 /// </summary>
 public class ProjectStatementTransactionQuery
 {
@@ -61,9 +76,19 @@ public class ProjectStatementTransactionQuery
     public string? SortBy { get; set; }
 
     public bool SortDescending { get; set; }
+
+    /// <summary>Show reversed voucher pairs (see <see cref="ProjectStatementRowDto.IsReversed"/>). Hidden by default.</summary>
+    public bool IncludeReversed { get; set; }
+
+    /// <summary>Show the cash/bank side of entries (see <see cref="ProjectStatementRowDto.IsCashBank"/>). Hidden by default.</summary>
+    public bool IncludeCashBank { get; set; }
 }
 
-/// <summary>Period totals for one account the project was charged against.</summary>
+/// <summary>
+/// Period totals for one account the project was charged against. Built without reversed pairs
+/// and cash/bank lines (see <see cref="ProjectStatementRowDto"/>) — neither changes an account's
+/// net, but both inflate its debit and credit columns with money that is not project cost.
+/// </summary>
 public record ProjectStatementAccountDto(
     Guid AccountId,
     string AccountCode,

@@ -48,7 +48,7 @@ public static class ProjectStatementPdfDocument
     /// </param>
     public static byte[] BuildSingle(ProjectStatementDto report, ProjectStatementTransactionQuery? transactions = null)
     {
-        var filters = DescribeFilters(transactions, report.ByAccount);
+        var filters = DescribeFilters(transactions, report);
 
         return ReportPdfPage.Generate("Project Statement", $"{report.ProjectCode} - {report.ProjectName}",
             report.DateFrom, report.DateTo, content =>
@@ -64,7 +64,7 @@ public static class ProjectStatementPdfDocument
                 column.Item().Column(section =>
                 {
                     section.Item().SectionHeaderCell().Text("By Account");
-                    PdfTable.Render(section.Item(), report.ByAccount, AccountColumns);
+                    PdfTable.Render(section.Item(), report.ByAccount, AccountColumns, AccountTotals(report.ByAccount));
                 });
 
                 column.Item().Column(section =>
@@ -131,11 +131,28 @@ public static class ProjectStatementPdfDocument
     }
 
     /// <summary>
+    /// Debit and credit summed down the By Account table. Net is left blank: it mixes cost,
+    /// income and funding accounts, so a single figure there would mean nothing.
+    /// </summary>
+    private static Dictionary<int, string>? AccountTotals(List<ProjectStatementAccountDto> accounts)
+    {
+        if (accounts.Count == 0) return null;
+
+        var col = AccountColumns.Select((c, i) => (c.Header, i)).ToDictionary(x => x.Header, x => x.i);
+        return new Dictionary<int, string>
+        {
+            [col["Account"]] = "Total",
+            [col["Debit"]] = PdfFormat.Amount(accounts.Sum(a => a.Debit)),
+            [col["Credit"]] = PdfFormat.Amount(accounts.Sum(a => a.Credit)),
+        };
+    }
+
+    /// <summary>
     /// Human-readable list of the active transaction filters, worded like the report screen's
     /// controls. Sort order is left out: it changes the order of rows, not which rows appear.
     /// </summary>
     private static List<string> DescribeFilters(
-        ProjectStatementTransactionQuery? q, IReadOnlyList<ProjectStatementAccountDto> accounts)
+        ProjectStatementTransactionQuery? q, ProjectStatementDto report)
     {
         var parts = new List<string>();
         if (q is null) return parts;
@@ -145,13 +162,19 @@ public static class ProjectStatementPdfDocument
         if (!string.IsNullOrWhiteSpace(q.Search)) parts.Add($"Search \"{q.Search.Trim()}\"");
         if (q.AccountId.HasValue)
         {
-            var account = accounts.FirstOrDefault(a => a.AccountId == q.AccountId.Value);
-            parts.Add(account is null ? "Account (none in period)" : $"Account {account.AccountCode} - {account.AccountName}");
+            // From the rows too: a cash/bank account has lines but no By Account entry.
+            var account = report.ByAccount
+                .Select(a => (a.AccountId, a.AccountCode, a.AccountName))
+                .Concat(report.Rows.Select(r => (r.AccountId, r.AccountCode, r.AccountName)))
+                .FirstOrDefault(a => a.AccountId == q.AccountId.Value);
+            parts.Add(account == default ? "Account (none in period)" : $"Account {account.AccountCode} - {account.AccountName}");
         }
         if (q.Side == ProjectStatementLineSide.Debit) parts.Add("Debit lines only");
         if (q.Side == ProjectStatementLineSide.Credit) parts.Add("Credit lines only");
         if (!string.IsNullOrWhiteSpace(q.PaidTo)) parts.Add($"Paid to {q.PaidTo.Trim()}");
         if (!string.IsNullOrWhiteSpace(q.ReceivedFrom)) parts.Add($"Received from {q.ReceivedFrom.Trim()}");
+        if (q.IncludeReversed) parts.Add("Including reversed entries");
+        if (q.IncludeCashBank) parts.Add("Including cash/bank lines");
         return parts;
     }
 

@@ -63,7 +63,10 @@ Cross-module search convention: all list/search endpoints filter via the `WhereS
 extension (`uOrgHub.Shared/Extensions/`), which emits PostgreSQL `ILIKE` for
 case-insensitive partial matching — don't hand-roll `Contains`/`ToLower` filters. Paginated
 query handlers sort via the `ApplySorting()` extension (same folder) instead of a hardcoded
-`OrderBy`, so the frontend's column-header sort clicks work generically.
+`OrderBy`, so the frontend's column-header sort clicks work generically. When the sort column
+isn't unique (dates, statuses), use the tie-break overload `ApplySorting(sortBy, desc, x => x.Id)`
+so paging is stable — chaining `.OrderBy(tie).ApplySorting(...)` does *not* work (the later
+`OrderBy` replaces the earlier one and the tie-break silently vanishes from the SQL).
 
 Request flow: **Controller → MediatR `_mediator.Send(command/query)` → Handler → Repository → `AppDbContext`.**
 
@@ -204,7 +207,10 @@ Never edit migration files by hand.
   in `Program.cs`, add controllers under `Controllers/{Module}/`, define claims in `uOrgHub.Auth`,
   and add the matching `src/api/{module}.ts` + `src/pages/{module}/` on the frontend.
 - Deploying: never run `deploy/docker-compose.yml` directly — use
-  `sudo ./deploy/deploy.sh <instance>` (see `deploy/README.md`). The frontend bakes
+  `sudo ./deploy/deploy.sh <instance>` (see `deploy/README.md`), or the manual
+  `.github/workflows/deploy.yml` dispatch, which SSHes in and runs that same script (instances:
+  `cfelbd-dev`, `cfelbd-live`, `uorghub`; the branch deployed comes from the server-side
+  `deploy/instances/<instance>.env`'s `GIT_BRANCH`, not from the workflow). The frontend bakes
   `VITE_API_URL` in at build time, so each deployed instance needs its own web image tag.
   `scripts/deploy.sh` is only the one-time server bootstrap; `scripts/update.sh` and root
   `docker-compose.prod.yml` are superseded by `deploy/` — don't extend them.

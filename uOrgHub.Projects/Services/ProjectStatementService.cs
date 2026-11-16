@@ -38,6 +38,9 @@ public class ProjectStatementService : IProjectStatementService
         if (dateFrom.HasValue && dateTo.HasValue && dateFrom.Value > dateTo.Value)
             throw new AppException("Start date cannot be after end date.");
 
+        // No query means the full ledger, unfiltered — the report screen asks for that and refines
+        // it in memory. A query (the PDF) gets exactly the rows it describes.
+        var fullLedger = transactions is null;
         transactions ??= new ProjectStatementTransactionQuery();
 
         // Model binding accepts any integer for an enum, so an undefined value must be refused
@@ -98,14 +101,16 @@ public class ProjectStatementService : IProjectStatementService
             payments,
             receipts - payments,
             BuildAccountBreakdown(rows),
-            FilterRows(rows, transactions));
+            fullLedger ? rows : FilterRows(rows, transactions));
     }
 
     /// <summary>
     /// Narrows and orders the transaction list the way the report screen does, so a printout or
     /// PDF shows the rows the user filtered to. Applied last, after every summary figure and the
     /// account breakdown are computed from the full ledger, so a filter can never move a total.
-    /// Rows keep their running net from the full ledger.
+    /// The running net is recomputed over the rows left visible by the reversed / cash-bank
+    /// toggles, in posting order, before any other filter — so it reads as the project's cost to
+    /// date in the view the user chose, and a search or party filter never changes it.
     ///
     /// Mirrors the screen's in-memory filter in ProjectStatementPage.tsx — a change to one must
     /// be made to the other, or the PDF will stop matching what the user saw.
@@ -113,7 +118,11 @@ public class ProjectStatementService : IProjectStatementService
     private static List<ProjectStatementRowDto> FilterRows(
         List<ProjectStatementRowDto> rows, ProjectStatementTransactionQuery q)
     {
-        IEnumerable<ProjectStatementRowDto> result = rows;
+        var runningNet = 0m;
+        IEnumerable<ProjectStatementRowDto> result = rows
+            .Where(r => (q.IncludeReversed || !r.IsReversed) && (q.IncludeCashBank || !r.IsCashBank))
+            .Select(r => r with { RunningNet = runningNet += r.Debit - r.Credit })
+            .ToList();
 
         result = q.TransactionType switch
         {
@@ -307,6 +316,7 @@ public class ProjectStatementService : IProjectStatementService
                 l.Account.AccountCode,
                 l.Account.AccountName,
                 l.Account.AccountType,
+                l.Account.IsCashOrBank,
                 l.Description,
                 CostCenterName = l.CostCenter!.Name,
                 l.DebitAmount,
@@ -324,6 +334,8 @@ public class ProjectStatementService : IProjectStatementService
         {
             runningNet += line.DebitAmount - line.CreditAmount;
             var hasVoucher = vouchers.TryGetValue(line.JournalEntryId, out var voucher);
+            var isCashBank = line.IsCashOrBank
+                || (hasVoucher && voucher.MoneyAccountIds.Contains(line.AccountId));
             rows.Add(new ProjectStatementRowDto(
                 line.EntryDate,
                 line.EntryNumber,
@@ -335,61 +347,92 @@ public class ProjectStatementService : IProjectStatementService
                 line.Description,
                 hasVoucher && voucher.Type == VoucherType.Debit ? voucher.Party : null,
                 hasVoucher && voucher.Type == VoucherType.Credit ? voucher.Party : null,
-                hasVoucher && voucher.ChargedToProject
+                hasVoucher && voucher.ChargedToProject && voucher.Type != VoucherType.Contra
                     ? voucher.Type == VoucherType.Credit ? ProjectCashFlowType.Receipt : ProjectCashFlowType.Payment
                     : null,
                 line.CostCenterName,
                 line.DebitAmount,
                 line.CreditAmount,
-                runningNet));
+                runningNet,
+                hasVoucher && voucher.CancelledPair,
+                isCashBank));
         }
 
         return rows;
     }
 
     /// <summary>
-    /// The Debit/Credit voucher behind each journal entry, keyed by entry: its direction, the
-    /// party it names, and whether it is charged to this project — only those count as the
-    /// project's receipts or payments, matching how <see cref="GetVoucherCashFlowAsync"/> sums them.
+    /// The voucher behind each journal entry, keyed by entry: its direction, the party it names,
+    /// whether it is charged to this project — only those count as the project's receipts or
+    /// payments, matching how <see cref="GetVoucherCashFlowAsync"/> sums them — which of its
+    /// accounts is the money side, and whether it was reversed within the period.
     ///
-    /// A voucher that was later corrected is matched on its reversal entry too. The summary drops
-    /// a reversed voucher entirely; listing both its entry and the reversal under the same party
-    /// and cash-flow side nets the pair to zero, which agrees with that.
+    /// A voucher that was later corrected is matched on its reversal entry too. When both the
+    /// original and the reversal are in the period the pair is flagged as cancelled: it nets to
+    /// zero, the same as the summary, which drops a reversed voucher entirely. With only one of the
+    /// two in the period, that entry is a real movement for the period and stays unflagged.
     ///
-    /// Contra vouchers are skipped — they are neither a receipt nor a payment, and their name
-    /// field holds a cheque/slip number, not a party.
+    /// The money side is read from the voucher, not from the account's cash-or-bank flag, which is
+    /// not reliably set: a payment pays out of its credit account, a receipt lands in its debit
+    /// account, and a contra moves money between two money accounts. A reversal swaps the sides
+    /// but not the accounts, so the same rule finds the money line of the reversal entry.
+    ///
+    /// Contra vouchers name no party — their name field holds a cheque/slip number — and are
+    /// neither a receipt nor a payment.
     /// </summary>
-    private async Task<Dictionary<Guid, (VoucherType Type, string? Party, bool ChargedToProject)>> LoadVoucherLinksAsync(
+    private async Task<Dictionary<Guid, VoucherLink>> LoadVoucherLinksAsync(
         Guid projectId,
         List<Guid> entryIds,
         CancellationToken ct)
     {
         var vouchers = await _db.Set<Voucher>()
             .Where(v => !v.IsDeleted
-                && (v.VoucherType == VoucherType.Credit || v.VoucherType == VoucherType.Debit)
                 && ((v.JournalEntryId != null && entryIds.Contains(v.JournalEntryId.Value))
                     || (v.ReversalJournalEntryId != null && entryIds.Contains(v.ReversalJournalEntryId.Value))))
-            .Select(v => new { v.JournalEntryId, v.ReversalJournalEntryId, v.VoucherType, v.Name, v.ProjectId })
+            .Select(v => new
+            {
+                v.JournalEntryId, v.ReversalJournalEntryId, v.VoucherType, v.Name, v.ProjectId,
+                v.DebitAccountId, v.CreditAccountId,
+            })
             .ToListAsync(ct);
 
-        var links = new Dictionary<Guid, (VoucherType, string?, bool)>();
+        var inPeriod = entryIds.ToHashSet();
+        var links = new Dictionary<Guid, VoucherLink>();
         foreach (var v in vouchers)
         {
-            var party = string.IsNullOrWhiteSpace(v.Name) ? null : v.Name.Trim();
-            var link = (v.VoucherType, party, v.ProjectId == projectId);
+            var party = v.VoucherType == VoucherType.Contra || string.IsNullOrWhiteSpace(v.Name) ? null : v.Name.Trim();
+            Guid[] moneyAccounts = v.VoucherType switch
+            {
+                VoucherType.Debit => [v.CreditAccountId],
+                VoucherType.Credit => [v.DebitAccountId],
+                _ => [v.DebitAccountId, v.CreditAccountId],
+            };
+            var cancelledPair = v.JournalEntryId.HasValue && v.ReversalJournalEntryId.HasValue
+                && inPeriod.Contains(v.JournalEntryId.Value) && inPeriod.Contains(v.ReversalJournalEntryId.Value);
+
+            var link = new VoucherLink(v.VoucherType, party, v.ProjectId == projectId, moneyAccounts, cancelledPair);
             if (v.JournalEntryId.HasValue) links[v.JournalEntryId.Value] = link;
             if (v.ReversalJournalEntryId.HasValue) links[v.ReversalJournalEntryId.Value] = link;
         }
         return links;
     }
 
+    private sealed record VoucherLink(
+        VoucherType Type, string? Party, bool ChargedToProject, Guid[] MoneyAccountIds, bool CancelledPair);
+
     /// <summary>
     /// Grouped in memory rather than by a second query: the rows are already loaded, and the row
     /// count for one project over one period is small enough that a round trip would cost more
     /// than the grouping.
+    ///
+    /// Reversed pairs and cash/bank lines are left out. Neither moves an account's net — a pair
+    /// cancels within its account, and the money side is not a project cost or income account —
+    /// but both inflate the debit and credit columns, which users add up and compare with the
+    /// summary band.
     /// </summary>
     private static List<ProjectStatementAccountDto> BuildAccountBreakdown(List<ProjectStatementRowDto> rows)
         => rows
+            .Where(r => !r.IsReversed && !r.IsCashBank)
             .GroupBy(r => new { r.AccountId, r.AccountCode, r.AccountName, r.AccountType })
             .Select(g => new ProjectStatementAccountDto(
                 g.Key.AccountId,

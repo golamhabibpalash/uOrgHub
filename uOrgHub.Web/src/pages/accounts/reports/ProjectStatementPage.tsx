@@ -150,8 +150,28 @@ export default function ProjectStatementPage() {
   // Print renders `txSorted` directly, and the PDF request sends every filter to the server,
   // which applies the same rules (ProjectStatementService.FilterRows — keep the two in step).
   // Transaction Type also decides which parties the party dropdowns offer, so it comes first.
+  //
+  // Reversed voucher pairs and the cash/bank side of entries are hidden unless asked for: a pair
+  // nets to zero, and a voucher's money line repeats its cost as cash leaving the bank, so either
+  // one makes the Debit column add up to more than the Period Expense. The running net is
+  // recomputed over what is left, so it reads as the project's cost to date in this view.
+  const [showReversed, setShowReversed] = useState(false);
+  const [showCashBank, setShowCashBank] = useState(false);
+  const reversedCount = useMemo(() => rows.filter((r) => r.isReversed).length, [rows]);
+  const cashBankCount = useMemo(() => rows.filter((r) => r.isCashBank && !r.isReversed).length, [rows]);
+  const baseRows = useMemo(() => {
+    const visible: ProjectStatementRow[] = [];
+    let net = 0;
+    for (const r of rows) {
+      if ((!showReversed && r.isReversed) || (!showCashBank && r.isCashBank)) continue;
+      net += r.debit - r.credit;
+      visible.push({ ...r, runningNet: net });
+    }
+    return visible;
+  }, [rows, showReversed, showCashBank]);
+
   const [txType, setTxType] = useState<ProjectStatementTransactionFilter>("All");
-  const typeRows = useMemo(() => rows.filter(TX_TYPE_FILTER[txType]), [rows, txType]);
+  const typeRows = useMemo(() => baseRows.filter(TX_TYPE_FILTER[txType]), [baseRows, txType]);
 
   const [txSearch, setTxSearch] = useState("");
   const [txAccount, setTxAccount] = useState("");
@@ -168,6 +188,15 @@ export default function ProjectStatementPage() {
   const txFilterActive =
     txType !== "All" || txSearch.trim() !== "" || txAccount !== "" || txDirection !== ""
     || txPaidTo !== "" || txReceivedFrom !== "";
+  const txViewExpanded = showReversed || showCashBank;
+
+  // Accounts with lines in the current view — from the rows rather than the account summary,
+  // which never lists cash/bank accounts.
+  const txAccountOptions = useMemo(() => {
+    const accounts = new Map<string, { accountId: string; accountCode: string; accountName: string }>();
+    for (const r of baseRows) accounts.set(r.accountId, r);
+    return [...accounts.values()].sort((a, b) => a.accountCode.localeCompare(b.accountCode));
+  }, [baseRows]);
 
   // Any change to what's shown drops the user back to page 1 — otherwise a filter that shrinks
   // the list can strand them on a now-empty page. (Out-of-range pages from a project/date switch
@@ -187,8 +216,12 @@ export default function ProjectStatementPage() {
     resetTxPage();
   };
   const changeTxPageSize = (n: number) => { setTxPageSize(n); resetTxPage(); };
+  // Hiding lines can take away the account being filtered on, which would silently empty the table.
+  const changeShowReversed = (v: boolean) => { setShowReversed(v); setTxAccount(""); resetTxPage(); };
+  const changeShowCashBank = (v: boolean) => { setShowCashBank(v); setTxAccount(""); resetTxPage(); };
   const clearTxFilters = () => {
     setTxType("All"); setTxSearch(""); setTxAccount(""); setTxDirection(""); setTxPaidTo(""); setTxReceivedFrom("");
+    setShowReversed(false); setShowCashBank(false);
     resetTxPage();
   };
 
@@ -261,7 +294,9 @@ export default function ProjectStatementPage() {
   // name as the user saw it in the dropdown.
   const paidToName = paidToOptions.find((o) => o.value === txPaidTo)?.searchText ?? "";
   const receivedFromName = receivedFromOptions.find((o) => o.value === txReceivedFrom)?.searchText ?? "";
-  const txAccountRow = byAccount.find((a) => a.accountId === txAccount);
+  const txAccountRow = txAccountOptions.find((a) => a.accountId === txAccount);
+  const acctDebitTotal = useMemo(() => byAccount.reduce((s, a) => s + a.debit, 0), [byAccount]);
+  const acctCreditTotal = useMemo(() => byAccount.reduce((s, a) => s + a.credit, 0), [byAccount]);
 
   /** The active ledger filters in words — shown on screen, in the print header and the PDF. */
   const txFilterSummary = [
@@ -271,6 +306,8 @@ export default function ProjectStatementPage() {
     txDirection === "debit" ? "Debit lines only" : txDirection === "credit" ? "Credit lines only" : "",
     paidToName ? `Paid to ${paidToName}` : "",
     receivedFromName ? `Received from ${receivedFromName}` : "",
+    showReversed ? "Including reversed entries" : "",
+    showCashBank ? "Including cash/bank lines" : "",
   ].filter(Boolean).join(" · ");
 
   // Posting order is the server's default, so only a sort the user actually chose is sent.
@@ -284,6 +321,8 @@ export default function ProjectStatementPage() {
     receivedFrom: receivedFromName || undefined,
     sortBy: txSortIsDefault ? undefined : txSort.key,
     sortDescending: txSortIsDefault ? undefined : txSort.dir === "desc",
+    includeReversed: showReversed || undefined,
+    includeCashBank: showCashBank || undefined,
   };
 
   const period =
@@ -490,7 +529,9 @@ export default function ProjectStatementPage() {
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100">
               <p className="text-sm font-medium text-gray-900">Account-wise Summary</p>
-              <p className="text-xs text-gray-400 mt-0.5">Totals per account for the selected period</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Totals per account for the selected period, excluding reversed vouchers and the cash/bank side of entries
+              </p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -517,6 +558,17 @@ export default function ProjectStatementPage() {
                     </tr>
                   ))}
                 </tbody>
+                {byAccount.length > 0 && (
+                  <tfoot className="bg-gray-50 border-t-2 border-gray-200">
+                    <tr>
+                      <td colSpan={2} data-col-span="account,acctType" className="px-4 py-2.5 text-xs font-semibold text-gray-600">Totals</td>
+                      <td data-col="debit" className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(acctDebitTotal)}</td>
+                      <td data-col="credit" className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{fmt(acctCreditTotal)}</td>
+                      {/* Net mixes cost, income and funding accounts — one figure here would mean nothing */}
+                      <td data-col="acctNet" className="px-4 py-2.5" />
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             </div>
             {byAccount.length === 0 && (
@@ -537,6 +589,9 @@ export default function ProjectStatementPage() {
                 </p>
                 <p className="text-xs text-gray-400 mt-0.5">
                   Posted journal entry lines charged to this project
+                  {(!showReversed && reversedCount > 0) || (!showCashBank && cashBankCount > 0)
+                    ? " · reversed vouchers and cash/bank lines hidden"
+                    : ""}
                 </p>
               </div>
               {rows.length > 0 && (
@@ -574,7 +629,7 @@ export default function ProjectStatementPage() {
                   className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500"
                 >
                   <option value="">All accounts</option>
-                  {byAccount.map((a) => (
+                  {txAccountOptions.map((a) => (
                     <option key={a.accountId} value={a.accountId}>
                       {a.accountCode} · {a.accountName}
                     </option>
@@ -611,7 +666,25 @@ export default function ProjectStatementPage() {
                   searchPlaceholder="Search payer…"
                   noResultsMessage="No matching payer"
                 />
-                {txFilterActive && (
+                <label className={`inline-flex items-center gap-1.5 text-xs ${reversedCount === 0 ? "text-gray-300" : "text-gray-600"}`}>
+                  <input
+                    type="checkbox"
+                    checked={showReversed}
+                    disabled={reversedCount === 0}
+                    onChange={(e) => changeShowReversed(e.target.checked)}
+                  />
+                  Show reversed ({reversedCount})
+                </label>
+                <label className={`inline-flex items-center gap-1.5 text-xs ${cashBankCount === 0 ? "text-gray-300" : "text-gray-600"}`}>
+                  <input
+                    type="checkbox"
+                    checked={showCashBank}
+                    disabled={cashBankCount === 0}
+                    onChange={(e) => changeShowCashBank(e.target.checked)}
+                  />
+                  Show cash/bank lines ({cashBankCount})
+                </label>
+                {(txFilterActive || txViewExpanded) && (
                   <button
                     onClick={clearTxFilters}
                     className="inline-flex items-center gap-1 px-2 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-500"
@@ -753,7 +826,7 @@ export default function ProjectStatementPage() {
                 <div className="flex items-center gap-2">
                   <span>
                     {txRangeStart}–{txRangeEnd} of {txSorted.length}
-                    {txFilterActive && rows.length !== txSorted.length ? ` (filtered from ${rows.length})` : ""}
+                    {txFilterActive && baseRows.length !== txSorted.length ? ` (filtered from ${baseRows.length})` : ""}
                   </span>
                   <span className="text-gray-200">|</span>
                   <span>Show</span>
@@ -797,7 +870,9 @@ export default function ProjectStatementPage() {
             {/* Shown in print too: a filtered printout with no rows must say why it is empty */}
             {rows.length > 0 && txSorted.length === 0 && (
               <div className="text-center py-12 text-sm text-gray-400">
-                {typeRows.length === 0
+                {baseRows.length === 0
+                  ? "Every line in this period is a reversed voucher or a cash/bank line — tick “Show reversed” or “Show cash/bank lines” to see them"
+                  : typeRows.length === 0
                   ? `No ${txType === "Receipts" ? "receipt" : "payment"} transactions for this project in the selected period`
                   : "No transactions match your search or filters"}
               </div>

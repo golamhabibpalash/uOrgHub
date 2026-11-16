@@ -398,16 +398,17 @@ public class ProjectStatementServiceTests
         AddVoucher(ctx, f, VoucherType.Debit, 200_000, Jun);
 
         var all = await Statement(ctx, f);
-        var filtered = await new ProjectStatementService(ctx).GetStatementAsync(f.Project.Id, null, null, new ProjectStatementTransactionQuery { TransactionType = filter });
+        var filtered = await new ProjectStatementService(ctx).GetStatementAsync(f.Project.Id, null, null,
+            new ProjectStatementTransactionQuery { TransactionType = filter, IncludeCashBank = true });
 
         filtered.Rows.Should().HaveCount(2).And.OnlyContain(r => r.CashFlow == expected);
-        // Running net is the full ledger's, not recomputed over the filtered subset.
+        // Running net is the visible ledger's (here all of it), not recomputed over the filtered subset.
         filtered.Rows.Should().OnlyContain(r => all.Rows.Any(a => a.EntryNumber == r.EntryNumber && a.RunningNet == r.RunningNet));
         filtered.Should().BeEquivalentTo(all, o => o.Excluding(s => s.Rows));
     }
 
     [Fact]
-    public async Task All_filter_returns_the_unfiltered_statement()
+    public async Task Including_everything_returns_the_full_ledger()
     {
         using var ctx = NewContext();
         var f = Seed(ctx);
@@ -417,7 +418,8 @@ public class ProjectStatementServiceTests
 
         var defaulted = await Statement(ctx, f);
         var all = await new ProjectStatementService(ctx)
-            .GetStatementAsync(f.Project.Id, null, null, new ProjectStatementTransactionQuery());
+            .GetStatementAsync(f.Project.Id, null, null,
+                new ProjectStatementTransactionQuery { IncludeCashBank = true, IncludeReversed = true });
 
         all.Should().BeEquivalentTo(defaulted);
         all.Rows.Should().HaveCount(4);
@@ -471,9 +473,9 @@ public class ProjectStatementServiceTests
         using var ctx = NewContext();
         var f = SeedPartyLedger(ctx);
 
-        (await Filtered(ctx, f, new() { Search = "  construction MATERIALS " })).Rows
+        (await Filtered(ctx, f, new() { IncludeCashBank = true, Search = "  construction MATERIALS " })).Rows
             .Should().HaveCount(2).And.OnlyContain(r => r.AccountId == f.Expense.Id);
-        (await Filtered(ctx, f, new() { Search = "abc trad" })).Rows
+        (await Filtered(ctx, f, new() { IncludeCashBank = true, Search = "abc trad" })).Rows
             .Should().HaveCount(2).And.OnlyContain(r => r.PaidTo == "ABC Traders");
     }
 
@@ -483,11 +485,11 @@ public class ProjectStatementServiceTests
         using var ctx = NewContext();
         var f = SeedPartyLedger(ctx);
 
-        (await Filtered(ctx, f, new() { AccountId = f.Bank.Id })).Rows
+        (await Filtered(ctx, f, new() { IncludeCashBank = true, AccountId = f.Bank.Id })).Rows
             .Should().HaveCount(2).And.OnlyContain(r => r.AccountId == f.Bank.Id);
-        (await Filtered(ctx, f, new() { Side = ProjectStatementLineSide.Debit })).Rows
+        (await Filtered(ctx, f, new() { IncludeCashBank = true, Side = ProjectStatementLineSide.Debit })).Rows
             .Should().HaveCount(3).And.OnlyContain(r => r.Debit > 0);
-        (await Filtered(ctx, f, new() { Side = ProjectStatementLineSide.Credit })).Rows
+        (await Filtered(ctx, f, new() { IncludeCashBank = true, Side = ProjectStatementLineSide.Credit })).Rows
             .Should().HaveCount(3).And.OnlyContain(r => r.Credit > 0);
     }
 
@@ -497,9 +499,9 @@ public class ProjectStatementServiceTests
         using var ctx = NewContext();
         var f = SeedPartyLedger(ctx);
 
-        (await Filtered(ctx, f, new() { PaidTo = " abc traders " })).Rows
+        (await Filtered(ctx, f, new() { IncludeCashBank = true, PaidTo = " abc traders " })).Rows
             .Should().HaveCount(2).And.OnlyContain(r => r.PaidTo == "ABC Traders");
-        (await Filtered(ctx, f, new() { ReceivedFrom = "CITY CORPORATION" })).Rows
+        (await Filtered(ctx, f, new() { IncludeCashBank = true, ReceivedFrom = "CITY CORPORATION" })).Rows
             .Should().HaveCount(2).And.OnlyContain(r => r.ReceivedFrom == "City Corporation");
     }
 
@@ -512,6 +514,7 @@ public class ProjectStatementServiceTests
         var all = await Statement(ctx, f);
         var filtered = await Filtered(ctx, f, new()
         {
+            IncludeCashBank = true,
             TransactionType = ProjectStatementTransactionFilter.Payments,
             Side = ProjectStatementLineSide.Credit,
             PaidTo = "ABC Traders",
@@ -530,7 +533,7 @@ public class ProjectStatementServiceTests
         var f = SeedPartyLedger(ctx);
 
         var all = await Statement(ctx, f);
-        var byDebit = await Filtered(ctx, f, new() { SortBy = "debit", SortDescending = true });
+        var byDebit = await Filtered(ctx, f, new() { IncludeCashBank = true, SortBy = "debit", SortDescending = true });
 
         byDebit.Rows.Select(r => r.Debit).Should().BeInDescendingOrder();
         // The three zero-debit lines tie; they must keep the order the ledger posted them in.
@@ -545,7 +548,7 @@ public class ProjectStatementServiceTests
         var f = SeedPartyLedger(ctx);
 
         var all = await Statement(ctx, f);
-        var unknown = await Filtered(ctx, f, new() { SortBy = "noSuchColumn" });
+        var unknown = await Filtered(ctx, f, new() { IncludeCashBank = true, SortBy = "noSuchColumn" });
 
         unknown.Rows.Should().Equal(all.Rows);
     }
@@ -553,8 +556,10 @@ public class ProjectStatementServiceTests
     /// <summary>A posted voucher naming a party, tied to an already-posted entry.</summary>
     private static void LinkVoucher(
         AppDbContext ctx, Fixture f, VoucherType type, string name, Guid entryId,
-        Guid? reversalEntryId = null, Guid? projectId = null)
+        Guid? reversalEntryId = null, Guid? projectId = null, VoucherStatus? status = null)
     {
+        // Posting writes the voucher's debit account on line 1 and its credit account on line 2.
+        var lines = ctx.Set<JournalEntryLine>().Where(l => l.JournalEntryId == entryId).ToList();
         ctx.Set<Voucher>().Add(new Voucher
         {
             Id = Guid.NewGuid(),
@@ -565,10 +570,10 @@ public class ProjectStatementServiceTests
             Description = "Party voucher",
             ProjectId = projectId ?? f.Project.Id,
             CostCenterId = f.CostCenter.Id,
-            DebitAccountId = f.Expense.Id,
-            CreditAccountId = f.Bank.Id,
+            DebitAccountId = lines.Single(l => l.DebitAmount > 0).AccountId,
+            CreditAccountId = lines.Single(l => l.CreditAmount > 0).AccountId,
             Amount = 1,
-            Status = VoucherStatus.Posted,
+            Status = status ?? (reversalEntryId.HasValue ? VoucherStatus.Reversed : VoucherStatus.Posted),
             JournalEntryId = entryId,
             ReversalJournalEntryId = reversalEntryId,
         });
@@ -593,6 +598,151 @@ public class ProjectStatementServiceTests
         var payableRow = result.ByAccount.Single(a => a.AccountCode == "2010");
         payableRow.Credit.Should().Be(160_000);
         payableRow.Net.Should().Be(-160_000);
+    }
+
+    // --- Reversed pairs and the cash/bank side ---
+
+    private static ProjectStatementTransactionQuery DefaultView => new();
+
+    [Fact]
+    public async Task Voucher_money_side_is_flagged_and_hidden_by_default()
+    {
+        using var ctx = NewContext();
+        var f = SeedPartyLedger(ctx);
+
+        var full = await Statement(ctx, f);
+        full.Rows.Where(r => r.AccountId == f.Bank.Id).Should().HaveCount(2).And.OnlyContain(r => r.IsCashBank);
+        full.Rows.Where(r => r.AccountId != f.Bank.Id).Should().OnlyContain(r => !r.IsCashBank);
+
+        var view = await Filtered(ctx, f, DefaultView);
+        view.Rows.Should().HaveCount(4).And.NotContain(r => r.AccountId == f.Bank.Id);
+        // Cost to date: +100k materials, -300k revenue, +50k materials, -50k payable.
+        view.Rows.Select(r => r.RunningNet).Should().Equal(100_000, -200_000, -150_000, -200_000);
+    }
+
+    /// <summary>The cash-or-bank flag still marks the money side of a journal with no voucher behind it.</summary>
+    [Fact]
+    public async Task Cash_or_bank_account_on_a_manual_journal_is_flagged()
+    {
+        using var ctx = NewContext();
+        var f = Seed(ctx);
+        f.Bank.IsCashOrBank = true;
+        ctx.SaveChanges();
+        Post(ctx, f, f.Expense, f.Bank, 100_000, Jun);
+
+        var result = await Statement(ctx, f);
+
+        result.Rows.Single(r => r.AccountId == f.Bank.Id).IsCashBank.Should().BeTrue();
+        result.Rows.Single(r => r.AccountId == f.Expense.Id).IsCashBank.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Contra_voucher_lines_are_both_cash_bank()
+    {
+        using var ctx = NewContext();
+        var f = Seed(ctx);
+        Post(ctx, f, f.Bank, f.Payable, 10_000, Jan);
+        LinkVoucher(ctx, f, VoucherType.Contra, "CHQ-00123", ctx.Set<JournalEntry>().Single().Id);
+
+        var result = await Statement(ctx, f);
+
+        result.Rows.Should().HaveCount(2).And.OnlyContain(r => r.IsCashBank && r.CashFlow == null);
+    }
+
+    /// <summary>
+    /// Jan: payment of 2,400 to Shuvo, reversed in Feb and re-posted correctly in Feb.
+    /// Plus a 100,000 payment and a 10,000 receipt — the shape of the case that prompted this.
+    /// </summary>
+    private static (Fixture F, Guid Original, Guid Reversal, Guid Correction) SeedReversal(AppDbContext ctx)
+    {
+        var f = Seed(ctx);
+        var feb = new DateTime(2026, 2, 10);
+        Post(ctx, f, f.Expense, f.Bank, 2_400, Jan);       // original
+        Post(ctx, f, f.Bank, f.Expense, 2_400, feb);       // its reversal (mirror)
+        Post(ctx, f, f.Expense, f.Bank, 2_400, feb);       // the corrected voucher
+        Post(ctx, f, f.Expense, f.Bank, 100_000, Jun);     // an ordinary payment
+        Post(ctx, f, f.Bank, f.Income, 10_000, Jun);       // a receipt
+        var e = ctx.Set<JournalEntry>().OrderBy(x => x.EntryDate).ThenBy(x => x.TotalDebit).ToList();
+        // Ordered: Jan original, Feb (two 2,400 entries), Jun receipt 10k, Jun payment 100k.
+        var original = e[0].Id;
+        var febEntries = e.Where(x => x.EntryDate == feb).Select(x => x.Id).ToList();
+        var reversal = febEntries.Single(id => ctx.Set<JournalEntryLine>().Any(l => l.JournalEntryId == id && l.AccountId == f.Bank.Id && l.DebitAmount > 0));
+        var correction = febEntries.Single(id => id != reversal);
+        LinkVoucher(ctx, f, VoucherType.Debit, "Shuvo Engineer", original, reversalEntryId: reversal);
+        LinkVoucher(ctx, f, VoucherType.Debit, "Shuvo Engineer", correction);
+        LinkVoucher(ctx, f, VoucherType.Debit, "ABC Traders", e.Single(x => x.TotalDebit == 100_000).Id);
+        LinkVoucher(ctx, f, VoucherType.Credit, "Investor", e.Single(x => x.TotalDebit == 10_000).Id);
+        return (f, original, reversal, correction);
+    }
+
+    [Fact]
+    public async Task Reversed_pair_in_the_period_is_flagged_and_hidden_by_default()
+    {
+        using var ctx = NewContext();
+        var (f, _, _, _) = SeedReversal(ctx);
+
+        var full = await Statement(ctx, f);
+        full.Rows.Where(r => r.IsReversed).Should().HaveCount(4); // two lines each, original and reversal
+
+        var view = await Filtered(ctx, f, DefaultView);
+        view.Rows.Should().NotContain(r => r.IsReversed || r.IsCashBank);
+        // The corrected voucher, the payment and the receipt's income line.
+        view.Rows.Should().HaveCount(3);
+        view.Rows.Where(r => r.PaidTo == "Shuvo Engineer").Should().ContainSingle().Which.Debit.Should().Be(2_400);
+
+        var everything = await Filtered(ctx, f, new() { IncludeReversed = true, IncludeCashBank = true });
+        everything.Rows.Should().HaveCount(full.Rows.Count);
+        everything.Rows.Select(r => r.RunningNet).Should().Equal(full.Rows.Select(r => r.RunningNet));
+    }
+
+    /// <summary>
+    /// The complaint that prompted the flags: the account summary's Debit column must add up to
+    /// the Period Expense, not to that plus every reversal and cash leg.
+    /// </summary>
+    [Fact]
+    public async Task Account_breakdown_debits_reconcile_to_period_expense()
+    {
+        using var ctx = NewContext();
+        var (f, _, _, _) = SeedReversal(ctx);
+
+        var result = await Statement(ctx, f);
+
+        result.PeriodExpense.Should().Be(102_400);
+        result.ByAccount.Should().NotContain(a => a.AccountId == f.Bank.Id);
+        result.ByAccount.Sum(a => a.Debit).Should().Be(result.PeriodExpense);
+        result.ByAccount.Single(a => a.AccountId == f.Expense.Id)
+            .Should().BeEquivalentTo(new { Debit = 102_400m, Credit = 0m, Net = 102_400m });
+        result.ByAccount.Single(a => a.AccountId == f.Income.Id).Credit.Should().Be(10_000);
+    }
+
+    /// <summary>
+    /// With the reversal outside the window, the original is a real movement for the period —
+    /// hiding it would change what the period reports.
+    /// </summary>
+    [Fact]
+    public async Task Reversal_outside_the_period_leaves_the_original_visible()
+    {
+        using var ctx = NewContext();
+        var (f, original, _, _) = SeedReversal(ctx);
+
+        var jan = await new ProjectStatementService(ctx).GetStatementAsync(
+            f.Project.Id, new DateTime(2026, 1, 1), new DateTime(2026, 1, 31), DefaultView);
+
+        jan.PeriodExpense.Should().Be(2_400);
+        jan.Rows.Should().ContainSingle().Which.Should().Match<ProjectStatementRowDto>(r => !r.IsReversed && r.Debit == 2_400);
+        jan.ByAccount.Sum(a => a.Debit).Should().Be(2_400);
+    }
+
+    [Fact]
+    public async Task Hiding_reversed_and_cash_bank_lines_never_changes_the_summary()
+    {
+        using var ctx = NewContext();
+        var (f, _, _, _) = SeedReversal(ctx);
+
+        var full = await Statement(ctx, f);
+        var view = await Filtered(ctx, f, DefaultView);
+
+        view.Should().BeEquivalentTo(full, o => o.Excluding(s => s.Rows));
     }
 
     // --- Voucher cash flow ---
