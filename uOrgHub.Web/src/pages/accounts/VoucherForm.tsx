@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { AlertTriangle, ArrowLeft, Info, Pencil, Trash2 } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Info, MessageSquare, Pencil, Trash2 } from "lucide-react";
 import SearchableDropdown, { SelectOption } from "../../components/shared/SearchableDropdown";
 import {
   useEmployeeNameLookup,
@@ -19,7 +19,11 @@ import {
   UpdateVoucherPayload,
   VoucherAccountOption,
   VoucherType,
+  PartyType,
 } from "../../api/accounts";
+import { usePartyLookup } from "../../hooks/usePartyLookup";
+import { useAuthStore } from "../../store/authStore";
+import { formatPhone } from "../../utils/smsSegments";
 import { voucherThemes } from "../../components/accounts/voucherTheme";
 import { amountInWords, formatDate, formatTaka } from "../../utils/format";
 import { extractApiError } from "../../utils/apiError";
@@ -52,6 +56,10 @@ interface FormState {
   projectId: string;
   costCenterId: string;
   name: string;
+  /** Customer / vendor / client the voucher is with; "" = not linked. */
+  partyType: PartyType | "";
+  partyId: string;
+  sendSmsOnPost: boolean;
   section: string;
   description: string;
   debitAccountId: string;
@@ -69,6 +77,9 @@ const emptyForm: FormState = {
   projectId: "",
   costCenterId: "",
   name: "",
+  partyType: "",
+  partyId: "",
+  sendSmsOnPost: false,
   section: "",
   description: "",
   debitAccountId: "",
@@ -104,6 +115,9 @@ interface TempVoucher {
   projectId: string;
   costCenterId: string;
   name: string;
+  partyType: PartyType | "";
+  partyId: string;
+  sendSmsOnPost: boolean;
   section: string;
   description: string;
   debitAccountId: string;
@@ -166,6 +180,9 @@ export default function VoucherForm() {
               projectId: voucher.projectId ?? "",
               costCenterId: voucher.projectId ? "" : voucher.costCenterId ?? "",
               name: voucher.name ?? "",
+              partyType: voucher.partyType ?? "",
+              partyId: voucher.partyId ?? "",
+              sendSmsOnPost: voucher.sendSmsOnPost ?? false,
               section: voucher.section ?? "",
               description: voucher.description,
               debitAccountId: voucher.debitAccountId,
@@ -244,6 +261,30 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm,
   const noFiscalYearForDate = form.voucherDate !== "" && fiscalYearId === "";
 
   const theme = voucherThemes[voucherType];
+
+  // Linking a party lets the voucher text them when it's posted. Contra vouchers move money between
+  // the organisation's own accounts, so there is no party.
+  const { hasClaim, hasRole } = useAuthStore();
+  const canSms = hasRole("Admin") || hasClaim("Sms.Messages.Send");
+  const partyApplies = voucherType !== "Contra";
+  const parties = usePartyLookup(partyApplies ? form.partyType : "");
+  const party = form.partyId ? parties.find(form.partyId) : undefined;
+
+  function setPartyType(type: PartyType | "") {
+    setForm((f) => ({ ...f, partyType: type, partyId: "", sendSmsOnPost: false }));
+  }
+
+  /** Picking a party fills the "Paid To / Received From" name; it stays editable. */
+  function setParty(id: string) {
+    const picked = id ? parties.find(id) : undefined;
+    setForm((f) => ({
+      ...f,
+      partyId: id,
+      name: picked ? picked.name : f.name,
+      // Only keep the SMS option for a party that can receive one.
+      sendSmsOnPost: picked?.mobile ? f.sendSmsOnPost : false,
+    }));
+  }
 
   // "Paid To" / "Received From" only make sense when money crosses the organisation's boundary.
   // A Contra voucher moves it internally, so the field names the reason instead of a party.
@@ -333,6 +374,9 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm,
         projectId: form.chargeMode === "project" ? form.projectId : undefined,
         costCenterId: form.chargeMode === "overhead" ? form.costCenterId : undefined,
         name: form.name || undefined,
+        partyType: form.partyId ? form.partyType || undefined : undefined,
+        partyId: form.partyId || undefined,
+        sendSmsOnPost: !!form.partyId && form.sendSmsOnPost,
         section: form.section || undefined,
         description: form.description,
         debitAccountId: form.debitAccountId,
@@ -371,6 +415,9 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm,
       projectId: temp.chargeMode === "project" ? temp.projectId : undefined,
       costCenterId: temp.chargeMode === "overhead" ? temp.costCenterId : undefined,
       name: temp.name || undefined,
+      partyType: temp.partyId ? temp.partyType || undefined : undefined,
+      partyId: temp.partyId || undefined,
+      sendSmsOnPost: !!temp.partyId && temp.sendSmsOnPost,
       section: temp.section || undefined,
       description: temp.description,
       debitAccountId: temp.debitAccountId,
@@ -432,6 +479,9 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm,
       projectId: form.projectId,
       costCenterId: form.costCenterId,
       name: form.name,
+      partyType: form.partyType,
+      partyId: form.partyId,
+      sendSmsOnPost: form.sendSmsOnPost,
       section: form.section,
       description: form.description,
       debitAccountId: form.debitAccountId,
@@ -467,6 +517,9 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm,
       projectId: temp.projectId,
       costCenterId: temp.costCenterId,
       name: temp.name,
+      partyType: temp.partyType,
+      partyId: temp.partyId,
+      sendSmsOnPost: temp.sendSmsOnPost,
       section: temp.section,
       description: temp.description,
       debitAccountId: temp.debitAccountId,
@@ -679,6 +732,67 @@ function VoucherFormFields({ voucherId, voucherNumber, voucherType, initialForm,
             />
           </div>
         </div>
+
+        {partyApplies && (
+          <div className="rounded-lg border border-gray-100 bg-gray-50/60 p-4 space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="text-xs text-gray-500 mr-1">
+                {voucherType === "Debit" ? "Paid to" : "Received from"} a party on file
+                <span className="text-gray-400"> (optional)</span>
+              </label>
+              {(["", "Customer", "Vendor", "Client"] as const).map((t) => (
+                <button
+                  key={t || "none"}
+                  type="button"
+                  className={chargeTabClass(form.partyType === t)}
+                  onClick={() => setPartyType(t)}
+                >
+                  {t || "None"}
+                </button>
+              ))}
+            </div>
+            {form.partyType && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
+                <SearchableDropdown
+                  options={parties.options}
+                  loading={parties.isLoading}
+                  value={form.partyId}
+                  onChange={(v) => setParty(v ?? "")}
+                  placeholder={`Select ${form.partyType.toLowerCase()}`}
+                  searchPlaceholder="Search by name or phone…"
+                  noResultsMessage={`No ${form.partyType.toLowerCase()} found`}
+                />
+                {canSms && (
+                  <label
+                    className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-sm ${
+                      party?.mobile ? "border-gray-200 bg-white cursor-pointer" : "border-gray-200 bg-gray-50 opacity-70 cursor-not-allowed"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 h-4 w-4 accent-primary-500"
+                      checked={!!party?.mobile && form.sendSmsOnPost}
+                      disabled={!party?.mobile}
+                      onChange={(e) => update("sendSmsOnPost", e.target.checked)}
+                    />
+                    <span>
+                      <span className="inline-flex items-center gap-1 font-medium text-gray-900">
+                        <MessageSquare size={13} aria-hidden /> Send SMS when posted
+                      </span>
+                      <span className="block text-xs text-gray-500 mt-0.5">
+                        {!party
+                          ? "Select the party first."
+                          : party.mobile
+                            ? `Whoever posts the voucher sees the message to ${formatPhone(party.mobile)} with the final figures, and can edit or skip it.`
+                            : `${party.name} has no valid mobile number on file — add one to their record to send an SMS.`}
+                      </span>
+                    </span>
+                  </label>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Charge target — a project, or a cost center for head-office / overhead spend */}
         <div

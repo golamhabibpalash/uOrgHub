@@ -177,6 +177,8 @@ public static class Claims
         public static class Messages { public const string Send = "Sms.Messages.Send"; public const string SendBulk = "Sms.Messages.SendBulk"; }
         /// <summary>View: the history list (message preview). ViewDetails: a message's full text and the gateway's raw response.</summary>
         public static class History { public const string View = "Sms.History.View"; public const string ViewDetails = "Sms.History.ViewDetails"; }
+        /// <summary>Message templates for events such as money received/paid. Manage: edit and reset.</summary>
+        public static class Templates { public const string View = "Sms.Templates.View"; public const string Manage = "Sms.Templates.Manage"; }
     }
 
     public static class Self

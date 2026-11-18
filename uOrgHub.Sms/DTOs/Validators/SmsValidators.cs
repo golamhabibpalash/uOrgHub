@@ -57,4 +57,16 @@ public static class SmsLimits
     public const int MaxRecipients = 1000;
     /// <summary>About 10 Unicode / 25 GSM segments — far past what any provider will concatenate.</summary>
     public const int MaxMessageLength = 1600;
+    /// <summary>A template is filled in before sending, so it leaves room for the values.</summary>
+    public const int MaxTemplateLength = 1000;
+}
+
+public class UpdateSmsTemplateDtoValidator : AbstractValidator<UpdateSmsTemplateDto>
+{
+    public UpdateSmsTemplateDtoValidator()
+    {
+        RuleFor(x => x.Body).NotEmpty().WithMessage("Template text cannot be empty.")
+            .MaximumLength(SmsLimits.MaxTemplateLength)
+            .WithMessage($"Template cannot exceed {SmsLimits.MaxTemplateLength} characters.");
+    }
 }

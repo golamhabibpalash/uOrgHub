@@ -1,3 +1,6 @@
+using uOrgHub.Accounts.DTOs.PartySms;
+using uOrgHub.Accounts.Features.PartySms;
+using uOrgHub.Auth.Services;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -100,5 +103,29 @@ public class PaymentsController : BaseController
     {
         var result = await _mediator.Send(new VoidPaymentCommand(id));
         return Ok(ApiResponse<PaymentResponseDto>.Ok(result, "Payment voided successfully."));
+    }
+
+    /// <summary>
+    /// The SMS this payment would send its party — the number on the party's record and the
+    /// template text — or why it can't be sent. Needs SMS send rights on top of payment view.
+    /// </summary>
+    [HttpGet("{id:guid}/sms-preview")]
+    [RequireClaim(Claims.Sms.Messages.Send)]
+    public async Task<IActionResult> SmsPreview(Guid id, [FromServices] IPermissionService permissions)
+    {
+        if (!await permissions.HasClaimAsync(GetUserId(), Claims.Accounts.Payments.View))
+            return StatusCode(403, ApiResponse<string>.Fail($"Access denied: {Claims.Accounts.Payments.View} claim required"));
+        return Ok(ApiResponse<PartySmsPreviewDto>.Ok(await _mediator.Send(new GetPaymentSmsPreviewQuery(id))));
+    }
+
+    /// <summary>Queues the SMS to the party's number on record. Re-posting the same idempotency key sends once.</summary>
+    [HttpPost("{id:guid}/sms")]
+    [RequireClaim(Claims.Sms.Messages.Send)]
+    public async Task<IActionResult> SendSms(Guid id, [FromBody] SendPartySmsDto dto, [FromServices] IPermissionService permissions)
+    {
+        if (!await permissions.HasClaimAsync(GetUserId(), Claims.Accounts.Payments.View))
+            return StatusCode(403, ApiResponse<string>.Fail($"Access denied: {Claims.Accounts.Payments.View} claim required"));
+        var result = await _mediator.Send(new SendPaymentSmsCommand(id, dto));
+        return Ok(ApiResponse<PartySmsResultDto>.Ok(result, $"SMS queued to {result.PartyName}."));
     }
 }

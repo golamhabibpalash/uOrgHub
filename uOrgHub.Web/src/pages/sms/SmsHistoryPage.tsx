@@ -170,7 +170,7 @@ function SmsMessageDetailModal({ id, onClose }: { id: string | null; onClose: ()
             <Field label="Provider status" value={m.providerStatus ?? "—"} />
             <Field label="Attempts" value={String(m.attempts)} />
             <Field label="Sent by" value={m.createdBy || "—"} />
-            <Field label="Source" value={m.source ?? "—"} />
+            <Field label="Source" value={m.source ? `${m.source}${m.sourceReference ? ` · ${m.sourceReference}` : ""}` : "—"} />
           </dl>
           {(m.errorMessage || m.errorCode) && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-800">

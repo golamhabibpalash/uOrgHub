@@ -25,6 +25,7 @@ public partial class SmsMapper
 
     [MapperIgnoreTarget(nameof(SmsMessageDetailDto.MessagePreview))]
     [MapProperty(nameof(@SmsMessage.SendRequest.Source), nameof(SmsMessageDetailDto.Source))]
+    [MapProperty(nameof(@SmsMessage.SendRequest.SourceReference), nameof(SmsMessageDetailDto.SourceReference))]
     public partial SmsMessageDetailDto ToDetail(SmsMessage message);
 
     public static string Preview(string text) => text.Length <= 80 ? text : text[..80] + "…";

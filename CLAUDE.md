@@ -139,6 +139,13 @@ idempotency key) and `SmsDispatchWorker` sends them. The dispatcher only retries
 certainly didn't reach the vendor; a timeout is `Undetermined` and never retried (it may have been
 sent). Vendors echo credentials in error text, so every provider result passes through
 `SmsResultRedaction` before it's stored. Other modules send via `Shared.Services.ISmsSender`.
+Event templates (`SmsTemplateCatalog`: Money received / Money paid, per-company override in
+`sms_templates`) render via `ISmsTemplateService`. Payments and vouchers text their party through
+`uOrgHub.Accounts/Features/PartySms/`: the recipient is always the phone on the customer / vendor /
+client record, resolved via `IPartyContactDirectory` (implemented in uOrgHub.API, the only project
+that sees all three) — never a number typed for the occasion. A voucher links its party as
+`PartyType` + bare `PartyId` (no FK: Client lives in Projects); its SMS is previewed before posting
+but can only be sent once posted.
 The older Auth 2FA path (`uOrgHub.Auth/Services/SmsService.cs`, Twilio from `appsettings`) is
 separate and not yet on the gateway system.
 

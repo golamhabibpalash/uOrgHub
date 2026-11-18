@@ -203,6 +203,7 @@ export interface SmsMessageDetail extends SmsMessage {
   failedAt?: string;
   lastStatusCheckAt?: string;
   source?: string;
+  sourceReference?: string;
 }
 
 export interface SmsHistoryFilters {
@@ -248,3 +249,28 @@ export const getSmsAnalytics = (from: string, to: string, granularity: SmsGranul
   apiClient.get<ApiResponse<SmsAnalytics>>("/smsdashboard/analytics", {
     params: { from, to, granularity, tzOffsetMinutes: tzOffsetMinutes(), gatewayId },
   });
+
+// Templates
+export interface SmsPlaceholder {
+  key: string;
+  description: string;
+  sample: string;
+}
+
+export interface SmsTemplate {
+  eventKey: string;
+  label: string;
+  description: string;
+  body: string;
+  defaultBody: string;
+  isCustom: boolean;
+  placeholders: SmsPlaceholder[];
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+export const getSmsTemplates = () => apiClient.get<ApiResponse<SmsTemplate[]>>("/smstemplates");
+export const updateSmsTemplate = (eventKey: string, body: string) =>
+  apiClient.put<ApiResponse<SmsTemplate>>(`/smstemplates/${eventKey}`, { body });
+export const resetSmsTemplate = (eventKey: string) =>
+  apiClient.delete<ApiResponse<SmsTemplate>>(`/smstemplates/${eventKey}`);

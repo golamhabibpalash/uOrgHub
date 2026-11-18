@@ -35,6 +35,7 @@ public static class SmsServiceExtension
         services.AddScoped<ISmsGatewayRuntime, SmsGatewayRuntime>();
         services.AddScoped<SmsSendService>();
         services.AddScoped<ISmsSender>(sp => sp.GetRequiredService<SmsSendService>());
+        services.AddScoped<ISmsTemplateService, SmsTemplateService>();
         services.AddScoped<ISmsDispatcher, SmsDispatcher>();
         services.AddSingleton<SmsDispatchSignal>();
         services.AddHostedService<SmsDispatchWorker>();

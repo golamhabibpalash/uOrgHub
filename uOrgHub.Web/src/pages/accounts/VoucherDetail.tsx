@@ -12,7 +12,10 @@ import {
   BookOpen,
   Undo2,
   Info,
+  MessageSquare,
 } from "lucide-react";
+import VoucherPostDialog from "../../components/accounts/VoucherPostDialog";
+import PartySmsDialog from "../../components/sms/PartySmsDialog";
 import Modal from "../../components/shared/Modal";
 import ConfirmDialog from "../../components/shared/ConfirmDialog";
 import VoucherPrintView from "../../components/accounts/VoucherPrintView";
@@ -22,6 +25,8 @@ import {
   getVoucherById,
   getVoucherJournalEntry,
   postVoucher,
+  getVoucherSmsPreview,
+  sendVoucherSms,
   rejectVoucher,
   reverseVoucher,
   submitVoucher,
@@ -100,6 +105,9 @@ export default function VoucherDetail() {
   const canEditAttachments = hasRole("Admin") || hasClaim("Accounts.Vouchers.Edit");
   // Its own permission, deliberately not part of the default Accountant role.
   const canCorrect = hasRole("Admin") || hasClaim("Accounts.Vouchers.Reverse");
+  const canSms = hasRole("Admin") || hasClaim("Sms.Messages.Send");
+  const [postOpen, setPostOpen] = useState(false);
+  const [smsOpen, setSmsOpen] = useState(false);
 
   const { data: company } = useQuery({ queryKey: ["my-company"], queryFn: getMyCompany, staleTime: 300000 });
 
@@ -326,11 +334,26 @@ export default function VoucherDetail() {
 
         {voucher.status === "Approved" && (
           <button
-            onClick={() => { setError(""); actionMutation.mutate(postVoucher); }}
+            onClick={() => {
+              setError("");
+              // A voucher marked "SMS when posted" gets a confirmation with the message; others post as before.
+              if (voucher.sendSmsOnPost && canSms) setPostOpen(true);
+              else actionMutation.mutate(postVoucher);
+            }}
             disabled={busy}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
           >
             <CheckCircle2 size={14} /> Post to Ledger
+          </button>
+        )}
+
+        {voucher.status === "Posted" && canSms && voucher.partyId && voucher.voucherType !== "Contra" && (
+          <button
+            onClick={() => setSmsOpen(true)}
+            disabled={busy}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-700 disabled:opacity-50"
+          >
+            <MessageSquare size={14} /> Send SMS
           </button>
         )}
 
@@ -379,7 +402,20 @@ export default function VoucherDetail() {
 
       {/* Summary */}
       <div className="bg-white border border-gray-200 rounded-xl p-5 mb-4 grid grid-cols-2 md:grid-cols-4 gap-5">
-        <Field label={nameLabel} value={voucher.name} />
+        <Field
+          label={nameLabel}
+          value={
+            voucher.name ? (
+              <>
+                {voucher.name}
+                {voucher.partyType && <span className="ml-1 text-xs text-gray-400">({voucher.partyType})</span>}
+                {voucher.sendSmsOnPost && voucher.status !== "Posted" && (
+                  <span className="ml-1 inline-flex items-center gap-0.5 text-xs text-primary-600"><MessageSquare size={11} /> SMS on post</span>
+                )}
+              </>
+            ) : undefined
+          }
+        />
         <Field label="Voucher Ref. No." value={voucher.referenceNumber} />
         <Field label="Section" value={voucher.section} />
         <Field
@@ -548,6 +584,17 @@ export default function VoucherDetail() {
           </div>
         </div>
       </Modal>
+
+      {postOpen && <VoucherPostDialog voucher={voucher} onClose={() => setPostOpen(false)} />}
+      {smsOpen && (
+        <PartySmsDialog
+          title={`Send SMS — ${voucher.voucherNumber}`}
+          queryKey={["voucher-sms-preview", voucher.id]}
+          loadPreview={() => getVoucherSmsPreview(voucher.id)}
+          send={(message, key) => sendVoucherSms(voucher.id, message, key)}
+          onClose={() => setSmsOpen(false)}
+        />
+      )}
 
       {/* Cancel confirmation */}
       <ConfirmDialog

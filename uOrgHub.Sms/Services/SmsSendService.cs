@@ -19,7 +19,7 @@ public sealed class SmsSendService(AppDbContext db, SmsDispatchSignal signal, IC
 {
     public async Task<(SmsSendRequest Request, bool Duplicate)> CreateAsync(
         IEnumerable<string> recipients, string message, string idempotencyKey, string source,
-        Guid? userId, Guid? gatewayId = null, CancellationToken ct = default)
+        Guid? userId, Guid? gatewayId = null, CancellationToken ct = default, string? sourceReference = null)
     {
         if (string.IsNullOrWhiteSpace(idempotencyKey))
             throw new AppException("An idempotency key is required.");
@@ -63,6 +63,7 @@ public sealed class SmsSendService(AppDbContext db, SmsDispatchSignal signal, IC
             EstimatedCost = rate * info.Segments * valid.Count,
             RequestedByUserId = userId,
             Source = source,
+            SourceReference = string.IsNullOrWhiteSpace(sourceReference) ? null : sourceReference.Trim(),
         };
         foreach (var number in valid)
             request.Messages.Add(new SmsMessage
@@ -95,13 +96,17 @@ public sealed class SmsSendService(AppDbContext db, SmsDispatchSignal signal, IC
         return (request, false);
     }
 
-    public async Task<Guid> QueueAsync(IReadOnlyList<string> recipients, string message, string source, string idempotencyKey, CancellationToken ct = default)
+    public async Task<Guid> QueueAsync(
+        IReadOnlyList<string> recipients, string message, string source, string idempotencyKey,
+        string? sourceReference = null, CancellationToken ct = default)
     {
         if (company.CompanyId is null)
             throw new AppException("An SMS can only be queued within a company context.");
-        var (request, _) = await CreateAsync(recipients, message, idempotencyKey, source, userId: null, ct: ct);
+        var (request, _) = await CreateAsync(recipients, message, idempotencyKey, source, userId: null, ct: ct, sourceReference: sourceReference);
         return request.Id;
     }
+
+    public string? NormalizeRecipient(string? phone) => SmsPhoneNumber.Normalize(phone);
 
     private Task<SmsSendRequest?> FindByKeyAsync(string key, CancellationToken ct)
     {

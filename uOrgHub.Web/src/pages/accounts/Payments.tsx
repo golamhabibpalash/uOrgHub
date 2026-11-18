@@ -2,13 +2,16 @@ import { Fragment, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { Plus, ChevronDown, ChevronUp, FileCheck2, AlertCircle, Printer } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp, FileCheck2, AlertCircle, Printer, MessageSquare } from "lucide-react";
 import Pagination from "../../components/shared/Pagination";
 import Modal from "../../components/shared/Modal";
 import SearchableDropdown from "../../components/shared/SearchableDropdown";
 import AttachmentManager from "../../components/shared/AttachmentManager";
 import PendingAttachments from "../../components/shared/PendingAttachments";
 import MoneyReceiptDialog from "../../components/accounts/MoneyReceiptDialog";
+import PartySmsDialog from "../../components/sms/PartySmsDialog";
+import { usePartyLookup } from "../../hooks/usePartyLookup";
+import { formatPhone } from "../../utils/smsSegments";
 import {
   useCustomerLookup,
   useVendorLookup,
@@ -23,6 +26,8 @@ import {
   getInvoices,
   getBills,
   isInflowPayment,
+  getPaymentSmsPreview,
+  sendPaymentSms,
   PaymentType,
   PaymentMethod,
 } from "../../api/accounts";
@@ -71,6 +76,8 @@ const emptyForm = () => ({
   bankAccountId: "",
   fiscalYearId: "",
   createVoucher: false,
+  /** Open the SMS dialog for the party once the payment is saved. */
+  sendSms: false,
   moneyReceiptNumber: "",
   allocations: [] as { invoiceId: string; billId: string; allocatedAmount: number }[],
 });
@@ -91,6 +98,10 @@ export default function Payments() {
   const [seriesOpen, setSeriesOpen] = useState(false);
   const [seriesNext, setSeriesNext] = useState("");
   const canEditSeries = hasRole("Admin") || hasClaim("Accounts.Payments.Edit");
+  const canSms = hasRole("Admin") || hasClaim("Sms.Messages.Send");
+  // SMS after a save comes first; a money receipt waiting behind it opens when the SMS dialog closes.
+  const [smsPaymentId, setSmsPaymentId] = useState<string | null>(null);
+  const [receiptAfterSms, setReceiptAfterSms] = useState<string | null>(null);
   const [saveError, setSaveError] = useState("");
   const [formErrors, setFormErrors] = useState<string[]>([]);
 
@@ -134,6 +145,12 @@ export default function Payments() {
   });
   const isVendorPayment = ["VendorPayment", "AdvanceToVendor"].includes(form.paymentType);
   const hasParty = isCustomerPayment || isVendorPayment;
+
+  // The party an SMS would go to, and whether their record has a usable mobile number.
+  const smsPartyType = form.customerId ? "Customer" : form.vendorId ? "Vendor" : "";
+  const smsParties = usePartyLookup(canSms ? smsPartyType : "");
+  const smsParty = smsParties.find(form.customerId || form.vendorId);
+  const smsPossible = canSms && !!smsParty?.mobile;
   const voucherKind = isCustomerPayment ? "Credit (money received)" : "Debit (money paid out)";
 
   const createMutation = useMutation({
@@ -176,8 +193,15 @@ export default function Payments() {
       if (payment?.id) qc.invalidateQueries({ queryKey: ["attachments", ATTACHMENT_ENTITY, payment.id] });
       if (payment?.moneyReceiptNumber) qc.invalidateQueries({ queryKey: ["mr-series"] });
       closeModal(true);
-      // Money received — hand the client their receipt straight away.
-      if (payment?.id && isInflowPayment(payment)) setReceiptPaymentId(payment.id);
+      const receipt = payment?.id && isInflowPayment(payment) ? payment.id : null;
+      if (payment?.id && form.sendSms && smsPossible) {
+        // SMS first, then the receipt — one dialog at a time.
+        setSmsPaymentId(payment.id);
+        setReceiptAfterSms(receipt);
+      } else if (receipt) {
+        // Money received — hand the client their receipt straight away.
+        setReceiptPaymentId(receipt);
+      }
     },
     onError: (err: unknown) => setSaveError(extractApiError(err) || "Failed to save payment."),
   });
@@ -364,14 +388,24 @@ export default function Payments() {
                                   "Not posted to the ledger (no bank account or party account)."
                                 )}
                               </div>
-                              {isInflowPayment(pmt) && (
-                                <button
-                                  onClick={() => setReceiptPaymentId(pmt.id)}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-700"
-                                >
-                                  <Printer size={14} /> Print money receipt
-                                </button>
-                              )}
+                              <div className="flex flex-wrap gap-2">
+                                {isInflowPayment(pmt) && (
+                                  <button
+                                    onClick={() => setReceiptPaymentId(pmt.id)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-700"
+                                  >
+                                    <Printer size={14} /> Print money receipt
+                                  </button>
+                                )}
+                                {canSms && (pmt.customerId || pmt.vendorId) && (
+                                  <button
+                                    onClick={() => setSmsPaymentId(pmt.id)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-700"
+                                  >
+                                    <MessageSquare size={14} /> Send SMS
+                                  </button>
+                                )}
+                              </div>
                             </div>
                             <div className="lg:col-span-2">
                               <AttachmentManager entityType={ATTACHMENT_ENTITY} entityId={pmt.id} canEdit={canEditAttachments} />
@@ -545,6 +579,38 @@ export default function Payments() {
             </span>
           </label>
 
+          {canSms && hasParty && (
+            <label
+              className={`flex items-start gap-3 border rounded-xl p-4 transition-colors ${
+                !smsPossible
+                  ? "border-gray-200 bg-gray-50 opacity-70 cursor-not-allowed"
+                  : form.sendSms
+                    ? "border-primary-300 bg-primary-50/50 cursor-pointer"
+                    : "border-gray-200 hover:border-gray-300 cursor-pointer"
+              }`}
+            >
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 accent-primary-500"
+                checked={smsPossible && form.sendSms}
+                disabled={!smsPossible}
+                onChange={(e) => setForm((f) => ({ ...f, sendSms: e.target.checked }))}
+              />
+              <span className="text-sm">
+                <span className="font-medium text-gray-900">
+                  Send SMS{smsParty ? ` to ${smsParty.name}` : ""}
+                </span>
+                <span className="block text-xs text-gray-500 mt-0.5">
+                  {!smsParty
+                    ? `Select the ${isCustomerPayment ? "customer" : "vendor"} first.`
+                    : smsParty.mobile
+                      ? <>After saving you'll see the message — from the “{formIsInflow ? "Money received" : "Money paid"}” template — to {formatPhone(smsParty.mobile)}, and can edit it before sending.</>
+                      : `${smsParty.name} has no valid mobile number on file. Add one to their ${isCustomerPayment ? "customer" : "vendor"} record to send an SMS.`}
+                </span>
+              </span>
+            </label>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Notes</label>
@@ -591,6 +657,23 @@ export default function Payments() {
           </div>
         </div>
       </Modal>
+
+      {smsPaymentId && (
+        <PartySmsDialog
+          title="Send SMS"
+          queryKey={["payment-sms-preview", smsPaymentId]}
+          loadPreview={() => getPaymentSmsPreview(smsPaymentId)}
+          send={(message, key) => sendPaymentSms(smsPaymentId, message, key)}
+          skipLabel={receiptAfterSms ? "Skip, show receipt" : "Skip"}
+          onClose={() => {
+            setSmsPaymentId(null);
+            if (receiptAfterSms) {
+              setReceiptPaymentId(receiptAfterSms);
+              setReceiptAfterSms(null);
+            }
+          }}
+        />
+      )}
 
       <MoneyReceiptDialog paymentId={receiptPaymentId} onClose={() => setReceiptPaymentId(null)} />
     </div>

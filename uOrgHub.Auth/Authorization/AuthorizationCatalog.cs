@@ -80,6 +80,7 @@ public static class AuthorizationCatalog
         {
             Claims.Sms.Dashboard.View, Claims.Sms.Analytics.View, Claims.Sms.Gateways.View,
             Claims.Sms.Messages.Send, Claims.Sms.History.View, Claims.Sms.History.ViewDetails,
+            Claims.Sms.Templates.View,
         };
 
         var salesClaims = new[]

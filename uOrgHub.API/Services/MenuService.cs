@@ -87,6 +87,7 @@ public class MenuService : IMenuService
             new("sms-dashboard", "Dashboard", "MessageSquare", "/sms", Claims.Sms.Dashboard.View, null, null, null),
             new("sms-compose", "Compose", "Send", "/sms/compose", Claims.Sms.Messages.Send, null, null, null),
             new("sms-history", "History", "ScrollText", "/sms/history", Claims.Sms.History.View, null, null, null),
+            new("sms-templates", "Templates", "FileText", "/sms/templates", Claims.Sms.Templates.View, null, null, null),
             new("sms-gateways", "Gateways", "Settings", "/sms/gateways", Claims.Sms.Gateways.View, null, null, null),
         ]),
 

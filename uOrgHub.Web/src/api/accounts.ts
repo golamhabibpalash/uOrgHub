@@ -1,6 +1,30 @@
 import apiClient from "./client";
 import { ApiResponse, PagedResult, PaginationRequest } from "../types/api";
 
+/** Kind of external party a voucher can be linked to (mirrors Shared.Models.Enums.PartyType). */
+export type PartyType = "Customer" | "Vendor" | "Client";
+
+/**
+ * The SMS a payment or voucher would send: the number on the party's own record and the
+ * company's template text. When `canSend` is false, `reason` says why.
+ */
+export interface PartySmsPreview {
+  canSend: boolean;
+  reason?: string;
+  partyType?: PartyType;
+  partyName?: string;
+  phone?: string;
+  eventKey?: string;
+  message: string;
+  reference?: string;
+}
+
+export interface PartySmsResult {
+  requestId: string;
+  partyName: string;
+  phone: string;
+}
+
 // ── Enums ──────────────────────────────────────────────────────────────────
 
 export type AccountGroupType = "Asset" | "Liability" | "Equity" | "Income" | "Expense";
@@ -256,6 +280,11 @@ export interface Voucher {
   costCenterName?: string;
   costCenterCode?: string;
   name?: string;
+  /** Linked customer / vendor / client, when picked from the records. */
+  partyType?: PartyType;
+  partyId?: string;
+  /** The poster is offered an SMS to the party when posting. */
+  sendSmsOnPost?: boolean;
   section?: string;
   description: string;
   debitAccountId: string;
@@ -338,6 +367,11 @@ export interface CreateVoucherPayload {
   /** Set for a head-office / overhead voucher. Mutually exclusive with projectId. */
   costCenterId?: string;
   name?: string;
+  /** Linked customer / vendor / client, when picked from the records. */
+  partyType?: PartyType;
+  partyId?: string;
+  /** The poster is offered an SMS to the party when posting. */
+  sendSmsOnPost?: boolean;
   section?: string;
   description: string;
   debitAccountId: string;
@@ -385,6 +419,12 @@ export const approveVoucher = (id: string) =>
 
 export const postVoucher = (id: string) =>
   apiClient.post<ApiResponse<Voucher>>(`/accounts/vouchers/${id}/post`, {});
+
+export const getVoucherSmsPreview = (id: string) =>
+  apiClient.get<ApiResponse<PartySmsPreview>>(`/accounts/vouchers/${id}/sms-preview`);
+
+export const sendVoucherSms = (id: string, message: string, idempotencyKey: string) =>
+  apiClient.post<ApiResponse<PartySmsResult>>(`/accounts/vouchers/${id}/sms`, { message, idempotencyKey });
 
 export const rejectVoucher = (id: string, reason: string) =>
   apiClient.post<ApiResponse<Voucher>>(`/accounts/vouchers/${id}/reject`, { reason });
@@ -725,6 +765,12 @@ export const getPayments = (params: PaginationRequest, customerId?: string, vend
 
 export const getPaymentById = (id: string) =>
   apiClient.get<ApiResponse<Payment>>(`/accounts/payments/${id}`);
+
+export const getPaymentSmsPreview = (id: string) =>
+  apiClient.get<ApiResponse<PartySmsPreview>>(`/accounts/payments/${id}/sms-preview`);
+
+export const sendPaymentSms = (id: string, message: string, idempotencyKey: string) =>
+  apiClient.post<ApiResponse<PartySmsResult>>(`/accounts/payments/${id}/sms`, { message, idempotencyKey });
 
 /** Printable money receipt for a payment received (inflow payments only). */
 export interface PaymentReceipt {

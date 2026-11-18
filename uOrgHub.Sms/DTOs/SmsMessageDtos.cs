@@ -91,4 +91,5 @@ public class SmsMessageDetailDto : SmsMessageListItemDto
     public DateTime? FailedAt { get; set; }
     public DateTime? LastStatusCheckAt { get; set; }
     public string? Source { get; set; }
+    public string? SourceReference { get; set; }
 }

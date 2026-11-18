@@ -81,6 +81,8 @@ builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 // Cross-module services
 builder.Services.AddScoped<IEmployeeWithUserService, EmployeeWithUserService>();
+// Customer / vendor / client name + phone, for modules that message a party from another module.
+builder.Services.AddScoped<uOrgHub.Shared.Services.IPartyContactDirectory, PartyContactDirectory>();
 builder.Services.AddScoped<EmployeeProfilePictureService>();
 builder.Services.AddScoped<IUserProfilePictureResolver, UserProfilePictureResolver>();
 

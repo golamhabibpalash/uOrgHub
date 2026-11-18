@@ -42,5 +42,9 @@ public class SmsSendRequest : BaseEntity, ICompanyScoped
     [Required, MaxLength(50)]
     public string Source { get; set; } = "Manual";
 
+    /// <summary>The document behind the send (MR No., payment or voucher number), when it came from one.</summary>
+    [MaxLength(100)]
+    public string? SourceReference { get; set; }
+
     public ICollection<SmsMessage> Messages { get; set; } = new List<SmsMessage>();
 }

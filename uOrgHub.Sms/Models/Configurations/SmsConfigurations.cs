@@ -29,6 +29,15 @@ public class SmsSendRequestConfiguration : IEntityTypeConfiguration<SmsSendReque
     }
 }
 
+public class SmsTemplateConfiguration : IEntityTypeConfiguration<SmsTemplate>
+{
+    public void Configure(EntityTypeBuilder<SmsTemplate> b)
+    {
+        b.HasKey(x => x.Id);
+        b.HasIndex(x => new { x.CompanyId, x.EventKey }).IsUnique().HasFilter("\"IsDeleted\" = FALSE");
+    }
+}
+
 public class SmsMessageConfiguration : IEntityTypeConfiguration<SmsMessage>
 {
     public void Configure(EntityTypeBuilder<SmsMessage> b)

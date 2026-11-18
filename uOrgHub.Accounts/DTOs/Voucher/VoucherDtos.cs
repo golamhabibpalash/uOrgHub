@@ -1,5 +1,7 @@
 using uOrgHub.Accounts.Models.Enums;
 
+using uOrgHub.Shared.Models.Enums;
+
 namespace uOrgHub.Accounts.DTOs.Voucher;
 
 public class CreateVoucherDto
@@ -25,6 +27,11 @@ public class CreateVoucherDto
     public Guid? CostCenterId { get; set; }
 
     public string? Name { get; set; }
+    /// <summary>Optional link to a customer, vendor or client record (type and id go together).</summary>
+    public PartyType? PartyType { get; set; }
+    public Guid? PartyId { get; set; }
+    /// <summary>Offer an SMS to the party when the voucher is posted. Needs a party with a phone on file.</summary>
+    public bool SendSmsOnPost { get; set; }
     public string? Section { get; set; }
     public string Description { get; set; } = string.Empty;
     public Guid DebitAccountId { get; set; }
@@ -45,6 +52,11 @@ public class UpdateVoucherDto
     public Guid? ProjectId { get; set; }
     public Guid? CostCenterId { get; set; }
     public string? Name { get; set; }
+    /// <summary>Optional link to a customer, vendor or client record (type and id go together).</summary>
+    public PartyType? PartyType { get; set; }
+    public Guid? PartyId { get; set; }
+    /// <summary>Offer an SMS to the party when the voucher is posted. Needs a party with a phone on file.</summary>
+    public bool SendSmsOnPost { get; set; }
     public string? Section { get; set; }
     public string Description { get; set; } = string.Empty;
     public Guid DebitAccountId { get; set; }
@@ -132,6 +144,9 @@ public class VoucherResponseDto
     public string? CostCenterName { get; set; }
     public string? CostCenterCode { get; set; }
     public string? Name { get; set; }
+    public PartyType? PartyType { get; set; }
+    public Guid? PartyId { get; set; }
+    public bool SendSmsOnPost { get; set; }
     public string? Section { get; set; }
     public string Description { get; set; } = string.Empty;
     public Guid DebitAccountId { get; set; }

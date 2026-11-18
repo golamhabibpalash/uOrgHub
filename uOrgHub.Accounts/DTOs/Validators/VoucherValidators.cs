@@ -42,6 +42,14 @@ public class CreateVoucherValidator : AbstractValidator<CreateVoucherDto>
 
         RuleFor(x => x.PreparedBy).MaximumLength(200);
         RuleFor(x => x.ReceivedBy).MaximumLength(200);
+
+        RuleFor(x => x.PartyType).IsInEnum().When(x => x.PartyType.HasValue);
+        RuleFor(x => x).Must(x => x.PartyType.HasValue == x.PartyId.HasValue)
+            .WithMessage("Pick both the party type and the party, or neither.");
+        RuleFor(x => x.SendSmsOnPost).Equal(false).When(x => !x.PartyId.HasValue)
+            .WithMessage("Pick a customer, vendor or client to send them an SMS.");
+        RuleFor(x => x.SendSmsOnPost).Equal(false).When(x => x.VoucherType == Models.Enums.VoucherType.Contra)
+            .WithMessage("A contra voucher moves money between your own accounts — there is no party to text.");
     }
 }
 
@@ -81,6 +89,12 @@ public class UpdateVoucherValidator : AbstractValidator<UpdateVoucherDto>
 
         RuleFor(x => x.PreparedBy).MaximumLength(200);
         RuleFor(x => x.ReceivedBy).MaximumLength(200);
+
+        RuleFor(x => x.PartyType).IsInEnum().When(x => x.PartyType.HasValue);
+        RuleFor(x => x).Must(x => x.PartyType.HasValue == x.PartyId.HasValue)
+            .WithMessage("Pick both the party type and the party, or neither.");
+        RuleFor(x => x.SendSmsOnPost).Equal(false).When(x => !x.PartyId.HasValue)
+            .WithMessage("Pick a customer, vendor or client to send them an SMS.");
     }
 }
 

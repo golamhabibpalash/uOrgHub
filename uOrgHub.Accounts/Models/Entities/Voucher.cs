@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using uOrgHub.Accounts.Models.Enums;
 using uOrgHub.Shared.Entities;
+using uOrgHub.Shared.Models.Enums;
 
 namespace uOrgHub.Accounts.Models.Entities;
 
@@ -47,6 +48,18 @@ public class Voucher : BaseEntity, ICompanyScoped
 
     [MaxLength(200)]
     public string? Name { get; set; }
+
+    /// <summary>
+    /// The customer, vendor or client the voucher is with, when picked from the records. A bare id
+    /// plus type: the three live in different modules (Client is in Projects, which Accounts can't
+    /// reference), so there is no foreign key — <c>IPartyContactDirectory</c> resolves it.
+    /// <see cref="Name"/> stays the printed "Paid to / Received from" text.
+    /// </summary>
+    public PartyType? PartyType { get; set; }
+    public Guid? PartyId { get; set; }
+
+    /// <summary>Whoever posts the voucher is offered an SMS to the party, built from the final figures.</summary>
+    public bool SendSmsOnPost { get; set; }
 
     [MaxLength(200)]
     public string? Section { get; set; }

@@ -1,3 +1,5 @@
+using uOrgHub.Shared.Models.Enums;
+using uOrgHub.Shared.Services;
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -146,11 +148,16 @@ public class CreateVoucherCommandHandler : IRequestHandler<CreateVoucherCommand,
     private readonly IValidator<CreateVoucherDto> _validator;
     private readonly VoucherMapper _mapper = new();
 
-    public CreateVoucherCommandHandler(AppDbContext context, IDocumentNumberingService numbering, IValidator<CreateVoucherDto> validator)
+    private readonly IPartyContactDirectory? _parties;
+
+    /// <param name="parties">Checks a picked customer/vendor/client exists; optional so the handler can be built without it in tests.</param>
+    public CreateVoucherCommandHandler(AppDbContext context, IDocumentNumberingService numbering, IValidator<CreateVoucherDto> validator,
+        IPartyContactDirectory? parties = null)
     {
         _context = context;
         _numbering = numbering;
         _validator = validator;
+        _parties = parties;
     }
 
     public async Task<VoucherResponseDto> Handle(CreateVoucherCommand request, CancellationToken ct)
@@ -163,6 +170,7 @@ public class CreateVoucherCommandHandler : IRequestHandler<CreateVoucherCommand,
         var chargeTarget = await VoucherGuard.ResolveChargeTargetAsync(_context, request.Dto.ProjectId, request.Dto.CostCenterId, ct);
         if (request.Dto.FiscalYearId.HasValue)
             await VoucherGuard.ValidateFiscalYearAsync(_context, request.Dto.FiscalYearId.Value, request.Dto.VoucherDate, ct);
+        var party = await VoucherGuard.ResolvePartyAsync(_parties, request.Dto.PartyType, request.Dto.PartyId, request.Dto.SendSmsOnPost, ct);
 
         var prefix = VoucherAccountRules.NumberPrefix(request.Dto.VoucherType);
         var voucherNumber = await _numbering.GenerateNextAsync("Voucher", prefix);
@@ -175,6 +183,7 @@ public class CreateVoucherCommandHandler : IRequestHandler<CreateVoucherCommand,
         entity.Status = VoucherStatus.Draft;
         entity.CostCenterId = chargeTarget.CostCenterId;
         entity.ProjectId = chargeTarget.ProjectId;
+        if (string.IsNullOrWhiteSpace(entity.Name) && party is not null) entity.Name = party.Name;
         entity.CreatedAt = DateTime.UtcNow;
         entity.CreatedBy = request.CreatedBy;
 
@@ -192,10 +201,13 @@ public class UpdateVoucherCommandHandler : IRequestHandler<UpdateVoucherCommand,
     private readonly IValidator<UpdateVoucherDto> _validator;
     private readonly VoucherMapper _mapper = new();
 
-    public UpdateVoucherCommandHandler(AppDbContext context, IValidator<UpdateVoucherDto> validator)
+    private readonly IPartyContactDirectory? _parties;
+
+    public UpdateVoucherCommandHandler(AppDbContext context, IValidator<UpdateVoucherDto> validator, IPartyContactDirectory? parties = null)
     {
         _context = context;
         _validator = validator;
+        _parties = parties;
     }
 
     public async Task<VoucherResponseDto> Handle(UpdateVoucherCommand request, CancellationToken ct)
@@ -216,9 +228,14 @@ public class UpdateVoucherCommandHandler : IRequestHandler<UpdateVoucherCommand,
         if (request.Dto.FiscalYearId.HasValue)
             await VoucherGuard.ValidateFiscalYearAsync(_context, request.Dto.FiscalYearId.Value, request.Dto.VoucherDate, ct);
 
+        if (request.Dto.SendSmsOnPost && entity.VoucherType == VoucherType.Contra)
+            throw new ValidationException(["A contra voucher moves money between your own accounts — there is no party to text."]);
+        var party = await VoucherGuard.ResolvePartyAsync(_parties, request.Dto.PartyType, request.Dto.PartyId, request.Dto.SendSmsOnPost, ct);
+
         _mapper.UpdateEntity(request.Dto, entity);
         entity.CostCenterId = chargeTarget.CostCenterId;
         entity.ProjectId = chargeTarget.ProjectId;
+        if (string.IsNullOrWhiteSpace(entity.Name) && party is not null) entity.Name = party.Name;
         entity.UpdatedAt = DateTime.UtcNow;
         entity.UpdatedBy = request.UpdatedBy;
 
@@ -833,6 +850,21 @@ file static class VoucherGuard
     /// An overhead voucher names a cost center directly; if that cost center happens to belong to
     /// a project, the project is recorded too so the two never disagree.
     /// </summary>
+    /// <summary>
+    /// The picked party, checked to exist — and, when an SMS is to be offered at posting, to have a
+    /// phone on its record (the SMS only ever goes to that number). Null when no party is picked.
+    /// </summary>
+    public static async Task<PartyContact?> ResolvePartyAsync(
+        IPartyContactDirectory? parties, PartyType? type, Guid? id, bool sendSmsOnPost, CancellationToken ct)
+    {
+        if (type is null || id is null || parties is null) return null;
+        var party = await parties.FindAsync(type.Value, id.Value, ct)
+            ?? throw new ValidationException([$"The selected {type.Value.ToString().ToLowerInvariant()} was not found."]);
+        if (sendSmsOnPost && string.IsNullOrWhiteSpace(party.Phone))
+            throw new ValidationException([$"{party.Name} has no phone number on file. Add one to their record to send them an SMS."]);
+        return party;
+    }
+
     public static async Task<(Guid CostCenterId, Guid? ProjectId)> ResolveChargeTargetAsync(
         AppDbContext context,
         Guid? projectId,
