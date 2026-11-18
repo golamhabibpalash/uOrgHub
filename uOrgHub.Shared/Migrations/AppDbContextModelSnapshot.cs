@@ -9258,6 +9258,337 @@ namespace uOrgHub.Shared.Migrations
                     b.ToTable("vendors");
                 });
 
+            modelBuilder.Entity("uOrgHub.Sms.Models.Entities.SmsGateway", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BalanceUnit")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("BaseUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CredentialsCipher")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal?>("LastBalance")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("LastBalanceError")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("LastBalanceSyncedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<decimal?>("LastProviderRate")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("LastTestMessage")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool?>("LastTestSucceeded")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastTestedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("MaxSendsPerSecond")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ProviderKey")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal?>("RatePerSegment")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("SenderId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("SettingsJson")
+                        .HasColumnType("text");
+
+                    b.Property<int>("TimeoutSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "Name")
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = FALSE");
+
+                    b.HasIndex(new[] { "CompanyId" }, "IX_sms_gateways_CompanyId_Default")
+                        .IsUnique()
+                        .HasFilter("\"IsDefault\" = TRUE AND \"IsDeleted\" = FALSE");
+
+                    b.ToTable("sms_gateways");
+                });
+
+            modelBuilder.Entity("uOrgHub.Sms.Models.Entities.SmsMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("Cost")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<bool>("CostIsActual")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeliveredAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("Encoding")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ErrorCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("FailedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid>("GatewayId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("GatewayName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastStatusCheckAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("MessageText")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("NextAttemptAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("ProviderKey")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ProviderMessageId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ProviderResponse")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("ProviderStatus")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Recipient")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("Segments")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("SendRequestId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("StatusChecks")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GatewayId");
+
+                    b.HasIndex("ProviderMessageId");
+
+                    b.HasIndex("Recipient");
+
+                    b.HasIndex("SendRequestId");
+
+                    b.HasIndex("CompanyId", "CreatedAt");
+
+                    b.HasIndex("Status", "NextAttemptAt");
+
+                    b.HasIndex("Status", "SubmittedAt");
+
+                    b.HasIndex("CompanyId", "GatewayId", "CreatedAt");
+
+                    b.HasIndex("CompanyId", "Status", "CreatedAt");
+
+                    b.ToTable("sms_messages");
+                });
+
+            modelBuilder.Entity("uOrgHub.Sms.Models.Entities.SmsSendRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Encoding")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("EstimatedCost")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<Guid>("GatewayId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("MessageText")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("RatePerSegment")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int>("RecipientCount")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("RequestedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SegmentsPerRecipient")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("TotalSegments")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GatewayId");
+
+                    b.HasIndex("CompanyId", "CreatedAt");
+
+                    b.HasIndex("CompanyId", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.ToTable("sms_send_requests");
+                });
+
             modelBuilder.Entity("uOrgHub.Accounts.Models.Entities.AccountGroup", b =>
                 {
                     b.HasOne("uOrgHub.Accounts.Models.Entities.AccountGroup", "ParentAccountGroup")
@@ -11292,6 +11623,35 @@ namespace uOrgHub.Shared.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
+            modelBuilder.Entity("uOrgHub.Sms.Models.Entities.SmsMessage", b =>
+                {
+                    b.HasOne("uOrgHub.Sms.Models.Entities.SmsGateway", "Gateway")
+                        .WithMany()
+                        .HasForeignKey("GatewayId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("uOrgHub.Sms.Models.Entities.SmsSendRequest", "SendRequest")
+                        .WithMany("Messages")
+                        .HasForeignKey("SendRequestId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Gateway");
+
+                    b.Navigation("SendRequest");
+                });
+
+            modelBuilder.Entity("uOrgHub.Sms.Models.Entities.SmsSendRequest", b =>
+                {
+                    b.HasOne("uOrgHub.Sms.Models.Entities.SmsGateway", "Gateway")
+                        .WithMany()
+                        .HasForeignKey("GatewayId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Gateway");
+                });
+
             modelBuilder.Entity("uOrgHub.Accounts.Models.Entities.AccountGroup", b =>
                 {
                     b.Navigation("ChartOfAccounts");
@@ -11651,6 +12011,11 @@ namespace uOrgHub.Shared.Migrations
             modelBuilder.Entity("uOrgHub.Projects.Models.Entities.WorkBreakdownStructure", b =>
                 {
                     b.Navigation("Children");
+                });
+
+            modelBuilder.Entity("uOrgHub.Sms.Models.Entities.SmsSendRequest", b =>
+                {
+                    b.Navigation("Messages");
                 });
 #pragma warning restore 612, 618
         }

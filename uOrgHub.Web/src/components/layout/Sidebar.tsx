@@ -44,6 +44,8 @@ import {
   BarChart3,
   Truck,
   TrendingDown,
+  MessageSquare,
+  Send,
 } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 import { getMenuItems, type MenuItemDto } from "../../api/auth";
@@ -57,7 +59,7 @@ const iconMap: Record<string, React.ComponentType<{ size?: number; className?: s
   BookOpen, Calendar, Layers, MapPin, Percent, Landmark, FileText,
   CreditCard, PiggyBank, FileSpreadsheet, ShoppingBag, Tag, Ruler,
   Package, Warehouse, ArrowDownToLine, ArrowUpFromLine, GitBranch, BarChart3,
-  Truck, TrendingDown,
+  Truck, TrendingDown, MessageSquare, Send,
 };
 
 interface NavItem {

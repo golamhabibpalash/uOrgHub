@@ -15,6 +15,7 @@ using uOrgHub.Inventory;
 using uOrgHub.Procurement;
 using uOrgHub.Projects;
 using uOrgHub.Settings;
+using uOrgHub.Sms;
 using uOrgHub.Shared.Data;
 using uOrgHub.Shared.Models;
 using uOrgHub.Shared.Services;
@@ -106,6 +107,9 @@ builder.Services.AddAuthModule();
 
 // Settings Module
 builder.Services.AddSettingsModule();
+
+// SMS Module (gateways, sending, history; background dispatch worker)
+builder.Services.AddSmsModule();
 
 // Dashboard Service
 builder.Services.AddScoped<IDashboardService, DashboardService>();

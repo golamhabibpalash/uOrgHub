@@ -164,6 +164,21 @@ public static class Claims
         }
     }
 
+    public static class Sms
+    {
+        public static class Dashboard { public const string View = "Sms.Dashboard.View"; }
+        public static class Analytics { public const string View = "Sms.Analytics.View"; }
+        /// <summary>
+        /// View: see gateways and their status. Manage: add, edit, enable/disable, remove and test
+        /// gateways (touches credentials). Switch: change which gateway is active.
+        /// </summary>
+        public static class Gateways { public const string View = "Sms.Gateways.View"; public const string Manage = "Sms.Gateways.Manage"; public const string Switch = "Sms.Gateways.Switch"; }
+        /// <summary>Send: one recipient at a time. SendBulk: more than one recipient in a send.</summary>
+        public static class Messages { public const string Send = "Sms.Messages.Send"; public const string SendBulk = "Sms.Messages.SendBulk"; }
+        /// <summary>View: the history list (message preview). ViewDetails: a message's full text and the gateway's raw response.</summary>
+        public static class History { public const string View = "Sms.History.View"; public const string ViewDetails = "Sms.History.ViewDetails"; }
+    }
+
     public static class Self
     {
         public const string ViewProfile = "Self.ViewProfile";

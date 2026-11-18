@@ -22,7 +22,7 @@ A few rules to keep front of mind:
 - Always `DateTime.UtcNow`, never `DateTime.Now`.
 - Mapping is **Riok.Mapperly only** — never AutoMapper, never hand-mapping in handlers/controllers.
 - Controllers always return `ApiResponse<T>` (`uOrgHub.Shared/Models/ApiResponse.cs`); paged endpoints return `ApiResponse<PagedResult<T>>`.
-- Table names carry a module prefix via `[Table("...")]`: `hr_`, `acc_`, `inv_`, `proc_`, `proj_`.
+- Table names carry a module prefix via `[Table("...")]`: `hr_`, `acc_`, `inv_`, `proc_`, `proj_`, `sms_`.
 - Commit messages: `{type}: {desc}`, type ∈ `feat | fix | refactor | init | migration | test`.
 
 > Note: CODING_STANDARDS.md §3/§6 describe an older Service+Repository layout. The code has
@@ -50,7 +50,7 @@ A few rules to keep front of mind:
 ## Architecture (actual current pattern)
 
 Each business module (`uOrgHub.HR`, `uOrgHub.Accounts`, `uOrgHub.Inventory`,
-`uOrgHub.Procurement`, `uOrgHub.Projects`) is its own class library, registered in
+`uOrgHub.Procurement`, `uOrgHub.Projects`, `uOrgHub.Sms`) is its own class library, registered in
 `uOrgHub.API/Program.cs` via a `{Module}ServiceExtension.cs` (e.g. `AddHRModule()`).
 Supporting libraries: `uOrgHub.Shared` (BaseEntity, `AppDbContext`, `ApiResponse`,
 exceptions, `WhereSearch` — see below), `uOrgHub.Auth` (JWT + claims, below),
@@ -126,6 +126,22 @@ entity types directly). `AuditInterceptor` stamps `CompanyId` on create from the
 `ICurrentCompanyAccessor` (`uOrgHub.Shared/Services/`), not the claim directly. No claim in
 context (seeders, tests, migrations) means "don't filter", not "show nothing".
 
+### SMS module (`uOrgHub.Sms`)
+
+Provider-independent: each vendor is one `ISmsProvider` class (`Providers/`) registered in
+`SmsServiceExtension` — its `Descriptor` lists the settings it needs, and the gateway form is built
+from that, so adding a vendor needs no entity, migration, endpoint or screen change. Gateways are
+per company (`ICompanyScoped`); one per company is `IsDefault` (filtered unique index). Secrets are
+AES-GCM encrypted (`SmsCredentialProtector`, key `Sms:CredentialKey`) and never returned — the API
+reports only whether each is set. Sending never calls a vendor inside the request:
+`SmsSendService` stores one queued `SmsMessage` per recipient (deduplicated by the request's
+idempotency key) and `SmsDispatchWorker` sends them. The dispatcher only retries failures that
+certainly didn't reach the vendor; a timeout is `Undetermined` and never retried (it may have been
+sent). Vendors echo credentials in error text, so every provider result passes through
+`SmsResultRedaction` before it's stored. Other modules send via `Shared.Services.ISmsSender`.
+The older Auth 2FA path (`uOrgHub.Auth/Services/SmsService.cs`, Twilio from `appsettings`) is
+separate and not yet on the gateway system.
+
 ### Money-flow map
 
 `BUSINESS_FLOW.md` traces procure-to-pay / order-to-cash / project-costing across modules and
@@ -133,6 +149,18 @@ explicitly lists the points where the chain is wired vs. only present in schema 
 assuming two modules' data is connected just because both reference the same concept (e.g. two
 modules independently modeling "vendor" or "customer" with no FK between them is the kind of gap
 it tracks).
+
+Project costing hangs on the **cost center**: project reports (`ProjectFinancialService`,
+`ProjectStatementService`) read posted journal lines by the project's cost centers. Voucher
+posting (`Accounts/Features/Voucher/VoucherFeatures.cs`) stamps that cost center on **both** lines,
+so a project's lines include the cash/bank side of every voucher — any per-line or per-account
+total over a project double-counts unless that side is excluded. Don't trust
+`ChartOfAccount.IsCashOrBank` to find it (it is unset on real accounts such as Cash in Hand);
+derive it from the voucher: a Debit (payment) voucher's `CreditAccountId`, a Credit (receipt)
+voucher's `DebitAccountId`, both accounts of a Contra. "Correcting" a voucher never deletes: the
+original stays posted, a mirror entry (`Voucher.ReversalJournalEntryId`, same accounts, sides
+swapped) cancels it, the voucher becomes `Reversed`, and a new voucher (`CorrectsVoucherId`)
+replaces it — so reversed pairs sit in the ledger and need handling in any line-level report.
 
 ## Frontend (`uOrgHub.Web`)
 
@@ -202,6 +230,11 @@ Never edit migration files by hand.
   (local dev points at **Port 5433**, not 5432 — `README.md`'s Database Configuration table
   still says 5432; that's stale, trust `docker-compose.yml`/`appsettings*.json`). Local
   container: DB `orgHub`, user `postgres`, password `Admin1234!`.
+- Querying the database directly (psql): EF keeps C# names, so tables are the `[Table]` names
+  (`acc_vouchers`, `acc_journalentries`, `acc_journalentrylines`, `acc_chartofaccounts`) but
+  columns are PascalCase and must be double-quoted (`"ProjectId"`), and enums are stored as
+  their **integer** value (e.g. `VoucherType` Debit=0/Credit=1/Contra=2; `VoucherStatus`
+  Posted=3, Reversed=6; `AccountGroupType` Expense=4) — check the enum's declaration order.
 - Secrets for deployment come from `.env` (copy `.env.example`); never commit real secrets.
 - Adding a new module: create the class library, add a `{Module}ServiceExtension`, register it
   in `Program.cs`, add controllers under `Controllers/{Module}/`, define claims in `uOrgHub.Auth`,
@@ -210,7 +243,9 @@ Never edit migration files by hand.
   `sudo ./deploy/deploy.sh <instance>` (see `deploy/README.md`), or the manual
   `.github/workflows/deploy.yml` dispatch, which SSHes in and runs that same script (instances:
   `cfelbd-dev`, `cfelbd-live`, `uorghub`; the branch deployed comes from the server-side
-  `deploy/instances/<instance>.env`'s `GIT_BRANCH`, not from the workflow). The frontend bakes
+  `deploy/instances/<instance>.env`'s `GIT_BRANCH`, not from the workflow). The script pulls
+  that branch **from GitHub** into the server's checkout, so a deploy ships only what is pushed —
+  a local-only commit silently redeploys the previous code. The frontend bakes
   `VITE_API_URL` in at build time, so each deployed instance needs its own web image tag.
   `scripts/deploy.sh` is only the one-time server bootstrap; `scripts/update.sh` and root
   `docker-compose.prod.yml` are superseded by `deploy/` — don't extend them.

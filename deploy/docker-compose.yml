@@ -47,6 +47,9 @@ services:
       JwtSettings__SecretKey: ${JWT_SECRET:?}
       JwtSettings__Issuer: ${JWT_ISSUER:?}
       JwtSettings__Audience: ${JWT_AUDIENCE:?}
+      # Encrypts SMS gateway credentials at rest. Optional: unset falls back to a key derived from
+      # JWT_SECRET (with a startup warning). Changing it means re-entering gateway credentials.
+      Sms__CredentialKey: ${SMS_CREDENTIAL_KEY:-}
       AllowedOrigins: ${ALLOWED_ORIGINS:?}
     ports:
       - "127.0.0.1:${API_PORT:?}:8080"

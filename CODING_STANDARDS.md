@@ -295,6 +295,7 @@ Use [Table("prefix_tablename")] attribute on every entity class.
 | Inventory | inv_ |
 | Procurement | proc_ |
 | Projects | proj_ |
+| Sms | sms_ |
 
 Example:
 [Table("hr_employees")]

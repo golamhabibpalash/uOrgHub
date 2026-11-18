@@ -54,6 +54,11 @@ public static class AuthorizationCatalog
             "Process" => $"Process {subject}",
             "AssignRoles" => $"Assign roles to {subject}",
             "Print" => $"Print {subject}",
+            "Manage" => $"Manage {subject}",
+            "Switch" => $"Switch active {subject}",
+            "Send" => "Send SMS",
+            "SendBulk" => "Send bulk SMS (more than one recipient)",
+            "ViewDetails" => $"View {subject} details",
             _ => claim,
         };
     }
@@ -67,6 +72,15 @@ public static class AuthorizationCatalog
         var procurement = all.Where(c => c.StartsWith("Procurement.")).ToList();
         var projects = all.Where(c => c.StartsWith("Projects.")).ToList();
         var self = all.Where(c => c.StartsWith("Self.")).ToList();
+
+        // Day-to-day SMS work. Bulk sending, gateway configuration and switching the active
+        // gateway are deliberately left out: they spend money or touch credentials, so they are
+        // granted to named users or roles, and Admin has them implicitly.
+        var smsOperatorClaims = new[]
+        {
+            Claims.Sms.Dashboard.View, Claims.Sms.Analytics.View, Claims.Sms.Gateways.View,
+            Claims.Sms.Messages.Send, Claims.Sms.History.View, Claims.Sms.History.ViewDetails,
+        };
 
         var salesClaims = new[]
         {
@@ -97,6 +111,8 @@ public static class AuthorizationCatalog
                         .Concat(self).ToList()),
             new(Roles.Sales, "Sells to customers; manages invoices and customer records.",
                 salesClaims.Concat(self).ToList()),
+            new(Roles.SmsOperator, "Sends individual SMS and reviews SMS history and analytics.",
+                smsOperatorClaims.Concat(self).ToList()),
             new(Roles.Employee, "Self-service only. Default role for every newly provisioned employee account.", self),
         };
     }

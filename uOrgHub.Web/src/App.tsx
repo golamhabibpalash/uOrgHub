@@ -60,6 +60,10 @@ import ChartOfAccountsReportPage from "./pages/accounts/reports/ChartOfAccountsR
 import JournalEntryReportPage from "./pages/accounts/reports/JournalEntryReportPage";
 import AccountLedgerPage from "./pages/accounts/reports/AccountLedgerPage";
 import ProjectStatementPage from "./pages/accounts/reports/ProjectStatementPage";
+import SmsDashboardPage from "./pages/sms/SmsDashboardPage";
+import SmsComposePage from "./pages/sms/SmsComposePage";
+import SmsHistoryPage from "./pages/sms/SmsHistoryPage";
+import SmsGatewaysPage from "./pages/sms/SmsGatewaysPage";
 import DayBookPage from "./pages/accounts/reports/DayBookPage";
 import ReceiptsPaymentsPage from "./pages/accounts/reports/ReceiptsPaymentsPage";
 import AccountGroupSummaryPage from "./pages/accounts/reports/AccountGroupSummaryPage";
@@ -259,6 +263,10 @@ export default function App() {
             <Route path="projects/:id/ncrs" element={<NCRsPage />} />
             <Route path="projects/:id/safety-incidents" element={<SafetyIncidentsPage />} />
             <Route path="projects/:id/ra-bills" element={<RABillsPage />} />
+            <Route path="sms" element={<ProtectedRoute requiredClaim="Sms.Dashboard.View"><SmsDashboardPage /></ProtectedRoute>} />
+            <Route path="sms/compose" element={<ProtectedRoute requiredClaim="Sms.Messages.Send"><SmsComposePage /></ProtectedRoute>} />
+            <Route path="sms/history" element={<ProtectedRoute requiredClaim="Sms.History.View"><SmsHistoryPage /></ProtectedRoute>} />
+            <Route path="sms/gateways" element={<ProtectedRoute requiredClaim="Sms.Gateways.View"><SmsGatewaysPage /></ProtectedRoute>} />
             <Route path="settings/system" element={<SystemSettingsPage />} />
             <Route path="settings/validation-rules" element={<ValidationRulesPage />} />
             <Route path="settings" element={<Navigate to="/settings/system" replace />} />

@@ -9,6 +9,7 @@
     <ProjectReference Include="..\uOrgHub.Projects\uOrgHub.Projects.csproj" />
     <ProjectReference Include="..\uOrgHub.Auth\uOrgHub.Auth.csproj" />
     <ProjectReference Include="..\uOrgHub.Settings\uOrgHub.Settings.csproj" />
+    <ProjectReference Include="..\uOrgHub.Sms\uOrgHub.Sms.csproj" />
   </ItemGroup>
 
   <ItemGroup>

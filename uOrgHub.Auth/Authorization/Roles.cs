@@ -9,5 +9,6 @@ public static class Roles
     public const string ProcurementOfficer = "ProcurementOfficer";
     public const string ProjectManager = "ProjectManager";
     public const string Sales = "Sales";
+    public const string SmsOperator = "SmsOperator";
     public const string Employee = "Employee";
 }

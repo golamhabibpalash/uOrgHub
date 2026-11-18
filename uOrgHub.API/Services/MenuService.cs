@@ -82,6 +82,14 @@ public class MenuService : IMenuService
             new("proj-clients", "Clients", "Users", "/projects/clients", Claims.Projects.Clients.View, null, null, null),
         ]),
 
+        new("sms", "SMS", "MessageSquare", null, null, null, "main",
+        [
+            new("sms-dashboard", "Dashboard", "MessageSquare", "/sms", Claims.Sms.Dashboard.View, null, null, null),
+            new("sms-compose", "Compose", "Send", "/sms/compose", Claims.Sms.Messages.Send, null, null, null),
+            new("sms-history", "History", "ScrollText", "/sms/history", Claims.Sms.History.View, null, null, null),
+            new("sms-gateways", "Gateways", "Settings", "/sms/gateways", Claims.Sms.Gateways.View, null, null, null),
+        ]),
+
         new("admin-users", "Users", "Users", "/admin/users", Claims.Admin.Users.View, null, "admin", null),
         new("admin-roles", "Roles", "ShieldCheck", "/admin/roles", Claims.Admin.Roles.View, null, "admin", null),
         new("admin-access-logs", "Access Logs", "ScrollText", "/admin/access-logs", Claims.Admin.AccessLogs.View, null, "admin", null),

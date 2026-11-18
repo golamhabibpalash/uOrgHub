@@ -22,6 +22,7 @@ public static class TestDb
         typeof(uOrgHub.Auth.Models.Entities.ApplicationUser),
         typeof(uOrgHub.Procurement.Models.Entities.PurchaseOrder),
         typeof(uOrgHub.Inventory.Models.Entities.InventoryCategory),
+        typeof(uOrgHub.Sms.Models.Entities.SmsMessage),
         // uOrgHub.Settings is not referenced by the test project; add it here alongside a
         // ProjectReference if Settings entities are ever needed in a test.
     ];
