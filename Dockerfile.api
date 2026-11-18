@@ -11,6 +11,7 @@ COPY uOrgHub.Procurement/uOrgHub.Procurement.csproj uOrgHub.Procurement/
 COPY uOrgHub.Projects/uOrgHub.Projects.csproj   uOrgHub.Projects/
 COPY uOrgHub.Settings/uOrgHub.Settings.csproj   uOrgHub.Settings/
 COPY uOrgHub.Shared/uOrgHub.Shared.csproj       uOrgHub.Shared/
+COPY uOrgHub.Sms/uOrgHub.Sms.csproj             uOrgHub.Sms/
 COPY global.json ./
 
 RUN dotnet restore "uOrgHub.API/uOrgHub.API.csproj"
@@ -24,6 +25,7 @@ COPY uOrgHub.Procurement/ uOrgHub.Procurement/
 COPY uOrgHub.Projects/  uOrgHub.Projects/
 COPY uOrgHub.Settings/  uOrgHub.Settings/
 COPY uOrgHub.Shared/    uOrgHub.Shared/
+COPY uOrgHub.Sms/       uOrgHub.Sms/
 
 RUN dotnet publish "uOrgHub.API/uOrgHub.API.csproj" \
     -c Release -o /app/publish --no-restore \
